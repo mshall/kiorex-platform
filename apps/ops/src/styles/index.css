@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kiorex design tokens — see Docs/DESIGN_SYSTEM.md. HSL triplets so Tailwind can apply alpha. */
+@layer base {
+  :root {
+    --background: 225 57% 97%;        /* Ground #F4F6FC */
+    --foreground: 244 46% 21%;        /* #1E1B4B */
+    --card: 0 0% 100%;
+    --card-foreground: 244 46% 21%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 244 46% 21%;
+    --primary: 244 55% 41%;           /* Indigo #3730A3 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 201 96% 32%;         /* Ocean #0369A1 */
+    --secondary-foreground: 0 0% 100%;
+    --ocean: 201 96% 32%;
+    --muted: 228 40% 94%;
+    --muted-foreground: 215 19% 35%;  /* #475569 */
+    --accent: 244 60% 95%;
+    --accent-foreground: 244 55% 36%;
+    --pulse: 9 75% 64%;               /* Coral #E8735E — accent only, never errors */
+    --pulse-foreground: 244 46% 21%;
+    --destructive: 0 70% 40%;         /* errors are red, never coral */
+    --destructive-foreground: 0 0% 100%;
+    --success: 161 94% 24%;
+    --success-soft: 152 60% 92%;
+    --warning: 26 90% 33%;
+    --warning-soft: 40 90% 91%;
+    --info: 201 96% 28%;
+    --info-soft: 201 80% 93%;
+    --border: 214 32% 88%;
+    --input: 214 22% 62%;             /* >=3:1 against white for form borders */
+    --ring: 9 75% 64%;                /* pulse focus ring */
+    --radius: 14px;
+    color-scheme: light;
+  }
+  .dark {
+    --background: 237 41% 10%;        /* #0F1024 */
+    --foreground: 233 66% 94%;
+    --card: 237 43% 16%;              /* #17183A */
+    --card-foreground: 233 66% 94%;
+    --popover: 237 43% 16%;
+    --popover-foreground: 233 66% 94%;
+    --primary: 243 78% 73%;           /* lifted indigo #8B85F0 */
+    --primary-foreground: 237 41% 10%;
+    --secondary: 199 93% 60%;         /* #38BDF8 */
+    --secondary-foreground: 237 41% 10%;
+    --ocean: 199 93% 60%;
+    --muted: 237 33% 21%;
+    --muted-foreground: 228 24% 71%;
+    --accent: 237 33% 24%;
+    --accent-foreground: 243 78% 80%;
+    --pulse: 9 75% 64%;
+    --pulse-foreground: 237 41% 10%;
+    --destructive: 0 84% 68%;
+    --destructive-foreground: 237 41% 10%;
+    --success: 158 64% 62%;
+    --success-soft: 160 40% 16%;
+    --warning: 38 92% 62%;
+    --warning-soft: 30 40% 17%;
+    --info: 199 93% 66%;
+    --info-soft: 210 50% 18%;
+    --border: 237 33% 25%;
+    --input: 232 22% 48%;
+    --ring: 9 75% 64%;
+    color-scheme: dark;
+  }
+
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Jost", "IBM Plex Sans Arabic", system-ui, sans-serif;
+    font-feature-settings: "ss01", "tnum" 0;
+  }
+  html[lang="ar"] body { font-family: "IBM Plex Sans Arabic", "Jost", system-ui, sans-serif; line-height: 1.7; }
+  h1, h2, h3, h4 { @apply font-semibold tracking-tight; }
+  html[lang="en"] h1, html[lang="en"] h2 { letter-spacing: -0.01em; }
+  :focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: hsl(var(--primary) / 0.2); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .kx-card { @apply rounded-xl border bg-card text-card-foreground shadow-card; }
+  .kx-chip { @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-accent; }
+  .kx-chip[aria-pressed="true"], .kx-chip[data-active="true"] { @apply border-pulse bg-pulse/15; }
+  .kx-label-num { font-variant-numeric: tabular-nums; }
+}
