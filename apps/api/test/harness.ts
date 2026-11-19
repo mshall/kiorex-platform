@@ -37,7 +37,8 @@ export interface TestCtx {
   close(): Promise<void>;
 }
 
-export async function createCtx(): Promise<TestCtx> {
+/** `devMarketGate: false` for suites that assert the pristine seed (no gate evidence, exact flag versions). */
+export async function createCtx(opts: { devMarketGate?: boolean } = {}): Promise<TestCtx> {
   const kiorly = await new FakeKiorly().start();
   const { privateKey, jwk } = await getKeys();
   const verifier = new JoseTokenVerifier(createLocalJWKSet({ keys: [jwk] }) as any);
@@ -67,6 +68,9 @@ export async function createCtx(): Promise<TestCtx> {
       const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations'`;
       await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(',')} RESTART IDENTITY CASCADE`);
       await flags.seed();
+      // TEST FIXTURE — DEV label, not a real gate: Egypt must be live for the booking/search suites (see prisma/seed.ts)
+      // direct insert (no audit/bump/outbox) so suites asserting flag versions and outbox contents stay pristine
+      if (opts.devMarketGate !== false) { await prisma.flagGateEvidence.create({ data: { flagKey: 'market.eg.live', gateId: 'DEV-TEST-FIXTURE-NOT-A-REAL-GATE', approver: 'test fixture', approvedOn: new Date(), documentUrl: 'https://dev.invalid/test-fixture', recordedBy: 'TEST_FIXTURE' } }); flags.invalidate(); }
       kiorly.reset();
     },
     close: async () => { await app.close(); await kiorly.stop(); },

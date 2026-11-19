@@ -14,6 +14,7 @@ class ProfileBody {
   @IsOptional() @IsString() nationalId?: string | null;
   @IsOptional() @IsIn(['ar', 'en']) preferredLocale?: string;
   @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() @MaxLength(2) market?: string;
 }
 class DependantBody {
   @IsString() @MaxLength(120) nameEn!: string;

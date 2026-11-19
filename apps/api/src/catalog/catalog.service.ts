@@ -4,6 +4,7 @@ import { cfg } from '../common/config';
 import { notFound, unavailable } from '../common/errors';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/kiorly-public';
+import { MarketService } from '../market/market-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { detectEmergency, EMERGENCY_GUIDANCE, isSpecialtyCode, mapSymptomToSpecialties, normalizeText, SPECIALTY_CODES, SPECIALTY_LABELS } from '../safety/safety-public';
 import { mapProviderDto } from './provider-mapper';
@@ -20,7 +21,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('catalog');
   private slotCache = new Map<string, { at: number; slots: Slot[] }>();
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly markets: MarketService) {}
 
   onModuleInit() {
     if (!cfg().jobsEnabled) return;
@@ -76,6 +77,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   /** Public profile (KXM-PR-01/02/04): photo, titles, specialty, languages, fees, clinic, verification, cancellation policy. */
   async profile(id: string) {
     const p = await this.getRow(id);
+    await this.markets.assertLive(p.market);
     const raw: any = p.raw ?? {};
     const prov = raw.provider ?? {};
     const marketplaceOn = await this.flags.isEnabled('kiorex.marketplace', { market: p.market });
@@ -130,7 +132,9 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       return { emergency: { ...EMERGENCY_GUIDANCE, categories: emergency.categories }, items: [], total: 0, page, pageSize, specialties: [] };
     }
     const mapped = q.q ? mapSymptomToSpecialties(q.q) : [];
-    const where: Prisma.Sql[] = [Prisma.sql`p.status = 'LIVE'`];
+    const live = await this.markets.liveMarkets(); // market.<cc>.live gate: non-live countries are hidden from search
+    if (!live.length) return { items: [], total: 0, page, pageSize, sort: q.sort ?? 'earliest', specialties: [], marketsLive: [] as string[] };
+    const where: Prisma.Sql[] = [Prisma.sql`p.status = 'LIVE'`, Prisma.sql`p.market IN (${Prisma.join(live)})`];
     const specialty = q.specialty && isSpecialtyCode(q.specialty) ? q.specialty : q.specialty;
     if (specialty) where.push(Prisma.sql`p.specialty = ${specialty}`);
     if (q.q?.trim()) {

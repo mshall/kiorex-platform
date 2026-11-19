@@ -4,6 +4,7 @@ import { blindIndex, decryptField, encryptField } from '../common/crypto';
 import { badRequest, forbidden, notFound } from '../common/errors';
 import { AuthUser } from '../common/auth';
 import { AuthSessionService } from '../auth/auth-public';
+import { MarketService } from '../market/market-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -15,7 +16,7 @@ export const CONSENT_VERSION = 'TODO_NEEDS_HUMAN_v0';
 type Contributor = (sub: string) => Promise<unknown>;
 
 export interface ProfileInput {
-  nameEn?: string; nameAr?: string; dateOfBirth?: string; gender?: string; nationalId?: string | null; preferredLocale?: string; email?: string; phone?: string;
+  nameEn?: string; nameAr?: string; dateOfBirth?: string; gender?: string; nationalId?: string | null; preferredLocale?: string; email?: string; phone?: string; market?: string;
 }
 
 const AGE_OF_MAJORITY = 18;
@@ -24,7 +25,7 @@ const AGE_OF_MAJORITY = 18;
 export class PatientService implements OnModuleInit {
   private exporters = new Map<string, Contributor>();
   private anonymizers = new Map<string, Contributor>();
-  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService) {}
+  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService, private readonly markets: MarketService) {}
 
   onModuleInit() {
     this.outbox.register('subject.deleted', async (e) => {
@@ -59,7 +60,9 @@ export class PatientService implements OnModuleInit {
     await this.ensureProfile(u);
     if (i.nationalId && !/^\d{14}$/.test(i.nationalId.trim())) throw badRequest('INVALID_NATIONAL_ID', 'National ID must be 14 digits');
     if (i.preferredLocale && !['ar', 'en'].includes(i.preferredLocale)) throw badRequest('INVALID_LOCALE', 'locale must be ar or en');
+    if (i.market !== undefined) { await this.markets.assertLive(i.market.toUpperCase()); } // sign-up country must be a LIVE market
     const data: Record<string, unknown> = {};
+    if (i.market) data.market = i.market.toUpperCase();
     for (const k of ['nameEn', 'nameAr', 'gender', 'preferredLocale', 'email', 'phone'] as const) if (i[k] !== undefined) data[k] = i[k];
     if (i.dateOfBirth !== undefined) data.dateOfBirth = i.dateOfBirth ? new Date(i.dateOfBirth) : null;
     if (i.nationalId !== undefined) {

@@ -7,6 +7,7 @@ import { newId } from '../common/ids';
 import { CatalogService } from '../catalog/catalog-public';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { EngagementService } from '../engagement/engagement-public';
+import { MarketService } from '../market/market-public';
 import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/kiorly-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
@@ -14,7 +15,7 @@ import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingStatus, fromKiorlyStatus, isTerminal, nextStatus } from './booking-state';
 
-export interface CreateIntentInput { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; channel?: 'MARKETPLACE' | 'CLINIC_LINK'; bookingPageSlug?: string }
+export interface CreateIntentInput { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; channel?: 'MARKETPLACE' | 'CLINIC_LINK' | 'WHATSAPP'; bookingPageSlug?: string }
 export interface ConfirmInput { marketplaceConsent: boolean; remindersConsent?: boolean; notes?: string }
 
 interface KiorlyEventCtx { type: string; aggregateId?: string; data: Record<string, any> }
@@ -25,7 +26,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   constructor(
     private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly catalog: CatalogService, private readonly flags: FlagsService,
-    private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService,
+    private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService, private readonly markets: MarketService,
   ) {}
 
   onModuleInit() {
@@ -93,6 +94,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
   async createIntent(sub: string, i: CreateIntentInput) {
     const p = await this.prisma.provider.findUnique({ where: { id: i.providerId } });
     if (!p) throw notFound('PROVIDER_NOT_FOUND', 'Provider not found');
+    await this.markets.assertLive(p.market);
     await this.flags.assertEnabled('kiorex.marketplace', { market: p.market });
     if (p.tenantId && (await this.flags.evaluate('clinic.kiorex_listing', { market: p.market, orgId: p.tenantId })).reason === 'OFF_ORG') throw forbidden('FEATURE_DISABLED', 'Listing paused', { key: 'clinic.kiorex_listing', scope: 'ORG' });
     if (p.status !== 'LIVE') throw conflict('LISTING_NOT_LIVE', 'Unverified or paused listings are not bookable');
@@ -160,8 +162,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const body = {
       clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,
       patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn, gender: identity.gender, nationalId: identity.nationalId, email: identity.email },
-      notes: c.notes, marketplaceConsentGranted: true, remindersConsentGranted: !!c.remindersConsent, attribution: { source: 'kiorex' },
-      channel: b.channel === 'CLINIC_LINK' ? 'CLINIC_LINK' : 'MARKETPLACE', ...(b.channel === 'CLINIC_LINK' ? { bookingPageSlug: (b.patientSnapshot as any)?.bookingPageSlug } : {}),
+      notes: c.notes, marketplaceConsentGranted: true, remindersConsentGranted: !!c.remindersConsent, attribution: { source: b.channel === 'WHATSAPP' ? 'kiorex_whatsapp' : 'kiorex' },
+      // KXM-BK-11: Kiorly's marketplace API accepts MARKETPLACE|CLINIC_LINK today; KIOREX_WHATSAPP is sent only once Kiorly accepts it (KIORLY_ACCEPTS_WHATSAPP_CHANNEL)
+      channel: b.channel === 'CLINIC_LINK' ? 'CLINIC_LINK' : b.channel === 'WHATSAPP' && cfg().kiorlyAcceptsWhatsappChannel ? 'KIOREX_WHATSAPP' : 'MARKETPLACE', ...(b.channel === 'CLINIC_LINK' ? { bookingPageSlug: (b.patientSnapshot as any)?.bookingPageSlug } : {}),
     };
     try {
       const { data } = await this.kiorly.createBooking(b.id, body); // Idempotency-Key = Kiorex booking id

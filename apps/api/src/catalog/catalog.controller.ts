@@ -2,6 +2,8 @@ import { Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { badRequest } from '../common/errors';
+import { RequiresFlag } from '../control-plane/control-plane-public';
+import { MarketService } from '../market/market-public';
 import { CatalogService, SearchParams } from './catalog.service';
 
 const num = (v?: string) => (v === undefined || v === '' ? undefined : Number(v));
@@ -9,7 +11,7 @@ const num = (v?: string) => (v === undefined || v === '' ? undefined : Number(v)
 @ApiTags('catalog')
 @Controller()
 export class CatalogController {
-  constructor(private readonly svc: CatalogService) {}
+  constructor(private readonly svc: CatalogService, private readonly markets: MarketService) {}
 
   @Public() @Get('search/providers')
   @ApiOperation({ summary: 'KXM-DS-01..04/06 search; emergency keywords return 123 guidance and no results' })
@@ -40,6 +42,7 @@ export class CatalogController {
   async slots(@Param('id') id: string, @Query('typeId') typeId: string, @Query('from') from?: string, @Query('to') to?: string) {
     if (!typeId) throw badRequest('TYPE_REQUIRED', 'typeId required');
     const p = await this.svc.getRow(id);
+    await this.markets.assertLive(p.market);
     const f = from ? new Date(from) : new Date();
     const t = to ? new Date(to) : new Date(f.getTime() + 7 * 86400_000);
     if (Number.isNaN(f.getTime()) || Number.isNaN(t.getTime())) throw badRequest('INVALID_RANGE', 'invalid from/to');
@@ -49,4 +52,7 @@ export class CatalogController {
 
   @Public() @Post('providers/:id/view') @HttpCode(200) @ApiOperation({ summary: 'KXM-DS-08 count a profile view (pushed daily to Kiorly)' })
   view(@Param('id') id: string) { return this.svc.recordProfileView(id); }
+
+  @Public() @Get('search/sponsored') @RequiresFlag('kiorex.sponsored_listings') @ApiOperation({ summary: 'Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled' })
+  sponsored() { return { items: [], sponsored: true, label: 'SPONSORED' }; }
 }

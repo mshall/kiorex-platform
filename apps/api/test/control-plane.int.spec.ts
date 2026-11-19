@@ -9,7 +9,7 @@ const SNAP = '/api/v1/control/v1/flags/snapshot';
 describe('control plane (KXM-OP-07..11)', () => {
   let c: TestCtx;
   let a1: { Authorization: string }; let a2: { Authorization: string };
-  beforeAll(async () => { c = await createCtx(); });
+  beforeAll(async () => { c = await createCtx({ devMarketGate: false }); });
   afterAll(async () => { await c.close(); });
   beforeEach(async () => {
     await c.reset();
