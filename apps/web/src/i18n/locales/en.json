@@ -450,7 +450,10 @@
       "taken": "Someone else just took that slot. We will keep you on the waitlist.",
       "expired": "This offer has expired.",
       "generic": "Something went wrong. Please try again."
-    }
+    },
+    "slotsAvailableTitle": "This doctor has open slots",
+    "slotsAvailableBody": "There is no need to wait: book one of these times directly.",
+    "bookDirectly": "Show slots and book"
   },
   "records": {
     "title": "Records",

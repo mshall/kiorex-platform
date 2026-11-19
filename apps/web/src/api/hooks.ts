@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, Q, unwrap } from "./client";
+import { api, unwrap } from "./client";
 import type { Booking, ConsentType, SearchParams, Slot } from "./types";
 import { mapBooking, mapConsent, mapDependant, mapPatient, mapProfile, mapReviews, mapSearch, mapSession, mapSlot, mapSpecialty } from "./adapters";
 
@@ -11,7 +11,7 @@ export const qk = {
 };
 
 export const useFlags = () =>
-  useQuery({ queryKey: qk.flags, queryFn: () => unwrap(api.GET("/api/v1/flags/effective", { params: { query: Q({}) } })), staleTime: 30_000, retry: 0 });
+  useQuery({ queryKey: qk.flags, queryFn: () => unwrap(api.GET("/api/v1/flags/effective")), staleTime: 30_000, retry: 0 });
 
 // ───── catalog ─────
 export const useSpecialties = () =>
@@ -26,7 +26,7 @@ export const useSearchDoctors = (p: SearchParams, enabled = true) =>
       const query: Record<string, string> = {};
       for (const [k, v] of Object.entries(rest)) if (v !== undefined && v !== "" && v !== false) query[k] = String(v);
       if (availableWithinDays) query.nextAvailable = NEXT[availableWithinDays] ?? "week";
-      return mapSearch(await unwrap(api.GET("/api/v1/search/providers", { params: { query: Q(query) } })));
+      return mapSearch(await unwrap(api.GET("/api/v1/search/providers", { params: { query: query } })));
     },
   });
 
@@ -37,7 +37,7 @@ export const useSlots = (id: string, visitTypeId: string | undefined, from?: str
   useQuery({
     queryKey: qk.slots(id, visitTypeId ?? "", from, to), enabled: !!visitTypeId, refetchInterval: 60_000,
     queryFn: async () => {
-      const r = await unwrap(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: Q({ typeId: visitTypeId, ...(from ? { from } : {}), ...(to ? { to } : {}) }) } }));
+      const r = await unwrap(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: { typeId: visitTypeId!, ...(from ? { from } : {}), ...(to ? { to } : {}) } } }));
       return (r.slots ?? []).map((s) => mapSlot(s, visitTypeId!));
     },
   });
@@ -80,7 +80,7 @@ export const useDeleteAccount = () =>
 
 // ───── bookings ─────
 export const useBookings = (enabled = true) =>
-  useQuery({ queryKey: qk.bookings, enabled, queryFn: async () => (await unwrap(api.GET("/api/v1/bookings", { params: { query: Q({}) } }))).map(mapBooking) });
+  useQuery({ queryKey: qk.bookings, enabled, queryFn: async () => (await unwrap(api.GET("/api/v1/bookings"))).map(mapBooking) });
 
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({

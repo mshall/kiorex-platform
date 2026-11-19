@@ -35,8 +35,6 @@ export async function unwrap<T>(p: Promise<{ data?: T; error?: unknown; response
   return data as T;
 }
 
-/** The contract marks every query parameter required, though most are optional server-side; this narrows the cast to one place. */
-export const Q = (x: object) => x as never;
 /** Authenticated raw fetch (blob downloads such as vault files); same market header as the typed client. */
 export async function authedBlob(path: string): Promise<Blob> {
   const token = await getToken();

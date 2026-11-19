@@ -113,7 +113,7 @@ const KIORLY_WEBHOOK_SECRET = process.env.KIORLY_WEBHOOK_SECRET ?? "kx_dev_webho
 const RECORD_SHARE_SECRET = process.env.KIOREX_RECORD_SHARE_HMAC_SECRET ?? "dev-record-share-secret";
 
 export async function kiorlyWebhook(request: APIRequestContext, type: string, data: Record<string, unknown>) {
-  const body = JSON.stringify({ eventId: randomUUID(), type, aggregateType: "Record", aggregateId: String(data.encounterId ?? "x"), occurredAt: new Date().toISOString(), target: "KIOREX", data });
+  const body = JSON.stringify({ eventId: randomUUID(), type, aggregateType: "Encounter", aggregateId: String(data.encounterId ?? "x"), occurredAt: new Date().toISOString(), target: "KIOREX", data });
   const ts = String(Math.floor(Date.now() / 1000));
   const sig = `sha256=${createHmac("sha256", KIORLY_WEBHOOK_SECRET).update(`${ts}.${body}`).digest("hex")}`;
   const res = await request.post(`${API}/api/v1/webhooks/kiorly`, { data: body, headers: { "content-type": "application/json", "x-kiorly-event": type, "x-kiorly-event-id": JSON.parse(body).eventId, "x-kiorly-timestamp": ts, "x-kiorly-signature": sig } });

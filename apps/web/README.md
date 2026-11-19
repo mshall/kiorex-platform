@@ -9,18 +9,16 @@ npm run gen:api -w apps/web      # regenerate src/api/schema.d.ts from apps/api/
 npm run typecheck -w apps/web && npm run lint -w apps/web && npm test -w apps/web
 ```
 
-The OpenAPI declares request bodies only (no response schemas), so responses are mapped from the API wire shapes into UI view-models in `src/api/adapters.ts` / `src/api/types.ts`. When the API adds response schemas, tighten those types.
+Types come from the generated contract (`src/api/schema.d.ts`, `npm run gen:api`); `src/api/services.ts` (Phase 2/3 hooks) uses them directly and `src/api/adapters.ts` only maps them to bilingual/whole-EGP presentation models. There is **no MSW in app code paths**: MSW lives under `src/test/mocks` and is used by unit tests only.
 
-## E2E (Playwright)
+## Features (Phase 2/3)
+Waitlist (join from the no-slot state; 409 `SLOTS_AVAILABLE` shows "book directly"; offers inbox), records vault (list/view/download/delete/upload, per-scope sharing consent, prescriptions with QR, follow-ups, read-only banner), pharmacy (search, cart, delivery, Kiorex Pay sandbox checkout, order tracking, cancel, rejected/refunded states), lab bookings (home-collection slots, result delivered into the vault), telemedicine (providers, sessions, mock video room), services hub + WhatsApp info, market selector (`market.<cc>.live`), booking channel badges, sponsored label, whitelisted analytics (`POST /analytics/events`). Launch-locked flags render "awaiting approval"; test/sandbox providers are called out via `MockNotice`. Set `VITE_WHATSAPP_NUMBER` once the real number exists (NEEDS_HUMAN); consent-centre and prescription copy needs legal/clinical review before launch.
 
-Real local stack (default). Prerequisites, all running:
-1. PostgreSQL on :5433 (`kiorex_platform`, `kiorex_account` migrated; see INTEGRATION.md).
-2. Kiorex Account dev IdP on :4400 (`kiorex-account`: `npm run dev`) — seeded patient `+201000000001`, OTP `000000`.
-3. Kiorex API on :4000 (`apps/api`).
-4. For the golden booking journey: Kiorly Clinic API on :3000 with at least one LIVE provider, then sync it into Kiorex (`POST /api/v1/admin/providers/sync?full=true` as an ops admin). Without providers the golden test **skips** itself and says why.
-
+## E2E (Playwright, real stack only)
+Prerequisites running: Postgres :5433, Passport :4400, Kiorly :3010, Kiorex API :4000 (providers synced). OTP `000000`; the first test signs in through the real OIDC UI and caches the session in `e2e/.auth/` (git-ignored).
 ```bash
-npm run e2e -w apps/web                       # real stack
-E2E_MODE=mock npm run e2e -w apps/web         # MSW mock API, no backend (UI + RTL screenshots)
+npm run e2e -w apps/web                       # golden journey, vault, waitlist, new screens (AR/RTL, dark), analytics
+# Pharmacy / lab / telemedicine are launch-locked on the shared dev DB. Isolated stack with TEST-FIXTURE gates and API :4001 (real Kiorly Pharmacy/Lab partners must be running):
+pkill -f "vite"                               # :5180 must be free
+node apps/web/e2e/verticals/stack.mjs up && (cd apps/web && npx playwright test -c playwright.verticals.config.ts); node apps/web/e2e/verticals/stack.mjs down
 ```
-Screenshots for RTL review land in `apps/web/e2e/screenshots/`.

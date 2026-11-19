@@ -1751,7 +1751,7 @@ export interface paths {
         /** KXM-BK-12 my waitlist entries with their offers */
         get: operations["WaitlistController_list"];
         put?: never;
-        /** KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type) */
+        /** KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly */
         post: operations["WaitlistController_join"];
         delete?: never;
         options?: never;
@@ -3502,6 +3502,14 @@ export interface components {
             preferredTo?: string;
             dependantId?: string;
         };
+        WaitlistDoctorDto: {
+            id: string;
+            nameEn: string | null;
+            nameAr: string | null;
+            /** @description Launch specialty code */
+            specialty: string | null;
+            photoUrl: string | null;
+        };
         WaitlistOfferDto: {
             id: string;
             /** Format: date-time */
@@ -3521,6 +3529,10 @@ export interface components {
         WaitlistEntryDto: {
             id: string;
             providerId: string;
+            /** @description Doctor summary so clients need not fetch the profile per entry */
+            doctor: components["schemas"]["WaitlistDoctorDto"] | null;
+            clinicNameEn: string | null;
+            clinicNameAr: string | null;
             typeId: string;
             /** Format: date-time */
             preferredFrom: string | null;
@@ -3821,11 +3833,11 @@ export interface operations {
     };
     DevMessagingController_outbox: {
         parameters: {
-            query: {
-                channel: string;
-                to: string;
-                direction: string;
-                limit: string;
+            query?: {
+                channel?: string;
+                to?: string;
+                direction?: string;
+                limit?: string;
             };
             header?: never;
             path?: never;
@@ -3845,8 +3857,8 @@ export interface operations {
     };
     DevMessagingController_clear: {
         parameters: {
-            query: {
-                channel: string;
+            query?: {
+                channel?: string;
             };
             header?: never;
             path?: never;
@@ -3885,8 +3897,8 @@ export interface operations {
     };
     MarketController_list: {
         parameters: {
-            query: {
-                all: string;
+            query?: {
+                all?: string;
             };
             header?: never;
             path?: never;
@@ -4014,9 +4026,9 @@ export interface operations {
     };
     ControlPlaneController_list: {
         parameters: {
-            query: {
-                market: string;
-                product: string;
+            query?: {
+                market?: string;
+                product?: string;
             };
             header?: never;
             path?: never;
@@ -4134,8 +4146,8 @@ export interface operations {
     };
     ControlPlaneController_requests: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -4237,11 +4249,11 @@ export interface operations {
     };
     ControlPlaneController_audit: {
         parameters: {
-            query: {
-                flagKey: string;
-                from: string;
-                to: string;
-                format: string;
+            query?: {
+                flagKey?: string;
+                from?: string;
+                to?: string;
+                format?: string;
             };
             header?: never;
             path?: never;
@@ -4618,24 +4630,24 @@ export interface operations {
     };
     CatalogController_search: {
         parameters: {
-            query: {
-                q: string;
-                specialty: string;
-                governorate: string;
-                area: string;
-                minFee: string;
-                maxFee: string;
-                gender: string;
-                language: string;
-                minRating: string;
-                acceptsDeposit: string;
-                nextAvailable: string;
-                sort: string;
-                lat: string;
-                lng: string;
-                maxDistanceKm: string;
-                page: string;
-                pageSize: string;
+            query?: {
+                q?: string;
+                specialty?: string;
+                governorate?: string;
+                area?: string;
+                minFee?: string;
+                maxFee?: string;
+                gender?: string;
+                language?: string;
+                minRating?: string;
+                acceptsDeposit?: string;
+                nextAvailable?: string;
+                sort?: string;
+                lat?: string;
+                lng?: string;
+                maxDistanceKm?: string;
+                page?: string;
+                pageSize?: string;
             };
             header?: never;
             path?: never;
@@ -4697,8 +4709,8 @@ export interface operations {
         parameters: {
             query: {
                 typeId: string;
-                from: string;
-                to: string;
+                from?: string;
+                to?: string;
             };
             header?: never;
             path: {
@@ -4994,8 +5006,8 @@ export interface operations {
     };
     BookingController_list: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5403,10 +5415,10 @@ export interface operations {
     };
     OpsController_providers: {
         parameters: {
-            query: {
-                status: string;
-                q: string;
-                page: string;
+            query?: {
+                status?: string;
+                q?: string;
+                page?: string;
             };
             header?: never;
             path?: never;
@@ -5426,8 +5438,8 @@ export interface operations {
     };
     OpsController_syncProviders: {
         parameters: {
-            query: {
-                full: string;
+            query?: {
+                full?: string;
             };
             header?: never;
             path?: never;
@@ -5447,10 +5459,10 @@ export interface operations {
     };
     OpsController_bookingsList: {
         parameters: {
-            query: {
-                status: string;
-                clinicId: string;
-                sub: string;
+            query?: {
+                status?: string;
+                clinicId?: string;
+                sub?: string;
             };
             header?: never;
             path?: never;
@@ -5491,9 +5503,9 @@ export interface operations {
     };
     OpsController_outboxList: {
         parameters: {
-            query: {
-                status: string;
-                type: string;
+            query?: {
+                status?: string;
+                type?: string;
             };
             header?: never;
             path?: never;
@@ -5576,9 +5588,9 @@ export interface operations {
     };
     OpsController_feeStatements: {
         parameters: {
-            query: {
-                from: string;
-                to: string;
+            query?: {
+                from?: string;
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -5617,8 +5629,8 @@ export interface operations {
     };
     OpsController_reconcilePsp: {
         parameters: {
-            query: {
-                date: string;
+            query?: {
+                date?: string;
             };
             header?: never;
             path?: never;
@@ -5702,8 +5714,8 @@ export interface operations {
     };
     OpsController_queue: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5748,8 +5760,8 @@ export interface operations {
     };
     OpsController_complaints: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5790,8 +5802,8 @@ export interface operations {
     };
     OpsController_liquidity: {
         parameters: {
-            query: {
-                days: string;
+            query?: {
+                days?: string;
             };
             header?: never;
             path?: never;
@@ -5868,11 +5880,11 @@ export interface operations {
     };
     OpsController_messagingLog: {
         parameters: {
-            query: {
-                channel: string;
-                status: string;
-                direction: string;
-                limit: string;
+            query?: {
+                channel?: string;
+                status?: string;
+                direction?: string;
+                limit?: string;
             };
             header?: never;
             path?: never;
@@ -5955,8 +5967,8 @@ export interface operations {
     };
     VaultController_list: {
         parameters: {
-            query: {
-                kind: string;
+            query?: {
+                kind?: string;
             };
             header?: never;
             path?: never;
@@ -6399,9 +6411,9 @@ export interface operations {
     };
     PharmacyController_search: {
         parameters: {
-            query: {
-                q: string;
-                pharmacyId: string;
+            query?: {
+                q?: string;
+                pharmacyId?: string;
             };
             header?: never;
             path?: never;
@@ -6589,8 +6601,8 @@ export interface operations {
     };
     PharmacyController_opsList: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -6638,9 +6650,9 @@ export interface operations {
     };
     LabController_tests: {
         parameters: {
-            query: {
-                q: string;
-                labId: string;
+            query?: {
+                q?: string;
+                labId?: string;
             };
             header?: never;
             path?: never;
@@ -6662,9 +6674,9 @@ export interface operations {
         parameters: {
             query: {
                 labId: string;
-                from: string;
-                to: string;
-                tests: string;
+                from?: string;
+                to?: string;
+                tests?: string;
             };
             header?: never;
             path?: never;
@@ -6768,8 +6780,8 @@ export interface operations {
     };
     LabController_opsList: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -6817,9 +6829,9 @@ export interface operations {
     };
     TelemedicineController_providers: {
         parameters: {
-            query: {
-                specialty: string;
-                q: string;
+            query?: {
+                specialty?: string;
+                q?: string;
             };
             header?: never;
             path?: never;

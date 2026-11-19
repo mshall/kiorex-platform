@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { BellRing, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useDoctor } from "@/api/hooks";
 import { ApiError } from "@/api/errors";
 import { useAcceptOffer, useCancelWaitlist, useDeclineOffer, useWaitlist, type WaitlistEntry, type WaitlistOffer } from "@/api/services";
 import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
@@ -51,17 +50,15 @@ function OfferRow({ offer, entryId }: { offer: WaitlistOffer; entryId: string })
 
 function EntryCard({ e }: { e: WaitlistEntry }) {
   const { t, i18n } = useTranslation();
-  const doctor = useDoctor(e.providerId);
   const cancel = useCancelWaitlist();
-  const vt = doctor.data?.visitTypes.find((v) => v.id === e.typeId);
   const open = ["WAITING", "OFFERED"].includes(e.status);
   const offers = e.offers.filter((o) => o.status === "OFFERED" || e.status === "OFFERED");
   return (
     <li className="kx-card space-y-3 p-5" data-testid="waitlist-entry" data-status={e.status}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-lg"><Link className="hover:underline" to={`/doctors/${e.providerId}`}>{doctor.data ? pick(doctor.data.summary, "name", i18n.language) : "…"}</Link></h3>
-          <p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", i18n.language) : ""} · {e.preferredTo ? t("waitlist.until", { date: formatDate(e.preferredTo, i18n.language) }) : t("waitlist.windows.any")}</p>
+          <h3 className="text-lg"><Link className="hover:underline" to={`/doctors/${e.providerId}`}>{e.doctor ? pick(e.doctor, "name", i18n.language) : "…"}</Link></h3>
+          <p className="text-sm text-muted-foreground">{pick(e, "clinicName", i18n.language)} · {e.preferredTo ? t("waitlist.until", { date: formatDate(e.preferredTo, i18n.language) }) : t("waitlist.windows.any")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={e.status === "OFFERED" ? "pulse" : e.status === "BOOKED" ? "success" : open ? "info" : "secondary"}>{t(`waitlist.entryStatus.${e.status}`)}</Badge>

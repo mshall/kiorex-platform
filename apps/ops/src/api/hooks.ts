@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, Q, unwrap } from "./client";
+import { api, unwrap } from "./client";
 import type { FlagAudit, FlagRequest, FlagRow, GateBody, Propagation, SetFlagBody, SetFlagResult } from "./types";
 import { mapFinance, mapLiquidity, mapModeration, mapOutbox, mapProviders, mapTimeline } from "./adapters";
 
@@ -11,13 +11,13 @@ const flagRows = (p: Promise<{ data?: unknown; error?: unknown; response: Respon
 export const flagKeys = { all: ["flags"] as const, list: (market: string, product: string) => ["flags", "list", market, product] as const, requests: ["flags", "requests"] as const, audit: (k: string) => ["flags", "audit", k] as const, propagation: ["flags", "propagation"] as const };
 
 export const useFlags = (market: string, product: string) =>
-  useQuery({ queryKey: flagKeys.list(market, product), queryFn: () => flagRows(api.GET("/api/v1/admin/flags", { params: { query: Q({ market, ...(product ? { product } : {}) }) } })) });
+  useQuery({ queryKey: flagKeys.list(market, product), queryFn: () => flagRows(api.GET("/api/v1/admin/flags", { params: { query: { market, ...(product ? { product } : {}) } } })) });
 
 export const useFlagRequests = () =>
-  useQuery({ queryKey: flagKeys.requests, queryFn: () => unwrapAs<FlagRequest[]>(api.GET("/api/v1/admin/flags/requests", { params: { query: Q({}) } })) });
+  useQuery({ queryKey: flagKeys.requests, queryFn: () => unwrapAs<FlagRequest[]>(api.GET("/api/v1/admin/flags/requests")) });
 
 export const useFlagAudit = (flagKey: string) =>
-  useQuery({ queryKey: flagKeys.audit(flagKey), queryFn: () => unwrapAs<FlagAudit[]>(api.GET("/api/v1/admin/flags/audit", { params: { query: Q(flagKey ? { flagKey } : {}) } })) });
+  useQuery({ queryKey: flagKeys.audit(flagKey), queryFn: () => unwrapAs<FlagAudit[]>(api.GET("/api/v1/admin/flags/audit", { params: { query: flagKey ? { flagKey } : {} } })) });
 
 export const usePropagation = () =>
   useQuery({ queryKey: flagKeys.propagation, refetchInterval: 15_000, queryFn: () => unwrap(api.GET("/api/v1/admin/flags/propagation")) });
@@ -63,19 +63,19 @@ export async function downloadAuditCsv(token: string | null, flagKey?: string) {
 
 // ---- OP-01..06: real /admin/* endpoints mapped into console view-models ----
 export const useProviders = (q: string, status: string) =>
-  useQuery({ queryKey: ["ops", "providers", q, status], queryFn: async () => mapProviders(await unwrap(api.GET("/api/v1/admin/providers", { params: { query: Q({ ...(q ? { q } : {}), ...(status ? { status } : {}) }) } }))) });
+  useQuery({ queryKey: ["ops", "providers", q, status], queryFn: async () => mapProviders(await unwrap(api.GET("/api/v1/admin/providers", { params: { query: { ...(q ? { q } : {}), ...(status ? { status } : {}) } } }))) });
 export const useBookingTimeline = (id: string) =>
   useQuery({ queryKey: ["ops", "timeline", id], enabled: !!id, retry: false, queryFn: async () => mapTimeline(await unwrap(api.GET("/api/v1/admin/bookings/{id}/timeline", { params: { path: { id } } }))) });
 export const useOutbox = (status: string) =>
-  useQuery({ queryKey: ["ops", "outbox", status], refetchInterval: 10_000, queryFn: async () => mapOutbox(await unwrap(api.GET("/api/v1/admin/outbox", { params: { query: Q(status ? { status } : {}) } }))) });
+  useQuery({ queryKey: ["ops", "outbox", status], refetchInterval: 10_000, queryFn: async () => mapOutbox(await unwrap(api.GET("/api/v1/admin/outbox", { params: { query: status ? { status } : {} } }))) });
 export const useReplay = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => unwrap(api.POST("/api/v1/admin/outbox/{id}/replay", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "outbox"] }) });
 };
 export const useFinance = () => useQuery({ queryKey: ["ops", "finance"], queryFn: async () => mapFinance(await unwrap(api.GET("/api/v1/admin/payments/dashboard"))) });
-export const useModeration = () => useQuery({ queryKey: ["ops", "moderation"], queryFn: async () => mapModeration(await unwrap(api.GET("/api/v1/admin/moderation", { params: { query: Q({ status: "OPEN" }) } }))) });
+export const useModeration = () => useQuery({ queryKey: ["ops", "moderation"], queryFn: async () => mapModeration(await unwrap(api.GET("/api/v1/admin/moderation", { params: { query: { status: "OPEN" } } }))) });
 export const useModerate = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (v: { id: string; resolution: "RESTORED" | "KEPT_HIDDEN" }) => unwrap(api.POST("/api/v1/admin/moderation/{id}/resolve", { params: { path: { id: v.id } }, body: { resolution: v.resolution } as never })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "moderation"] }) });
 };
-export const useLiquidity = () => useQuery({ queryKey: ["ops", "liquidity"], queryFn: async () => mapLiquidity(await unwrap(api.GET("/api/v1/admin/liquidity", { params: { query: Q({}) } }))) });
+export const useLiquidity = () => useQuery({ queryKey: ["ops", "liquidity"], queryFn: async () => mapLiquidity(await unwrap(api.GET("/api/v1/admin/liquidity"))) });

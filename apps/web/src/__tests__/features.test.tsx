@@ -21,7 +21,7 @@ vi.mock("qrcode", () => ({ default: { toDataURL: vi.fn(async (v: string) => `dat
 
 const flagsAwaiting = (keys: string[]) => http.get("/api/v1/flags/effective", () => HttpResponse.json({ market: "EG", version: 1, flags: Object.fromEntries(keys.map((k) => [k, { enabled: false, reason: "AWAITING_GATE", scope: "GATE" }])) }));
 const soon = () => new Date(Date.now() + 10 * 60_000).toISOString();
-const entry = (over = {}) => ({ id: "w1", providerId: "d1", typeId: "d1-first", preferredFrom: null, preferredTo: null, status: "OFFERED", expiresAt: soon(), offers: [{ id: "o1", startsAt: "2026-12-02T10:00:00Z", endsAt: "2026-12-02T10:20:00Z", status: "OFFERED", expiresAt: soon(), bookingId: null }], ...over });
+const entry = (over = {}) => ({ id: "w1", providerId: "d1", doctor: { id: "d1", nameEn: "Dr Laila", nameAr: "د. ليلى", specialty: "dermatology", photoUrl: null }, clinicNameEn: "Nile Clinic", clinicNameAr: "عيادة النيل", typeId: "d1-first", preferredFrom: null, preferredTo: null, status: "OFFERED", expiresAt: soon(), offers: [{ id: "o1", startsAt: "2026-12-02T10:00:00Z", endsAt: "2026-12-02T10:20:00Z", status: "OFFERED", expiresAt: soon(), bookingId: null }], ...over });
 
 describe("waitlist (BK-12)", () => {
   it("shows an offer in the inbox and accept turns it into the normal hold", async () => {
@@ -55,6 +55,16 @@ describe("waitlist (BK-12)", () => {
     renderApp(<WaitlistJoin providerId="d1" typeId="d1-first" />);
     await userEvent.click(await screen.findByTestId("waitlist-join-btn"));
     await waitFor(() => expect(body).toMatchObject({ providerId: "d1", typeId: "d1-first" }));
+  });
+});
+
+describe("waitlist 409 SLOTS_AVAILABLE", () => {
+  it("shows the open slots and a book-directly action instead of joining", async () => {
+    server.use(http.post("/api/v1/waitlist", () => HttpResponse.json({ code: "SLOTS_AVAILABLE", message: "open", nextSlots: [{ startsAt: "2026-12-02T10:00:00Z", endsAt: "2026-12-02T10:20:00Z" }], openSlotCount: 4 }, { status: 409 })));
+    renderApp(<WaitlistJoin providerId="d1" typeId="d1-first" />, { lang: "en" });
+    await userEvent.click(await screen.findByTestId("waitlist-join-btn"));
+    expect(await screen.findByTestId("waitlist-slots-available")).toBeInTheDocument();
+    expect(screen.getByTestId("book-directly")).toBeInTheDocument();
   });
 });
 

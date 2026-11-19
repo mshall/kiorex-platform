@@ -1,6 +1,6 @@
 // Hooks for the Phase 2/3 features, typed straight from the generated OpenAPI contract (./schema.d.ts) — no hand-typed responses.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, authedBlob, Q, unwrap } from "./client";
+import { api, authedBlob, unwrap } from "./client";
 import type { components } from "./schema";
 
 type S = components["schemas"];
@@ -36,10 +36,10 @@ export const sk = {
 };
 
 // ───── markets (market.<cc>.live) ─────
-export const useMarkets = () => useQuery({ queryKey: sk.markets, staleTime: 300_000, queryFn: () => unwrap(api.GET("/api/v1/markets", { params: { query: Q({ all: true }) } })) });
+export const useMarkets = () => useQuery({ queryKey: sk.markets, staleTime: 300_000, queryFn: () => unwrap(api.GET("/api/v1/markets", { params: { query: { all: "true" } } })) });
 
 // ───── sponsored label (P3; the API returns no items until commercial terms exist) ─────
-export const useSponsored = (enabled = true) => useQuery({ queryKey: sk.sponsored, enabled, retry: 0, staleTime: 300_000, queryFn: () => unwrap(api.GET("/api/v1/search/sponsored", { params: { query: Q({}) } })) });
+export const useSponsored = (enabled = true) => useQuery({ queryKey: sk.sponsored, enabled, retry: 0, staleTime: 300_000, queryFn: () => unwrap(api.GET("/api/v1/search/sponsored")) });
 
 // ───── waitlist (BK-12) ─────
 export const useWaitlist = (enabled = true) => useQuery({ queryKey: sk.waitlist, enabled, refetchInterval: 30_000, queryFn: () => unwrap(api.GET("/api/v1/waitlist")) });
@@ -62,7 +62,7 @@ export const useDeclineOffer = () => {
 };
 
 // ───── records vault (RC-01..03) ─────
-export const useVault = (kind?: VaultItem["kind"]) => useQuery({ queryKey: sk.vault(kind), queryFn: () => unwrap(api.GET("/api/v1/me/vault", { params: { query: Q(kind ? { kind } : {}) } })) });
+export const useVault = (kind?: VaultItem["kind"]) => useQuery({ queryKey: sk.vault(kind), queryFn: () => unwrap(api.GET("/api/v1/me/vault", { params: { query: kind ? { kind } : {} } })) });
 export const useVaultItem = (id: string) => useQuery({ queryKey: sk.vaultItem(id), enabled: !!id, queryFn: () => unwrap(api.GET("/api/v1/me/vault/{id}", { params: { path: { id } } })) });
 const useInvalidateVault = () => { const qc = useQueryClient(); return () => { void qc.invalidateQueries({ queryKey: ["vault"] }); void qc.invalidateQueries({ queryKey: sk.rx }); }; };
 export const useDeleteVaultItem = () => { const inv = useInvalidateVault(); return useMutation({ mutationFn: (id: string) => unwrap(api.DELETE("/api/v1/me/vault/{id}", { params: { path: { id } } })), onSuccess: inv }); };
@@ -108,7 +108,7 @@ export const useCancelFollowUp = () => {
 // ───── pharmacy ─────
 export const usePharmacies = () => useQuery({ queryKey: sk.pharmacies, retry: 0, queryFn: () => unwrap(api.GET("/api/v1/pharmacy/pharmacies")) });
 export const useMedicineSearch = (q: string, pharmacyId?: string) =>
-  useQuery({ queryKey: sk.medicines(q, pharmacyId), enabled: q.trim().length >= 2, retry: 0, queryFn: () => unwrap(api.GET("/api/v1/pharmacy/search", { params: { query: Q({ q, ...(pharmacyId ? { pharmacyId } : {}) }) } })) });
+  useQuery({ queryKey: sk.medicines(q, pharmacyId), enabled: q.trim().length >= 2, retry: 0, queryFn: () => unwrap(api.GET("/api/v1/pharmacy/search", { params: { query: { q, ...(pharmacyId ? { pharmacyId } : {}) } } })) });
 export const useCart = () => useQuery({ queryKey: sk.cart, retry: 0, queryFn: () => unwrap(api.GET("/api/v1/pharmacy/cart")) });
 const useCartMutation = <V,>(fn: (v: V) => Promise<Cart | unknown>) => {
   const qc = useQueryClient();
@@ -122,7 +122,7 @@ export const useCreateOrder = () => {
   return useMutation({ mutationFn: (body: S["CreateOrderBody"]) => unwrap(api.POST("/api/v1/pharmacy/orders", { body })), onSuccess: () => { void qc.invalidateQueries({ queryKey: sk.cart }); void qc.invalidateQueries({ queryKey: sk.orders }); } });
 };
 export const usePharmacyOrders = () => useQuery({ queryKey: sk.orders, queryFn: () => unwrap(api.GET("/api/v1/pharmacy/orders")) });
-const LIVE_ORDER = ["PENDING_PAYMENT", "PAID", "SUBMITTED"];
+const LIVE_ORDER = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "READY"];
 export const usePharmacyOrder = (id: string) =>
   useQuery({ queryKey: sk.order(id), enabled: !!id, refetchInterval: (q) => (LIVE_ORDER.includes(q.state.data?.status ?? "") ? 4_000 : false), queryFn: () => unwrap(api.GET("/api/v1/pharmacy/orders/{id}", { params: { path: { id } } })) });
 export const useCancelPharmacyOrder = () => {
@@ -131,11 +131,11 @@ export const useCancelPharmacyOrder = () => {
 };
 
 // ───── lab ─────
-export const useLabTests = (q: string) => useQuery({ queryKey: sk.labTests(q), retry: 0, queryFn: () => unwrap(api.GET("/api/v1/lab/tests", { params: { query: Q(q ? { q } : {}) } })) });
+export const useLabTests = (q: string) => useQuery({ queryKey: sk.labTests(q), retry: 0, queryFn: () => unwrap(api.GET("/api/v1/lab/tests", { params: { query: q ? { q } : {} } })) });
 export const useLabSlots = (a: { labId?: string; collectionType: "HOME" | "WALK_IN"; tests: string[]; from?: string; to?: string }) =>
   useQuery({
     queryKey: sk.labSlots(a.labId ?? "", a.collectionType, a.from, a.to, a.tests.join(",")), enabled: !!a.labId && a.tests.length > 0, retry: 0,
-    queryFn: () => unwrap(api.GET("/api/v1/lab/slots", { params: { query: Q({ labId: a.labId, collectionType: a.collectionType, tests: a.tests.join(","), ...(a.from ? { from: a.from } : {}), ...(a.to ? { to: a.to } : {}) }) } })),
+    queryFn: () => unwrap(api.GET("/api/v1/lab/slots", { params: { query: { labId: a.labId!, collectionType: a.collectionType, tests: a.tests.join(","), ...(a.from ? { from: a.from } : {}), ...(a.to ? { to: a.to } : {}) } } })),
   });
 export const useBookLab = () => {
   const qc = useQueryClient();
@@ -150,7 +150,7 @@ export const useCancelLab = () => {
 };
 
 // ───── telemedicine ─────
-export const useTeleProviders = (specialty: string, q: string) => useQuery({ queryKey: sk.teleProviders(specialty, q), retry: 0, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/providers", { params: { query: Q({ ...(specialty ? { specialty } : {}), ...(q ? { q } : {}) }) } })) });
+export const useTeleProviders = (specialty: string, q: string) => useQuery({ queryKey: sk.teleProviders(specialty, q), retry: 0, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/providers", { params: { query: { ...(specialty ? { specialty } : {}), ...(q ? { q } : {}) } } })) });
 export const useTeleSessions = () => useQuery({ queryKey: sk.teleSessions, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/sessions")) });
 export const useTeleSession = (id: string) => useQuery({ queryKey: sk.teleSession(id), enabled: !!id, refetchInterval: 15_000, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/sessions/{id}", { params: { path: { id } } })) });
 export const useCreateTeleSession = () => {
