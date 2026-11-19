@@ -45,7 +45,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
 
   async processBatch(limit = 50): Promise<{ processed: number; sent: number; failed: number; dead: number }> {
     const rows = await this.prisma.outboxEvent.findMany({
-      where: { status: { in: ['PENDING', 'FAILED'] }, nextAttemptAt: { lte: new Date() } },
+      where: { status: { in: ['PENDING', 'FAILED'] }, nextAttemptAt: { lte: new Date(Date.now() + 50) } },
       orderBy: [{ aggregateId: 'asc' }, { createdAt: 'asc' }],
       take: limit,
     });

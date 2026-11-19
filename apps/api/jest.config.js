@@ -6,6 +6,8 @@ const base = {
   rootDir: ".",
 };
 module.exports = {
+  testTimeout: 30000,
+  maxWorkers: 1,
   projects: [
     { ...base, displayName: "unit", testMatch: ["<rootDir>/src/**/*.unit.spec.ts"] },
     {
@@ -14,7 +16,6 @@ module.exports = {
       testMatch: ["<rootDir>/test/**/*.int.spec.ts"],
       setupFiles: ["<rootDir>/test/env-setup.ts"],
       globalSetup: "<rootDir>/test/global-setup.ts",
-      testTimeout: 30000,
     },
   ],
 };

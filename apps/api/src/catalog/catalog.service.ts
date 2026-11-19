@@ -168,7 +168,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     const visible: typeof rows = [];
     for (const r of rows) {
       if (r.tenantId) {
-        if (!orgOk.has(r.tenantId)) orgOk.set(r.tenantId, await this.flags.isEnabled('clinic.kiorex_listing', { market: r.market, orgId: r.tenantId }));
+        if (!orgOk.has(r.tenantId)) { const d = await this.flags.evaluate('clinic.kiorex_listing', { market: r.market, orgId: r.tenantId }); orgOk.set(r.tenantId, d.effective || d.reason === 'DEPENDENCY_OFF'); }
         if (!orgOk.get(r.tenantId)) { total--; continue; }
       }
       visible.push(r);

@@ -94,7 +94,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const p = await this.prisma.provider.findUnique({ where: { id: i.providerId } });
     if (!p) throw notFound('PROVIDER_NOT_FOUND', 'Provider not found');
     await this.flags.assertEnabled('kiorex.marketplace', { market: p.market });
-    if (p.tenantId && !(await this.flags.isEnabled('clinic.kiorex_listing', { market: p.market, orgId: p.tenantId }))) throw forbidden('FEATURE_DISABLED', 'Listing paused', { key: 'clinic.kiorex_listing', scope: 'ORG' });
+    if (p.tenantId && (await this.flags.evaluate('clinic.kiorex_listing', { market: p.market, orgId: p.tenantId })).reason === 'OFF_ORG') throw forbidden('FEATURE_DISABLED', 'Listing paused', { key: 'clinic.kiorex_listing', scope: 'ORG' });
     if (p.status !== 'LIVE') throw conflict('LISTING_NOT_LIVE', 'Unverified or paused listings are not bookable');
     if (i.dependantId) await this.patients.assertGuardian(sub, i.dependantId);
     if (this.kiorly.isCircuitOpen(p.clinicId)) throw unavailable('CLINIC_SYSTEM_BUSY', 'Clinic system busy; new holds are paused for this clinic', { retryable: true });
@@ -207,10 +207,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       await this.adopt(b.id, data, { evidence: 'PHONE' });
       return 'ADOPTED';
     } catch (e) {
-      if (e instanceof KiorlyHttpError && e.status === 404) {
-        await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { callState: 'NONE' } });
-        return 'NOT_CREATED';
-      }
+      if (e instanceof KiorlyHttpError && e.status === 404) return 'NOT_CREATED'; // stays UNCERTAIN: the original request may still be in flight
       return 'UNAVAILABLE';
     }
   }
