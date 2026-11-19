@@ -23,7 +23,7 @@ function Ctl({ icon, label, on, onPress, danger, testID }: { icon: IconName; lab
 }
 
 /** MOCK video room (MESSAGING/video provider = mock): the API issues a fake token; no media is streamed. The screen exercises join window, token, in-call controls and end. */
-function Room({ session, video, onEnd }: { session: S["TeleSessionDto"]; video: S["VideoTokenDto"]; onEnd: () => void }) {
+function Room({ video, onEnd }: { video: S["VideoTokenDto"]; onEnd: () => void }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [mic, setMic] = useState(true);
@@ -51,7 +51,6 @@ function Room({ session, video, onEnd }: { session: S["TeleSessionDto"]; video: 
         <T variant="caption" muted>{t("tele.tokenExpires", { time: formatTime(video.expiresAt, "en") })}</T>
       </Card>
       <T variant="caption" muted accessibilityRole="text">{t("tele.mockNote")}</T>
-      <T variant="caption" muted>{session.id}</T>
     </View>
   );
 }
@@ -80,7 +79,7 @@ function Body({ id }: { id: string }) {
         <Row style={{ justifyContent: "space-between" }}><T variant="h2" style={{ flex: 1 }} accessibilityRole="header">{formatDayLong(s.scheduledStartsAt, lang)} · {formatTime(s.scheduledStartsAt, lang)}</T><Badge testID="tele-status" tone={s.status === "IN_PROGRESS" ? "success" : s.status === "WAITING" ? "warning" : ended ? "muted" : "ink"} label={t(`tele.status.${s.status}`)} /></Row>
       </Card>
       {msg ? <Banner tone="warning" body={msg} testID="tele-message" /> : null}
-      {video && !ended ? <Room session={s} video={video} onEnd={onEnd} /> : ended ? (
+      {video && !ended ? <Room video={video} onEnd={onEnd} /> : ended ? (
         <Banner tone="ink" testID="tele-ended" title={t("tele.endedTitle")} body={s.durationSec != null ? t("tele.endedBody", { min: Math.max(1, Math.round(s.durationSec / 60)) }) : undefined}><Button title={t("tele.back")} variant="secondary" onPress={() => router.replace("/(tabs)/appointments")} /></Banner>
       ) : (
         <Card style={{ gap: 10 }}>

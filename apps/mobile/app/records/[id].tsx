@@ -21,7 +21,8 @@ function Body({ r }: { r: S["VaultDetailDto"] }) {
   const del = useDeleteRecord();
   const follow = useAddFollowUp();
   const [confirm, setConfirm] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsgText] = useState<{ ok: boolean; text: string } | null>(null);
+  const setMsg = (text: string | null, ok = false) => setMsgText(text ? { ok, text } : null);
   const [img, setImg] = useState<string | null>(null);
   const isImage = !!r.mimeType?.startsWith("image/");
   useEffect(() => { if (r.hasFile && isImage) void fetchImageDataUri(r.id).then(setImg); }, [r.id, r.hasFile, isImage]);
@@ -41,7 +42,7 @@ function Body({ r }: { r: S["VaultDetailDto"] }) {
           <T variant="caption" muted>{t("records.addedOn", { date: formatDayLong(r.createdAt, i18n.language) })}</T>
         </Card>
 
-        {msg ? <Banner tone="warning" body={msg} testID="record-message" /> : null}
+        {msg ? <Banner tone={msg.ok ? "success" : "warning"} body={msg.text} testID="record-message" /> : null}
 
         {r.kind === "PRESCRIPTION" ? (
           <Card testID="rx-card" style={{ gap: 12 }}>
@@ -74,7 +75,7 @@ function Body({ r }: { r: S["VaultDetailDto"] }) {
         <Card style={{ gap: 8 }}>
           <T variant="h2">{t("records.remindTitle")}</T>
           <T variant="small" muted>{t("records.remindHint")}</T>
-          <Row style={{ flexWrap: "wrap" }}>{[7, 14, 30].map((d) => <Chip key={d} testID={`remind-${d}`} icon="bell" label={t("records.afterDays", { count: d })} onPress={() => follow.mutate({ afterDays: d, recordId: r.id }, { onSuccess: () => setMsg(t("records.reminderSet", { count: d })), onError: () => setMsg(t("records.reminderFailed")) })} />)}</Row>
+          <Row style={{ flexWrap: "wrap" }}>{[7, 14, 30].map((d) => <Chip key={d} testID={`remind-${d}`} icon="bell" label={t("records.afterDays", { count: d })} onPress={() => follow.mutate({ afterDays: d, recordId: r.id }, { onSuccess: () => setMsg(t("records.reminderSet", { count: d }), true), onError: () => setMsg(t("records.reminderFailed")) })} />)}</Row>
         </Card>
 
         <Button testID="delete-record" variant="danger" icon="trash" title={t("records.delete")} onPress={() => setConfirm(true)} />

@@ -49,7 +49,7 @@ export function DoctorCard({ d, onOpen, onPickSlot }: { d: DoctorSummary; onOpen
           <Avatar name={name} />
           <View style={{ flex: 1, gap: 4 }}>
             <T variant="h2">{name}</T>
-            <T variant="small" muted>{pick(d, "clinicName", lang)} · {pick(d, "area", lang)}</T>
+            <T variant="small" muted>{[pick(d, "clinicName", lang), pick(d, "area", lang)].filter(Boolean).join(" · ")}</T>
             <Row gap={8} style={{ flexWrap: "wrap" }}>
               {d.verified ? <VerifiedBadge /> : null}
               {d.ratingAvg ? <Row gap={4}><Stars value={d.ratingAvg} /><T variant="caption" muted accessibilityLabel={t("doctor.ratingLabel", { avg: d.ratingAvg, count: d.ratingCount })}>{formatNumber(d.ratingAvg, lang)} ({d.ratingCount})</T></Row> : null}

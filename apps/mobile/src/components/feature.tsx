@@ -27,6 +27,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 /** Flag OFF (global/market/org) or awaiting a launch gate ⇒ localized "temporarily unavailable"; existing data elsewhere is never hidden. */
 export function FlagScreen({ flag, children }: { flag: string; children: ReactNode }) {
   const f = useFeature(flag);
+  if (f.isLoading) return <LoadingState />; // never flash a gated screen (or fire its requests) before the flags are known
   return f.enabled ? <>{children}</> : <UnavailableState featureKey={flag} scope={f.scope} />;
 }
 
