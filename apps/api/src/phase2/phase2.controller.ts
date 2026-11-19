@@ -19,6 +19,4 @@ export class Phase2Controller {
   lab() { throw phase2('Lab bookings'); }
   @Post('telemedicine/sessions') @RequiresFlag('kiorex.telemedicine') @HttpCode(200) @ApiOperation({ summary: 'Telemedicine (launch-locked)' })
   tele() { throw phase2('Telemedicine'); }
-  @Public() @Post('channels/whatsapp/booking-intents') @RequiresFlag('kiorex.whatsapp_booking') @HttpCode(200) @ApiOperation({ summary: 'KXM-BK-11 WhatsApp booking channel (P2)' })
-  whatsapp() { throw phase2('WhatsApp booking'); }
 }
