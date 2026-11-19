@@ -1,0 +1,16 @@
+{
+  "name": "kiorex-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kiorex marketplace platform (api, web, ops, mobile)",
+  "workspaces": ["apps/api", "apps/web", "apps/ops", "apps/mobile", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n api,web,ops -c blue,green,magenta \"npm run dev -w apps/api\" \"npm run dev -w apps/web --if-present\" \"npm run dev -w apps/ops --if-present\"",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "devDependencies": { "concurrently": "^9.0.0" },
+  "engines": { "node": ">=20" }
+}
