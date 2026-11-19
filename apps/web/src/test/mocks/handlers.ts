@@ -42,7 +42,26 @@ const guard = (key: string) => (flagsOff().includes(key) ? err(403, "FEATURE_DIS
 
 const seedById = (id: string) => seeds.find((s) => s.id === id);
 
+// Neutral defaults for the Phase 2/3 endpoints (tests override per case with server.use).
+const newFeatureDefaults = [
+  http.get("/api/v1/search/sponsored", () => HttpResponse.json({ items: [], sponsored: true, label: "SPONSORED" })),
+  http.get("/api/v1/markets", () => HttpResponse.json([{ code: "EG", live: true, flag: "market.eg.live", state: "LIVE" }])),
+  http.get("/api/v1/waitlist", () => HttpResponse.json([])),
+  http.get("/api/v1/me/vault", () => HttpResponse.json({ items: [], readOnly: false })),
+  http.get("/api/v1/me/prescriptions", () => HttpResponse.json([])),
+  http.get("/api/v1/me/follow-ups", () => HttpResponse.json([])),
+  http.get("/api/v1/me/record-sharing", () => HttpResponse.json({ canGrant: true, scopes: [] })),
+  http.get("/api/v1/pharmacy/pharmacies", () => HttpResponse.json([])),
+  http.get("/api/v1/pharmacy/cart", () => HttpResponse.json({ pharmacyId: null, items: [], deliveryMethod: "PICKUP", prescriptionRecordId: null, subtotalMinor: 0, deliveryFeeMinor: 0, totalMinor: 0, currency: "EGP", rxRequired: false })),
+  http.get("/api/v1/pharmacy/orders", () => HttpResponse.json([])),
+  http.get("/api/v1/lab/tests", () => HttpResponse.json({ items: [] })),
+  http.get("/api/v1/lab/bookings", () => HttpResponse.json([])),
+  http.get("/api/v1/telemedicine/providers", () => HttpResponse.json({ items: [] })),
+  http.get("/api/v1/telemedicine/sessions", () => HttpResponse.json([])),
+];
+
 export const handlers = [
+  ...newFeatureDefaults,
   http.get("/api/v1/flags/effective", () => {
     const off = flagsOff();
     const keys = ["kiorex.marketplace", "kiorex.pay_deposits", "kiorex.reviews", "kiorex.family_accounts"];
