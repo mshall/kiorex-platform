@@ -64,7 +64,7 @@ export function visitTypesFor(s: Seed): VisitType[] {
 export function summaryFor(s: Seed): DoctorSummary {
   const types = visitTypesFor(s);
   return {
-    id: s.id, nameAr: s.nameAr, nameEn: s.nameEn, specialtyCode: s.spec, photoUrl: null, verified: true,
+    id: s.id, nameAr: s.nameAr, nameEn: s.nameEn, specialtyCode: s.spec, photoUrl: null, verified: true, sponsored: false, bookable: true, clinicPhone: null,
     ratingAvg: s.rating, ratingCount: s.count, feeFromEgp: Math.min(...types.map((t) => t.feeEgp)), depositRequired: s.deposit !== null,
     clinicNameAr: clinics[s.clinic].nameAr, clinicNameEn: clinics[s.clinic].nameEn, areaAr: s.areaAr, areaEn: s.areaEn,
     distanceKm: s.km, languages: ["ar", "en"], gender: s.gender, nextSlots: slotsFor(s.id, types[0].id).slice(0, 3),

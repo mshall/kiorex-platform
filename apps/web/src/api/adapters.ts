@@ -1,38 +1,41 @@
-// Adapters from the REAL Kiorex API catalog shapes (apps/api/src/catalog) to the UI view-models in ./types.
-// Money on the wire is minor units (piastres); the UI works in whole EGP.
+// Presentation mappers: GENERATED response types (./schema.d.ts, from the OpenAPI contract) -> UI view-models in ./types.
+// Money on the wire is minor units (piastres); the UI works in whole EGP. Only the two fields the contract leaves as free-form
+// `object` (clinic, cancellationPolicy) are read through `Loose`.
+import type { components } from "./schema";
 import type { DoctorProfile, DoctorSummary, Slot, Specialty, VisitType } from "./types";
 
-type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+type S = components["schemas"];
+type Loose = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const egp = (minor: number | null | undefined) => Math.round((minor ?? 0) / 100);
 
-export const mapSlot = (s: Any, typeId: string): Slot => ({ slotId: s.startsAt, startsAt: s.startsAt, endsAt: s.endsAt, visitTypeId: typeId });
+export const mapSlot = (s: S["SlotDto"], typeId: string): Slot => ({ slotId: s.startsAt, startsAt: s.startsAt, endsAt: s.endsAt, visitTypeId: typeId });
 
-export const mapSpecialty = (s: Any): Specialty => ({ code: s.code, nameAr: s.ar ?? s.nameAr ?? s.code, nameEn: s.en ?? s.nameEn ?? s.code });
+export const mapSpecialty = (s: S["SpecialtyDto"]): Specialty => ({ code: s.code, nameAr: s.ar ?? s.code, nameEn: s.en ?? s.code });
 
-export function mapSearchItem(i: Any): DoctorSummary {
+export function mapSearchItem(i: Pick<S["SearchItemDto"], "id"> & Partial<S["SearchItemDto"]> & { photoUrl?: string | null }): DoctorSummary {
   const typeId = i.defaultTypeId ?? "";
   return {
     id: i.id, nameAr: i.nameAr ?? i.nameEn ?? "", nameEn: i.nameEn ?? i.nameAr ?? "", specialtyCode: i.specialty ?? "other", photoUrl: i.photoUrl ?? null,
-    verified: !!i.verified, ratingAvg: i.rating?.average ?? null, ratingCount: i.rating?.count ?? 0, feeFromEgp: egp(i.minFeeMinor), depositRequired: !!i.acceptsDeposit,
+    verified: !!i.verified, ratingAvg: i.rating?.count ? i.rating.average : null, ratingCount: i.rating?.count ?? 0, feeFromEgp: egp(i.minFeeMinor), depositRequired: !!i.acceptsDeposit,
     clinicNameAr: i.clinicNameAr ?? i.clinicNameEn ?? "", clinicNameEn: i.clinicNameEn ?? i.clinicNameAr ?? "", areaAr: i.area ?? "", areaEn: i.area ?? "",
     distanceKm: i.distanceKm ?? null, languages: i.languages ?? [], gender: i.gender === "M" ? "M" : "F",
-    nextSlots: ((i.nextSlots ?? []) as Any[]).map((s) => mapSlot(s, typeId)),
+    nextSlots: (i.nextSlots ?? []).map((s) => mapSlot(s, typeId)), sponsored: !!i.sponsored, bookable: i.bookable ?? true, clinicPhone: i.clinicPhone ?? null,
   };
 }
 
-export function mapSearch(r: Any) {
-  return { items: ((r.items ?? []) as Any[]).map(mapSearchItem), total: r.total ?? 0, page: r.page ?? 1, pageSize: r.pageSize ?? 20, emergency: !!r.emergency };
+export function mapSearch(r: S["SearchResultDto"]) {
+  return { items: r.items.map(mapSearchItem), total: r.total, page: r.page, pageSize: r.pageSize, emergency: !!r.emergency, noMarketLive: Array.isArray(r.marketsLive) && r.marketsLive.length === 0 };
 }
 
-export function mapProfile(p: Any): DoctorProfile {
-  const clinic: Any = p.clinic ?? {};
-  const visitTypes: VisitType[] = ((p.fees ?? []) as Any[]).map((f) => ({
+export function mapProfile(p: S["ProviderProfileDto"]): DoctorProfile {
+  const clinic: Loose = p.clinic ?? {};
+  const visitTypes: VisitType[] = p.fees.map((f) => ({
     id: f.typeId, nameAr: f.nameAr ?? f.nameEn ?? "", nameEn: f.nameEn ?? f.nameAr ?? "", feeEgp: egp(f.amountMinor), durationMin: 20, depositRequired: !!p.acceptsDeposit, depositEgp: null,
   }));
-  const pol: Any = p.cancellationPolicy ?? {};
+  const pol: Loose = p.cancellationPolicy ?? {};
   const summary = mapSearchItem({
-    id: p.id, nameAr: p.nameAr, nameEn: p.nameEn, specialty: p.specialty, photoUrl: p.photoUrl, verified: p.verified, rating: p.rating, minFeeMinor: Math.min(...((p.fees ?? []) as Any[]).map((f) => f.amountMinor), Infinity) === Infinity ? 0 : Math.min(...((p.fees ?? []) as Any[]).map((f) => f.amountMinor)),
-    acceptsDeposit: p.acceptsDeposit, clinicNameAr: clinic.nameAr, clinicNameEn: clinic.nameEn, area: clinic.area, languages: p.languages, gender: p.gender, nextSlots: [], defaultTypeId: visitTypes[0]?.id,
+    id: p.id, nameAr: p.nameAr, nameEn: p.nameEn, specialty: p.specialty, photoUrl: p.photoUrl, verified: p.verified, rating: p.rating, minFeeMinor: p.fees.length ? Math.min(...p.fees.map((f) => f.amountMinor)) : 0,
+    acceptsDeposit: p.acceptsDeposit, clinicNameAr: clinic.nameAr, clinicNameEn: clinic.nameEn, area: clinic.area, languages: p.languages, gender: p.gender, nextSlots: [], defaultTypeId: visitTypes[0]?.id, bookable: p.bookable,
   });
   return {
     summary, bookable: !!p.bookable, bioAr: null, bioEn: null, subSpecialtiesAr: p.subSpecialties ?? [], subSpecialtiesEn: p.subSpecialties ?? [], visitTypes,
@@ -48,35 +51,35 @@ export function mapProfile(p: Any): DoctorProfile {
 }
 
 // ───────────── patient account ─────────────
-import type { Booking, BookingStatus, Clinic, Consent, ConsentType, DepositStatus, FamilyMember, Patient, Review, ReviewList, Session } from "./types";
+import type { Booking, BookingChannel, BookingStatus, Clinic, Consent, ConsentType, DepositStatus, FamilyMember, Patient, Review, ReviewList, Session } from "./types";
 
-export const mapPatient = (p: Any): Patient => ({ id: p.id, nameAr: p.nameAr ?? null, nameEn: p.nameEn ?? null, phone: p.phone ?? "", dob: p.dateOfBirth ?? null, gender: p.gender ?? null, locale: p.preferredLocale === "en" ? "en" : "ar" });
-export const mapDependant = (d: Any): FamilyMember => ({ id: d.id, name: d.nameEn ?? d.nameAr ?? "", relationship: String(d.relationship ?? "OTHER").toLowerCase(), dob: d.dateOfBirth ?? null, gender: d.gender ?? null, guardianAccessExpired: !!d.guardianAccessExpired });
-export const mapConsent = (c: Any): Consent => ({ type: String(c.purpose).toLowerCase() as ConsentType, granted: !!c.granted, updatedAt: c.updatedAt ?? null });
-export const mapSession = (s: Any): Session => ({ id: s.id, device: s.device ?? "—", lastSeenAt: s.lastSeenAt, current: !!s.current });
+export const mapPatient = (p: S["PatientProfileDto"]): Patient => ({ id: p.id, nameAr: p.nameAr ?? null, nameEn: p.nameEn ?? null, phone: p.phone ?? "", dob: p.dateOfBirth ?? null, gender: p.gender ?? null, locale: p.preferredLocale === "en" ? "en" : "ar" });
+export const mapDependant = (d: S["DependantDto"]): FamilyMember => ({ id: d.id, name: d.nameEn ?? d.nameAr ?? "", relationship: String(d.relationship ?? "OTHER").toLowerCase(), dob: d.dateOfBirth ?? null, gender: d.gender ?? null, guardianAccessExpired: !!d.guardianAccessExpired });
+export const mapConsent = (c: S["ConsentStateDto"]): Consent => ({ type: c.purpose.toLowerCase() as ConsentType, granted: c.granted, updatedAt: c.updatedAt });
+export const mapSession = (s: S["AuthSessionDto"]): Session => ({ id: s.id, device: s.device ?? "—", lastSeenAt: s.lastSeenAt, current: s.current });
 
 // ───────────── reviews ─────────────
-export const mapReviews = (r: Any): ReviewList => ({
-  ratingAvg: r.count ? r.average ?? null : null, ratingCount: r.count ?? 0,
-  items: ((r.reviews ?? []) as Any[]).map((x): Review => ({ id: x.id, rating: x.rating, text: x.text ?? null, createdAt: x.createdAt, clinicReply: x.clinicReply ? (typeof x.clinicReply === "string" ? { text: x.clinicReply, createdAt: null } : { text: x.clinicReply.text ?? "", createdAt: x.clinicReply.createdAt ?? null }) : null })),
+export const mapReviews = (r: S["ProviderReviewsDto"]): ReviewList => ({
+  ratingAvg: r.count ? r.average : null, ratingCount: r.count,
+  items: r.reviews.map((x): Review => ({ id: x.id, rating: x.rating, text: x.text, createdAt: x.createdAt, clinicReply: x.clinicReply ? { text: x.clinicReply, createdAt: null } : null })),
 });
 
 // ───────────── bookings ─────────────
 const ACTIVE: BookingStatus[] = ["PENDING_CLINIC", "CONFIRMED"];
-export function mapBooking(b: Any): Booking {
-  const c: Any = b.clinic ?? {};
+export function mapBooking(b: S["BookingDto"]): Booking {
+  const c: Partial<S["BookingClinicDto"]> = b.clinic ?? {};
   const clinic: Clinic = { id: b.clinicId ?? "", nameAr: c.nameAr ?? c.nameEn ?? "", nameEn: c.nameEn ?? c.nameAr ?? "", addressAr: c.addressAr ?? c.addressEn ?? "", addressEn: c.addressEn ?? c.addressAr ?? "", phone: c.phone ?? "", lat: c.latitude ?? null, lng: c.longitude ?? null, paymentMethods: [], hoursAr: [], hoursEn: [] };
-  const status = b.status as BookingStatus;
-  const dep = (b.depositStatus ?? "NONE") as DepositStatus;
+  const status: BookingStatus = b.status;
+  const dep: DepositStatus = b.depositStatus;
   return {
-    id: b.id, status,
+    id: b.id, status, channel: b.channel as BookingChannel,
     doctor: { id: b.providerId, nameAr: b.doctor?.nameAr ?? b.doctor?.nameEn ?? "", nameEn: b.doctor?.nameEn ?? b.doctor?.nameAr ?? "", specialtyCode: b.doctor?.specialty ?? "other", verified: true },
     clinic, patient: { id: b.dependantId ?? "self", name: "" },
     visitType: { id: b.typeId, nameAr: "", nameEn: "", feeEgp: 0, durationMin: 20, depositRequired: dep !== "NONE", depositEgp: egp(b.depositAmountMinor) },
     startsAt: iso2(b.startsAt), endsAt: iso2(b.endsAt), holdExpiresAt: b.holdExpiresAt ? iso2(b.holdExpiresAt) : null, pendingDueAt: b.confirmationDueAt ? iso2(b.confirmationDueAt) : null, failureCode: b.failureCode ?? null,
     deposit: { requiredEgp: egp(b.depositAmountMinor), paidEgp: dep === "PAID" || dep === "RELEASED" ? egp(b.depositAmountMinor) : 0, status: dep, payUrl: b.deposit?.checkoutUrl ?? null },
     cancellation: { reason: b.cancellationReason ?? null, byClinic: b.cancelledBy === "CLINIC", canCancel: ACTIVE.includes(status), canReschedule: ACTIVE.includes(status), windowClosesAt: null },
-    timeline: ((b.timeline ?? []) as Any[]).map((e) => ({ status: e.status as BookingStatus, at: iso2(e.at), note: null })),
+    timeline: (b.timeline ?? []).map((e) => ({ status: e.status as BookingStatus, at: iso2(e.at), note: null })),
     reviewable: status === "COMPLETED", reviewed: false,
   };
 }

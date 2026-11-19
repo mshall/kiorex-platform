@@ -30,7 +30,7 @@ function ReviewForm() {
     <form className="mx-auto max-w-xl space-y-5" onSubmit={(e) => {
       e.preventDefault();
       submit.mutate({ bookingId: id, rating, text: text.trim() || undefined }, {
-        onSuccess: () => { track("review_submitted", { rating, doctorId: b.doctor.id }); toast.success(t("review.thanks")); nav(`/appointments/${id}`); },
+        onSuccess: () => { track("review_submitted", { providerId: b.doctor.id }); toast.success(t("review.thanks")); nav(`/appointments/${id}`); },
         onError: (err) => toast.error(err instanceof ApiError && err.isFeatureDisabled ? t("unavailable.title") : t("review.failed")),
       });
     }}>

@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { mapSearchItem } from "@/api/adapters";
+import { useSponsored } from "@/api/services";
 import { useSearchDoctors, useSpecialties } from "@/api/hooks";
 import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
 import { DoctorCard } from "@/components/DoctorCard";
@@ -26,11 +28,12 @@ export default function ResultsPage() {
   const { data, isLoading, isFetching, error, refetch } = useSearchDoctors(params, !localEmergency);
   const emergency = localEmergency || !!data?.emergency;
   const specialties = useSpecialties();
+  const sponsored = useSponsored(!localEmergency);
   const booking = useStartBooking();
   const apply = (p: SearchParams) => setSp(toQuery(p), { replace: false });
 
   useEffect(() => {
-    if (data) track("results_viewed", { specialty: params.specialty ?? mapKeywordToSpecialty(params.q ?? ""), resultCount: data.total, page: params.page, sort: params.sort });
+    if (data) track("results_viewed", { specialtyCode: params.specialty ?? mapKeywordToSpecialty(params.q ?? "") });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
@@ -43,6 +46,7 @@ export default function ResultsPage() {
       <SearchBar initialQ={params.q ?? ""} key={params.q ?? ""} />
       <SpecialtyChips active={params.specialty} onPick={(code) => apply({ ...params, specialty: code, page: 1 })} />
 
+      {data?.noMarketLive && <div role="status" className="rounded-xl border border-warning/50 bg-warning-soft p-4 text-sm text-warning" data-testid="no-market-live">{t("market.noneLive")}</div>}
       {emergency ? <EmergencyBanner /> : (
         <>
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -58,6 +62,11 @@ export default function ResultsPage() {
             </div>
           </div>
 
+          {sponsored.data && sponsored.data.items.length > 0 && (
+            <section aria-label={sponsored.data.label} className="space-y-3" data-testid="sponsored-section">
+              {sponsored.data.items.map((i) => <DoctorCard key={`s-${i.id}`} doctor={{ ...mapSearchItem(i), sponsored: true }} specialties={specialties.data} onPickSlot={(doc, slot) => booking.start(doc.id, slot)} />)}
+            </section>
+          )}
           {isLoading ? <CardSkeleton /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : data && data.items.length === 0 ? (
             <EmptyState title={t("results.emptyTitle")} hint={t("results.emptyHint")} action={<Button variant="outline" onClick={() => apply({ sort: params.sort })}>{t("filters.reset")}</Button>} />
           ) : (

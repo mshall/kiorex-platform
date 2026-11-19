@@ -56,10 +56,10 @@ export default function CheckoutPage() {
 
   const onConfirm = () =>
     confirm.mutate({ bookingId: b.id, marketplaceConsent: consentData, remindersConsent: consentReminders }, {
-      onSuccess: (res) => { track("booking_confirmed", { bookingId: res.id, doctorId: res.doctor.id, hasDeposit: res.deposit.status !== "NONE" }); nav(`/appointments/${res.id}`, { replace: true }); },
+      onSuccess: (res) => { nav(`/appointments/${res.id}`, { replace: true }); },
       onError: async (e) => {
         if (e instanceof ApiError) {
-          track("booking_failed", { code: e.code, doctorId: b.doctor.id });
+          track("booking_failed", { code: e.code, providerId: b.doctor.id });
           if (e.code === "SLOT_TAKEN" || e.code === "BOOKING_REJECTED" || e.code === "HOLD_EXPIRED") {
             const alts = altSlots(e.details?.alternatives, b.visitType.id);
             if (e.code === "HOLD_EXPIRED") void booking.refetch();

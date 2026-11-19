@@ -6,6 +6,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/api/errors";
 import { PulseLoader } from "./PulseLine";
 
+/** Sandbox/mock provider notice (CLAUDE.md: mocks are surfaced honestly). Rendered only when the data proves a mock provider is behind it. */
+export function MockNotice({ kind, proven = false }: { kind: "payment" | "video" | "messaging" | "lab" | "pharmacy"; proven?: boolean }) {
+  const { t } = useTranslation();
+  if (!proven && !import.meta.env.DEV) return null; // dev builds always flag mock partners; prod only when the data itself proves a sandbox provider
+  return (
+    <p role="note" className="rounded-xl border border-dashed border-warning/60 bg-warning-soft px-4 py-2 text-sm text-warning" data-testid="mock-notice" data-kind={kind}>
+      <span className="font-semibold">{t("mock.label")}</span> {t(`mock.${kind}`)}
+    </p>
+  );
+}
+
 export function LoadingState({ label }: { label?: string }) {
   const { t } = useTranslation();
   return <PulseLoader label={label ?? t("states.loading")} />;
@@ -36,20 +47,20 @@ export function EmptyState({ title, hint, action, icon }: { title: string; hint?
 }
 
 /** Flag OFF ⇒ 'temporarily unavailable' in AR/EN (KX-08 §08). Never hides existing data elsewhere. */
-export function UnavailableState({ featureKey }: { featureKey?: string }) {
+export function UnavailableState({ featureKey, awaiting }: { featureKey?: string; awaiting?: boolean }) {
   const { t } = useTranslation();
   return (
-    <div role="status" className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="feature-unavailable" data-feature={featureKey}>
+    <div role="status" className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="feature-unavailable" data-feature={featureKey} data-awaiting={awaiting ? "true" : undefined}>
       <PauseCircle className="h-10 w-10 text-ocean" aria-hidden="true" />
-      <h3 className="text-lg">{t("unavailable.title")}</h3>
-      <p className="max-w-md text-sm text-muted-foreground">{t("unavailable.body")}</p>
+      <h3 className="text-lg">{awaiting ? t("unavailable.awaitingTitle") : t("unavailable.title")}</h3>
+      <p className="max-w-md text-sm text-muted-foreground">{awaiting ? t("unavailable.awaitingBody") : t("unavailable.body")}</p>
     </div>
   );
 }
 
 export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () => void }) {
   const { t } = useTranslation();
-  if (error instanceof ApiError && error.isFeatureDisabled) return <UnavailableState featureKey={error.featureKey} />;
+  if (error instanceof ApiError && error.isFeatureDisabled) return <UnavailableState featureKey={error.featureKey} awaiting={error.isAwaitingApproval} />;
   return (
     <div role="alert" className="kx-card flex flex-col items-center gap-3 border-destructive/40 px-6 py-10 text-center" data-testid="error-state">
       <AlertTriangle className="h-9 w-9 text-destructive" aria-hidden="true" />

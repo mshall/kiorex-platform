@@ -4,6 +4,7 @@ import { MapPin, Wallet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney, formatNumber, pick } from "@/lib/format";
+import { SponsoredLabel } from "@/components/ChannelBadge";
 import { track } from "@/lib/analytics";
 import type { DoctorSummary, Slot, Specialty } from "@/api/types";
 import { VerifiedBadge } from "./VerifiedBadge";
@@ -26,6 +27,7 @@ export function DoctorCard({ doctor, specialties, onPickSlot }: { doctor: Doctor
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg"><Link to={`/doctors/${doctor.id}`} className="hover:underline">{name}</Link></h3>
             {doctor.verified && <VerifiedBadge />}
+            {doctor.sponsored && <SponsoredLabel />}
           </div>
           <p className="text-sm text-muted-foreground">{spec ? pick(spec, "name", lang) : doctor.specialtyCode} · {pick(doctor, "clinicName", lang)}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -38,12 +40,14 @@ export function DoctorCard({ doctor, specialties, onPickSlot }: { doctor: Doctor
       </div>
       <div className="mt-4">
         <p className="mb-2 text-xs font-medium text-muted-foreground">{t("results.nextSlots")}</p>
-        {doctor.nextSlots.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("results.noSlots")}</p>
+        {!doctor.bookable ? (
+          <p className="text-sm text-muted-foreground" data-testid="not-bookable">{t("results.callClinic")} {doctor.clinicPhone && <a className="text-ocean underline underline-offset-4" dir="ltr" href={`tel:${doctor.clinicPhone.replace(/\s/g, "")}`}>{doctor.clinicPhone}</a>}</p>
+        ) : doctor.nextSlots.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("results.noSlots")} <Link to={`/doctors/${doctor.id}`} className="text-ocean underline underline-offset-4" data-testid="card-waitlist-link">{t("waitlist.joinShort")}</Link></p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {doctor.nextSlots.slice(0, 3).map((s) => (
-              <SlotButton key={s.slotId} slot={s} onPick={(sl) => { track("slot_viewed", { doctorId: doctor.id }); onPickSlot(doctor, sl); }} />
+              <SlotButton key={s.slotId} slot={s} onPick={(sl) => { track("slot_viewed", { providerId: doctor.id }); onPickSlot(doctor, sl); }} />
             ))}
           </div>
         )}

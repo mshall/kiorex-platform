@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Home, Languages, LogIn, LogOut, Moon, Sun, User } from "lucide-react";
+import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User } from "lucide-react";
+import { MarketNotLiveBanner, MarketSelector } from "@/components/MarketSelector";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { PulseDivider } from "@/components/PulseLine";
@@ -39,6 +40,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground">{t("nav.skip")}</a>
+      <MarketNotLiveBanner />
       <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
         <div className="container flex min-h-16 items-center justify-between gap-3">
           <Link to="/" aria-label={t("nav.home")} className="rounded-lg"><Logo /></Link>
@@ -46,9 +48,12 @@ export function AppLayout() {
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>
             {signedIn && <NavLink to="/appointments" className={navCls}>{t("nav.appointments")}</NavLink>}
+            <NavLink to="/services" className={navCls}>{t("nav.services")}</NavLink>
+            {signedIn && <NavLink to="/records" className={navCls}>{t("nav.records")}</NavLink>}
             {signedIn && <NavLink to="/account" className={navCls}>{t("nav.account")}</NavLink>}
           </nav>
           <div className="flex items-center gap-1">
+            <MarketSelector />
             <LanguageSwitcher />
             <ThemeToggle />
             {status !== "loading" && (signedIn ? (
@@ -76,8 +81,8 @@ export function AppLayout() {
       </footer>
 
       {signedIn && (
-        <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t bg-card md:hidden">
-          {[{ to: "/", icon: Home, label: t("nav.home"), end: true }, { to: "/appointments", icon: CalendarCheck, label: t("nav.appointments") }, { to: "/account", icon: User, label: t("nav.account") }].map(({ to, icon: Icon, label, end }) => (
+        <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card md:hidden">
+          {[{ to: "/", icon: Home, label: t("nav.home"), end: true }, { to: "/appointments", icon: CalendarCheck, label: t("nav.appointments") }, { to: "/services", icon: Grid2x2, label: t("nav.services") }, { to: "/records", icon: FolderHeart, label: t("nav.records") }, { to: "/account", icon: User, label: t("nav.account") }].map(({ to, icon: Icon, label, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
               {({ isActive }) => (<><Icon className="h-5 w-5" aria-hidden="true" /><span className={cn(isActive && "border-b-2 border-pulse")}>{label}</span></>)}
             </NavLink>

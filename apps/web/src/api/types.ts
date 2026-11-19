@@ -1,10 +1,10 @@
-// UI view-models. The real OpenAPI (apps/api/openapi) declares request bodies but no response schemas, so
-// responses are mapped from the wire shapes in apps/api/src into these types by ./adapters.ts.
+// UI view-models (bilingual names, whole-EGP money) built by ./adapters.ts from the GENERATED response types in ./schema.d.ts.
+// These are presentation models, not hand-typed copies of the wire format.
 export interface Specialty { code: string; nameAr: string; nameEn: string }
 export interface Slot { slotId: string; startsAt: string; endsAt: string; visitTypeId: string }
 export interface VisitType { id: string; nameAr: string; nameEn: string; feeEgp: number; durationMin: number; depositRequired: boolean; depositEgp: number | null }
 export interface DoctorSummary {
-  id: string; nameAr: string; nameEn: string; specialtyCode: string; photoUrl: string | null; verified: boolean; ratingAvg: number | null; ratingCount: number; feeFromEgp: number; depositRequired: boolean;
+  id: string; nameAr: string; nameEn: string; specialtyCode: string; photoUrl: string | null; verified: boolean; sponsored: boolean; bookable: boolean; clinicPhone: string | null; ratingAvg: number | null; ratingCount: number; feeFromEgp: number; depositRequired: boolean;
   clinicNameAr: string; clinicNameEn: string; areaAr: string; areaEn: string; distanceKm: number | null; languages: string[]; gender: "F" | "M"; nextSlots: Slot[];
 }
 export interface Clinic { id: string; nameAr: string; nameEn: string; addressAr: string; addressEn: string; phone: string; lat: number | null; lng: number | null; paymentMethods: string[]; hoursAr: string[]; hoursEn: string[] }
@@ -21,8 +21,9 @@ export interface Consent { type: ConsentType; granted: boolean; updatedAt: strin
 export interface Session { id: string; device: string; lastSeenAt: string; current: boolean }
 export type BookingStatus = "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
 export type DepositStatus = "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED";
+export type BookingChannel = "MARKETPLACE" | "CLINIC_LINK" | "WHATSAPP";
 export interface Booking {
-  id: string; status: BookingStatus;
+  id: string; status: BookingStatus; channel: BookingChannel;
   doctor: { id: string; nameAr: string; nameEn: string; specialtyCode: string; verified: boolean };
   clinic: Clinic; patient: { id: string; name: string }; visitType: VisitType;
   startsAt: string; endsAt: string; holdExpiresAt: string | null; pendingDueAt: string | null; failureCode: string | null;
@@ -30,7 +31,7 @@ export interface Booking {
   cancellation: { reason: string | null; byClinic: boolean; canCancel: boolean; canReschedule: boolean; windowClosesAt: string | null };
   timeline: { status: BookingStatus; at: string; note: string | null }[]; reviewable: boolean; reviewed: boolean;
 }
-export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean }
+export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean; noMarketLive?: boolean }
 
 export interface SearchParams {
   q?: string; specialty?: string; area?: string; gender?: "F" | "M" | ""; language?: string;

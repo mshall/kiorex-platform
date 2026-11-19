@@ -27,10 +27,10 @@ export function useStartBooking() {
     if (status !== "signedIn") { void login(`/doctors/${doctorId}?vt=${encodeURIComponent(slot.visitTypeId)}&slot=${encodeURIComponent(slot.slotId)}`); return; }
     if (!selectedId) return;
     hold.mutate({ providerId: doctorId, slot, dependantId }, {
-      onSuccess: (b) => { track("hold_created", { doctorId, visitTypeId: slot.visitTypeId, bookingId: b.id }); nav(`/checkout/${b.id}`); },
+      onSuccess: (b) => { track("booking_started", { providerId: doctorId }); nav(`/checkout/${b.id}`); },
       onError: (e) => {
         if (e instanceof ApiError && e.code === "SLOT_TAKEN") {
-          track("booking_failed", { code: "SLOT_TAKEN", doctorId });
+          track("booking_failed", { code: "SLOT_TAKEN", providerId: doctorId });
           setTakenDoctorId(doctorId);
           setAlternatives(altSlots(e.details?.alternatives, slot.visitTypeId));
         } else if (e instanceof ApiError && e.isFeatureDisabled) toast.error(t("unavailable.title"));

@@ -20,7 +20,7 @@ export function SearchBar({ initialQ = "", autoFocus }: { initialQ?: string; aut
     e.preventDefault();
     if (isEmergencyQuery(q)) { setEmergency(true); nav(`/search?q=${encodeURIComponent(q.trim())}`); return; } // KXMDS06: guidance only, no booking; no analytics event
     setEmergency(false);
-    track("search_started", { specialty: mapKeywordToSpecialty(q) });
+    track("search_started", { specialtyCode: mapKeywordToSpecialty(q) });
     nav(q.trim() ? `/search?q=${encodeURIComponent(q.trim())}` : "/search");
   };
   return (

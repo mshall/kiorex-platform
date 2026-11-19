@@ -30,3 +30,15 @@ export const formatCountdown = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 };
+
+/** Money on the wire is integer minor units (piastres). */
+export const formatMinor = (minor: number, lang: string, currency = "EGP") =>
+  new Intl.NumberFormat(loc(lang), { style: "currency", currency, minimumFractionDigits: minor % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 }).format(minor / 100);
+
+export const formatDateTime = (iso: string, lang: string) =>
+  new Intl.DateTimeFormat(loc(lang), { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Africa/Cairo" }).format(new Date(iso));
+
+export const formatDate = (iso: string, lang: string) =>
+  new Intl.DateTimeFormat(loc(lang), { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Cairo" }).format(new Date(iso));
+
+export const formatBytes = (n: number, lang: string) => (n >= 1_048_576 ? `${formatNumber(n / 1_048_576, lang)} MB` : `${formatNumber(Math.max(1, n / 1024), lang, 0)} KB`);

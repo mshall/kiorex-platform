@@ -4,6 +4,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
   get isFeatureDisabled() { return this.status === 403 && this.code === "FEATURE_DISABLED"; }
+  get isAwaitingApproval() { return this.isFeatureDisabled && (this.details?.scope === "GATE" || this.details?.reason === "AWAITING_GATE"); }
   get featureKey(): string | undefined { return (this.details?.key as string | undefined) ?? undefined; }
 }
 

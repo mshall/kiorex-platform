@@ -1,3 +1,4 @@
+import { ChannelBadge } from "@/components/ChannelBadge";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -51,7 +52,7 @@ export default function AppointmentPage() {
     onSuccess: () => { setReschedOpen(false); toast.success(t("appointment.rescheduled")); },
     onError: (e) => toast.error(policyMsg(e)),
   });
-  const onPayLink = () => intent.mutate(b.id, { onSuccess: (r) => window.location.assign(b.deposit.payUrl ?? r.checkoutUrl), onError: () => toast.error(t("checkout.depositFailed")) });
+  const onPayLink = () => intent.mutate(b.id, { onSuccess: (r) => window.location.assign(b.deposit.payUrl ?? r.checkoutUrl ?? "/"), onError: () => toast.error(t("checkout.depositFailed")) });
 
   const clinicCancelled = b.status === "CANCELLED" && b.cancellation.byClinic;
   const active = ["PENDING_CLINIC", "CONFIRMED"].includes(b.status);
@@ -61,7 +62,7 @@ export default function AppointmentPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl">{t("appointment.title")}</h1>
-        <Badge variant={statusVariant(b.status)} data-testid="appt-status">{t(`status.${b.status}`)}</Badge>
+        <div className="flex items-center gap-2"><ChannelBadge channel={b.channel} /><Badge variant={statusVariant(b.status)} data-testid="appt-status">{t(`status.${b.status}`)}</Badge></div>
       </div>
 
       {b.status === "PENDING_CLINIC" && (

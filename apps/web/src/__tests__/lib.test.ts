@@ -8,8 +8,9 @@ import { mapProfile, mapSearchItem } from "@/api/adapters";
 
 describe("analytics privacy (KX-03 §07)", () => {
   it("drops non-whitelisted keys and long free text", () => {
-    const out = sanitize({ specialty: "cardiology", q: "chest pain and diabetes", diagnosis: "x", note: "free text", resultCount: 3, doctorId: "x".repeat(80) });
-    expect(out).toEqual({ specialty: "cardiology", resultCount: 3 });
+    const out = sanitize({ specialtyCode: "cardiology", q: "chest pain and diabetes", diagnosis: "x", note: "free text", resultCount: 3, providerId: "x".repeat(80), code: "SLOT_TAKEN", market: "eg" });
+    expect(out).toEqual({ specialtyCode: "cardiology", code: "SLOT_TAKEN" });
+    expect(sanitize({ specialtyCode: "other" })).toEqual({});
   });
   it("maps keywords to specialty codes and never echoes the raw query", () => {
     expect(mapKeywordToSpecialty("طبيب أسنان")).toBe("dentistry");
@@ -48,7 +49,7 @@ describe("real-API adapters", () => {
     const d = mapSearchItem({ id: "p1", nameEn: "A", nameAr: "أ", specialty: "dermatology", minFeeMinor: 35000, rating: { average: 4.5, count: 3 }, verified: true, defaultTypeId: "t1", nextSlots: [{ startsAt: "2026-12-01T09:00:00Z", endsAt: "2026-12-01T09:20:00Z" }], gender: "F", languages: ["ar"] });
     expect(d.feeFromEgp).toBe(350);
     expect(d.nextSlots[0]).toMatchObject({ slotId: "2026-12-01T09:00:00Z", visitTypeId: "t1" });
-    const p = mapProfile({ id: "p1", fees: [{ typeId: "t1", amountMinor: 50000, nameEn: "Consult" }], clinic: { nameEn: "C" }, rating: { average: null, count: 0 }, acceptsDeposit: true });
+    const p = mapProfile({ id: "p1", fees: [{ typeId: "t1", amountMinor: 50000, nameEn: "Consult" }], clinic: { nameEn: "C" }, rating: { average: 0, count: 0 }, acceptsDeposit: true } as never);
     expect(p.visitTypes[0]).toMatchObject({ feeEgp: 500, depositRequired: true });
     expect(p.summary.feeFromEgp).toBe(500);
   });

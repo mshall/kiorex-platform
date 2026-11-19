@@ -7,7 +7,7 @@ import en from "@/i18n/locales/en.json";
 const flat = (o: Record<string, unknown>, p = ""): string[] => Object.entries(o).flatMap(([k, v]) => (typeof v === "object" && v ? flat(v as Record<string, unknown>, `${p}${k}.`) : [`${p}${k}`]));
 const base = (k: string) => k.replace(/_(zero|one|two|few|many|other)$/, "");
 const src = path.resolve(__dirname, "..");
-const files = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = path.join(d, f); return statSync(p).isDirectory() ? (f === "__tests__" || f === "mocks" ? [] : files(p)) : /\.(tsx?)$/.test(f) ? [p] : []; });
+const files = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = path.join(d, f); return statSync(p).isDirectory() ? (f === "__tests__" || f === "mocks" || f === "test" ? [] : files(p)) : /\.(tsx?)$/.test(f) ? [p] : []; });
 
 describe("i18n", () => {
   const A = new Set(flat(ar).map(base)); const E = new Set(flat(en).map(base));

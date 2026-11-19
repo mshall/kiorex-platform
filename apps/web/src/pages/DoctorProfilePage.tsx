@@ -14,6 +14,7 @@ import { Rating } from "@/components/StarRating";
 import { SlotButton } from "@/components/SlotButton";
 import { SlotTakenDialog } from "@/components/SlotTakenDialog";
 import { ClinicMap } from "@/components/ClinicMap";
+import { WaitlistJoin } from "@/components/WaitlistJoin";
 import { PulseDivider } from "@/components/PulseLine";
 import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { useAuth } from "@/auth/AuthProvider";
@@ -107,7 +108,7 @@ export default function DoctorProfilePage() {
         </div>
 
         {slots.isLoading ? <CardSkeleton rows={1} /> : slots.error ? <ErrorState error={slots.error} onRetry={() => void slots.refetch()} /> : days.length === 0 ? (
-          <EmptyState title={t("doctor.noSlots")} hint={t("doctor.noSlotsHint")} />
+          <div className="space-y-4" data-testid="no-slots"><EmptyState title={t("doctor.noSlots")} hint={t("doctor.noSlotsHint")} /><WaitlistJoin providerId={d.id} typeId={activeVt?.id} /></div>
         ) : (
           <div className="kx-card space-y-4 p-5" data-testid="slot-calendar">
             <div className="-mx-1 overflow-x-auto px-1" role="tablist" aria-label={t("doctor.days")}>

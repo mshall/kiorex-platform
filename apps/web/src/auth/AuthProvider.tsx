@@ -1,16 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { configureApi } from "@/api/client";
-import { getManager, MOCK_MODE, MOCK_USER, toAuthUser, type AuthUser } from "./oidc";
+import { getManager, toAuthUser, type AuthUser } from "./oidc";
 
 type Status = "loading" | "signedOut" | "signedIn";
-interface Ctx {
+export interface AuthCtx {
   status: Status;
   user: AuthUser | null;
   login: (returnTo?: string) => Promise<void>;
   logout: () => Promise<void>;
   completeLogin: () => Promise<string>;
 }
-const AuthContext = createContext<Ctx | null>(null);
+export const AuthContext = createContext<AuthCtx | null>(null);
 const RETURN_KEY = "kx-return-to";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -22,19 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     configureApi({
       getToken: async () => userRef.current?.token ?? null,
-      onUnauthorized: () => { if (!MOCK_MODE) void getManager().removeUser().then(() => { setUser(null); setStatus("signedOut"); }); },
+      onUnauthorized: () => { void getManager().removeUser().then(() => { setUser(null); setStatus("signedOut"); }); },
     });
   }, []);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (MOCK_MODE) {
-        const signedOut = sessionStorage.getItem("kx-mock-signed-out") === "1";
-        if (!alive) return;
-        setUser(signedOut ? null : MOCK_USER); setStatus(signedOut ? "signedOut" : "signedIn");
-        return;
-      }
       const m = getManager();
       const u = await m.getUser();
       if (!alive) return;
@@ -47,21 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (returnTo?: string) => {
     sessionStorage.setItem(RETURN_KEY, returnTo ?? window.location.pathname + window.location.search);
-    if (MOCK_MODE) {
-      sessionStorage.removeItem("kx-mock-signed-out");
-      setUser(MOCK_USER); setStatus("signedIn");
-      window.location.assign(returnTo ?? "/");
-      return;
-    }
     await getManager().signinRedirect();
   }, []);
 
   const logout = useCallback(async () => {
-    if (MOCK_MODE) {
-      sessionStorage.setItem("kx-mock-signed-out", "1");
-      setUser(null); setStatus("signedOut");
-      return;
-    }
     await getManager().signoutRedirect();
   }, []);
 

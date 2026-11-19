@@ -3,13 +3,12 @@ import { createRoot } from "react-dom/client";
 import "@/i18n";
 import "@/styles/index.css";
 import App from "./App";
-import { MOCK_MODE } from "@/auth/oidc";
+import { flushAnalytics, setAnalyticsSink } from "@/lib/analytics";
+import { postAnalytics } from "@/api/services";
+import { getMarket } from "@/lib/market";
 
-async function boot() {
-  if (MOCK_MODE) {
-    const { worker } = await import("@/mocks/browser");
-    try { await worker.start({ onUnhandledRequest: "bypass", quiet: true }); } catch (e) { console.error("MSW failed to start", e); }
-  }
-  createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
-}
-void boot();
+// Client analytics: whitelisted, PHI-free batches to POST /analytics/events (KX-03 §07). Failures are swallowed on purpose.
+setAnalyticsSink((batch) => { void postAnalytics(batch.map((e) => ({ name: e.name, props: { ...e.props, market: getMarket() } }))).catch(() => {}); });
+window.addEventListener("pagehide", flushAnalytics);
+
+createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

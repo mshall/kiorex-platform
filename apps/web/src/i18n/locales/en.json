@@ -10,7 +10,9 @@
     "skip": "Skip to content",
     "switchLanguage": "Switch language",
     "darkMode": "Dark mode",
-    "lightMode": "Light mode"
+    "lightMode": "Light mode",
+    "services": "Services",
+    "records": "Records"
   },
   "footer": {
     "tagline": "Kiorex — real doctors, real slots, real reviews.",
@@ -24,7 +26,9 @@
   },
   "unavailable": {
     "title": "Temporarily unavailable",
-    "body": "This feature is switched off for now. Your existing appointments and data are safe and unchanged."
+    "body": "This feature is switched off for now. Your existing appointments and data are safe and unchanged.",
+    "awaitingTitle": "Awaiting approval",
+    "awaitingBody": "This service is built but has not been approved to launch yet. Your existing appointments and data are unchanged."
   },
   "notFound": {
     "title": "Page not found",
@@ -132,7 +136,9 @@
     "pagination": "Pagination",
     "prev": "Previous",
     "next": "Next",
-    "pageOf": "Page {{page}} of {{pages}}"
+    "pageOf": "Page {{page}} of {{pages}}",
+    "sponsored": "Sponsored",
+    "callClinic": "Online booking is paused. Call the clinic:"
   },
   "sort": {
     "earliest": "Earliest slot",
@@ -344,5 +350,402 @@
     "body": "If you or someone near you is in danger, call the ambulance now. Kiorex can't help with emergencies and won't book an appointment for them.",
     "call": "Call {{number}}",
     "note": "123 is Egypt's ambulance number."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "save": "Save"
+  },
+  "market": {
+    "label": "Country",
+    "soon": "coming soon",
+    "notLive": "Kiorex is not live in {{country}} yet. You can browse, but booking is paused until it launches.",
+    "noneLive": "Kiorex is not live in any market yet."
+  },
+  "mock": {
+    "label": "Test mode.",
+    "payment": "This is a sandbox payment page. No real money moves.",
+    "video": "This video room is a test provider. No audio or video leaves your device.",
+    "messaging": "Messages are written to a test inbox and are not sent.",
+    "lab": "Kiorly Lab is a test partner in development.",
+    "pharmacy": "Kiorly Pharmacy is a test partner in development."
+  },
+  "channel": {
+    "MARKETPLACE": "Booked on Kiorex",
+    "CLINIC_LINK": "Booked via clinic link",
+    "WHATSAPP": "Booked via WhatsApp"
+  },
+  "services": {
+    "title": "Services",
+    "intro": "Everything beyond booking a doctor. Services marked as awaiting approval are built but not yet switched on.",
+    "available": "Available",
+    "awaiting": "Awaiting approval",
+    "paused": "Temporarily unavailable",
+    "pharmacy": "Order medicines from nearby pharmacies, for pickup or delivery.",
+    "lab": "Book lab tests with home collection. Results arrive in your records.",
+    "tele": "See a doctor by video from home.",
+    "records": "Your visit summaries, prescriptions and lab results in one place.",
+    "waitlist": "Get offered a slot when one frees up with a fully booked doctor.",
+    "whatsapp": {
+      "title": "Book on WhatsApp",
+      "body": "Prefer chatting? You can book the same real slots by messaging Kiorex on WhatsApp.",
+      "s1": "Send a message and choose a specialty.",
+      "s2": "Pick a doctor and a time from the options we send.",
+      "s3": "Confirm. You get the same confirmation and reminders as in the app.",
+      "privacy": "Do not send symptoms or medical details in the chat. For an emergency call 123.",
+      "open": "Open WhatsApp",
+      "soon": "The Kiorex WhatsApp number will be announced here at launch."
+    }
+  },
+  "orders": {
+    "progress": "Order progress",
+    "payTitle": "Pay to place your order",
+    "payHint": "Payment opens in a new tab. Come back here when you are done; this page updates by itself.",
+    "payWaiting": "Waiting for payment confirmation…"
+  },
+  "waitlist": {
+    "title": "Waitlist",
+    "intro": "When a slot opens with a doctor you are waiting for, you get an offer here. Accepting holds the slot for 5 minutes so you can confirm.",
+    "joinTitle": "No free slots? Join the waitlist",
+    "joinHint": "We will offer you a slot as soon as one opens. You can leave the waitlist any time.",
+    "joinShort": "Join the waitlist",
+    "join": "Join waitlist",
+    "window": "When would you like a slot?",
+    "windows": {
+      "any": "Any time",
+      "week": "Within 7 days",
+      "twoWeeks": "Within 14 days"
+    },
+    "joined": "You are on the waitlist.",
+    "joinFailed": "We could not add you to the waitlist. Try again.",
+    "onList": "You are on this doctor's waitlist.",
+    "viewAll": "View my waitlist",
+    "empty": "You are not on any waitlist",
+    "emptyHint": "When a doctor has no free slots, you can join their waitlist from their profile.",
+    "offers": "Slot offers",
+    "entries": "Your waitlist",
+    "offerTitle": "A slot opened for you",
+    "expiresIn": "Offer expires in",
+    "accept": "Accept and hold slot",
+    "decline": "No thanks",
+    "leave": "Leave",
+    "left": "You left the waitlist.",
+    "until": "until {{date}}",
+    "waitingHint": "We will notify you when a slot opens.",
+    "offerStatus": {
+      "OFFERED": "Offered",
+      "ACCEPTED": "Accepted",
+      "DECLINED": "Declined",
+      "EXPIRED": "Expired"
+    },
+    "entryStatus": {
+      "WAITING": "Waiting",
+      "OFFERED": "Slot offered",
+      "BOOKED": "Booked",
+      "CANCELLED": "Left",
+      "EXPIRED": "Expired"
+    },
+    "errors": {
+      "taken": "Someone else just took that slot. We will keep you on the waitlist.",
+      "expired": "This offer has expired.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "records": {
+    "title": "Records",
+    "intro": "Visit summaries, prescriptions and lab results your clinics share with you, plus files you upload. Only you can see them here.",
+    "readOnlyTitle": "Your vault is read-only right now",
+    "readOnlyBody": "You can still view, download and delete your records. Uploading and new sharing are paused for the moment.",
+    "tabs": {
+      "records": "All records",
+      "prescriptions": "Prescriptions",
+      "followups": "Follow-ups",
+      "sharing": "Sharing"
+    },
+    "filter": "Filter records",
+    "kind": {
+      "ALL": "All",
+      "VISIT_SUMMARY": "Visit summary",
+      "PRESCRIPTION": "Prescription",
+      "LAB_RESULT": "Lab result",
+      "UPLOAD": "Upload"
+    },
+    "source": {
+      "CLINIC": "From a clinic",
+      "LAB": "From a lab",
+      "PATIENT": "Uploaded by you"
+    },
+    "empty": "No records yet",
+    "emptyHint": "Records appear here after a clinic shares them with you, or when you upload a file.",
+    "upload": "Upload a file",
+    "uploadTitle": "Upload a record",
+    "uploadHint": "PDF, JPEG or PNG, up to 5 MB. The file is stored encrypted.",
+    "file": "File",
+    "titleOptional": "Title (optional)",
+    "uploaded": "File uploaded.",
+    "delete": "Delete",
+    "deleteItem": "Delete {{title}}",
+    "deleteTitle": "Delete this record?",
+    "deleteBody": "It is removed from your Kiorex vault. This cannot be undone.",
+    "deleted": "Record deleted.",
+    "download": "Download file",
+    "back": "All records",
+    "notFound": "Record not found",
+    "noContent": "No details are available for this record.",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "type": "Only PDF, JPEG and PNG files can be uploaded.",
+      "size": "The file is too large. The maximum is {{max}}."
+    },
+    "signed": "Issued {{date}}",
+    "qrAlt": "Prescription verification QR code",
+    "qrHint": "Show this code to the pharmacist so they can verify the prescription.",
+    "rxIntro": "A pharmacist can scan the code to check that a prescription is genuine. The code contains no personal details.",
+    "rxEmpty": "No prescriptions yet",
+    "rxEmptyHint": "Prescriptions your doctor shares appear here.",
+    "rxNoItems": "The medicine list has not been shared with Kiorex. The code can still be verified.",
+    "followUpNew": "Set a follow-up reminder",
+    "followUpHint": "We will remind you when it is time to book a follow-up.",
+    "followUpAfter": "Remind me in",
+    "followUpDays": "{{count}} days",
+    "followUpSet": "Set reminder",
+    "followUpEmpty": "No follow-up reminders",
+    "followUpSource": {
+      "DOCTOR": "Suggested by your doctor",
+      "PATIENT": "Set by you"
+    },
+    "followUpStatus": {
+      "SCHEDULED": "Scheduled",
+      "DUE": "Due",
+      "CANCELLED": "Cancelled"
+    },
+    "sharing": {
+      "intro": "Choose what your clinics may send to your Kiorex vault. You can turn any of these off at any time.",
+      "paused": "Sharing new records is paused right now. You can still turn sharing off.",
+      "scope": {
+        "VISIT_SUMMARY": {
+          "title": "Visit summaries",
+          "body": "Let clinics send a summary after each visit."
+        },
+        "PRESCRIPTIONS": {
+          "title": "Prescriptions",
+          "body": "Let clinics send your prescriptions with a verification code."
+        },
+        "LAB_RESULTS": {
+          "title": "Lab results",
+          "body": "Let labs deliver results straight into your vault."
+        },
+        "SHARE_WITH_OTHER_CLINICS": {
+          "title": "Share with other clinics",
+          "body": "Let a clinic you choose see records from your other clinics."
+        }
+      },
+      "granted": "Sharing turned on.",
+      "revokeTitle": "Turn off sharing?",
+      "revokeBody": "New records will stop arriving and the copies already in your Kiorex vault for this type are deleted. Your clinic keeps its own records.",
+      "revoke": "Turn off and delete copies",
+      "revoked": "Sharing turned off."
+    },
+    "privacyNote": "Clinical content is encrypted and never used for analytics."
+  },
+  "pharmacy": {
+    "title": "Pharmacy",
+    "intro": "Order medicines from pharmacies that accept Kiorex orders. Pay with Kiorex Pay and collect or get them delivered.",
+    "myOrders": "My orders",
+    "choose": "Choose a pharmacy",
+    "noPharmacies": "No pharmacies available yet",
+    "noPharmaciesHint": "Pharmacies that accept Kiorex orders will appear here.",
+    "pickup": "Pickup",
+    "delivery": "Delivery",
+    "prep": "ready in about {{min}} min",
+    "medicines": "Medicines",
+    "searchLabel": "Search medicines",
+    "searchPlaceholder": "Medicine name",
+    "searchHint": "Type at least two letters to search.",
+    "controlled": "Controlled medicines cannot be ordered online.",
+    "noResults": "No medicines found",
+    "noResultsHint": "Try another name or choose a different pharmacy.",
+    "rx": "Needs prescription",
+    "inStock": "In stock",
+    "unavailable": "Unavailable",
+    "add": "Add",
+    "addNamed": "Add {{name}} to cart",
+    "added": "Added to cart.",
+    "cartReplaced": "Your cart now holds items from this pharmacy only.",
+    "cart": "Your cart",
+    "cartEmpty": "Your cart is empty.",
+    "clear": "Clear",
+    "less": "Fewer {{name}}",
+    "more": "More {{name}}",
+    "deliveryChoice": "Pickup or delivery",
+    "deliveryFee": "Delivery fee",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "addr": {
+      "line1": "Address",
+      "area": "Area",
+      "governorate": "Governorate",
+      "phone": "Phone",
+      "notes": "Notes for the courier"
+    },
+    "rxNeeded": "A prescription is needed",
+    "rxHint": "Choose one of your prescriptions from the vault. The pharmacy verifies it before preparing your order.",
+    "rxChoose": "Choose a prescription",
+    "rxNone": "You have no prescriptions in your vault.",
+    "placeOrder": "Place order and pay",
+    "payNote": "You pay with Kiorex Pay. Prices are confirmed by the pharmacy.",
+    "pay": "Pay {{total}}",
+    "errors": {
+      "generic": "We could not complete that. Please try again.",
+      "rx": "A valid prescription is required for these items.",
+      "stock": "An item is no longer available."
+    },
+    "ordersTitle": "My pharmacy orders",
+    "ordersEmpty": "No orders yet",
+    "orderTitle": "Pharmacy order",
+    "orderNotFound": "Order not found",
+    "items": "Items",
+    "method": {
+      "PICKUP": "Pickup",
+      "DELIVERY": "Delivery"
+    },
+    "rxStatus": "Prescription",
+    "rxState": {
+      "NOT_REQUIRED": "Not needed",
+      "PENDING": "Being checked",
+      "VALID": "Verified",
+      "INVALID": "Not valid"
+    },
+    "readyAt": "Ready since",
+    "status": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "SUBMITTED": "Sent to pharmacy",
+      "READY": "Ready",
+      "DISPENSED": "Collected or delivered",
+      "PARTIAL_REVIEW": "Under review",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "rejectedTitle": "The pharmacy could not fill this order",
+    "rejectedBody": "No reason was given.",
+    "autoRefund": "If you paid, the full amount is refunded automatically.",
+    "partialReview": "The pharmacy filled part of this order and it is being reviewed. We will update you.",
+    "refundedNote": "This order was cancelled. If you had paid, your refund is on its way.",
+    "rxInvalid": "The pharmacy could not verify your prescription.",
+    "cancelOrder": "Cancel order",
+    "cancelTitle": "Cancel this order?",
+    "cancelPaid": "You have paid, so the full amount will be refunded automatically.",
+    "cancelUnpaid": "You have not paid yet, so nothing is charged.",
+    "cancelConfirm": "Cancel order",
+    "cancelled": "Order cancelled.",
+    "cancelTooLate": "The pharmacy already started preparing this order, so it can no longer be cancelled."
+  },
+  "lab": {
+    "title": "Lab tests",
+    "intro": "Book lab tests with home collection or at the lab. Results are delivered into your records.",
+    "myBookings": "My lab bookings",
+    "tests": "Tests",
+    "searchLabel": "Search tests",
+    "searchPlaceholder": "Test name, for example CBC",
+    "noTests": "No tests found",
+    "noTestsHint": "Try a different name.",
+    "homeAvailable": "Home collection",
+    "prep": "Preparation",
+    "sameLab": "A booking can include tests from one lab only. Your selection was reset.",
+    "yourBooking": "Your booking",
+    "pickHint": "Choose one or more tests to continue.",
+    "collection": "Collection",
+    "home": "At home",
+    "walkIn": "At the lab",
+    "homeUnavailable": "Home collection is not available for every selected test.",
+    "pickSlot": "Choose a time",
+    "noSlots": "No collection slots available.",
+    "book": "Book and pay",
+    "payNote": "You pay with Kiorex Pay. The lab receives your order after payment.",
+    "errors": {
+      "generic": "We could not complete that. Please try again.",
+      "slot": "That time was just taken. Please choose another."
+    },
+    "bookingsTitle": "My lab bookings",
+    "bookingsEmpty": "No lab bookings yet",
+    "bookingTitle": "Lab booking",
+    "notFound": "Booking not found",
+    "testsInBooking": "Tests",
+    "when": "Collection time",
+    "collectionFee": "Collection fee",
+    "collectionType": {
+      "HOME": "At home",
+      "WALK_IN": "At the lab"
+    },
+    "status": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "SUBMITTED": "Sent to lab",
+      "RESULT_RELEASED": "Result ready",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "rejectedTitle": "The lab could not accept this booking",
+    "rejectedBody": "No reason was given.",
+    "resultReady": "Your result is ready",
+    "resultReadyBody": "It was delivered into your records.",
+    "openResult": "Open result",
+    "cancel": "Cancel booking",
+    "cancelled": "Booking cancelled."
+  },
+  "tele": {
+    "title": "Video visits",
+    "intro": "See a doctor by video. Book a video visit, then join from here when the room opens, 15 minutes before the start.",
+    "emergency": "Video visits are not for emergencies. In an emergency call 123.",
+    "mySessions": "Your video visits",
+    "noSessions": "No video visits yet",
+    "noSessionsHint": "Book a visit with a video-enabled doctor below.",
+    "joinOpens": "Room opens {{time}}",
+    "joinOpensIn": "Room opens in",
+    "eligibleTitle": "Confirmed visits you can make a video visit",
+    "eligibleHint": "Create a video session for a visit you have already booked.",
+    "createSession": "Create video session",
+    "created": "Video session created.",
+    "providers": "Doctors offering video",
+    "anySpecialty": "Any specialty",
+    "noProviders": "No video doctors found",
+    "noProvidersHint": "Try another specialty.",
+    "book": "Book",
+    "sessionTitle": "Video visit",
+    "notFound": "Video visit not found",
+    "join": "Join video room",
+    "rejoin": "Rejoin video room",
+    "joining": "Joining the room…",
+    "status": {
+      "SCHEDULED": "Scheduled",
+      "WAITING": "Waiting",
+      "IN_PROGRESS": "In progress",
+      "ENDED": "Ended",
+      "CANCELLED": "Cancelled"
+    },
+    "endedBody": "This visit has ended.",
+    "duration": "It lasted {{min}} min.",
+    "cancelledBody": "This video visit was cancelled.",
+    "backToSession": "Back to the visit",
+    "roomMock": "Test video room",
+    "roomFrame": "Video room",
+    "you": "You",
+    "muted": "muted",
+    "camOff": "camera off",
+    "controls": "Call controls",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "camOffAction": "Turn camera off",
+    "camOnAction": "Turn camera on",
+    "end": "End call",
+    "ended": "Call ended.",
+    "consultFee": "Consultation fee {{fee}}.",
+    "privacy": "Only the schedule and duration of the call are stored, never the conversation.",
+    "errors": {
+      "generic": "We could not complete that. Please try again.",
+      "notOpen": "The room is not open yet. You can join 15 minutes before the visit."
+    }
   }
 }
