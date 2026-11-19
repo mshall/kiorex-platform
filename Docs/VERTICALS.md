@@ -4,9 +4,9 @@ Launch-locked flags (`kiorex.pharmacy_orders`, `kiorex.lab_bookings`, `kiorex.te
 
 OFF semantics (ADR-023): new actions answer `403 FEATURE_DISABLED {key, scope}`; the patient's existing orders/bookings/sessions stay readable, cancellable and (for telemedicine) joinable. Emergency routing is a safety control, never a flag.
 
-## Kiorly Pharmacy (DRAFT contract; Kiorly Pharmacy is not built in this wave)
+## Kiorly Pharmacy (real service; contract kiorex-contracts 1.4.1 `kiorly-pharmacy.v1.openapi.json`)
 
-Client: `src/pharmacy/pharmacy.client.ts`. Auth = the marketplace HMAC scheme (`X-Kiorly-Client-Key/Timestamp/Nonce/Signature`). Env: `KIORLY_PHARMACY_BASE_URL` (default `http://localhost:3020/pharmacy/v1`), `KIORLY_PHARMACY_CLIENT_KEY/SECRET`, `KIORLY_PHARMACY_WEBHOOK_SECRET`.
+Client: `src/pharmacy/pharmacy.client.ts`; connection from the `PartnerRegistry` (table `PartnerRegistration`, ops-editable at `/admin/partners`; env fallback `KIORLY_PHARMACY_BASE_URL` = HOST only, default `http://localhost:3100`, `KIORLY_PHARMACY_CLIENT_KEY/SECRET`, `KIORLY_PHARMACY_WEBHOOK_SECRET`). Path prefix `/marketplace/v1`; the client key addresses the pharmacy tenant (no org header). See workspace INTEGRATION.md.
 
 | Call | Purpose (KX-06) |
 |---|---|
@@ -21,9 +21,9 @@ Events to `POST /webhooks/pharmacy` (same signature scheme as Kiorly Clinic, eve
 
 Flow: cart (`PUT /pharmacy/cart`, one pharmacy per cart) -> delivery choice (`PUT /pharmacy/cart/delivery`) -> `POST /pharmacy/orders` (order intent + Kiorex Pay checkout) -> PSP capture -> outbox `pay.order_captured` -> `POST /orders` (+ Rx validation) -> `OrderReady` -> `DispenseCompleted`. Partner outage after payment: order stays `PAID`; the outbox retries with the same Idempotency-Key; `POST /admin/pharmacy/orders/{id}/resubmit` after DEAD.
 
-## Kiorly Lab (DRAFT contract; not built)
+## Kiorly Lab (real service; contract `kiorly-lab.v1.openapi.json`)
 
-Client: `src/lab/lab.client.ts`; env `KIORLY_LAB_BASE_URL` (default `http://localhost:3030/lab/v1`), `KIORLY_LAB_CLIENT_KEY/SECRET`, `KIORLY_LAB_WEBHOOK_SECRET`. Calls: `GET /tests`, `POST /tests/quote`, `GET /labs/{id}/slots?collectionType=HOME|WALK_IN`, `POST /orders` (Idempotency-Key = booking id), `POST /orders/{id}/cancel`. Result: `LabResultReleased` to `POST /webhooks/lab` -> vault `LAB_RESULT` (signed secure link only, never values, KLCRIT03) when the report channels include `KIOREX_VAULT` and the patient has not revoked `LAB_RESULTS`; funds release on result release.
+Client: `src/lab/lab.client.ts`; registry as above (env fallback `KIORLY_LAB_BASE_URL` host only, default `http://localhost:3200`; key `kl_dev_kiorex`), path prefix `/api/v1/integration/v1`; the order is idempotent on `sourceRef` = booking id and cancel is `POST /orders/{sourceRef}/cancel`. Calls: `GET /tests`, `POST /tests/quote`, `GET /labs/{id}/slots?collectionType=HOME|WALK_IN`, `POST /orders` (Idempotency-Key = booking id), `POST /orders/{id}/cancel`. Result: `LabResultReleased` to `POST /webhooks/lab` -> vault `LAB_RESULT` (signed secure link only, never values, KLCRIT03) when the report channels include `KIOREX_VAULT` and the patient has not revoked `LAB_RESULTS`; funds release on result release.
 
 ## Money (Kiorex Pay ledger; three ledgers never commingled)
 
