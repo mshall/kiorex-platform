@@ -1,0 +1,3 @@
+/* Direction is set on <html dir>; logical Tailwind utilities (ms-/me-/ps-/pe-/start-/end-) do the rest.
+   Only icons that imply direction are flipped here. */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }

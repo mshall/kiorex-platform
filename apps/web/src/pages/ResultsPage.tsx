@@ -1,0 +1,81 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useSearchDoctors, useSpecialties } from "@/api/hooks";
+import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
+import { DoctorCard } from "@/components/DoctorCard";
+import { FiltersSheet } from "@/components/FiltersSheet";
+import { SearchBar, SpecialtyChips } from "@/components/SearchBar";
+import { EmergencyBanner } from "@/components/EmergencyBanner";
+import { SlotTakenDialog } from "@/components/SlotTakenDialog";
+import { useStartBooking } from "@/hooks/useStartBooking";
+import { isEmergencyQuery } from "@/lib/emergency";
+import { activeFilterCount, parseSearch, toQuery } from "@/lib/searchParams";
+import { mapKeywordToSpecialty, track } from "@/lib/analytics";
+import type { SearchParams } from "@/api/types";
+
+const SORTS: SearchParams["sort"][] = ["earliest", "distance", "rating", "fee"];
+
+export default function ResultsPage() {
+  const { t } = useTranslation();
+  const [sp, setSp] = useSearchParams();
+  const params = parseSearch(sp);
+  const localEmergency = !!params.q && isEmergencyQuery(params.q);
+  const { data, isLoading, isFetching, error, refetch } = useSearchDoctors(params, !localEmergency);
+  const emergency = localEmergency || !!data?.emergency;
+  const specialties = useSpecialties();
+  const booking = useStartBooking();
+  const apply = (p: SearchParams) => setSp(toQuery(p), { replace: false });
+
+  useEffect(() => {
+    if (data) track("results_viewed", { specialty: params.specialty ?? mapKeywordToSpecialty(params.q ?? ""), resultCount: data.total, page: params.page, sort: params.sort });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  const pageSize = data?.pageSize ?? 20;
+  const pages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-2xl">{t("results.title")}</h1>
+      <SearchBar initialQ={params.q ?? ""} key={params.q ?? ""} />
+      <SpecialtyChips active={params.specialty} onPick={(code) => apply({ ...params, specialty: code, page: 1 })} />
+
+      {emergency ? <EmergencyBanner /> : (
+        <>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="result-count">{data ? t("results.count", { count: data.total }) : " "}</p>
+            <div className="flex items-end gap-2">
+              <div>
+                <Label htmlFor="sort" className="sr-only">{t("results.sort")}</Label>
+                <select id="sort" value={params.sort} onChange={(e) => apply({ ...params, sort: e.target.value as SearchParams["sort"], page: 1 })} className="h-11 rounded-xl border border-input bg-card px-3 text-sm">
+                  {SORTS.map((s) => <option key={s} value={s}>{t(`sort.${s}`)}</option>)}
+                </select>
+              </div>
+              <FiltersSheet value={params} onApply={apply} activeCount={activeFilterCount(params)} />
+            </div>
+          </div>
+
+          {isLoading ? <CardSkeleton /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : data && data.items.length === 0 ? (
+            <EmptyState title={t("results.emptyTitle")} hint={t("results.emptyHint")} action={<Button variant="outline" onClick={() => apply({ sort: params.sort })}>{t("filters.reset")}</Button>} />
+          ) : (
+            <div className={isFetching ? "space-y-4 opacity-70 transition-opacity" : "space-y-4"} data-testid="results-list">
+              {data?.items.map((d) => <DoctorCard key={d.id} doctor={d} specialties={specialties.data} onPickSlot={(doc, slot) => booking.start(doc.id, slot)} />)}
+            </div>
+          )}
+
+          {data && pages > 1 && (
+            <nav className="flex items-center justify-center gap-3" aria-label={t("results.pagination")}>
+              <Button variant="outline" disabled={(params.page ?? 1) <= 1} onClick={() => apply({ ...params, page: (params.page ?? 1) - 1 })}>{t("results.prev")}</Button>
+              <span className="text-sm">{t("results.pageOf", { page: params.page ?? 1, pages })}</span>
+              <Button variant="outline" disabled={(params.page ?? 1) >= pages} onClick={() => apply({ ...params, page: (params.page ?? 1) + 1 })}>{t("results.next")}</Button>
+            </nav>
+          )}
+        </>
+      )}
+      <SlotTakenDialog alternatives={booking.alternatives} onClose={booking.clearAlternatives} onPick={(s) => { booking.clearAlternatives(); if (booking.takenDoctorId) booking.start(booking.takenDoctorId, s); }} />
+    </div>
+  );
+}

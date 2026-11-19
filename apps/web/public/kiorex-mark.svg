@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" role="img" aria-label="Kiorex">
+  <!-- Kiorex mark: indigo + ocean strokes crossing, coral pulse through the centre -->
+  <line x1="28" y1="6" x2="72" y2="74" stroke="#3730A3" stroke-width="7" stroke-linecap="butt"/>
+  <line x1="92" y1="6" x2="48" y2="74" stroke="#0369A1" stroke-width="7" stroke-linecap="butt"/>
+  <polyline points="2,40 52,40 55,35 58,46 62,28 66,44 69,40 118,40"
+            fill="none" stroke="#E8735E" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
