@@ -52,4 +52,4 @@ export class RxVerifyResultDto {
   @ApiPropertyOptional() clinicId?: string;
   @ApiPropertyOptional({ format: 'date-time' }) signedAt?: string;
 }
-export class OkDto { @ApiProperty() ok!: boolean }
+export { OkDto } from '../common/dto';

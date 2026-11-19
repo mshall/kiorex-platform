@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsDateString, IsOptional, IsString } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
-import { OkDto } from '../records/records.dto';
+import { OkDto } from '../common/dto';
 import { WaitlistEntryDto, WaitlistScanResultDto } from './waitlist.dto';
 import { WaitlistService } from './waitlist.service';
 
