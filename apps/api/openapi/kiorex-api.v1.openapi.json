@@ -2340,99 +2340,546 @@
     "schemas": {
       "LogoutBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "logout_token": {
+            "type": "string"
+          }
+        }
       },
       "SetFlagBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "MARKET",
+              "ORG"
+            ]
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "ON",
+              "OFF"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "ticket": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "emergency": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "scope",
+          "value",
+          "reason",
+          "ticket"
+        ]
       },
       "GateBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "gateId": {
+            "type": "string"
+          },
+          "approver": {
+            "type": "string"
+          },
+          "approvedOn": {
+            "type": "string"
+          },
+          "documentUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gateId",
+          "approver",
+          "approvedOn",
+          "documentUrl"
+        ]
       },
       "ReasonBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
       },
       "DefinitionBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "kiorly-clinic",
+              "kiorex",
+              "kiorex-account",
+              "kiorly-pharmacy",
+              "kiorly-lab",
+              "all"
+            ]
+          },
+          "class": {
+            "type": "string",
+            "enum": [
+              "MODULE",
+              "COMMERCIAL",
+              "INTEGRATION",
+              "AI",
+              "LAUNCH_LOCKED"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "whenOff": {
+            "type": "string"
+          },
+          "moneyPath": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "product",
+          "class",
+          "scopes",
+          "description"
+        ]
       },
       "ProductBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "webhookUrl": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
       },
       "ProfileBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "nameEn": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "nameAr": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "dateOfBirth": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "MALE",
+              "FEMALE"
+            ]
+          },
+          "nationalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "preferredLocale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "email": {
+            "type": "string"
+          }
+        }
       },
       "DependantBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "nameEn": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "nameAr": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "dateOfBirth": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "MALE",
+              "FEMALE"
+            ]
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nameEn",
+          "dateOfBirth",
+          "relationship"
+        ]
       },
       "DependantPatch": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "nameEn": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "MALE",
+              "FEMALE"
+            ]
+          },
+          "relationship": {
+            "type": "string"
+          }
+        }
       },
       "ConsentBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "granted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "granted"
+        ]
       },
       "DeleteBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "confirm": {
+            "type": "boolean"
+          },
+          "includeExport": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ]
       },
       "PrefBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "quietStart": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "quietEnd": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          }
+        }
       },
       "PayLinkBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1
+          },
+          "currency": {
+            "type": "string"
+          },
+          "externalRef": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "clinicId",
+          "amountMinor"
+        ]
       },
       "CreateBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "providerId": {
+            "type": "string"
+          },
+          "typeId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "dependantId": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "MARKETPLACE",
+              "CLINIC_LINK"
+            ]
+          },
+          "bookingPageSlug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "typeId",
+          "startsAt"
+        ]
       },
       "ConfirmBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "marketplaceConsent": {
+            "type": "boolean"
+          },
+          "remindersConsent": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "marketplaceConsent"
+        ]
       },
       "CancelBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
       },
       "RescheduleBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt"
+        ]
       },
       "ReviewBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "rating": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "rating"
+        ]
       },
       "ReviewEdit": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "rating": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
       },
       "ComplaintBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "bookingId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "body"
+        ]
       },
       "NavBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "text"
+        ]
       },
       "RefundBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "paymentId",
+          "reason"
+        ]
+      },
+      "SettlementLine": {
+        "type": "object",
+        "properties": {
+          "psp": {
+            "type": "string"
+          },
+          "pspRef": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CAPTURE",
+              "REFUND"
+            ]
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "feeMinor": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "psp",
+          "pspRef",
+          "kind",
+          "amountMinor",
+          "date"
+        ]
       },
       "ImportBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementLine"
+            }
+          }
+        },
+        "required": [
+          "lines"
+        ]
       },
       "ResolveBody": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "RESTORED",
+              "KEPT_HIDDEN"
+            ]
+          }
+        },
+        "required": [
+          "resolution"
+        ]
       }
     }
   }

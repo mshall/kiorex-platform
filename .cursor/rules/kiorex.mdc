@@ -1,0 +1,17 @@
+---
+description: Kiorex platform engineering rules (apply to every task in this repo)
+alwaysApply: true
+---
+
+- Read `../CLAUDE.md` and `../INTEGRATION.md` first. Stack: NestJS 10 + Prisma 6 + PostgreSQL, React 18 + Vite, Expo; npm workspaces (no pnpm).
+- Modules in `apps/api/src/<module>` talk only through `<module>-public.ts`; `module-boundaries.unit.spec.ts` must stay green.
+- Kiorly Clinic is the only system of record for appointments. Book via holds + `Idempotency-Key = Kiorex booking id`; on timeout GET by ref, never mint a new key.
+- Money paths need: idempotency key + outbox event + ledger entry + reconciliation test + property tests. Integer minor units only.
+- Every capability is flag-switchable (ADR-023): OFF ⇒ `403 FEATURE_DISABLED {key, scope}`, never hide data. Launch-locked flags are effective only with gate evidence — never record evidence in code. Safety controls (emergency routing, consent enforcement, audit) are never flags (ADR-025).
+- Use `@kiorex/contracts` for HMAC, event validation, flag evaluation. Do not break published contracts.
+- No PHI in logs/analytics; search keywords map to specialty codes before logging. Arabic + English strings; RTL verified.
+- Never invent prices, fees, VAT, refund policy, legal/clinical wording: use a config placeholder and add a row to `Docs/NEEDS_HUMAN.md`.
+- No secrets or `.env` in git; no `@aws-sdk/*` outside `src/platform/adapters/*`; IaC is OpenTofu only; do not deploy to AWS without the founder.
+- Conventional Commits with requirement IDs, e.g. `feat(booking): KXM-BK-03 idempotent confirm`.
+- Before pushing: `npm run lint && npm run typecheck && npm test`; regenerate OpenAPI (`npm run openapi:export -w apps/api`) when routes change.
+- User-facing name of the identity product is **Kiorex Passport**.

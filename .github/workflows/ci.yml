@@ -1,0 +1,71 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: kiorex-platform }
+      # @kiorex/contracts is consumed from ../kiorex-contracts/dist-pack (file: dependency)
+      - uses: actions/checkout@v4
+        with: { repository: mshall/kiorex-contracts, path: kiorex-contracts, token: "${{ secrets.CONTRACTS_READ_TOKEN }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -c 'CREATE DATABASE kiorex_platform_test'
+      - run: npm ci
+        working-directory: kiorex-platform
+      - name: lint
+        run: npm run lint -w apps/api
+        working-directory: kiorex-platform
+      - name: typecheck
+        run: npm run typecheck -w apps/api
+        working-directory: kiorex-platform
+      - name: unit (incl. module boundaries, ADR-025, ledger property tests)
+        run: npm run test:unit -w apps/api
+        working-directory: kiorex-platform
+      - name: integration (supertest against kiorex_platform_test, fake Kiorly)
+        run: npm run test:integration -w apps/api
+        working-directory: kiorex-platform
+      - name: contract tests (consumer expectations + flag snapshot + webhook signature)
+        run: npx jest --selectProjects integration --runInBand --testPathPattern "control-plane|webhooks|booking"
+        working-directory: kiorex-platform/apps/api
+      - name: flag-OFF contract tests (every Kiorex flag)
+        run: npm run test:flag-off -w apps/api
+        working-directory: kiorex-platform
+      - name: OpenAPI is current
+        run: npm run openapi:export -w apps/api && git diff --exit-code apps/api/openapi Docs/API.md
+        working-directory: kiorex-platform
+
+  workspaces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: kiorex-platform }
+      - uses: actions/checkout@v4
+        with: { repository: mshall/kiorex-contracts, path: kiorex-contracts, token: "${{ secrets.CONTRACTS_READ_TOKEN }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: npm ci
+        working-directory: kiorex-platform
+      - run: npm run lint --workspaces --if-present && npm run typecheck --workspaces --if-present
+        working-directory: kiorex-platform

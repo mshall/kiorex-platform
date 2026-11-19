@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
@@ -13,7 +14,17 @@ import { TrustService } from '../trust/trust-public';
 
 class RefundBody { @IsString() paymentId!: string; @IsString() reason!: string; @IsOptional() @IsInt() @Min(1) amountMinor?: number }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }
-class ImportBody { lines!: { psp: string; pspRef: string; kind: 'CAPTURE' | 'REFUND'; amountMinor: number; feeMinor?: number; date: string }[] }
+class SettlementLine {
+  @IsString() psp!: string;
+  @IsString() pspRef!: string;
+  @IsIn(['CAPTURE', 'REFUND']) kind!: 'CAPTURE' | 'REFUND';
+  @IsInt() amountMinor!: number;
+  @IsOptional() @IsInt() feeMinor?: number;
+  @IsString() date!: string;
+}
+class ImportBody {
+  @ValidateNested({ each: true }) @Type(() => SettlementLine) lines!: SettlementLine[];
+}
 
 @ApiTags('ops')
 @OpsOnly()
