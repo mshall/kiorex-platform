@@ -1,5 +1,7 @@
 # kiorex-platform
 
+> **QA / demo data:** synthetic Egyptian dataset, logins, URLs and reset instructions in [Docs/TEST_DATA.md](Docs/TEST_DATA.md) (DEV ONLY).
+
 Kiorex marketplace platform: patient web, ops console / super admin, Expo mobile app and the **Kiorex API** (NestJS modular monolith with the
 feature-flag control plane, Kiorex Pay, AI gateway). Part of the Kiorex v2 ecosystem — see `../CLAUDE.md` and `../INTEGRATION.md`.
 
