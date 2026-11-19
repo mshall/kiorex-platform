@@ -11,6 +11,7 @@ import { MarketModule } from './market/market-public';
 import { MessagingModule } from './messaging/messaging-public';
 import { KiorlyModule } from './kiorly/kiorly-public';
 import { OpsModule } from './ops/ops.module';
+import { PartnersModule } from './partners/partners-public';
 import { OutboxModule } from './outbox/outbox-public';
 import { LabModule } from './lab/lab-public';
 import { PharmacyModule } from './pharmacy/pharmacy-public';
@@ -26,6 +27,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, TelemedicineModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HealthModule],
 })
 export class AppModule {}

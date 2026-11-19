@@ -8,6 +8,7 @@ import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { LabService } from '../lab/lab-public';
 import { PharmacyService } from '../pharmacy/pharmacy-public';
+import { PartnerRegistry } from '../partners/partners-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
 import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,12 +20,13 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
-  async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
-    const secret = source === 'pharmacy' ? cfg().pharmacyWebhookSecret : source === 'lab' ? cfg().labWebhookSecret : cfg().kiorlyWebhookSecret;
-    if (!verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
+  async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
+    // Partners sign with a PER-PARTNER secret selected by X-Kiorly-Client-Key (PartnerRegistry); Kiorly Clinic keeps the single global secret.
+    const secret = source === 'kiorly' ? cfg().kiorlyWebhookSecret : await this.partners.webhookSecret(source === 'pharmacy' ? 'PHARMACY' : 'LAB', h.clientKey);
+    if (!secret || !verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
     let env: any;
     try { env = JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Body is not JSON'); }
     const eventId: string = env.eventId ?? h.eventIdHeader;
@@ -72,6 +74,10 @@ export class WebhooksService {
       case 'LabResultReleased': {
         const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels });
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
+      }
+      case 'LabOrderStatusChanged': {
+        const o = await this.lab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
+        return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'OrderReady':
       case 'DispenseCompleted':

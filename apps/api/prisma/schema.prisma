@@ -818,3 +818,20 @@ model TeleSession {
 
   @@index([sub, status])
 }
+
+/// Vertical partner (Kiorly Pharmacy / Kiorly Lab) registration: base URL host, HMAC client credentials and the per-partner webhook
+/// secret (kiorex-contracts 1.4.0). Secrets are AES-GCM encrypted (FIELD_ENCRYPTION_KEY). Dev defaults are seeded; env is the fallback.
+model PartnerRegistration {
+  id               String   @id // e.g. pr_pharmacy_dev
+  kind             String // PHARMACY | LAB
+  name             String
+  baseUrl          String // host only; the contract path prefix is appended (PARTNER_API_PATH)
+  clientKey        String   @unique
+  clientSecretEnc  String
+  webhookSecretEnc String
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([kind, active])
+}

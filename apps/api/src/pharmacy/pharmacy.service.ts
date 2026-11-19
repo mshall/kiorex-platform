@@ -10,7 +10,7 @@ import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecordsService } from '../records/records-public';
-import { PharmacyClient, QuoteDto } from './pharmacy.client';
+import { PharmacyClient, PharmacyOrderIntent, QuoteDto } from './pharmacy.client';
 
 export interface CartInput { pharmacyId: string; items: { sku: string; qty: number }[]; prescriptionRecordId?: string }
 export interface Address { line1: string; area?: string; governorate?: string; notes?: string; phone?: string }
@@ -172,9 +172,19 @@ export class PharmacyService implements OnModuleInit {
     if (o.status !== 'PAID') return o.status;
     let rx: Record<string, unknown> | undefined;
     if (o.prescriptionRecordId) { const r = await this.records.prescriptionForOrder(o.sub, o.prescriptionRecordId).catch(() => null); if (!r) return this.reject(o, 'RX_NO_LONGER_SHARED'); rx = { recordRef: r.id, verificationToken: r.verificationToken }; }
+    const prof = await this.patients.profileBySub(o.sub);
+    const addr = (o.deliveryAddress ?? {}) as { line1?: string; area?: string; governorate?: string; notes?: string; phone?: string };
+    const intent: PharmacyOrderIntent = {
+      orderId: o.id, branchId: o.pharmacyId, patientRef: o.sub, prepaid: true,
+      customer: { name: prof?.nameEn ?? prof?.nameAr ?? undefined, phone: addr.phone ?? prof?.phone ?? undefined, address: o.deliveryMethod === 'DELIVERY' ? [addr.line1, addr.area, addr.governorate, addr.notes].filter(Boolean).join(', ') : undefined },
+      lines: (o.items as unknown as Line[]).map((i) => ({ sku: i.sku, quantity: i.qty, unitPrice: (i.unitPriceMinor / 100).toFixed(2) })),
+      delivery: { method: o.deliveryMethod, address: o.deliveryAddress ?? undefined },
+      payment: { reference: o.paymentId, totalMinor: o.totalMinor, currency: o.currency },
+      prescription: rx as PharmacyOrderIntent['prescription'],
+    };
     try {
-      const { data } = await this.client.createOrder(o.id, { orderRef: o.id, pharmacyId: o.pharmacyId, patientRef: o.sub, items: (o.items as unknown as Line[]).map((i) => ({ sku: i.sku, qty: i.qty })), delivery: { method: o.deliveryMethod, address: o.deliveryAddress ?? undefined }, prescription: rx, payment: { reference: o.paymentId, totalMinor: o.totalMinor, currency: o.currency } });
-      if (data.status === 'REJECTED') return this.reject(o, data.reason ?? 'PHARMACY_REJECTED');
+      const { data } = await this.client.createOrder(o.id, intent);
+      if (data.status === 'REJECTED' || data.status === 'CANCELLED' || data.status === 'EXPIRED') return this.reject(o, `PHARMACY_${data.status}`);
       await this.move(o, ['PAID'], 'SUBMITTED', { partnerOrderId: data.orderId });
       if (rx) {
         const v = await this.client.validatePrescription({ orderId: data.orderId, prescriptionRef: rx.recordRef as string, verificationToken: rx.verificationToken as string, patientRef: o.sub });
@@ -183,7 +193,8 @@ export class PharmacyService implements OnModuleInit {
       }
       return 'SUBMITTED';
     } catch (e) {
-      if (e instanceof PartnerHttpError) return this.reject(o, e.code ?? `PHARMACY_${e.status}`);
+      // 401 = our credentials are wrong (configuration), not the pharmacy refusing the order: never auto-refund, retry/ops-resubmit instead
+      if (e instanceof PartnerHttpError && e.status !== 401) return this.reject(o, e.code ?? `PHARMACY_${e.status}`);
       throw e; // transient: the outbox retries with backoff (same Idempotency-Key => no duplicate order)
     }
   }
@@ -207,7 +218,7 @@ export class PharmacyService implements OnModuleInit {
     }
     if (type === 'OrderRejected') { await this.reject(o, String(data.reasonCode ?? data.reason ?? 'PHARMACY_REJECTED')); return 'APPLIED'; }
     if (type === 'OrderReady') {
-      if (await this.move(o, ['PAID', 'SUBMITTED'], 'READY', { readyAt: new Date(data.readyAt ?? Date.now()) })) await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_READY', dedupeKey: `PHARMACY_ORDER_READY:${o.id}` });
+      if (await this.move(o, ['PAID', 'SUBMITTED'], 'READY', { readyAt: new Date(data.readyAt ?? Date.now()), ...(o.rxStatus === 'PENDING' ? { rxStatus: 'VALID' } : {}) })) await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_READY', dedupeKey: `PHARMACY_ORDER_READY:${o.id}` });
       return 'APPLIED';
     }
     if (type === 'DispenseCompleted') {

@@ -6,6 +6,7 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { FlagsService } from '../src/control-plane/flags.service';
 import { OutboxService } from '../src/outbox/outbox.service';
+import { PartnerRegistry } from '../src/partners/partners.service';
 
 async function main() {
   process.env.JOBS_ENABLED = 'false';
@@ -17,6 +18,12 @@ async function main() {
     // super admin (ADR-024, NEEDS_HUMAN #10); this row is clearly labelled so it can never be mistaken for one, and the
     // seed refuses to run it against production.
     await flags.recordGate('DEV_SEED', 'market.eg.live', { gateId: 'DEV-ONLY-NOT-A-REAL-GATE', approver: 'DEV SEED (not a human approval)', approvedOn: new Date(), documentUrl: 'https://dev.invalid/dev-seed-not-evidence' });
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    // DEV partner registrations (kiorex-contracts PARTNER_DEV_DEFAULTS; documented in INTEGRATION.md). Production registrations are made by ops in the super admin.
+    const partners = new PartnerRegistry(prisma as never);
+    await partners.seedDev('pharmacy');
+    await partners.seedDev('lab');
   }
   console.log(`seeded ${await prisma.flagDefinition.count()} flag definitions, ${await prisma.productRegistration.count()} products`);
   await prisma.$disconnect();

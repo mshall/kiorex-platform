@@ -10,7 +10,7 @@ import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecordsService } from '../records/records-public';
-import { LabClient } from './lab.client';
+import { LabClient, LabOrderIntent } from './lab.client';
 
 export interface LabBookInput { labId: string; testCodes: string[]; collectionType: 'HOME' | 'WALK_IN'; slot: { startsAt: string; endsAt: string }; address?: { line1: string; area?: string; governorate?: string; notes?: string; phone?: string } }
 const FINAL = new Set(['RESULT_RELEASED', 'REJECTED', 'CANCELLED']);
@@ -103,14 +103,25 @@ export class LabService implements OnModuleInit {
   async submit(bookingId: string) {
     const b = await this.prisma.labBooking.findUniqueOrThrow({ where: { id: bookingId } });
     if (b.status !== 'PAID') return b.status;
+    const prof = await this.patients.profileBySub(b.sub);
+    const addr = (b.address ?? {}) as { line1?: string; area?: string; governorate?: string; notes?: string; phone?: string };
+    const home = b.collectionType === 'HOME';
+    const gender = /^f/i.test(prof?.gender ?? '') ? 'F' : /^m/i.test(prof?.gender ?? '') ? 'M' : undefined;
+    const intent: LabOrderIntent = {
+      sourceRef: b.id, labId: b.labId,
+      patient: { fullName: prof?.nameEn ?? prof?.nameAr ?? 'Kiorex patient', phone: prof?.phone ?? undefined, externalId: b.sub, dateOfBirth: prof?.dateOfBirth?.toISOString().slice(0, 10), sex: gender, preferredLocale: prof?.preferredLocale === 'en' ? 'en' : 'ar' },
+      testCodes: (b.tests as unknown as { code: string }[]).map((t) => t.code),
+      collection: { type: home ? 'HOME' : 'IN_LAB', address: home ? [addr.line1, addr.area, addr.governorate, addr.notes].filter(Boolean).join(', ') : undefined, windowStart: b.slotStartsAt.toISOString(), windowEnd: b.slotEndsAt.toISOString(), contactPhone: addr.phone ?? prof?.phone ?? undefined },
+      consentChannels: ['KIOREX_VAULT'], // the booking itself is the patient's request to receive the result in the Kiorex vault (secure link only)
+    };
     try {
-      const { data } = await this.client.createOrder(b.id, { orderRef: b.id, labId: b.labId, patientRef: b.sub, tests: (b.tests as unknown as { code: string }[]).map((t) => ({ code: t.code })), collection: { type: b.collectionType, slot: { startsAt: b.slotStartsAt.toISOString(), endsAt: b.slotEndsAt.toISOString() }, address: b.address ?? undefined }, payment: { reference: b.paymentId, totalMinor: b.totalMinor, currency: b.currency } });
-      if (data.status === 'REJECTED') return this.reject(b, data.reason ?? 'LAB_REJECTED');
+      const { data } = await this.client.createOrder(b.id, intent);
+      if (data.status === 'CANCELLED') return this.reject(b, 'LAB_CANCELLED');
       await this.move(b, ['PAID'], 'SUBMITTED', { partnerOrderId: data.orderId });
       await this.engagement.notify(b.sub, { kind: 'LAB_BOOKING_CONFIRMED', params: { time: b.slotStartsAt.toISOString() }, dedupeKey: `LAB_BOOKING_CONFIRMED:${b.id}` });
       return 'SUBMITTED';
     } catch (e) {
-      if (e instanceof PartnerHttpError) return this.reject(b, e.code ?? `LAB_${e.status}`);
+      if (e instanceof PartnerHttpError && e.status !== 401) return this.reject(b, e.code ?? `LAB_${e.status}`); // 401 = our credentials: never auto-refund
       throw e; // transient: outbox retry, same Idempotency-Key
     }
   }
@@ -125,7 +136,7 @@ export class LabService implements OnModuleInit {
     if (b.status === 'PENDING_PAYMENT') { await this.move(b, ['PENDING_PAYMENT'], 'CANCELLED'); if (b.paymentId) await this.pay.refundOrder(b.paymentId, 'CANCELLED'); return this.get(sub, id); }
     if (!['PAID', 'SUBMITTED'].includes(b.status)) throw conflict('LAB_BOOKING_NOT_CANCELLABLE', `Booking is ${b.status}`);
     if (b.partnerOrderId) {
-      try { await this.client.cancelOrder(b.partnerOrderId, 'PATIENT_CANCELLED'); } catch (e) {
+      try { await this.client.cancelOrder(b.id, 'PATIENT_CANCELLED'); } catch (e) {
         if (e instanceof PartnerHttpError) throw conflict('LAB_BOOKING_NOT_CANCELLABLE', 'The lab already collected or started processing this order');
         throw unavailable('LAB_SYSTEM_BUSY', 'Lab system busy, try again shortly', { retryable: true });
       }
@@ -135,13 +146,23 @@ export class LabService implements OnModuleInit {
   }
   async resubmit(id: string) { return { status: await this.submit(id) }; }
 
+  /** LabOrderStatusChanged (draft contract): COLLECTED is shown to the patient; a lab-side CANCELLED before collection refunds in full. Other states are ignored. */
+  async onStatusChanged(d: { orderId?: string; sourceRef?: string | null; nextStatus?: string }): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
+    const b = await this.prisma.labBooking.findFirst({ where: { OR: [...(d.orderId ? [{ partnerOrderId: d.orderId }] : []), ...(d.sourceRef ? [{ id: d.sourceRef }] : [])] } });
+    if (!b) return 'UNKNOWN_ORDER';
+    if (FINAL.has(b.status)) return 'IGNORED';
+    if (d.nextStatus === 'COLLECTED') return (await this.move(b, ['PAID', 'SUBMITTED'], 'COLLECTED')) ? 'APPLIED' : 'IGNORED';
+    if (d.nextStatus === 'CANCELLED') { await this.reject(b, 'LAB_CANCELLED'); return 'APPLIED'; }
+    return 'IGNORED';
+  }
+
   /** LabResultReleased: vault entry (secure link only) + release the held payment minus Kiorex's take. Walk-in results (no Kiorex booking) still reach a consenting vault. */
   async onResultReleased(d: { reportId: string; orderId: string; labId: string; patientRef: string; reportVersion: number; signedAt: string; secureLink: string; channels?: string[] }): Promise<'APPLIED' | 'IGNORED' | 'UNMAPPED_PATIENT'> {
     const b = await this.prisma.labBooking.findFirst({ where: { OR: [{ partnerOrderId: d.orderId }, { id: d.orderId }] } });
     const outcome = await this.records.storeLabResult({ ...d, patientRef: b?.sub ?? d.patientRef });
     if (!b || FINAL.has(b.status)) return outcome;
     const rec = outcome === 'APPLIED' ? await this.prisma.sharedRecord.findFirst({ where: { sub: b.sub, kind: 'LAB_RESULT', sourceRef: d.reportId } }) : null;
-    if (await this.move(b, ['PAID', 'SUBMITTED'], 'RESULT_RELEASED', { resultRecordId: rec?.id ?? null })) {
+    if (await this.move(b, ['PAID', 'SUBMITTED', 'COLLECTED'], 'RESULT_RELEASED', { resultRecordId: rec?.id ?? null })) {
       const fee = Math.round((b.subtotalMinor * b.takeRateBps) / 10000); // take on booking (tests) value, rate snapshotted at booking time
       await this.prisma.labBooking.update({ where: { id: b.id }, data: { platformFeeMinor: fee } });
       if (b.paymentId) await this.pay.releaseOrder(b.paymentId, { feeMinor: fee });

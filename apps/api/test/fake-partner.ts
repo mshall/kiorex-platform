@@ -1,13 +1,14 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
-import { signWebhook, verifyKiorlyRequest } from '@kiorex/contracts';
+import { PARTNER_API_PATH, PARTNER_DEV_DEFAULTS, PARTNER_WEBHOOK_PATH, signWebhook, verifyKiorlyRequest } from '@kiorex/contracts';
 
 export type PartnerKind = 'pharmacy' | 'lab';
+/** Shapes and paths mirror the REAL Kiorly Pharmacy / Lab APIs (kiorex-contracts 1.4.0 PARTNER_API_PATH / PARTNER_DEV_DEFAULTS). */
 const CFG = {
-  pharmacy: { base: '/pharmacy/v1', key: 'kx_dev_pharmacy_client', secret: 'kx_dev_pharmacy_secret_change_me', webhookSecret: 'kx_dev_pharmacy_webhook_secret', env: 'KIORLY_PHARMACY_BASE_URL', webhookPath: '/api/v1/webhooks/pharmacy' },
-  lab: { base: '/lab/v1', key: 'kx_dev_lab_client', secret: 'kx_dev_lab_secret_change_me', webhookSecret: 'kx_dev_lab_webhook_secret', env: 'KIORLY_LAB_BASE_URL', webhookPath: '/api/v1/webhooks/lab' },
+  pharmacy: { base: PARTNER_API_PATH.pharmacy, ...PARTNER_DEV_DEFAULTS.pharmacy, env: 'KIORLY_PHARMACY_BASE_URL', webhookPath: PARTNER_WEBHOOK_PATH.pharmacy },
+  lab: { base: PARTNER_API_PATH.lab, ...PARTNER_DEV_DEFAULTS.lab, env: 'KIORLY_LAB_BASE_URL', webhookPath: PARTNER_WEBHOOK_PATH.lab },
 } as const;
 
-/** In-process fake of the DRAFT Kiorly Pharmacy / Kiorly Lab operational APIs (not built yet). Verifies HMAC on every request. */
+/** In-process fake of the Kiorly Pharmacy / Kiorly Lab APIs (contract-faithful; the REAL services are exercised by e2e/). Verifies HMAC on every request. */
 export class FakePartner {
   server!: Server;
   port = 0;
@@ -35,7 +36,7 @@ export class FakePartner {
     this.server = createServer((req, res) => void this.handle(req, res));
     await new Promise<void>((r) => this.server.listen(0, '127.0.0.1', r));
     this.port = (this.server.address() as any).port;
-    process.env[this.cfg.env] = `http://127.0.0.1:${this.port}${this.cfg.base}`;
+    process.env[this.cfg.env] = `http://127.0.0.1:${this.port}`; // host only: the client appends the contract path
     return this;
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
@@ -45,7 +46,7 @@ export class FakePartner {
   /** Body + headers of a partner -> Kiorex outbox webhook, signed with the partner webhook secret. */
   event(type: string, data: Record<string, unknown>, o: { eventId?: string; aggregateId?: string } = {}) {
     const body = JSON.stringify({ eventId: o.eventId ?? `pev_${Math.random().toString(36).slice(2)}`, type, aggregateType: type.startsWith('Lab') ? 'LabReport' : 'PharmacyOrder', aggregateId: o.aggregateId ?? String(data.orderId), target: 'KIOREX', occurredAt: new Date().toISOString(), data });
-    const s = signWebhook({ secret: this.cfg.webhookSecret, body, eventType: type });
+    const s = signWebhook({ secret: this.cfg.webhookSecret, body, eventType: type, clientKey: this.cfg.clientKey });
     return { path: this.cfg.webhookPath, headers: { ...s.headers, 'content-type': 'application/json' }, body };
   }
 
@@ -54,10 +55,11 @@ export class FakePartner {
     for await (const c of req) chunks.push(c as Buffer);
     const raw = Buffer.concat(chunks);
     const url = new URL(req.url!, 'http://x');
-    const v = verifyKiorlyRequest({ headers: req.headers as any, method: req.method!, path: url.pathname, body: raw, secret: this.cfg.secret });
+    const v = verifyKiorlyRequest({ headers: req.headers as any, method: req.method!, path: url.pathname, body: raw, secret: this.cfg.clientSecret });
     const send = (s: number, b: any) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(b)); };
-    if (!v.ok || req.headers['x-kiorly-client-key'] !== this.cfg.key) { this.bad++; return send(401, { code: 'BAD_HMAC' }); }
+    if (!v.ok || req.headers['x-kiorly-client-key'] !== this.cfg.clientKey) { this.bad++; return send(401, { code: 'BAD_HMAC' }); }
     const path = url.pathname.replace(this.cfg.base, '');
+    if (!url.pathname.startsWith(this.cfg.base)) { this.bad++; return send(404, { code: 'WRONG_BASE_PATH' }); }
     const body = raw.length ? JSON.parse(raw.toString()) : undefined;
     this.calls.push({ method: req.method!, path, body, headers: req.headers });
     const m = req.method!;
@@ -71,29 +73,31 @@ export class FakePartner {
         return send(200, { items, delivery: { feeMinor: body.delivery?.method === 'DELIVERY' ? 3000 : 0 } });
       }
       if (m === 'POST' && path === '/orders') {
-        const key = req.headers['idempotency-key'] as string;
-        if (this.orders.has(key)) return send(200, this.orders.get(key));
+        const key = body.orderId as string; // the real pharmacy is idempotent on orderId (= Kiorex order id = Idempotency-Key)
+        if (this.orders.has(key)) return send(200, { ...this.orders.get(key), replayed: true });
         if (this.orderMode === 'timeout') return hang();
         if (this.orderMode === '5xx') return send(503, {});
-        const o = { orderId: `pho_${this.orders.size + 1}`, status: this.orderMode === 'reject' ? 'REJECTED' : body.prescription ? 'PENDING_VALIDATION' : 'ACCEPTED', reason: this.orderMode === 'reject' ? 'OUT_OF_STOCK' : undefined, _body: body };
+        if (this.orderMode === 'reject') return send(409, { statusCode: 409, code: 'BRANCH_NOT_OPTED_IN', message: 'Branch is not accepting Kiorex orders' });
+        const o = { orderId: key, status: 'RECEIVED', slaDueAt: new Date(Date.now() + 600_000).toISOString() };
         this.orders.set(key, o);
-        return send(201, { orderId: o.orderId, status: o.status, reason: o.reason });
+        return send(201, { ...o, replayed: false });
       }
       if (m === 'POST' && path === '/prescriptions/validate') return send(200, { status: this.rxMode, reason: this.rxMode === 'INVALID' ? 'PRESCRIBER_NOT_VERIFIED' : undefined });
-      if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_PREPARING' }) : send(200, { status: 'CANCELLED' });
+      if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_DISPENSED' }) : send(201, { status: 'CANCELLED' });
     } else {
       if (m === 'GET' && path === '/tests') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.labTests.filter((t) => !q || t.name.toLowerCase().includes(q) || t.code.toLowerCase() === q) }); }
       if (m === 'POST' && path === '/tests/quote') return send(200, { tests: body.testCodes.map((c: string) => this.labTests.find((t) => t.code === c)).filter(Boolean).map((t: any) => ({ code: t.code, name: t.name, priceMinor: t.priceMinor })), collectionFeeMinor: body.collectionType === 'HOME' ? 5000 : 0 });
       if (m === 'GET' && /^\/labs\/[^/]+\/slots$/.test(path)) { const f = new Date(url.searchParams.get('from')!).getTime(), t = new Date(url.searchParams.get('to')!).getTime(); return send(200, { slots: this.slots.filter((s) => new Date(s.startsAt).getTime() >= f && new Date(s.startsAt).getTime() <= t) }); }
       if (m === 'POST' && path === '/orders') {
-        const key = req.headers['idempotency-key'] as string;
-        if (this.orders.has(key)) return send(200, this.orders.get(key));
+        const key = body.sourceRef as string; // the real lab is idempotent on (client, sourceRef) and answers 200 with created:false on replay
+        if (this.orders.has(key)) return send(200, { ...this.orders.get(key), created: false });
         if (this.orderMode === '5xx') return send(503, {});
-        const o = { orderId: `lbo_${this.orders.size + 1}`, status: this.orderMode === 'reject' ? 'REJECTED' : 'ACCEPTED', reason: this.orderMode === 'reject' ? 'NO_CAPACITY' : undefined };
+        if (this.orderMode === 'reject') return send(409, { statusCode: 409, code: 'SLOT_FULL' });
+        const o = { orderId: `lbo_${this.orders.size + 1}`, orderNumber: `TL-${this.orders.size + 1}`, status: 'AWAITING_COLLECTION' };
         this.orders.set(key, o);
-        return send(201, o);
+        return send(200, { ...o, created: true });
       }
-      if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_COLLECTED' }) : send(200, { status: 'CANCELLED' });
+      if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_COLLECTED' }) : send(200, { orderId: 'x', status: 'CANCELLED' });
     }
     return send(404, { message: `no route ${m} ${path}` });
   }

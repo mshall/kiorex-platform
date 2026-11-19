@@ -64,7 +64,7 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(400); // double submit: empty cart
       await pay(o);
       expect(ph.callsTo('POST', '/orders')[0].headers['idempotency-key']).toBe(o.id);
-      expect(ph.callsTo('POST', '/orders')[0].body).toMatchObject({ orderRef: o.id, pharmacyId: 'ph_1', patientRef: 'sub_amira', payment: { totalMinor: 5000 } });
+      expect(ph.callsTo('POST', '/orders')[0].body).toMatchObject({ orderId: o.id, branchId: 'ph_1', patientRef: 'sub_amira', prepaid: true, lines: [{ sku: 'PARA500', quantity: 2, unitPrice: '25.00' }], delivery: { method: 'PICKUP' }, payment: { totalMinor: 5000, currency: 'EGP' } });
       expect(ph.callsTo('POST', '/orders')[0].body.patientRef).not.toMatch(/\d{14}/); // no national id
       expect(ph.callsTo('POST', '/prescriptions/validate')).toHaveLength(0);
       expect((await c.http().get(`/api/v1/pharmacy/orders/${o.id}`).set(auth)).body.status).toBe('SUBMITTED');
@@ -133,7 +133,7 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       const mk = async () => { await cart([{ sku: 'PARA500', qty: 1 }]); await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'PICKUP' }); const o = (await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body; await pay(o); return o; };
       ph.orderMode = 'reject';
       const a = await mk();
-      expect((await c.http().get(`/api/v1/pharmacy/orders/${a.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', rejectionReason: 'OUT_OF_STOCK', payment: { status: 'REFUNDED' } });
+      expect((await c.http().get(`/api/v1/pharmacy/orders/${a.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', rejectionReason: 'BRANCH_NOT_OPTED_IN', payment: { status: 'REFUNDED' } });
       ph.orderMode = undefined;
       const b = await mk();
       const pid = (await c.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id: b.id } })).partnerOrderId!;

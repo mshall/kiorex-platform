@@ -1,3 +1,5 @@
+import { PARTNER_DEV_DEFAULTS } from '@kiorex/contracts';
+
 /** Lazy env config (read at call time so tests can override process.env). */
 const env = (k: string, d = ''): string => process.env[k] ?? d;
 const num = (k: string, d: number): number => {
@@ -45,15 +47,19 @@ export const cfg = () => ({
   recordShareSecret: env('KIOREX_RECORD_SHARE_HMAC_SECRET', 'dev-record-share-secret'),
   rxVerifySecret: env('RX_VERIFY_HMAC_SECRET', 'rx_dev_verify_secret_change_me'),
   rxVerifyBase: env('RX_VERIFY_BASE_URL', 'https://kiorex.com/rx/verify'),
-  /** Vertical partners (Kiorly Pharmacy / Lab): HMAC REST, same scheme as the marketplace client. Not built yet; tests use fakes. */
-  pharmacyBaseUrl: env('KIORLY_PHARMACY_BASE_URL', 'http://localhost:3020/pharmacy/v1'),
-  pharmacyClientKey: env('KIORLY_PHARMACY_CLIENT_KEY', 'kx_dev_pharmacy_client'),
-  pharmacyClientSecret: env('KIORLY_PHARMACY_CLIENT_SECRET', 'kx_dev_pharmacy_secret_change_me'),
-  pharmacyWebhookSecret: env('KIORLY_PHARMACY_WEBHOOK_SECRET', 'kx_dev_pharmacy_webhook_secret'),
-  labBaseUrl: env('KIORLY_LAB_BASE_URL', 'http://localhost:3030/lab/v1'),
-  labClientKey: env('KIORLY_LAB_CLIENT_KEY', 'kx_dev_lab_client'),
-  labClientSecret: env('KIORLY_LAB_CLIENT_SECRET', 'kx_dev_lab_secret_change_me'),
-  labWebhookSecret: env('KIORLY_LAB_WEBHOOK_SECRET', 'kx_dev_lab_webhook_secret'),
+  /**
+   * Vertical partners (Kiorly Pharmacy / Lab): HMAC REST, same scheme as the marketplace client. The REAL source of truth is the
+   * PartnerRegistration table (ops-configurable per partner); these env values are the fallback and the dev seed source. `*BaseUrl` is the
+   * partner HOST only (kiorex-contracts PARTNER_API_PATH is appended). Defaults = PARTNER_DEV_DEFAULTS (local only, never production).
+   */
+  pharmacyBaseUrl: env('KIORLY_PHARMACY_BASE_URL', PARTNER_DEV_DEFAULTS.pharmacy.baseUrl),
+  pharmacyClientKey: env('KIORLY_PHARMACY_CLIENT_KEY', PARTNER_DEV_DEFAULTS.pharmacy.clientKey),
+  pharmacyClientSecret: env('KIORLY_PHARMACY_CLIENT_SECRET', PARTNER_DEV_DEFAULTS.pharmacy.clientSecret),
+  pharmacyWebhookSecret: env('KIORLY_PHARMACY_WEBHOOK_SECRET', PARTNER_DEV_DEFAULTS.pharmacy.webhookSecret),
+  labBaseUrl: env('KIORLY_LAB_BASE_URL', PARTNER_DEV_DEFAULTS.lab.baseUrl),
+  labClientKey: env('KIORLY_LAB_CLIENT_KEY', PARTNER_DEV_DEFAULTS.lab.clientKey),
+  labClientSecret: env('KIORLY_LAB_CLIENT_SECRET', PARTNER_DEV_DEFAULTS.lab.clientSecret),
+  labWebhookSecret: env('KIORLY_LAB_WEBHOOK_SECRET', PARTNER_DEV_DEFAULTS.lab.webhookSecret),
   partnerTimeoutMs: num('PARTNER_TIMEOUT_MS', 8000),
   /** NEEDS_HUMAN (KX-12): marketplace take rates in basis points. 0 = unset. KX-03 §08 lists 4% / 8% only as "test points" — never final. */
   pharmacyTakeRateBps: num('PHARMACY_TAKE_RATE_BPS', 0),

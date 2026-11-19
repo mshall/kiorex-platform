@@ -1,28 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { cfg } from '../common/config';
 import { partnerRequest } from '../common/partner-http';
+import { PartnerRegistry } from '../partners/partners-public';
 
 /**
- * Kiorly Pharmacy operational API client — DRAFT CONTRACT (Kiorly Pharmacy is not built in this wave; KX-06 KPMKT01-05, KPINV07).
- * Same HMAC scheme as the marketplace API; base `${KIORLY_PHARMACY_BASE_URL}` (default http://localhost:3020/pharmacy/v1).
- * Documented in Docs/VERTICALS.md; events come back as OrderReady / DispenseCompleted / OrderRejected (kiorex-contracts, v2-draft).
+ * Kiorly Pharmacy machine API client (kiorex-contracts openapi/kiorly-pharmacy.v1.openapi.json; KX-06 KPMKT01-05, KPINV07).
+ * Auth = the Kiorly HMAC request scheme; connection (host + client key/secret) comes from the PartnerRegistry, path prefix `/marketplace/v1`.
+ * The client key addresses the pharmacy tenant (NH-PH-024 resolved: no org header); the branch is `pharmacyId`/`branchId` in the body.
  *
  *   GET  /pharmacies                          opted-in branches: delivery options (KPMKT01)
  *   GET  /catalogue?q&pharmacyId              OTC + Rx-only items with availability-to-promise (KPINV07); controlled items NEVER listed (KPRX05)
- *   POST /catalogue/quote                     authoritative price/availability for a cart
- *   POST /orders            Idempotency-Key = Kiorex order id   create order intent after payment (KPMKT02)
+ *   POST /catalogue/quote                     authoritative price/availability for a cart (minor units)
+ *   POST /orders            orderId = Kiorex order id (idempotent)   create order intent AFTER payment capture (KPMKT02)
  *   POST /prescriptions/validate              Rx validation request (KPMKT04): pharmacist-gated, answer may be PENDING
  *   POST /orders/{orderId}/cancel
  */
 @Injectable()
 export class PharmacyClient {
-  private conn() { const c = cfg(); return { baseUrl: c.pharmacyBaseUrl, clientKey: c.pharmacyClientKey, clientSecret: c.pharmacyClientSecret, timeoutMs: c.partnerTimeoutMs }; }
-  pharmacies() { return partnerRequest<{ items: PharmacyDto[] }>(this.conn(), { method: 'GET', path: '/pharmacies' }); }
-  catalogue(q: { q?: string; pharmacyId?: string }) { return partnerRequest<{ items: CatalogueItemDto[] }>(this.conn(), { method: 'GET', path: '/catalogue', query: q }); }
-  quote(body: { pharmacyId: string; items: { sku: string; qty: number }[]; delivery?: { method: string } }) { return partnerRequest<QuoteDto>(this.conn(), { method: 'POST', path: '/catalogue/quote', body }); }
-  createOrder(key: string, body: Record<string, unknown>) { return partnerRequest<{ orderId: string; status: 'PENDING_VALIDATION' | 'ACCEPTED' | 'REJECTED'; reason?: string }>(this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
-  validatePrescription(body: { orderId: string; prescriptionRef: string; verificationToken: string; patientRef: string }) { return partnerRequest<{ status: 'VALID' | 'INVALID' | 'PENDING'; reason?: string }>(this.conn(), { method: 'POST', path: '/prescriptions/validate', body }); }
-  cancelOrder(orderId: string, reason: string) { return partnerRequest<{ status: string }>(this.conn(), { method: 'POST', path: `/orders/${encodeURIComponent(orderId)}/cancel`, body: { reason } }); }
+  constructor(private readonly registry: PartnerRegistry) {}
+  private conn() { return this.registry.conn('PHARMACY'); }
+  async pharmacies() { return partnerRequest<{ items: PharmacyDto[] }>(await this.conn(), { method: 'GET', path: '/pharmacies' }); }
+  async catalogue(q: { q?: string; pharmacyId?: string }) { return partnerRequest<{ items: CatalogueItemDto[] }>(await this.conn(), { method: 'GET', path: '/catalogue', query: q }); }
+  async quote(body: { pharmacyId: string; items: { sku: string; qty: number }[]; delivery?: { method: string } }) { return partnerRequest<QuoteDto>(await this.conn(), { method: 'POST', path: '/catalogue/quote', body }); }
+  /** `key` = Kiorex order id: the Idempotency-Key header AND the contract's `orderId`, so a retry (timeout, outbox replay) can never double-create. */
+  async createOrder(key: string, body: PharmacyOrderIntent) { return partnerRequest<{ orderId: string; status: PharmacyPartnerStatus; slaDueAt?: string; replayed?: boolean }>(await this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
+  async validatePrescription(body: { orderId: string; prescriptionRef: string; verificationToken: string; patientRef: string }) { return partnerRequest<{ status: 'VALID' | 'INVALID' | 'PENDING'; reason?: string }>(await this.conn(), { method: 'POST', path: '/prescriptions/validate', body }); }
+  async cancelOrder(orderId: string, reason: string) { return partnerRequest<{ status: string }>(await this.conn(), { method: 'POST', path: `/orders/${encodeURIComponent(orderId)}/cancel`, body: { reason } }); }
+}
+
+export type PharmacyPartnerStatus = 'RECEIVED' | 'ACCEPTED' | 'PARTIALLY_ACCEPTED' | 'READY' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
+/** Kiorex -> Pharmacy order intent. Unit prices are decimal MAJOR units (the pharmacy ledger unit); the pharmacy refuses a stale price. */
+export interface PharmacyOrderIntent {
+  orderId: string; branchId: string; patientRef: string; customer?: { name?: string; phone?: string; address?: string }; prepaid: true;
+  lines: { sku: string; quantity: number; unitPrice: string }[];
+  delivery: { method: string; address?: unknown };
+  payment: { reference: string | null; totalMinor: number; currency: string };
+  prescription?: { recordRef: string; verificationToken: string };
 }
 
 export interface PharmacyDto { id: string; name: string; delivery: { enabled: boolean; feeMinor: number; radiusKm?: number }; pickup: boolean; prepMinutes?: number }

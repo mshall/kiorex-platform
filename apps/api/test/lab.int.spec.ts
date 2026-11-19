@@ -42,7 +42,7 @@ describe('lab bookings (launch-locked kiorex.lab_bookings; fake Kiorly Lab contr
     expect(b).toMatchObject({ status: 'PENDING_PAYMENT', subtotalMinor: 15000, collectionFeeMinor: 5000, totalMinor: 20000, payment: { status: 'CREATED' } });
     await pay(b);
     expect(lab.callsTo('POST', '/orders')[0].headers['idempotency-key']).toBe(b.id);
-    expect(lab.callsTo('POST', '/orders')[0].body).toMatchObject({ labId: 'lab_1', patientRef: 'sub_amira', collection: { type: 'HOME', slot } });
+    expect(lab.callsTo('POST', '/orders')[0].body).toMatchObject({ sourceRef: b.id, labId: 'lab_1', patient: { fullName: 'Amira Samy', externalId: 'sub_amira' }, testCodes: expect.any(Array), consentChannels: ['KIOREX_VAULT'], collection: { type: 'HOME', windowStart: slot.startsAt, windowEnd: slot.endsAt } });
     expect((await c.http().get(`/api/v1/lab/bookings/${b.id}`).set(auth)).body.status).toBe('SUBMITTED');
     expect((await c.http().get('/api/v1/me/notifications').set(auth)).body.some((n: any) => n.kind === 'LAB_BOOKING_CONFIRMED')).toBe(true);
     const oid = (await c.prisma.labBooking.findUniqueOrThrow({ where: { id: b.id } })).partnerOrderId!;
@@ -82,7 +82,7 @@ describe('lab bookings (launch-locked kiorex.lab_bookings; fake Kiorly Lab contr
   it('lab rejection or outage after payment: refund on rejection; retry with same key on outage; cancel flow', async () => {
     lab.orderMode = 'reject';
     const a = (await book().expect(201)).body; await pay(a);
-    expect((await c.http().get(`/api/v1/lab/bookings/${a.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', rejectionReason: 'NO_CAPACITY', payment: { status: 'REFUNDED' } });
+    expect((await c.http().get(`/api/v1/lab/bookings/${a.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', rejectionReason: 'SLOT_FULL', payment: { status: 'REFUNDED' } });
     lab.orderMode = '5xx';
     const b = (await book().expect(201)).body; await pay(b);
     expect((await c.http().get(`/api/v1/lab/bookings/${b.id}`).set(auth)).body.status).toBe('PAID');
