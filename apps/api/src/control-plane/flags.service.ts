@@ -303,8 +303,14 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     const reg = await this.prisma.productRegistration.findUnique({ where: { product: e.aggregateId } });
     if (!reg?.webhookUrl) return;
     const secret = decryptField(reg.webhookSecretEnc ?? reg.secretEnc);
-    const body = JSON.stringify({ event: 'flag.changed', product: reg.product, version: e.payload.version, changedKeys: e.payload.keys, occurredAt: new Date().toISOString() });
-    const signed = cSignWebhook({ secret, body, eventType: 'flag.changed', eventId: `flag.changed:${reg.product}:${e.payload.version}` });
+    // Contract envelope (kiorex-contracts events/flag.changed): Kiorly's receiver requires type === 'flag.changed' and data.product.
+    const keys: string[] = e.payload.keys ?? [];
+    const eventId = `flag.changed:${reg.product}:${e.payload.version}`;
+    const body = JSON.stringify({
+      eventId, type: 'flag.changed', aggregateType: 'Flag', aggregateId: keys[0] ?? reg.product, target: reg.product, occurredAt: new Date().toISOString(),
+      data: { product: reg.product, key: keys[0] ?? '*', keys, snapshotVersion: e.payload.version, changedAt: new Date().toISOString(), reason: e.payload.why, actor: e.payload.actor },
+    });
+    const signed = cSignWebhook({ secret, body, eventType: 'flag.changed', eventId });
     try {
       const res = await fetch(reg.webhookUrl, {
         method: 'POST',
