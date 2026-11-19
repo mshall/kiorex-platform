@@ -26,3 +26,14 @@ Local dependencies: Kiorly API `:3000` (marketplace client `kx_dev_client`), Pas
 - **Flags**: super admin toggles via `PUT /admin/flags/{key}/values`; money-path global/market OFF needs a second approver
   (`POST /admin/flags/requests/{id}/approve`) or `emergency:true` + 24 h review. Gate evidence is a human action (see NEEDS_HUMAN STOP flags).
 - Sandbox payments: `PSP_MODE=sandbox-fake` serves `/api/v1/pay/fake-checkout/{paymentId}`.
+
+## Mock providers, dev inbox and new modules (founder rule: everything third-party is mocked until the pre-launch pass)
+
+- `MESSAGING_MODE=mock` (default; `log` = mock): all email/WhatsApp/SMS/push go to the `MessageLog` table. Simulate a patient: `curl -XPOST :4000/api/v1/dev/messaging/inbound -H 'content-type: application/json' -d '{"channel":"WHATSAPP","from":"+201000000001","text":"hi"}'` (the phone must belong to a Kiorex profile); read what was "sent": `GET /api/v1/dev/messaging/outbox?channel=WHATSAPP`; advance delivery states: `POST /dev/messaging/delivery-tick`, ops view `GET /admin/messaging/log`. Dev routes return 404 in production or when `MESSAGING_MODE=real`. A recipient ending in `0000` simulates a bounce.
+- `market.eg.live`: `npm run db:seed -w apps/api` inserts a DEV-labelled gate row so Egypt works locally (`SEED_DEV_GATES=false` skips it). Real gate evidence is recorded by a human in the super admin.
+- Launch-locked verticals stay `AWAITING_GATE` (403) locally unless you record gate evidence in the super admin; Kiorly Pharmacy/Lab are not built: only tests (fake partner servers) exercise them.
+- Vault uploads use `STORAGE_LOCAL_DIR` (default `.data/vault`, git-ignored). Record-share HMAC secret: `KIOREX_RECORD_SHARE_HMAC_SECRET` (must equal Kiorly's). Rx QR secret: `RX_VERIFY_HMAC_SECRET`.
+- Background jobs (`JOBS_ENABLED=true`): waitlist scan 60 s, mock delivery tick 5 s (plus the existing outbox/engagement/booking jobs).
+- OpenAPI: `npm run openapi:export -w apps/api` regenerates `openapi/kiorex-api.v1.openapi.json` (typed responses) and `Docs/API.md`; `test/openapi-contract.int.spec.ts` validates live responses against the committed file, so commit both together.
+- Guards: `src/no-tax-authority.unit.spec.ts` (no tax-authority reporting), `src/module-boundaries.unit.spec.ts`.
+
