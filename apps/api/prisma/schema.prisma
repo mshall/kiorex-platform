@@ -1,0 +1,582 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── platform: outbox, audit, webhooks ─────────────────────────
+
+model OutboxEvent {
+  id            String   @id @default(cuid())
+  type          String
+  aggregateType String
+  aggregateId   String
+  target        String   @default("INTERNAL") // INTERNAL | KIORLY | PRODUCT:<product>
+  payload       Json
+  status        String   @default("PENDING") // PENDING | SENT | FAILED | DEAD
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  dedupeKey     String?  @unique
+  createdAt     DateTime @default(now())
+  sentAt        DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+}
+
+model WebhookReceipt {
+  eventId     String   @id
+  source      String   @default("kiorly")
+  type        String
+  aggregateId String?
+  payload     Json
+  status      String   @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
+  error       String?
+  receivedAt  DateTime @default(now())
+  processedAt DateTime?
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([createdAt])
+}
+
+model KvState {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────── auth sessions (KXM-AC-05) ─────────────────────────
+
+model AuthSession {
+  id         String    @id @default(cuid())
+  sid        String    @unique
+  sub        String
+  clientId   String?
+  device     String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([sub])
+}
+
+// ───────────────────────── patient (KXM-AC-02..07) ─────────────────────────
+
+model PatientProfile {
+  id               String    @id @default(cuid())
+  sub              String    @unique
+  phone            String?
+  email            String?
+  nameEn           String?
+  nameAr           String?
+  dateOfBirth      DateTime?
+  gender           String?
+  nationalIdEnc    String?
+  nationalIdHash   String?
+  preferredLocale  String    @default("ar")
+  market           String    @default("EG")
+  noShowCount      Int       @default(0)
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([nationalIdHash])
+}
+
+model Dependant {
+  id           String    @id @default(cuid())
+  guardianSub  String
+  nameEn       String
+  nameAr       String?
+  dateOfBirth  DateTime
+  gender       String?
+  relationship String
+  evidence     String?
+  expiresAt    DateTime? // age of majority (KA06)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([guardianSub])
+}
+
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  sub       String
+  purpose   String // MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING
+  granted   Boolean
+  version   String   @default("TODO_NEEDS_HUMAN_v0")
+  source    String   @default("app")
+  createdAt DateTime @default(now())
+
+  @@index([sub, purpose, createdAt])
+}
+
+model DataRequest {
+  id          String    @id @default(cuid())
+  sub         String
+  kind        String // EXPORT | DELETION
+  status      String    @default("REQUESTED") // REQUESTED | COMPLETED
+  result      Json?
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([sub])
+}
+
+model KiorlyPatientLink {
+  id              String   @id @default(cuid())
+  sub             String
+  dependantId     String?
+  clinicId        String
+  kiorlyPatientId String
+  evidence        String // PHONE | NATIONAL_ID | PHONE_AND_NATIONAL_ID
+  status          String   @default("LINKED") // LINKED | CONFLICT_REVIEW
+  createdAt       DateTime @default(now())
+
+  @@unique([sub, clinicId, kiorlyPatientId])
+  @@index([sub])
+}
+
+// ───────────────────────── catalog (KXM-DS, KXM-PR) ─────────────────────────
+
+model Provider {
+  id               String    @id // Kiorly listingId
+  tenantId         String? // Kiorly org (org-scope flags)
+  clinicId         String
+  clinicianId      String
+  status           String // LIVE | PAUSED | ...
+  sourceVersion    String // Kiorly updatedAt (ISO)
+  market           String    @default("EG")
+  nameEn           String?
+  nameAr           String?
+  clinicNameEn     String?
+  clinicNameAr     String?
+  specialty        String?
+  subSpecialties   String[]
+  languages        String[]
+  gender           String?
+  governorate      String?
+  area             String?
+  latitude         Float?
+  longitude        Float?
+  minFeeMinor      Int?
+  maxFeeMinor      Int?
+  currency         String    @default("EGP")
+  acceptsDeposit   Boolean   @default(false)
+  ratingAvg        Float     @default(0)
+  ratingCount      Int       @default(0)
+  searchText       String    @default("")
+  raw              Json
+  syncedAt         DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  @@index([status, specialty])
+  @@index([clinicId, clinicianId])
+}
+
+model ProfileViewDaily {
+  providerId String
+  date       DateTime @db.Date
+  views      Int      @default(0)
+  pushedAt   DateTime?
+
+  @@id([providerId, date])
+}
+
+model AnalyticsEvent {
+  id            String   @id @default(cuid())
+  name          String
+  specialtyCode String?
+  providerId    String?
+  market        String   @default("EG")
+  code          String?
+  createdAt     DateTime @default(now())
+
+  @@index([name, createdAt])
+}
+
+// ───────────────────────── booking (KXM-BK) ─────────────────────────
+
+model BookingIntent {
+  id                    String    @id // kx_bk_<id>; also Kiorly Idempotency-Key / externalReference
+  sub                   String
+  dependantId           String?
+  providerId            String
+  clinicId              String
+  clinicianId           String
+  tenantId              String?
+  typeId                String
+  startsAt              DateTime
+  endsAt                DateTime
+  status                String // INTENT HELD PENDING_CLINIC CONFIRMED CHECKED_IN COMPLETED NO_SHOW CANCELLED EXPIRED
+  channel               String    @default("MARKETPLACE")
+  holdId                String?
+  holdExternalRef       String?
+  holdExpiresAt         DateTime?
+  callState             String    @default("NONE") // NONE | IN_FLIGHT | UNCERTAIN
+  kiorlyAppointmentId   String?
+  kiorlyPatientId       String?
+  kiorlyVersion         Int       @default(0)
+  confirmationDueAt     DateTime?
+  cancelledBy           String?
+  cancellationReason    String?
+  depositRefundable     Boolean?
+  failureCode           String?
+  depositStatus         String    @default("NONE") // NONE REQUIRED PAID REFUNDED FORFEITED RELEASED
+  depositAmountMinor    Int       @default(0)
+  currency              String    @default("EGP")
+  feeMinor              Int?
+  patientSnapshot       Json?
+  version               Int       @default(0) // optimistic lock
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  terminalAt            DateTime?
+
+  events BookingEvent[]
+
+  @@index([sub, status])
+  @@index([status, updatedAt])
+  @@index([kiorlyAppointmentId])
+}
+
+model BookingEvent {
+  id         String        @id @default(cuid())
+  bookingId  String
+  booking    BookingIntent @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  kind       String // INTENT | HOLD | KIORLY_CALL | WEBHOOK | PAYMENT | STATE | RECONCILE
+  fromStatus String?
+  toStatus   String?
+  detail     Json?
+  createdAt  DateTime      @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+// ───────────────────────── Kiorex Pay (KXM-PAY) ─────────────────────────
+
+model PaymentIntent {
+  id             String    @id // pay_<id>; used as Kiorly paymentRef
+  bookingId      String?
+  payLinkToken   String?
+  sub            String?
+  clinicId       String
+  amountMinor    Int
+  currency       String    @default("EGP")
+  psp            String
+  pspRef         String?   @unique
+  checkoutUrl    String?
+  status         String    @default("CREATED") // CREATED | CAPTURED | FAILED | REFUNDED | PARTIALLY_REFUNDED
+  refundedMinor  Int       @default(0)
+  feeMinor       Int       @default(0)
+  releasedAt     DateTime? // deposit released to clinic payable (completed / forfeited)
+  releaseKind    String? // COMPLETED | FORFEITED
+  payoutId       String?
+  capturedAt     DateTime?
+  kiorlyNotified Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  refunds Refund[]
+
+  @@index([bookingId])
+  @@index([clinicId, status])
+}
+
+model PayLink {
+  token           String   @id
+  clinicId        String
+  externalRef     String?
+  amountMinor     Int
+  currency        String   @default("EGP")
+  status          String   @default("OPEN") // OPEN | PAID | EXPIRED
+  expiresAt       DateTime
+  paymentIntentId String?
+  createdAt       DateTime @default(now())
+}
+
+model Refund {
+  id             String        @id // rf_<id>
+  paymentId      String
+  payment        PaymentIntent @relation(fields: [paymentId], references: [id])
+  amountMinor    Int
+  reason         String
+  status         String        @default("REQUESTED") // REQUESTED | SETTLED | FAILED
+  idempotencyKey String        @unique
+  pspRefundRef   String?
+  createdAt      DateTime      @default(now())
+  settledAt      DateTime?
+}
+
+model LedgerTx {
+  id             String        @id @default(cuid())
+  idempotencyKey String        @unique
+  kind           String
+  bookingId      String?
+  paymentId      String?
+  clinicId       String?
+  memo           String?
+  createdAt      DateTime      @default(now())
+  entries        LedgerEntry[]
+}
+
+model LedgerEntry {
+  id          String   @id @default(cuid())
+  txId        String
+  tx          LedgerTx @relation(fields: [txId], references: [id])
+  account     String
+  debitMinor  Int      @default(0)
+  creditMinor Int      @default(0)
+  currency    String   @default("EGP")
+  createdAt   DateTime @default(now())
+
+  @@index([account])
+  @@index([txId])
+}
+
+model Payout {
+  id           String   @id // po_<id>
+  payoutRef    String   @unique
+  clinicId     String
+  amountMinor  Int
+  currency     String   @default("EGP")
+  status       String   @default("SENT") // SENT | KIORLY_RECORDED
+  periodKey    String
+  paymentRefs  Json
+  paidAt       DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([clinicId, periodKey])
+}
+
+model PspSettlementLine {
+  id         String   @id @default(cuid())
+  psp        String
+  pspRef     String
+  kind       String // CAPTURE | REFUND
+  amountMinor Int
+  feeMinor   Int      @default(0)
+  date       DateTime @db.Date
+  matched    Boolean  @default(false)
+
+  @@unique([psp, pspRef, kind])
+}
+
+model ReconciliationRun {
+  id            String   @id @default(cuid())
+  kind          String // PSP_DAILY | BOOKING_NIGHTLY
+  status        String // OK | DISCREPANCIES
+  discrepancies Json
+  stats         Json?
+  createdAt     DateTime @default(now())
+}
+
+// ───────────────────────── engagement (KXM-NT) ─────────────────────────
+
+model Message {
+  id           String    @id @default(cuid())
+  sub          String
+  bookingId    String?
+  channel      String // WHATSAPP | SMS | PUSH | EMAIL | INAPP
+  templateId   String
+  locale       String    @default("ar")
+  params       Json?
+  status       String    @default("SCHEDULED") // SCHEDULED SENT SKIPPED_CONSENT SKIPPED_OPTOUT FAILED CANCELLED
+  reason       String?
+  scheduledFor DateTime  @default(now())
+  sentAt       DateTime?
+  readAt       DateTime?
+  dedupeKey    String?   @unique
+  createdAt    DateTime  @default(now())
+
+  @@index([sub, createdAt])
+  @@index([status, scheduledFor])
+}
+
+model NotificationPreference {
+  sub        String
+  channel    String
+  enabled    Boolean @default(true)
+  quietStart Int? // local hour 0-23
+  quietEnd   Int?
+
+  @@id([sub, channel])
+}
+
+// ───────────────────────── trust (KXM-RV) ─────────────────────────
+
+model Review {
+  id                  String    @id @default(cuid())
+  bookingId           String    @unique
+  sub                 String
+  providerId          String
+  clinicId            String
+  clinicianId         String
+  kiorlyAppointmentId String
+  rating              Int
+  text                String?
+  status              String    @default("VISIBLE") // VISIBLE | HIDDEN
+  moderationFlags     Json?
+  clinicReply         String?
+  editableUntil       DateTime
+  syncStatus          String    @default("PENDING") // PENDING | SYNCED | REJECTED
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([providerId, status])
+}
+
+model ModerationCase {
+  id         String    @id @default(cuid())
+  reviewId   String
+  reason     String
+  status     String    @default("OPEN") // OPEN | RESOLVED
+  resolution String? // KEPT_HIDDEN | RESTORED
+  resolvedBy String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([status])
+}
+
+model Complaint {
+  id        String    @id @default(cuid())
+  sub       String
+  bookingId String?
+  category  String
+  body      String
+  status    String    @default("OPEN")
+  slaDueAt  DateTime
+  createdAt DateTime  @default(now())
+  resolvedAt DateTime?
+}
+
+// ───────────────────────── control plane (KXM-OP-07..11) ─────────────────────────
+
+model FlagDefinition {
+  key          String   @id
+  product      String
+  class        String // MODULE | COMMERCIAL | INTEGRATION | AI | LAUNCH_LOCKED
+  scopes       String[] // GLOBAL | MARKET | ORG
+  dependsOn    String[]
+  launchLocked Boolean  @default(false)
+  moneyPath    Boolean  @default(false)
+  description  String
+  whenOff      String?
+  gateHint     String?
+  createdAt    DateTime @default(now())
+}
+
+model FlagValue {
+  id           String    @id @default(cuid())
+  flagKey      String
+  scope        String // GLOBAL | MARKET | ORG
+  scopeId      String    @default("")
+  value        String // OFF | ON (ON == inherit)
+  reason       String?
+  ticket       String?
+  setBy        String?
+  expiresAt    DateTime?
+  startsAt     DateTime? // scheduled activation
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+
+  @@unique([flagKey, scope, scopeId])
+}
+
+model FlagGateEvidence {
+  flagKey     String    @id
+  gateId      String
+  approver    String
+  approvedOn  DateTime
+  documentUrl String
+  recordedBy  String
+  createdAt   DateTime  @default(now())
+}
+
+model FlagChangeRequest {
+  id           String    @id @default(cuid())
+  flagKey      String
+  scope        String
+  scopeId      String    @default("")
+  value        String
+  reason       String
+  ticket       String
+  expiresAt    DateTime?
+  requestedBy  String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  approvedBy   String?
+  emergency    Boolean   @default(false)
+  reviewDueAt  DateTime?
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  decidedAt    DateTime?
+}
+
+model FlagAudit {
+  id        String    @id @default(cuid())
+  flagKey   String
+  scope     String
+  scopeId   String    @default("")
+  oldValue  String?
+  newValue  String
+  actor     String
+  reason    String?
+  ticket    String?
+  expiresAt DateTime?
+  emergency Boolean   @default(false)
+  event     String    @default("TOGGLE") // TOGGLE | GATE | EXPIRY | REQUEST | APPROVE | REVIEW
+  createdAt DateTime  @default(now())
+
+  @@index([flagKey, createdAt])
+}
+
+model ProductRegistration {
+  product            String    @id
+  keyId              String    @unique
+  secretEnc          String
+  webhookUrl         String?
+  webhookSecretEnc   String?
+  active             Boolean   @default(true)
+  lastFetchedVersion Int       @default(0)
+  lastFetchedAt      DateTime?
+  lastPushedVersion  Int       @default(0)
+  lastPushedAt       DateTime?
+  lastPushError      String?
+}
+
+model ControlState {
+  id      Int      @id @default(1)
+  version Int      @default(1)
+  updatedAt DateTime @default(now())
+}
+
+// ───────────────────────── AI gateway (KX-11) ─────────────────────────
+
+model AiUsage {
+  id            String   @id @default(cuid())
+  sub           String?
+  purpose       String
+  provider      String
+  promptVersion String
+  redactions    Int      @default(0)
+  source        String // AI | RULES
+  createdAt     DateTime @default(now())
+
+  @@index([sub, createdAt])
+}

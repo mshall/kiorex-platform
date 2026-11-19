@@ -1,0 +1,2439 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Claims of the authenticated Kiorex Account subject"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/backchannel-logout": {
+      "post": {
+        "operationId": "AuthController_backchannelLogout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/control/v1/flags/snapshot": {
+      "get": {
+        "operationId": "ControlPlaneController_snapshot",
+        "summary": "Signed flag snapshot per product (ETag, poll every 30 s)",
+        "parameters": [
+          {
+            "name": "product",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorex-Product-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/flags/effective": {
+      "get": {
+        "operationId": "ControlPlaneController_effective",
+        "summary": "Effective state of every Kiorex flag (for web/mobile to hide entry points)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags": {
+      "get": {
+        "operationId": "ControlPlaneController_list",
+        "summary": "Every flag of every product with effective value, source, class, deps, last change (OP-07)",
+        "parameters": [
+          {
+            "name": "market",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "product",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/{key}/values": {
+      "put": {
+        "operationId": "ControlPlaneController_set",
+        "summary": "Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10)",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFlagBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/{key}/gate": {
+      "put": {
+        "operationId": "ControlPlaneController_gate",
+        "summary": "Record launch gate evidence (OP-09). STOP flag: only a human may call this.",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/{key}/gate/revoke": {
+      "post": {
+        "operationId": "ControlPlaneController_revokeGate",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/definitions": {
+      "post": {
+        "operationId": "ControlPlaneController_define",
+        "summary": "Register a flag definition (e.g. market.<cc>.live). Safety controls are refused (ADR-025).",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/requests": {
+      "get": {
+        "operationId": "ControlPlaneController_requests",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/requests/{id}/approve": {
+      "post": {
+        "operationId": "ControlPlaneController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/requests/{id}/reject": {
+      "post": {
+        "operationId": "ControlPlaneController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/requests/{id}/review": {
+      "post": {
+        "operationId": "ControlPlaneController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/emergency-reviews/overdue": {
+      "get": {
+        "operationId": "ControlPlaneController_overdue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/audit": {
+      "get": {
+        "operationId": "ControlPlaneController_audit",
+        "summary": "Flag audit trail; ?format=csv exports (OP-11)",
+        "parameters": [
+          {
+            "name": "flagKey",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/propagation": {
+      "get": {
+        "operationId": "ControlPlaneController_propagation",
+        "summary": "Snapshot version and age per product (OP-11)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/products/{product}": {
+      "put": {
+        "operationId": "ControlPlaneController_product",
+        "parameters": [
+          {
+            "name": "product",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/sweep": {
+      "post": {
+        "operationId": "ControlPlaneController_sweep",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/me/profile": {
+      "get": {
+        "operationId": "PatientController_profile",
+        "summary": "KXM-AC-02 profile (national ID masked)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      },
+      "put": {
+        "operationId": "PatientController_update",
+        "summary": "KXM-AC-02 update profile; national ID encrypted at rest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/dependants": {
+      "get": {
+        "operationId": "PatientController_deps",
+        "summary": "KXM-AC-03 list family members",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      },
+      "post": {
+        "operationId": "PatientController_addDep",
+        "summary": "KXM-AC-03 add dependant (flag kiorex.family_accounts)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DependantBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/dependants/{id}": {
+      "patch": {
+        "operationId": "PatientController_patchDep",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DependantPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      },
+      "delete": {
+        "operationId": "PatientController_delDep",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/consents": {
+      "get": {
+        "operationId": "PatientController_consents",
+        "summary": "KXM-AC-04 consent centre — current state",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/consents/history": {
+      "get": {
+        "operationId": "PatientController_consentHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/consents/{purpose}": {
+      "put": {
+        "operationId": "PatientController_setConsent",
+        "summary": "KXM-AC-04 grant or withdraw a consent",
+        "parameters": [
+          {
+            "name": "purpose",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "operationId": "PatientController_sessionsList",
+        "summary": "KXM-AC-05 device/session list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "operationId": "PatientController_revoke",
+        "summary": "KXM-AC-05 remote sign-out",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/kiorly-links": {
+      "get": {
+        "operationId": "PatientController_links",
+        "summary": "KXM-AC-07 Kiorly record links (never auto-merged)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/export": {
+      "post": {
+        "operationId": "PatientController_export",
+        "summary": "KXM-AC-06 data export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/me/deletion": {
+      "post": {
+        "operationId": "PatientController_deletion",
+        "summary": "KXM-AC-06 in-app account deletion with optional export",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "patient"
+        ]
+      }
+    },
+    "/api/v1/search/providers": {
+      "get": {
+        "operationId": "CatalogController_search",
+        "summary": "KXM-DS-01..04/06 search; emergency keywords return 123 guidance and no results",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specialty",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "governorate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "area",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minFee",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxFee",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gender",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "language",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minRating",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "acceptsDeposit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextAvailable",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lng",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxDistanceKm",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/specialties": {
+      "get": {
+        "operationId": "CatalogController_specialties",
+        "summary": "Specialty codes with AR/EN labels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/providers/{id}": {
+      "get": {
+        "operationId": "CatalogController_profile",
+        "summary": "KXM-PR-01/02/04 provider profile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/slots": {
+      "get": {
+        "operationId": "CatalogController_slots",
+        "summary": "KXM-BK-01 slots from Kiorly (60 s cache)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/view": {
+      "post": {
+        "operationId": "CatalogController_view",
+        "summary": "KXM-DS-08 count a profile view (pushed daily to Kiorly)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/me/notifications": {
+      "get": {
+        "operationId": "EngagementController_inbox",
+        "summary": "KXM-NT-01 in-app notification inbox",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
+    "/api/v1/me/notifications/{id}/read": {
+      "post": {
+        "operationId": "EngagementController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
+    "/api/v1/me/notification-preferences": {
+      "get": {
+        "operationId": "EngagementController_prefs",
+        "summary": "KXM-NT-02 per-channel opt-out and quiet hours",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
+    "/api/v1/me/notification-preferences/{channel}": {
+      "put": {
+        "operationId": "EngagementController_setPref",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrefBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
+    "/api/v1/pay/intents/{id}": {
+      "get": {
+        "operationId": "PayController_intent",
+        "summary": "Own payment status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/webhooks/{psp}": {
+      "post": {
+        "operationId": "PayController_webhook",
+        "parameters": [
+          {
+            "name": "psp",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/links": {
+      "post": {
+        "operationId": "PayController_createLink",
+        "summary": "Kiorly registers a deposit pay link (product-key HMAC)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayLinkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/links/{token}": {
+      "get": {
+        "operationId": "PayController_link",
+        "summary": "Hosted pay link info",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/links/{token}/checkout": {
+      "post": {
+        "operationId": "PayController_linkCheckout",
+        "summary": "Start hosted checkout for a pay link",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/fake-checkout/{id}": {
+      "get": {
+        "operationId": "PayController_fakePage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/fake-checkout/{id}/complete": {
+      "post": {
+        "operationId": "PayController_fakeComplete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/bookings": {
+      "post": {
+        "operationId": "BookingController_create",
+        "summary": "KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      },
+      "get": {
+        "operationId": "BookingController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/confirm": {
+      "post": {
+        "operationId": "BookingController_confirm",
+        "summary": "KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/release": {
+      "post": {
+        "operationId": "BookingController_release",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/cancel": {
+      "post": {
+        "operationId": "BookingController_cancel",
+        "summary": "KXM-BK-07 cancel (policy enforced by Kiorly)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/reschedule": {
+      "post": {
+        "operationId": "BookingController_reschedule",
+        "summary": "KXM-BK-07 reschedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/deposit-checkout": {
+      "post": {
+        "operationId": "BookingController_deposit",
+        "summary": "KXM-PAY-01 start hosted deposit checkout (flag kiorex.pay_deposits)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}": {
+      "get": {
+        "operationId": "BookingController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/calendar.ics": {
+      "get": {
+        "operationId": "BookingController_ics",
+        "summary": "KXM-BK-09 add to calendar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "booking"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/review": {
+      "post": {
+        "operationId": "TrustController_submit",
+        "summary": "KXM-RV-01 review a completed Kiorex visit (flag kiorex.reviews)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "trust"
+        ]
+      }
+    },
+    "/api/v1/reviews/{id}": {
+      "put": {
+        "operationId": "TrustController_edit",
+        "summary": "KXM-RV-01 edit within 7 days",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "trust"
+        ]
+      }
+    },
+    "/api/v1/me/reviews": {
+      "get": {
+        "operationId": "TrustController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "trust"
+        ]
+      }
+    },
+    "/api/v1/providers/{id}/reviews": {
+      "get": {
+        "operationId": "TrustController_forProvider",
+        "summary": "KXM-PR-03 latest 20 visible reviews with clinic replies",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "trust"
+        ]
+      }
+    },
+    "/api/v1/complaints": {
+      "post": {
+        "operationId": "TrustController_complain",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComplaintBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "trust"
+        ]
+      }
+    },
+    "/api/v1/navigation/symptoms": {
+      "post": {
+        "operationId": "AiGatewayController_navigate",
+        "summary": "Symptom → specialty navigation (emergency check first; AI only when kiorex.ai_navigation is effective, else keyword map)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NavBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/webhooks/kiorly": {
+      "post": {
+        "operationId": "WebhooksController_kiorly",
+        "summary": "Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-event-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/admin/providers": {
+      "get": {
+        "operationId": "OpsController_providers",
+        "summary": "KXM-OP-01 provider directory",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/providers/sync": {
+      "post": {
+        "operationId": "OpsController_syncProviders",
+        "parameters": [
+          {
+            "name": "full",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/bookings": {
+      "get": {
+        "operationId": "OpsController_bookingsList",
+        "summary": "KXM-OP-02 bookings",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sub",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/bookings/{id}/timeline": {
+      "get": {
+        "operationId": "OpsController_timeline",
+        "summary": "KXM-OP-02 booking timeline: intents, holds, Kiorly calls, events, payments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/outbox": {
+      "get": {
+        "operationId": "OpsController_outboxList",
+        "summary": "KXM-OP-03 outbox monitor",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/outbox/{id}/replay": {
+      "post": {
+        "operationId": "OpsController_replay",
+        "summary": "KXM-OP-03 replay a DEAD/FAILED event",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/dashboard": {
+      "get": {
+        "operationId": "OpsController_payments",
+        "summary": "KXM-OP-04 refunds, payouts, reconciliation dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/refund": {
+      "post": {
+        "operationId": "OpsController_refund",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payouts/run": {
+      "post": {
+        "operationId": "OpsController_runPayouts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation/psp/run": {
+      "post": {
+        "operationId": "OpsController_reconcilePsp",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation/psp/import": {
+      "post": {
+        "operationId": "OpsController_importLines",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation/bookings/run": {
+      "post": {
+        "operationId": "OpsController_reconcileBookings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation/runs": {
+      "get": {
+        "operationId": "OpsController_runs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/moderation": {
+      "get": {
+        "operationId": "OpsController_queue",
+        "summary": "KXM-OP-05 review moderation queue",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/moderation/{id}/resolve": {
+      "post": {
+        "operationId": "OpsController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/complaints": {
+      "get": {
+        "operationId": "OpsController_complaints",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/complaints/{id}/resolve": {
+      "post": {
+        "operationId": "OpsController_resolveComplaint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/liquidity": {
+      "get": {
+        "operationId": "OpsController_liquidity",
+        "summary": "KXM-OP-06 cluster liquidity metrics",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/circuits": {
+      "get": {
+        "operationId": "OpsController_circuits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messages": {
+      "get": {
+        "operationId": "OpsController_messages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-log": {
+      "get": {
+        "operationId": "OpsController_auditLog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/pharmacy/orders": {
+      "post": {
+        "operationId": "Phase2Controller_pharmacy",
+        "summary": "Pharmacy order (launch-locked, phase 2)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/lab/bookings": {
+      "post": {
+        "operationId": "Phase2Controller_lab",
+        "summary": "Lab booking (launch-locked, phase 2)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/telemedicine/sessions": {
+      "post": {
+        "operationId": "Phase2Controller_tele",
+        "summary": "Telemedicine (launch-locked)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/me/vault/uploads": {
+      "post": {
+        "operationId": "Phase2Controller_vaultUpload",
+        "summary": "Patient vault upload (phase 1b); vault stays readable when OFF",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/me/vault": {
+      "get": {
+        "operationId": "Phase2Controller_vault",
+        "summary": "Vault is always readable (OFF never hides data)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/channels/whatsapp/booking-intents": {
+      "post": {
+        "operationId": "Phase2Controller_whatsapp",
+        "summary": "KXM-BK-11 WhatsApp booking channel (P2)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/search/sponsored": {
+      "get": {
+        "operationId": "Phase2Controller_sponsored",
+        "summary": "Sponsored listings (P3); labelled when on",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "phase2"
+        ]
+      }
+    },
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Kiorex API",
+    "description": "Kiorex marketplace API. Identity: Kiorex Passport (OIDC). Errors: { code, message, ...extra }. Flag OFF => 403 FEATURE_DISABLED {key, scope}.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LogoutBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "SetFlagBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "GateBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReasonBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "DefinitionBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ProductBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ProfileBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "DependantBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "DependantPatch": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConsentBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeleteBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "PrefBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "PayLinkBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConfirmBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "CancelBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "RescheduleBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReviewBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReviewEdit": {
+        "type": "object",
+        "properties": {}
+      },
+      "ComplaintBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "NavBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "RefundBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ImportBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResolveBody": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}
