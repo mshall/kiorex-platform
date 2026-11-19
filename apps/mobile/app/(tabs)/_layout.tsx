@@ -1,0 +1,20 @@
+import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { Icon } from "@/components/Icon";
+import { fontFamily, useTheme } from "@/theme";
+
+export default function TabsLayout() {
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  return (
+    <Tabs screenOptions={{
+      headerShown: false, tabBarActiveTintColor: colors.ink, tabBarInactiveTintColor: colors.muted,
+      tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, minHeight: 60 },
+      tabBarLabelStyle: { fontFamily: fontFamily(i18n.language, "medium"), fontSize: 12 }, tabBarItemStyle: { minHeight: 48 },
+    }}>
+      <Tabs.Screen name="index" options={{ title: t("tabs.home"), tabBarButtonTestID: "tab-home", tabBarIcon: ({ color }) => <Icon name="home" color={color as string} /> }} />
+      <Tabs.Screen name="appointments" options={{ title: t("tabs.appointments"), tabBarButtonTestID: "tab-appointments", tabBarIcon: ({ color }) => <Icon name="calendar" color={color as string} /> }} />
+      <Tabs.Screen name="account" options={{ title: t("tabs.account"), tabBarButtonTestID: "tab-account", tabBarIcon: ({ color }) => <Icon name="user" color={color as string} /> }} />
+    </Tabs>
+  );
+}
