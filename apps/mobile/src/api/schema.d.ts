@@ -1751,7 +1751,7 @@ export interface paths {
         /** KXM-BK-12 my waitlist entries with their offers */
         get: operations["WaitlistController_list"];
         put?: never;
-        /** KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type) */
+        /** KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly */
         post: operations["WaitlistController_join"];
         delete?: never;
         options?: never;
@@ -2128,6 +2128,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked */
+        get: operations["PartnersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: register a partner (pharmacy|lab) */
+        post: operations["PartnersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{kind}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** OP: update base URL / keys / active of a partner registration */
+        put: operations["PartnersController_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/telemedicine/providers": {
         parameters: {
             query?: never;
@@ -2416,29 +2467,66 @@ export interface components {
             };
             version: number;
         };
+        FlagEffectiveMapDto: {
+            global: boolean;
+            /** @description market code -> effective */
+            market: {
+                [key: string]: boolean;
+            };
+        };
+        FlagSourceDto: {
+            /** @enum {string} */
+            scope: "GLOBAL" | "MARKET" | "ORG" | "GATE" | "DEPENDENCY" | "DEFAULT";
+            scopeId?: string;
+            reason?: string | null;
+            ticket?: string | null;
+            setBy?: string;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            /** Format: date-time */
+            at?: string;
+            /** @description DEPENDENCY: the flag that is OFF */
+            blockedBy?: string;
+        };
+        FlagOverrideDto: {
+            scope: string;
+            scopeId: string;
+            reason: string | null;
+            ticket: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
+            /** Format: date-time */
+            startsAt: string | null;
+        };
+        FlagGateDto: {
+            gateId: string;
+            approver: string;
+            /** Format: date-time */
+            approvedOn: string;
+            documentUrl: string;
+        };
+        FlagLastChangeDto: {
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            /** @enum {string} */
+            event: "TOGGLE" | "GATE" | "EXPIRY" | "REQUEST" | "APPROVE" | "REVIEW";
+            newValue: string;
+            reason: string | null;
+        };
         AdminFlagDto: {
             scopes: string[];
             dependsOn: string[];
             whenOff: string | null;
             gateHint: string | null;
-            effective: {
-                [key: string]: unknown;
-            };
+            effective: components["schemas"]["FlagEffectiveMapDto"];
             /** @enum {string} */
             state: "ON" | "ON_AWAITING_GATE" | "OFF";
-            source: {
-                [key: string]: unknown;
-            } | null;
-            overrides: {
-                [key: string]: unknown;
-            }[];
+            source: components["schemas"]["FlagSourceDto"];
+            overrides: components["schemas"]["FlagOverrideDto"][];
             /** @description Launch-gate evidence recorded by a human; null until then */
-            gate: {
-                [key: string]: unknown;
-            } | null;
-            lastChange: {
-                [key: string]: unknown;
-            } | null;
+            gate: components["schemas"]["FlagGateDto"] | null;
+            lastChange: components["schemas"]["FlagLastChangeDto"] | null;
             key: string;
             product: string;
             class: string;
@@ -2506,6 +2594,14 @@ export interface components {
             /** Format: date-time */
             reviewDueAt: string | null;
             /** Format: date-time */
+            expiresAt: string | null;
+            approvedBy: string | null;
+            reviewedBy: string | null;
+            /** Format: date-time */
+            reviewedAt: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+            /** Format: date-time */
             createdAt: string;
             id: string;
             flagKey: string;
@@ -2525,6 +2621,8 @@ export interface components {
             oldValue: string | null;
             reason: string | null;
             ticket: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
             /** @enum {string} */
             event: "TOGGLE" | "GATE" | "EXPIRY" | "REQUEST" | "APPROVE" | "REVIEW";
             /** Format: date-time */
@@ -2799,6 +2897,25 @@ export interface components {
             amountMinor: number;
             currency: string;
         };
+        ClinicDto: {
+            id: string;
+            nameEn?: string;
+            nameAr?: string;
+            addressEn?: string;
+            addressAr?: string;
+            latitude?: number | null;
+            longitude?: number | null;
+            phone: string | null;
+            amenities?: string[];
+        };
+        CancellationPolicyDto: {
+            /** @description Hours before the visit a patient may still cancel */
+            patientCancelMinHours?: number;
+            patientRescheduleMinHours?: number;
+            /** @description Deposit is refunded when cancelled at least this many hours ahead */
+            depositRefundMinHours?: number;
+            maxPatientReschedules?: number;
+        };
         ProviderProfileDto: {
             nameEn: string | null;
             nameAr: string | null;
@@ -2810,14 +2927,9 @@ export interface components {
             titleAr: string | null;
             photoUrl: string | null;
             fees: components["schemas"]["ProviderFeeDto"][];
-            /** @description Clinic: id, nameEn/Ar, addressEn/Ar, latitude, longitude, phone, amenities... */
-            clinic: {
-                [key: string]: unknown;
-            };
+            clinic: components["schemas"]["ClinicDto"];
             rating: components["schemas"]["RatingDto"];
-            cancellationPolicy: {
-                [key: string]: unknown;
-            } | null;
+            cancellationPolicy: components["schemas"]["CancellationPolicyDto"] | null;
             id: string;
             status: string;
             bookable: boolean;
@@ -2967,9 +3079,7 @@ export interface components {
             doctor: components["schemas"]["BookingDoctorDto"] | null;
             clinic: components["schemas"]["BookingClinicDto"] | null;
             /** @description Kiorly cancellation policy as published on the listing */
-            cancellationPolicy: {
-                [key: string]: unknown;
-            } | null;
+            cancellationPolicy: components["schemas"]["CancellationPolicyDto"] | null;
             timeline: components["schemas"]["BookingTimelineDto"][];
             /** Format: date-time */
             createdAt: string;
@@ -3113,26 +3223,134 @@ export interface components {
             callState: string;
             depositStatus: string;
         };
+        TimelineBookingDto: {
+            id: string;
+            sub: string;
+            dependantId: string | null;
+            providerId: string;
+            clinicId: string;
+            clinicianId: string;
+            tenantId: string | null;
+            typeId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            status: string;
+            channel: string;
+            holdId: string | null;
+            holdExternalRef: string | null;
+            /** Format: date-time */
+            holdExpiresAt: string | null;
+            callState: string;
+            kiorlyAppointmentId: string | null;
+            kiorlyPatientId: string | null;
+            kiorlyVersion: number;
+            /** Format: date-time */
+            confirmationDueAt: string | null;
+            cancelledBy: string | null;
+            cancellationReason: string | null;
+            depositRefundable: boolean | null;
+            failureCode: string | null;
+            depositStatus: string;
+            depositAmountMinor: number;
+            currency: string;
+            feeMinor: number | null;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            terminalAt: string | null;
+        };
+        TimelineEventDto: {
+            id: string;
+            bookingId: string;
+            /** @enum {string} */
+            kind: "INTENT" | "HOLD" | "KIORLY_CALL" | "WEBHOOK" | "PAYMENT" | "STATE" | "RECONCILE";
+            fromStatus: string | null;
+            toStatus: string | null;
+            /** @description Free-form diagnostic detail of the step (no PHI) */
+            detail: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RefundRowDto: {
+            id: string;
+            paymentId: string;
+            amountMinor: number;
+            reason: string;
+            /** @enum {string} */
+            status: "REQUESTED" | "SETTLED" | "FAILED";
+            idempotencyKey: string;
+            pspRefundRef: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            settledAt: string | null;
+        };
+        PaymentRowDto: {
+            id: string;
+            bookingId: string | null;
+            payLinkToken: string | null;
+            sub: string | null;
+            clinicId: string;
+            amountMinor: number;
+            currency: string;
+            psp: string;
+            pspRef: string | null;
+            checkoutUrl: string | null;
+            /** @enum {string} */
+            status: "CREATED" | "CAPTURED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+            refundedMinor: number;
+            feeMinor: number;
+            /** Format: date-time */
+            releasedAt: string | null;
+            releaseKind: string | null;
+            payoutId: string | null;
+            /** @enum {string} */
+            purpose: "DEPOSIT" | "PHARMACY" | "LAB";
+            orderRef: string | null;
+            /** Format: date-time */
+            capturedAt: string | null;
+            kiorlyNotified: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            refunds: components["schemas"]["RefundRowDto"][];
+        };
+        TimelineMessageDto: {
+            id: string;
+            channel: string;
+            status: string;
+            templateId: string;
+            /** Format: date-time */
+            scheduledFor: string | null;
+        };
+        TimelineWebhookDto: {
+            eventId: string;
+            type: string;
+            status: string;
+            /** Format: date-time */
+            at: string;
+        };
+        TimelineOutboxDto: {
+            id: string;
+            type: string;
+            status: string;
+            attempts: number;
+        };
         BookingTimelineOpsDto: {
-            booking: {
-                [key: string]: unknown;
-            };
-            /** @description BookingEvent rows: INTENT, HOLD, KIORLY_CALL, WEBHOOK, PAYMENT, STATE, RECONCILE */
-            events: {
-                [key: string]: unknown;
-            }[];
-            payments: {
-                [key: string]: unknown;
-            }[];
-            messages: {
-                [key: string]: unknown;
-            }[];
-            webhooks: {
-                [key: string]: unknown;
-            }[];
-            outbox: {
-                [key: string]: unknown;
-            }[];
+            booking: components["schemas"]["TimelineBookingDto"];
+            events: components["schemas"]["TimelineEventDto"][];
+            payments: components["schemas"]["PaymentRowDto"][];
+            messages: components["schemas"]["TimelineMessageDto"][];
+            webhooks: components["schemas"]["TimelineWebhookDto"][];
+            outbox: components["schemas"]["TimelineOutboxDto"][];
         };
         OutboxStatsDto: {
             /** @description Age of the oldest undelivered event in ms */
@@ -3168,23 +3386,57 @@ export interface components {
             status?: string;
             ok: boolean;
         };
+        StatusTotalDto: {
+            status: string;
+            /** @description rows in this status */
+            _count: number;
+            _sum: {
+                amountMinor?: number | null;
+            };
+        };
+        PayoutRowDto: {
+            id: string;
+            payoutRef: string;
+            clinicId: string;
+            amountMinor: number;
+            currency: string;
+            /** @enum {string} */
+            status: "SENT" | "KIORLY_RECORDED";
+            periodKey: string;
+            paymentRefs: string[];
+            /** Format: date-time */
+            paidAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ReconRunRowDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "PSP_DAILY" | "BOOKING_NIGHTLY";
+            /** @enum {string} */
+            status: "OK" | "DISCREPANCIES";
+            /** @description Per-item mismatch records (kind-specific) */
+            discrepancies: {
+                [key: string]: unknown;
+            }[];
+            stats: {
+                [key: string]: number;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        LedgerBalanceDto: {
+            /** @description PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES */
+            account: string;
+            debitMinor: number;
+            creditMinor: number;
+        };
         PaymentsDashboardDto: {
-            intents: {
-                [key: string]: unknown;
-            }[];
-            refunds: {
-                [key: string]: unknown;
-            }[];
-            payouts: {
-                [key: string]: unknown;
-            }[];
-            reconciliationRuns: {
-                [key: string]: unknown;
-            }[];
-            /** @description Ledger balances per account (PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES) */
-            balances: {
-                [key: string]: unknown;
-            }[];
+            intents: components["schemas"]["StatusTotalDto"][];
+            refunds: components["schemas"]["StatusTotalDto"][];
+            payouts: components["schemas"]["PayoutRowDto"][];
+            reconciliationRuns: components["schemas"]["ReconRunRowDto"][];
+            balances: components["schemas"]["LedgerBalanceDto"][];
         };
         RefundBody: {
             paymentId: string;
@@ -3292,7 +3544,8 @@ export interface components {
         };
         LiquidityDto: {
             bookingsByStatus: {
-                [key: string]: unknown;
+                status: string;
+                count: number;
             }[];
             searchToBook: number | null;
             windowDays: number;
@@ -3416,12 +3669,53 @@ export interface components {
             contentBase64: string;
             title?: string;
         };
+        VaultSoapDto: {
+            subjective?: string | null;
+            objective?: string | null;
+            assessment?: string | null;
+            plan?: string | null;
+        };
+        VaultVisitContentDto: {
+            encounterId?: string;
+            soap?: components["schemas"]["VaultSoapDto"];
+        };
+        VaultRxItemDto: {
+            activeIngredient: string;
+            strength?: string;
+            quantity?: number;
+            directions?: string;
+        };
+        VaultPrescriptionDto: {
+            encounterId?: string;
+            clinicId?: string;
+            /** Format: date-time */
+            signedAt?: string | null;
+            /** @description null until Kiorly shares line items (NEEDS_HUMAN #21) */
+            items: components["schemas"]["VaultRxItemDto"][] | null;
+            itemsAvailable: boolean;
+            /** @description Signed expiring Rx PDF link */
+            pdf?: {
+                url?: string;
+                /** Format: date-time */
+                expiresAt?: string;
+            };
+        };
         RxVerificationDto: {
             /** @description Opaque signed token */
             token: string;
             /** @description Encode this string as the QR code */
             qrPayload: string;
             verifyUrl: string;
+        };
+        VaultLabReportDto: {
+            reportId: string;
+            orderId: string;
+            labId: string;
+            reportVersion: number;
+            /** Format: date-time */
+            signedAt: string;
+            /** @description Signed secure link only; never raw values (KLCRIT03) */
+            secureLink: string;
         };
         VaultDetailDto: {
             id: string;
@@ -3444,18 +3738,12 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             /** @description VISIT_SUMMARY: SOAP note as shared by the clinic (clinical content) */
-            content?: {
-                [key: string]: unknown;
-            };
-            /** @description PRESCRIPTION: items are null until Kiorly shares line items (see Docs/NEEDS_HUMAN.md) */
-            prescription?: {
-                [key: string]: unknown;
-            };
+            content?: components["schemas"]["VaultVisitContentDto"];
+            /** @description PRESCRIPTION */
+            prescription?: components["schemas"]["VaultPrescriptionDto"];
             verification?: components["schemas"]["RxVerificationDto"];
             /** @description LAB_RESULT: signed report secure link (no raw values) */
-            report?: {
-                [key: string]: unknown;
-            };
+            report?: components["schemas"]["VaultLabReportDto"];
         };
         RecordShareScopeDto: {
             /** @enum {string} */
@@ -3471,6 +3759,29 @@ export interface components {
         };
         ShareBody: {
             granted: boolean;
+        };
+        PrescriptionItemDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "VISIT_SUMMARY" | "PRESCRIPTION" | "LAB_RESULT" | "UPLOAD";
+            title: string | null;
+            /**
+             * @description Where the record came from
+             * @enum {string}
+             */
+            source: "CLINIC" | "LAB" | "PATIENT";
+            clinicId: string | null;
+            dependantId: string | null;
+            /** Format: date-time */
+            signedAt: string | null;
+            hasFile: boolean;
+            fileName: string | null;
+            mimeType: string | null;
+            sizeBytes: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description QR token the patient shows at the pharmacy */
+            verification: components["schemas"]["RxVerificationDto"];
         };
         RxVerifyResultDto: {
             valid: boolean;
@@ -3502,6 +3813,14 @@ export interface components {
             preferredTo?: string;
             dependantId?: string;
         };
+        WaitlistDoctorDto: {
+            id: string;
+            nameEn: string | null;
+            nameAr: string | null;
+            /** @description Launch specialty code */
+            specialty: string | null;
+            photoUrl: string | null;
+        };
         WaitlistOfferDto: {
             id: string;
             /** Format: date-time */
@@ -3521,6 +3840,10 @@ export interface components {
         WaitlistEntryDto: {
             id: string;
             providerId: string;
+            /** @description Doctor summary so clients need not fetch the profile per entry */
+            doctor: components["schemas"]["WaitlistDoctorDto"] | null;
+            clinicNameEn: string | null;
+            clinicNameAr: string | null;
             typeId: string;
             /** Format: date-time */
             preferredFrom: string | null;
@@ -3723,6 +4046,34 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        PartnerDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "pharmacy" | "lab";
+            name: string;
+            /** @description Host only, e.g. http://localhost:3100 */
+            baseUrl: string;
+            clientKey: string;
+            /** @description Always masked */
+            clientSecret: string;
+            /** @description Always masked */
+            webhookSecret: string;
+            active: boolean;
+            /** @description Contract path appended to baseUrl */
+            apiPath: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+        PartnerBody: {
+            name?: string;
+            baseUrl?: string;
+            clientKey?: string;
+            /** @description Write-only */
+            clientSecret?: string;
+            /** @description Write-only */
+            webhookSecret?: string;
+            active?: boolean;
+        };
         TeleProviderDto: {
             id: string;
             nameEn: string | null;
@@ -3821,11 +4172,11 @@ export interface operations {
     };
     DevMessagingController_outbox: {
         parameters: {
-            query: {
-                channel: string;
-                to: string;
-                direction: string;
-                limit: string;
+            query?: {
+                channel?: string;
+                to?: string;
+                direction?: string;
+                limit?: string;
             };
             header?: never;
             path?: never;
@@ -3845,8 +4196,8 @@ export interface operations {
     };
     DevMessagingController_clear: {
         parameters: {
-            query: {
-                channel: string;
+            query?: {
+                channel?: string;
             };
             header?: never;
             path?: never;
@@ -3885,8 +4236,8 @@ export interface operations {
     };
     MarketController_list: {
         parameters: {
-            query: {
-                all: string;
+            query?: {
+                all?: string;
             };
             header?: never;
             path?: never;
@@ -4014,9 +4365,9 @@ export interface operations {
     };
     ControlPlaneController_list: {
         parameters: {
-            query: {
-                market: string;
-                product: string;
+            query?: {
+                market?: string;
+                product?: string;
             };
             header?: never;
             path?: never;
@@ -4134,8 +4485,8 @@ export interface operations {
     };
     ControlPlaneController_requests: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -4237,11 +4588,11 @@ export interface operations {
     };
     ControlPlaneController_audit: {
         parameters: {
-            query: {
-                flagKey: string;
-                from: string;
-                to: string;
-                format: string;
+            query?: {
+                flagKey?: string;
+                from?: string;
+                to?: string;
+                format?: string;
             };
             header?: never;
             path?: never;
@@ -4618,24 +4969,24 @@ export interface operations {
     };
     CatalogController_search: {
         parameters: {
-            query: {
-                q: string;
-                specialty: string;
-                governorate: string;
-                area: string;
-                minFee: string;
-                maxFee: string;
-                gender: string;
-                language: string;
-                minRating: string;
-                acceptsDeposit: string;
-                nextAvailable: string;
-                sort: string;
-                lat: string;
-                lng: string;
-                maxDistanceKm: string;
-                page: string;
-                pageSize: string;
+            query?: {
+                q?: string;
+                specialty?: string;
+                governorate?: string;
+                area?: string;
+                minFee?: string;
+                maxFee?: string;
+                gender?: string;
+                language?: string;
+                minRating?: string;
+                acceptsDeposit?: string;
+                nextAvailable?: string;
+                sort?: string;
+                lat?: string;
+                lng?: string;
+                maxDistanceKm?: string;
+                page?: string;
+                pageSize?: string;
             };
             header?: never;
             path?: never;
@@ -4697,8 +5048,8 @@ export interface operations {
         parameters: {
             query: {
                 typeId: string;
-                from: string;
-                to: string;
+                from?: string;
+                to?: string;
             };
             header?: never;
             path: {
@@ -4951,7 +5302,9 @@ export interface operations {
     };
     PayController_fakePage: {
         parameters: {
-            query?: never;
+            query?: {
+                returnUrl?: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -4973,7 +5326,10 @@ export interface operations {
     };
     PayController_fakeComplete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description DEV/SANDBOX ONLY: redirect (303) here after completing, with paymentId and status appended; must be an allow-listed host (PAY_RETURN_URL_HOSTS, default localhost/127.0.0.1). Without it the JSON ack is returned. */
+                returnUrl?: unknown;
+            };
             header?: never;
             path: {
                 id: string;
@@ -4994,8 +5350,8 @@ export interface operations {
     };
     BookingController_list: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5339,6 +5695,7 @@ export interface operations {
                 "x-kiorly-signature": string;
                 "x-kiorly-timestamp": string;
                 "x-kiorly-event-id": string;
+                "x-kiorly-client-key": string;
             };
             path?: never;
             cookie?: never;
@@ -5362,6 +5719,7 @@ export interface operations {
                 "x-kiorly-signature": string;
                 "x-kiorly-timestamp": string;
                 "x-kiorly-event-id": string;
+                "x-kiorly-client-key": string;
             };
             path?: never;
             cookie?: never;
@@ -5385,6 +5743,7 @@ export interface operations {
                 "x-kiorly-signature": string;
                 "x-kiorly-timestamp": string;
                 "x-kiorly-event-id": string;
+                "x-kiorly-client-key": string;
             };
             path?: never;
             cookie?: never;
@@ -5403,10 +5762,10 @@ export interface operations {
     };
     OpsController_providers: {
         parameters: {
-            query: {
-                status: string;
-                q: string;
-                page: string;
+            query?: {
+                status?: string;
+                q?: string;
+                page?: string;
             };
             header?: never;
             path?: never;
@@ -5426,8 +5785,8 @@ export interface operations {
     };
     OpsController_syncProviders: {
         parameters: {
-            query: {
-                full: string;
+            query?: {
+                full?: string;
             };
             header?: never;
             path?: never;
@@ -5447,10 +5806,10 @@ export interface operations {
     };
     OpsController_bookingsList: {
         parameters: {
-            query: {
-                status: string;
-                clinicId: string;
-                sub: string;
+            query?: {
+                status?: string;
+                clinicId?: string;
+                sub?: string;
             };
             header?: never;
             path?: never;
@@ -5491,9 +5850,9 @@ export interface operations {
     };
     OpsController_outboxList: {
         parameters: {
-            query: {
-                status: string;
-                type: string;
+            query?: {
+                status?: string;
+                type?: string;
             };
             header?: never;
             path?: never;
@@ -5576,9 +5935,9 @@ export interface operations {
     };
     OpsController_feeStatements: {
         parameters: {
-            query: {
-                from: string;
-                to: string;
+            query?: {
+                from?: string;
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -5617,8 +5976,8 @@ export interface operations {
     };
     OpsController_reconcilePsp: {
         parameters: {
-            query: {
-                date: string;
+            query?: {
+                date?: string;
             };
             header?: never;
             path?: never;
@@ -5702,8 +6061,8 @@ export interface operations {
     };
     OpsController_queue: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5748,8 +6107,8 @@ export interface operations {
     };
     OpsController_complaints: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5790,8 +6149,8 @@ export interface operations {
     };
     OpsController_liquidity: {
         parameters: {
-            query: {
-                days: string;
+            query?: {
+                days?: string;
             };
             header?: never;
             path?: never;
@@ -5868,11 +6227,11 @@ export interface operations {
     };
     OpsController_messagingLog: {
         parameters: {
-            query: {
-                channel: string;
-                status: string;
-                direction: string;
-                limit: string;
+            query?: {
+                channel?: string;
+                status?: string;
+                direction?: string;
+                limit?: string;
             };
             header?: never;
             path?: never;
@@ -5955,8 +6314,8 @@ export interface operations {
     };
     VaultController_list: {
         parameters: {
-            query: {
-                kind: string;
+            query?: {
+                kind?: string;
             };
             header?: never;
             path?: never;
@@ -6119,7 +6478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VaultItemDto"][];
+                    "application/json": components["schemas"]["PrescriptionItemDto"][];
                 };
             };
         };
@@ -6399,9 +6758,9 @@ export interface operations {
     };
     PharmacyController_search: {
         parameters: {
-            query: {
-                q: string;
-                pharmacyId: string;
+            query?: {
+                q?: string;
+                pharmacyId?: string;
             };
             header?: never;
             path?: never;
@@ -6589,8 +6948,8 @@ export interface operations {
     };
     PharmacyController_opsList: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -6638,9 +6997,9 @@ export interface operations {
     };
     LabController_tests: {
         parameters: {
-            query: {
-                q: string;
-                labId: string;
+            query?: {
+                q?: string;
+                labId?: string;
             };
             header?: never;
             path?: never;
@@ -6662,9 +7021,9 @@ export interface operations {
         parameters: {
             query: {
                 labId: string;
-                from: string;
-                to: string;
-                tests: string;
+                from?: string;
+                to?: string;
+                tests?: string;
             };
             header?: never;
             path?: never;
@@ -6768,8 +7127,8 @@ export interface operations {
     };
     LabController_opsList: {
         parameters: {
-            query: {
-                status: string;
+            query?: {
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -6815,11 +7174,81 @@ export interface operations {
             };
         };
     };
+    PartnersController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDto"][];
+                };
+            };
+        };
+    };
+    PartnersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDto"];
+                };
+            };
+        };
+    };
+    PartnersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDto"];
+                };
+            };
+        };
+    };
     TelemedicineController_providers: {
         parameters: {
-            query: {
-                specialty: string;
-                q: string;
+            query?: {
+                specialty?: string;
+                q?: string;
             };
             header?: never;
             path?: never;

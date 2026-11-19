@@ -55,7 +55,7 @@ const feat = {
   ] as Any[],
   sharing: { VISIT_SUMMARY: true, PRESCRIPTIONS: true, LAB_RESULTS: false, SHARE_WITH_OTHER_CLINICS: false } as Record<string, boolean>,
   followUps: [{ id: "fu1", recordId: "rec_visit", clinicId: "c1", dueAt: iso(9 * 86_400_000), source: "DOCTOR", status: "SCHEDULED" }] as Any[],
-  waitlist: [{ id: "wl1", providerId: "d2", typeId: "d2-first", preferredFrom: null, preferredTo: null, status: "OFFERED", expiresAt: iso(20 * 86_400_000), offers: [{ id: "wo1", startsAt: iso(2 * 86_400_000), endsAt: iso(2 * 86_400_000 + 20 * 60_000), status: "OFFERED", expiresAt: iso(15 * 60_000), bookingId: null }] }] as Any[],
+  waitlist: [{ id: "wl1", providerId: "d2", doctor: { id: "d2", nameEn: "Dr. Mock", nameAr: "د. تجريبي", specialty: "paediatrics", photoUrl: null }, clinicNameEn: null, clinicNameAr: null, typeId: "d2-first", preferredFrom: null, preferredTo: null, status: "OFFERED", expiresAt: iso(20 * 86_400_000), offers: [{ id: "wo1", startsAt: iso(2 * 86_400_000), endsAt: iso(2 * 86_400_000 + 20 * 60_000), status: "OFFERED", expiresAt: iso(15 * 60_000), bookingId: null }] }] as Any[],
   cart: { pharmacyId: null as string | null, items: [] as Any[], deliveryMethod: null as string | null, prescriptionRecordId: null as string | null },
   pOrders: [] as Any[], lab: [] as Any[], tele: [] as Any[],
 };

@@ -453,6 +453,9 @@
     "confirmJoin": "Join",
     "joinedTitle": "You are on the waitlist",
     "joinedBody": "We will show an offer here if a time opens up.",
+    "slotsAvailableTitle": "Open times available",
+    "slotsAvailableBody": "This doctor has open times, so there is no need to wait. Book one directly.",
+    "bookDirectly": "Book directly",
     "joinFailed": "We could not add you. Please try again.",
     "view": "View my waitlist",
     "status": {

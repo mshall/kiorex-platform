@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/errors";
 import { useAcceptOffer, useDeclineOffer, useLeaveWaitlist, useWaitlist } from "@/api/features";
-import { useDoctor } from "@/api/hooks";
 import type { S } from "@/api/types";
 import { FlagScreen, RequireAuth } from "@/components/feature";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -18,12 +17,11 @@ function EntryCard({ e, onMessage }: { e: Entry; onMessage: (m: string) => void 
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const router = useRouter();
-  const doc = useDoctor(e.providerId);
   const accept = useAcceptOffer();
   const decline = useDeclineOffer();
   const leave = useLeaveWaitlist();
   const live = e.offers.filter((o) => o.status === "OFFERED" && new Date(o.expiresAt).getTime() > Date.now());
-  const name = doc.data ? pick(doc.data.summary, "name", lang) : "…";
+  const name = e.doctor ? pick(e.doctor, "name", lang) : "…"; // doctor summary ships with the entry: no per-entry profile fetch
   const onAccept = (offerId: string) => accept.mutate(offerId, {
     onSuccess: (b) => router.push(`/checkout/${b.id}`), // normal 5-minute hold → confirm
     onError: (err) => onMessage(err instanceof ApiError && err.status === 410 ? t("waitlist.offerExpired") : err instanceof ApiError && err.code === "SLOT_TAKEN" ? t("waitlist.slotTaken") : t("states.errorBody")),

@@ -111,3 +111,23 @@ describe("push registration stub (no API endpoint yet)", () => {
     await expect(registerForPush()).resolves.toBeNull();
   });
 });
+
+describe("waitlist: 409 SLOTS_AVAILABLE means book directly", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { slotsAvailable } = require("@/lib/waitlist") as typeof import("@/lib/waitlist");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { toApiError } = require("@/api/errors") as typeof import("@/api/errors");
+  it("extracts nextSlots from the API error and ignores every other error", () => {
+    const slot = { startsAt: "2027-03-05T10:00:00.000Z", endsAt: "2027-03-05T10:20:00.000Z" };
+    expect(slotsAvailable(toApiError(409, { code: "SLOTS_AVAILABLE", message: "x", nextSlots: [slot], openSlotCount: 5 }))).toEqual({ nextSlots: [slot], openSlotCount: 5 });
+    expect(slotsAvailable(toApiError(409, { code: "SLOT_TAKEN", message: "x" }))).toBeNull();
+    expect(slotsAvailable(toApiError(500, { code: "SLOTS_AVAILABLE" }))).toBeNull();
+    expect(slotsAvailable(new Error("boom"))).toBeNull();
+  });
+  it("the waitlist screen reads the doctor summary from the entry (no per-entry profile fetch)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "../../app/waitlist.tsx"), "utf8") as string;
+    expect(src).not.toContain("useDoctor");
+    expect(src).toContain("e.doctor");
+  });
+});
