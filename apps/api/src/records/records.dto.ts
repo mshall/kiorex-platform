@@ -23,11 +23,38 @@ export class RxVerificationDto {
   @ApiProperty({ description: 'Encode this string as the QR code' }) qrPayload!: string;
   @ApiProperty() verifyUrl!: string;
 }
+export class VaultSoapDto {
+  @ApiPropertyOptional({ nullable: true, type: String }) subjective?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) objective?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) assessment?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) plan?: string | null;
+}
+export class VaultVisitContentDto {
+  @ApiPropertyOptional() encounterId?: string;
+  @ApiPropertyOptional({ type: VaultSoapDto }) soap?: VaultSoapDto;
+}
+export class VaultRxItemDto {
+  @ApiProperty() activeIngredient!: string; @ApiPropertyOptional() strength?: string; @ApiPropertyOptional() quantity?: number; @ApiPropertyOptional() directions?: string;
+}
+export class VaultPrescriptionDto {
+  @ApiPropertyOptional() encounterId?: string; @ApiPropertyOptional() clinicId?: string;
+  @ApiPropertyOptional({ nullable: true, type: String, format: 'date-time' }) signedAt?: string | null;
+  @ApiProperty({ type: [VaultRxItemDto], nullable: true, description: 'null until Kiorly shares line items (NEEDS_HUMAN #21)' }) items!: VaultRxItemDto[] | null;
+  @ApiProperty() itemsAvailable!: boolean;
+  @ApiPropertyOptional({ type: 'object', properties: { url: { type: 'string' }, expiresAt: { type: 'string', format: 'date-time' } }, description: 'Signed expiring Rx PDF link' }) pdf?: { url: string; expiresAt: string };
+}
+export class VaultLabReportDto {
+  @ApiProperty() reportId!: string; @ApiProperty() orderId!: string; @ApiProperty() labId!: string; @ApiProperty() reportVersion!: number;
+  @ApiProperty({ format: 'date-time' }) signedAt!: string; @ApiProperty({ description: 'Signed secure link only; never raw values (KLCRIT03)' }) secureLink!: string;
+}
 export class VaultDetailDto extends VaultItemDto {
-  @ApiPropertyOptional({ description: 'VISIT_SUMMARY: SOAP note as shared by the clinic (clinical content)', type: 'object', additionalProperties: true }) content?: Record<string, unknown>;
-  @ApiPropertyOptional({ description: 'PRESCRIPTION: items are null until Kiorly shares line items (see Docs/NEEDS_HUMAN.md)', type: 'object', additionalProperties: true }) prescription?: Record<string, unknown>;
+  @ApiPropertyOptional({ description: 'VISIT_SUMMARY: SOAP note as shared by the clinic (clinical content)', type: VaultVisitContentDto }) content?: VaultVisitContentDto;
+  @ApiPropertyOptional({ description: 'PRESCRIPTION', type: VaultPrescriptionDto }) prescription?: VaultPrescriptionDto;
   @ApiPropertyOptional({ type: RxVerificationDto }) verification?: RxVerificationDto;
-  @ApiPropertyOptional({ description: 'LAB_RESULT: signed report secure link (no raw values)', type: 'object', additionalProperties: true }) report?: Record<string, unknown>;
+  @ApiPropertyOptional({ description: 'LAB_RESULT: signed report secure link (no raw values)', type: VaultLabReportDto }) report?: VaultLabReportDto;
+}
+export class PrescriptionItemDto extends VaultItemDto {
+  @ApiProperty({ type: RxVerificationDto, description: 'QR token the patient shows at the pharmacy' }) verification!: RxVerificationDto;
 }
 export class RecordShareScopeDto {
   @ApiProperty({ enum: ['VISIT_SUMMARY', 'PRESCRIPTIONS', 'LAB_RESULTS', 'SHARE_WITH_OTHER_CLINICS'] }) scope!: string;

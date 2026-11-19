@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Prisma, PharmacyOrder } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
-import { badRequest, conflict, notFound, unavailable, unprocessable } from '../common/errors';
+import { badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';
 import { newId } from '../common/ids';
 import { PartnerHttpError, PartnerTransientError } from '../common/partner-http';
 import { EngagementService } from '../engagement/engagement-public';
@@ -43,6 +43,8 @@ export class PharmacyService implements OnModuleInit {
   private async partner<T>(fn: () => Promise<{ data: T }>): Promise<T> {
     try { return (await fn()).data; } catch (e) {
       if (e instanceof PartnerTransientError) throw unavailable('PHARMACY_SYSTEM_BUSY', 'Pharmacy system busy, try again shortly', { retryable: true });
+      // the partner switched the capability OFF on its side (e.g. pharmacy.kiorex_orders): surface the universal FEATURE_DISABLED {key,scope}
+      if (e instanceof PartnerHttpError && e.status === 403 && e.code === 'FEATURE_DISABLED') throw forbidden('FEATURE_DISABLED', 'This capability is temporarily unavailable at the partner', { key: e.body?.key, scope: e.body?.scope, partner: 'Pharmacy'.toLowerCase() });
       if (e instanceof PartnerHttpError) throw unprocessable(e.code ?? 'PHARMACY_REJECTED', 'Pharmacy rejected the request');
       throw e;
     }

@@ -1819,6 +1819,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "returnUrl",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1849,6 +1857,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "returnUrl",
+            "required": false,
+            "in": "query",
+            "description": "DEV/SANDBOX ONLY: redirect (303) here after completing, with paymentId and status appended; must be an allow-listed host (PAY_RETURN_URL_HOSTS, default localhost/127.0.0.1). Without it the JSON ack is returned.",
+            "schema": {}
           }
         ],
         "responses": {
@@ -2404,6 +2419,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-kiorly-client-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2451,6 +2474,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-kiorly-client-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2493,6 +2524,14 @@
           },
           {
             "name": "x-kiorly-event-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-client-key",
             "required": true,
             "in": "header",
             "schema": {
@@ -3575,7 +3614,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/VaultItemDto"
+                    "$ref": "#/components/schemas/PrescriptionItemDto"
                   }
                 }
               }
@@ -4610,6 +4649,121 @@
         ]
       }
     },
+    "/api/v1/admin/partners": {
+      "get": {
+        "operationId": "PartnersController_list",
+        "summary": "OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/partners/{kind}": {
+      "post": {
+        "operationId": "PartnersController_create",
+        "summary": "OP: register a partner (pharmacy|lab)",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/partners/{kind}/{id}": {
+      "put": {
+        "operationId": "PartnersController_update",
+        "summary": "OP: update base URL / keys / active of a partner registration",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/telemedicine/providers": {
       "get": {
         "operationId": "TelemedicineController_providers",
@@ -5397,6 +5551,169 @@
           "version"
         ]
       },
+      "FlagEffectiveMapDto": {
+        "type": "object",
+        "properties": {
+          "global": {
+            "type": "boolean"
+          },
+          "market": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "market code -> effective"
+          }
+        },
+        "required": [
+          "global",
+          "market"
+        ]
+      },
+      "FlagSourceDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "MARKET",
+              "ORG",
+              "GATE",
+              "DEPENDENCY",
+              "DEFAULT"
+            ]
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticket": {
+            "type": "string",
+            "nullable": true
+          },
+          "setBy": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "blockedBy": {
+            "type": "string",
+            "description": "DEPENDENCY: the flag that is OFF"
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "FlagOverrideDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticket": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "scope",
+          "scopeId",
+          "reason",
+          "ticket",
+          "expiresAt",
+          "startsAt"
+        ]
+      },
+      "FlagGateDto": {
+        "type": "object",
+        "properties": {
+          "gateId": {
+            "type": "string"
+          },
+          "approver": {
+            "type": "string"
+          },
+          "approvedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "documentUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gateId",
+          "approver",
+          "approvedOn",
+          "documentUrl"
+        ]
+      },
+      "FlagLastChangeDto": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "TOGGLE",
+              "GATE",
+              "EXPIRY",
+              "REQUEST",
+              "APPROVE",
+              "REVIEW"
+            ]
+          },
+          "newValue": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "at",
+          "actor",
+          "event",
+          "newValue",
+          "reason"
+        ]
+      },
       "AdminFlagDto": {
         "type": "object",
         "properties": {
@@ -5421,8 +5738,7 @@
             "nullable": true
           },
           "effective": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/FlagEffectiveMapDto"
           },
           "state": {
             "type": "string",
@@ -5433,27 +5749,30 @@
             ]
           },
           "source": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "$ref": "#/components/schemas/FlagSourceDto"
           },
           "overrides": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/FlagOverrideDto"
             }
           },
           "gate": {
-            "type": "object",
             "nullable": true,
-            "additionalProperties": true,
-            "description": "Launch-gate evidence recorded by a human; null until then"
+            "description": "Launch-gate evidence recorded by a human; null until then",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FlagGateDto"
+              }
+            ]
           },
           "lastChange": {
-            "type": "object",
             "nullable": true,
-            "additionalProperties": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FlagLastChangeDto"
+              }
+            ]
           },
           "key": {
             "type": "string"
@@ -5730,6 +6049,29 @@
             "nullable": true,
             "format": "date-time"
           },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -5763,6 +6105,11 @@
           "value",
           "status",
           "reviewDueAt",
+          "expiresAt",
+          "approvedBy",
+          "reviewedBy",
+          "reviewedAt",
+          "decidedAt",
           "createdAt",
           "id",
           "flagKey",
@@ -5808,6 +6155,11 @@
             "type": "string",
             "nullable": true
           },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
           "event": {
             "type": "string",
             "enum": [
@@ -5849,6 +6201,7 @@
           "oldValue",
           "reason",
           "ticket",
+          "expiresAt",
           "event",
           "createdAt",
           "id",
@@ -6797,6 +7150,67 @@
           "currency"
         ]
       },
+      "ClinicDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "addressEn": {
+            "type": "string"
+          },
+          "addressAr": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "amenities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "phone"
+        ]
+      },
+      "CancellationPolicyDto": {
+        "type": "object",
+        "properties": {
+          "patientCancelMinHours": {
+            "type": "number",
+            "description": "Hours before the visit a patient may still cancel"
+          },
+          "patientRescheduleMinHours": {
+            "type": "number"
+          },
+          "depositRefundMinHours": {
+            "type": "number",
+            "description": "Deposit is refunded when cancelled at least this many hours ahead"
+          },
+          "maxPatientReschedules": {
+            "type": "number"
+          }
+        }
+      },
       "ProviderProfileDto": {
         "type": "object",
         "properties": {
@@ -6847,17 +7261,18 @@
             }
           },
           "clinic": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Clinic: id, nameEn/Ar, addressEn/Ar, latitude, longitude, phone, amenities..."
+            "$ref": "#/components/schemas/ClinicDto"
           },
           "rating": {
             "$ref": "#/components/schemas/RatingDto"
           },
           "cancellationPolicy": {
-            "type": "object",
             "nullable": true,
-            "additionalProperties": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CancellationPolicyDto"
+              }
+            ]
           },
           "id": {
             "type": "string"
@@ -7431,10 +7846,13 @@
             ]
           },
           "cancellationPolicy": {
-            "type": "object",
             "nullable": true,
-            "additionalProperties": true,
-            "description": "Kiorly cancellation policy as published on the listing"
+            "description": "Kiorly cancellation policy as published on the listing",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CancellationPolicyDto"
+              }
+            ]
           },
           "timeline": {
             "type": "array",
@@ -7968,47 +8386,502 @@
           "depositStatus"
         ]
       },
+      "TimelineBookingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sub": {
+            "type": "string"
+          },
+          "dependantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "clinicianId": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "typeId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "holdId": {
+            "type": "string",
+            "nullable": true
+          },
+          "holdExternalRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "holdExpiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "callState": {
+            "type": "string"
+          },
+          "kiorlyAppointmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kiorlyPatientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kiorlyVersion": {
+            "type": "number"
+          },
+          "confirmationDueAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "cancelledBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "depositRefundable": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "depositStatus": {
+            "type": "string"
+          },
+          "depositAmountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "feeMinor": {
+            "type": "number",
+            "nullable": true
+          },
+          "version": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "terminalAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "sub",
+          "dependantId",
+          "providerId",
+          "clinicId",
+          "clinicianId",
+          "tenantId",
+          "typeId",
+          "startsAt",
+          "endsAt",
+          "status",
+          "channel",
+          "holdId",
+          "holdExternalRef",
+          "holdExpiresAt",
+          "callState",
+          "kiorlyAppointmentId",
+          "kiorlyPatientId",
+          "kiorlyVersion",
+          "confirmationDueAt",
+          "cancelledBy",
+          "cancellationReason",
+          "depositRefundable",
+          "failureCode",
+          "depositStatus",
+          "depositAmountMinor",
+          "currency",
+          "feeMinor",
+          "version",
+          "createdAt",
+          "updatedAt",
+          "terminalAt"
+        ]
+      },
+      "TimelineEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "INTENT",
+              "HOLD",
+              "KIORLY_CALL",
+              "WEBHOOK",
+              "PAYMENT",
+              "STATE",
+              "RECONCILE"
+            ]
+          },
+          "fromStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "toStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Free-form diagnostic detail of the step (no PHI)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "kind",
+          "fromStatus",
+          "toStatus",
+          "detail",
+          "createdAt"
+        ]
+      },
+      "RefundRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "SETTLED",
+              "FAILED"
+            ]
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "pspRefundRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settledAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "paymentId",
+          "amountMinor",
+          "reason",
+          "status",
+          "idempotencyKey",
+          "pspRefundRef",
+          "createdAt",
+          "settledAt"
+        ]
+      },
+      "PaymentRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "payLinkToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "sub": {
+            "type": "string",
+            "nullable": true
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "psp": {
+            "type": "string"
+          },
+          "pspRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "CAPTURED",
+              "FAILED",
+              "REFUNDED",
+              "PARTIALLY_REFUNDED"
+            ]
+          },
+          "refundedMinor": {
+            "type": "number"
+          },
+          "feeMinor": {
+            "type": "number"
+          },
+          "releasedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "releaseKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "payoutId": {
+            "type": "string",
+            "nullable": true
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "DEPOSIT",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "orderRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "capturedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "kiorlyNotified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefundRowDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "payLinkToken",
+          "sub",
+          "clinicId",
+          "amountMinor",
+          "currency",
+          "psp",
+          "pspRef",
+          "checkoutUrl",
+          "status",
+          "refundedMinor",
+          "feeMinor",
+          "releasedAt",
+          "releaseKind",
+          "payoutId",
+          "purpose",
+          "orderRef",
+          "capturedAt",
+          "kiorlyNotified",
+          "createdAt",
+          "updatedAt",
+          "refunds"
+        ]
+      },
+      "TimelineMessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "scheduledFor": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "status",
+          "templateId",
+          "scheduledFor"
+        ]
+      },
+      "TimelineWebhookDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "type",
+          "status",
+          "at"
+        ]
+      },
+      "TimelineOutboxDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "attempts"
+        ]
+      },
       "BookingTimelineOpsDto": {
         "type": "object",
         "properties": {
           "booking": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/TimelineBookingDto"
           },
           "events": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
-            },
-            "description": "BookingEvent rows: INTENT, HOLD, KIORLY_CALL, WEBHOOK, PAYMENT, STATE, RECONCILE"
+              "$ref": "#/components/schemas/TimelineEventDto"
+            }
           },
           "payments": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/PaymentRowDto"
             }
           },
           "messages": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/TimelineMessageDto"
             }
           },
           "webhooks": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/TimelineWebhookDto"
             }
           },
           "outbox": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/TimelineOutboxDto"
             }
           }
         },
@@ -8144,44 +9017,189 @@
           "ok"
         ]
       },
+      "StatusTotalDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "_count": {
+            "type": "number",
+            "description": "rows in this status"
+          },
+          "_sum": {
+            "type": "object",
+            "properties": {
+              "amountMinor": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "required": [
+          "status",
+          "_count",
+          "_sum"
+        ]
+      },
+      "PayoutRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "payoutRef": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SENT",
+              "KIORLY_RECORDED"
+            ]
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "paymentRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "payoutRef",
+          "clinicId",
+          "amountMinor",
+          "currency",
+          "status",
+          "periodKey",
+          "paymentRefs",
+          "paidAt",
+          "createdAt"
+        ]
+      },
+      "ReconRunRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PSP_DAILY",
+              "BOOKING_NIGHTLY"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "DISCREPANCIES"
+            ]
+          },
+          "discrepancies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Per-item mismatch records (kind-specific)"
+          },
+          "stats": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "discrepancies",
+          "stats",
+          "createdAt"
+        ]
+      },
+      "LedgerBalanceDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string",
+            "description": "PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES"
+          },
+          "debitMinor": {
+            "type": "number"
+          },
+          "creditMinor": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "account",
+          "debitMinor",
+          "creditMinor"
+        ]
+      },
       "PaymentsDashboardDto": {
         "type": "object",
         "properties": {
           "intents": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/StatusTotalDto"
             }
           },
           "refunds": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/StatusTotalDto"
             }
           },
           "payouts": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/PayoutRowDto"
             }
           },
           "reconciliationRuns": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/ReconRunRowDto"
             }
           },
           "balances": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
-            },
-            "description": "Ledger balances per account (PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES)"
+              "$ref": "#/components/schemas/LedgerBalanceDto"
+            }
           }
         },
         "required": [
@@ -8570,7 +9588,18 @@
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": true
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "status",
+                "count"
+              ]
             }
           },
           "searchToBook": {
@@ -9039,6 +10068,102 @@
           "contentBase64"
         ]
       },
+      "VaultSoapDto": {
+        "type": "object",
+        "properties": {
+          "subjective": {
+            "type": "string",
+            "nullable": true
+          },
+          "objective": {
+            "type": "string",
+            "nullable": true
+          },
+          "assessment": {
+            "type": "string",
+            "nullable": true
+          },
+          "plan": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "VaultVisitContentDto": {
+        "type": "object",
+        "properties": {
+          "encounterId": {
+            "type": "string"
+          },
+          "soap": {
+            "$ref": "#/components/schemas/VaultSoapDto"
+          }
+        }
+      },
+      "VaultRxItemDto": {
+        "type": "object",
+        "properties": {
+          "activeIngredient": {
+            "type": "string"
+          },
+          "strength": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "directions": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "activeIngredient"
+        ]
+      },
+      "VaultPrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "encounterId": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "signedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "items": {
+            "nullable": true,
+            "description": "null until Kiorly shares line items (NEEDS_HUMAN #21)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VaultRxItemDto"
+            }
+          },
+          "itemsAvailable": {
+            "type": "boolean"
+          },
+          "pdf": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "description": "Signed expiring Rx PDF link"
+          }
+        },
+        "required": [
+          "items",
+          "itemsAvailable"
+        ]
+      },
       "RxVerificationDto": {
         "type": "object",
         "properties": {
@@ -9058,6 +10183,39 @@
           "token",
           "qrPayload",
           "verifyUrl"
+        ]
+      },
+      "VaultLabReportDto": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "labId": {
+            "type": "string"
+          },
+          "reportVersion": {
+            "type": "number"
+          },
+          "signedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "secureLink": {
+            "type": "string",
+            "description": "Signed secure link only; never raw values (KLCRIT03)"
+          }
+        },
+        "required": [
+          "reportId",
+          "orderId",
+          "labId",
+          "reportVersion",
+          "signedAt",
+          "secureLink"
         ]
       },
       "VaultDetailDto": {
@@ -9121,22 +10279,31 @@
             "format": "date-time"
           },
           "content": {
-            "type": "object",
             "description": "VISIT_SUMMARY: SOAP note as shared by the clinic (clinical content)",
-            "additionalProperties": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VaultVisitContentDto"
+              }
+            ]
           },
           "prescription": {
-            "type": "object",
-            "description": "PRESCRIPTION: items are null until Kiorly shares line items (see Docs/NEEDS_HUMAN.md)",
-            "additionalProperties": true
+            "description": "PRESCRIPTION",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VaultPrescriptionDto"
+              }
+            ]
           },
           "verification": {
             "$ref": "#/components/schemas/RxVerificationDto"
           },
           "report": {
-            "type": "object",
             "description": "LAB_RESULT: signed report secure link (no raw values)",
-            "additionalProperties": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VaultLabReportDto"
+              }
+            ]
           }
         },
         "required": [
@@ -9209,6 +10376,91 @@
         },
         "required": [
           "granted"
+        ]
+      },
+      "PrescriptionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "VISIT_SUMMARY",
+              "PRESCRIPTION",
+              "LAB_RESULT",
+              "UPLOAD"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "LAB",
+              "PATIENT"
+            ],
+            "description": "Where the record came from"
+          },
+          "clinicId": {
+            "type": "string",
+            "nullable": true
+          },
+          "dependantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "signedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "hasFile": {
+            "type": "boolean"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verification": {
+            "description": "QR token the patient shows at the pharmacy",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RxVerificationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "source",
+          "clinicId",
+          "dependantId",
+          "signedAt",
+          "hasFile",
+          "fileName",
+          "mimeType",
+          "sizeBytes",
+          "createdAt",
+          "verification"
         ]
       },
       "RxVerifyResultDto": {
@@ -10229,6 +11481,95 @@
           "payment",
           "createdAt"
         ]
+      },
+      "PartnerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pharmacy",
+              "lab"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Host only, e.g. http://localhost:3100"
+          },
+          "clientKey": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "Always masked"
+          },
+          "webhookSecret": {
+            "type": "string",
+            "description": "Always masked"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "apiPath": {
+            "type": "string",
+            "description": "Contract path appended to baseUrl"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "baseUrl",
+          "clientKey",
+          "clientSecret",
+          "webhookSecret",
+          "active",
+          "apiPath",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PartnerBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "clientKey": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "clientSecret": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Write-only"
+          },
+          "webhookSecret": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Write-only"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
       },
       "TeleProviderDto": {
         "type": "object",

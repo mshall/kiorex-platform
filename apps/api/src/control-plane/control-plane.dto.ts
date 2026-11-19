@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 const OBJ = { type: 'object', additionalProperties: true } as const;
 
@@ -34,6 +34,34 @@ export class FlagSnapshotDto {
   @ApiProperty({ type: [SnapshotFlagDto] }) flags!: SnapshotFlagDto[];
   @ApiProperty({ description: 'base64url HMAC-SHA256 over the sorted-key JSON of the snapshot without this field' }) signature!: string;
 }
+export class FlagEffectiveMapDto {
+  @ApiProperty() global!: boolean;
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'boolean' }, description: 'market code -> effective' }) market!: Record<string, boolean>;
+}
+export class FlagSourceDto {
+  @ApiProperty({ enum: ['GLOBAL', 'MARKET', 'ORG', 'GATE', 'DEPENDENCY', 'DEFAULT'] }) scope!: string;
+  @ApiPropertyOptional() scopeId?: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) reason?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) ticket?: string | null;
+  @ApiPropertyOptional() setBy?: string;
+  @ApiPropertyOptional({ nullable: true, type: String, format: 'date-time' }) expiresAt?: string | null;
+  @ApiPropertyOptional({ format: 'date-time' }) at?: string;
+  @ApiPropertyOptional({ description: 'DEPENDENCY: the flag that is OFF' }) blockedBy?: string;
+}
+export class FlagOverrideDto {
+  @ApiProperty() scope!: string; @ApiProperty() scopeId!: string;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null; @ApiProperty({ nullable: true, type: String }) ticket!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) expiresAt!: string | null; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) startsAt!: string | null;
+}
+export class FlagGateDto {
+  @ApiProperty() gateId!: string; @ApiProperty() approver!: string;
+  @ApiProperty({ format: 'date-time' }) approvedOn!: string; @ApiProperty() documentUrl!: string;
+}
+export class FlagLastChangeDto {
+  @ApiProperty({ format: 'date-time' }) at!: string; @ApiProperty() actor!: string;
+  @ApiProperty({ enum: ['TOGGLE', 'GATE', 'EXPIRY', 'REQUEST', 'APPROVE', 'REVIEW'] }) event!: string; @ApiProperty() newValue!: string;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null;
+}
 export class AdminFlagDto {
   key!: string;
   product!: string;
@@ -44,13 +72,13 @@ export class AdminFlagDto {
   launchLocked!: boolean;
   @ApiProperty({ nullable: true, type: String }) whenOff!: string | null;
   @ApiProperty({ nullable: true, type: String }) gateHint!: string | null;
-  @ApiProperty({ ...OBJ }) effective!: Record<string, unknown>;
+  @ApiProperty({ type: FlagEffectiveMapDto }) effective!: FlagEffectiveMapDto;
   @ApiProperty({ enum: ['ON', 'ON_AWAITING_GATE', 'OFF'] }) state!: string;
   reason!: string;
-  @ApiProperty({ ...OBJ, nullable: true }) source!: Record<string, unknown> | null;
-  @ApiProperty({ type: 'array', items: OBJ }) overrides!: Record<string, unknown>[];
-  @ApiProperty({ ...OBJ, nullable: true, description: 'Launch-gate evidence recorded by a human; null until then' }) gate!: Record<string, unknown> | null;
-  @ApiProperty({ ...OBJ, nullable: true }) lastChange!: Record<string, unknown> | null;
+  @ApiProperty({ type: FlagSourceDto }) source!: FlagSourceDto;
+  @ApiProperty({ type: [FlagOverrideDto] }) overrides!: FlagOverrideDto[];
+  @ApiProperty({ type: FlagGateDto, nullable: true, description: 'Launch-gate evidence recorded by a human; null until then' }) gate!: FlagGateDto | null;
+  @ApiProperty({ type: FlagLastChangeDto, nullable: true }) lastChange!: FlagLastChangeDto | null;
 }
 export class SetFlagResultDto {
   @ApiProperty({ enum: ['APPLIED', 'PENDING_APPROVAL'] }) status!: string;
@@ -80,6 +108,11 @@ export class FlagChangeRequestDto {
   @ApiProperty({ enum: ['PENDING', 'APPROVED', 'REJECTED'] }) status!: string;
   emergency!: boolean;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) reviewDueAt!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) expiresAt!: string | null;
+  @ApiProperty({ nullable: true, type: String }) approvedBy!: string | null;
+  @ApiProperty({ nullable: true, type: String }) reviewedBy!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) reviewedAt!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) decidedAt!: string | null;
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
 }
 export class FlagAuditDto {
@@ -92,6 +125,7 @@ export class FlagAuditDto {
   actor!: string;
   @ApiProperty({ nullable: true, type: String }) reason!: string | null;
   @ApiProperty({ nullable: true, type: String }) ticket!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) expiresAt!: string | null;
   emergency!: boolean;
   @ApiProperty({ enum: ['TOGGLE', 'GATE', 'EXPIRY', 'REQUEST', 'APPROVE', 'REVIEW'] }) event!: string;
   @ApiProperty({ format: 'date-time' }) createdAt!: string;

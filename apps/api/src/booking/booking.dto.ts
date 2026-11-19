@@ -1,3 +1,4 @@
+import { CancellationPolicyDto } from '../common/shared.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BookingDoctorDto {
@@ -46,7 +47,7 @@ export class BookingDto {
   @ApiProperty({ type: BookingDepositDto, nullable: true }) deposit!: BookingDepositDto | null;
   @ApiProperty({ type: BookingDoctorDto, nullable: true }) doctor!: BookingDoctorDto | null;
   @ApiProperty({ type: BookingClinicDto, nullable: true }) clinic!: BookingClinicDto | null;
-  @ApiProperty({ type: 'object', additionalProperties: true, nullable: true, description: 'Kiorly cancellation policy as published on the listing' }) cancellationPolicy!: Record<string, unknown> | null;
+  @ApiProperty({ type: CancellationPolicyDto, nullable: true, description: 'Kiorly cancellation policy as published on the listing' }) cancellationPolicy!: CancellationPolicyDto | null;
   @ApiProperty({ type: [BookingTimelineDto] }) timeline!: BookingTimelineDto[];
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
 }

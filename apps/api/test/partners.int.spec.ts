@@ -114,4 +114,31 @@ describe('partner registrations + vertical integration details', () => {
     await c.http().post(`/api/v1/lab/bookings/${b.id}/cancel`).set(auth).expect(200);
     expect(lab.callsTo('POST', `/orders/${b.id}/cancel`)).toHaveLength(1);
   });
+
+  it('partner flag OFF on its own side: reads surface 403 FEATURE_DISABLED {key,scope}; a paid order/booking is rejected and refunded in full', async () => {
+    const o = await phOrder();
+    ph.flagOff = true;
+    const r = await c.http().get('/api/v1/pharmacy/search?q=').set(auth).expect(403);
+    expect(r.body).toMatchObject({ code: 'FEATURE_DISABLED', key: 'pharmacy.kiorex_orders', scope: 'org', partner: 'pharmacy' });
+    await pay(o);
+    expect((await c.http().get(`/api/v1/pharmacy/orders/${o.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', rejectionReason: 'FEATURE_DISABLED', payment: { status: 'REFUNDED' } });
+    const b = await labBooking();
+    lab.flagOff = true;
+    await c.http().get('/api/v1/lab/tests').set(auth).expect(403).expect((x) => expect(x.body).toMatchObject({ code: 'FEATURE_DISABLED', key: 'lab.kiorex_bookings' }));
+    await pay(b);
+    expect((await c.http().get(`/api/v1/lab/bookings/${b.id}`).set(auth)).body).toMatchObject({ status: 'REJECTED', payment: { status: 'REFUNDED' } });
+  });
+
+  it('sandbox checkout: returnUrl (allow-listed host, non-production) turns completion into a 303 redirect; otherwise the JSON ack', async () => {
+    const o = await phOrder(); const o2 = await phOrder().catch(() => null); void o2;
+    const done = await c.http().post(`/api/v1/pay/fake-checkout/${o.payment.paymentId}/complete`).type('form').send({ outcome: 'pay', returnUrl: 'http://localhost:5180/pay/return' }).expect(303);
+    const loc = new URL(done.headers.location);
+    expect(loc.origin + loc.pathname).toBe('http://localhost:5180/pay/return');
+    expect(Object.fromEntries(loc.searchParams)).toEqual({ paymentId: o.payment.paymentId, status: 'CAPTURED' });
+    const page = await c.http().get(`/api/v1/pay/fake-checkout/${o.payment.paymentId}?returnUrl=${encodeURIComponent('http://localhost:5180/x')}`).expect(200);
+    expect(page.text).toContain('name="returnUrl"');
+    const o3 = await phOrder();
+    const evil = await c.http().post(`/api/v1/pay/fake-checkout/${o3.payment.paymentId}/complete`).type('form').send({ outcome: 'pay', returnUrl: 'https://evil.example/steal' }).expect(200);
+    expect(evil.body).toBeTruthy(); // not allow-listed: plain JSON ack, no redirect
+  });
 });

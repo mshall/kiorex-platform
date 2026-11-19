@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /** Response shapes shared by several modules (kept in the shared kernel; see module-boundaries test). */
 export class SpecialtyDto {
@@ -13,4 +13,11 @@ export class EmergencyDto {
   @ApiProperty() messageAr!: string;
   @ApiProperty() bookingBlocked!: boolean;
   @ApiProperty({ type: [String] }) categories!: string[];
+}
+
+export class CancellationPolicyDto {
+  @ApiPropertyOptional({ description: 'Hours before the visit a patient may still cancel' }) patientCancelMinHours?: number;
+  @ApiPropertyOptional() patientRescheduleMinHours?: number;
+  @ApiPropertyOptional({ description: 'Deposit is refunded when cancelled at least this many hours ahead' }) depositRefundMinHours?: number;
+  @ApiPropertyOptional() maxPatientReschedules?: number;
 }

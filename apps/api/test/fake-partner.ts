@@ -19,6 +19,8 @@ export class FakePartner {
   cancelMode: undefined | '409';
   slots: { startsAt: string; endsAt: string }[] = [];
   bad = 0;
+  /** The partner switched its own flag OFF (pharmacy.kiorex_orders / lab.kiorex_bookings): every call answers 403 FEATURE_DISABLED. */
+  flagOff = false;
   readonly catalogue = [
     { pharmacyId: 'ph_1', sku: 'PARA500', name: 'Paracetamol 500mg', strength: '500mg', form: 'tablet', priceMinor: 2500, rxRequired: false, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'AMOX500', name: 'Amoxicillin 500mg', strength: '500mg', form: 'capsule', priceMinor: 8000, rxRequired: true, controlled: false, available: true },
@@ -40,7 +42,7 @@ export class FakePartner {
     return this;
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
-  reset() { this.calls = []; this.orders.clear(); this.orderMode = undefined; this.rxMode = 'VALID'; this.cancelMode = undefined; this.slots = []; this.bad = 0; }
+  reset() { this.calls = []; this.orders.clear(); this.orderMode = undefined; this.rxMode = 'VALID'; this.cancelMode = undefined; this.slots = []; this.bad = 0; this.flagOff = false; }
   callsTo(method: string, part: string) { return this.calls.filter((c) => c.method === method && c.path.includes(part)); }
 
   /** Body + headers of a partner -> Kiorex outbox webhook, signed with the partner webhook secret. */
@@ -63,6 +65,7 @@ export class FakePartner {
     const body = raw.length ? JSON.parse(raw.toString()) : undefined;
     this.calls.push({ method: req.method!, path, body, headers: req.headers });
     const m = req.method!;
+    if (this.flagOff) return send(403, { statusCode: 403, code: 'FEATURE_DISABLED', key: this.kind === 'pharmacy' ? 'pharmacy.kiorex_orders' : 'lab.kiorex_bookings', scope: 'org' });
     const hang = () => new Promise<void>(() => undefined);
 
     if (this.kind === 'pharmacy') {

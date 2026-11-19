@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CancellationPolicyDto } from '../common/shared.dto';
 import { EmergencyDto, SpecialtyDto } from '../common/shared.dto';
 export { SpecialtyDto, EmergencyDto };
 
@@ -7,6 +8,13 @@ export class SlotDto {
   @ApiProperty({ format: 'date-time' }) endsAt!: string;
 }
 export class RatingDto { @ApiProperty() average!: number; @ApiProperty() count!: number }
+export class ClinicDto {
+  @ApiProperty() id!: string;
+  @ApiPropertyOptional() nameEn?: string; @ApiPropertyOptional() nameAr?: string; @ApiPropertyOptional() addressEn?: string; @ApiPropertyOptional() addressAr?: string;
+  @ApiPropertyOptional({ nullable: true, type: Number }) latitude?: number | null; @ApiPropertyOptional({ nullable: true, type: Number }) longitude?: number | null;
+  @ApiProperty({ nullable: true, type: String }) phone!: string | null;
+  @ApiPropertyOptional({ type: [String] }) amenities?: string[];
+}
 export class SearchItemDto {
   id!: string;
   @ApiProperty({ nullable: true, type: String }) nameEn!: string | null;
@@ -64,9 +72,9 @@ export class ProviderProfileDto {
   @ApiProperty({ nullable: true, type: String }) photoUrl!: string | null;
   verified!: boolean;
   @ApiProperty({ type: [ProviderFeeDto] }) fees!: ProviderFeeDto[];
-  @ApiProperty({ type: 'object', additionalProperties: true, description: 'Clinic: id, nameEn/Ar, addressEn/Ar, latitude, longitude, phone, amenities...' }) clinic!: Record<string, unknown>;
+  @ApiProperty({ type: ClinicDto }) clinic!: ClinicDto;
   @ApiProperty({ type: RatingDto }) rating!: RatingDto;
-  @ApiProperty({ type: 'object', additionalProperties: true, nullable: true }) cancellationPolicy!: Record<string, unknown> | null;
+  @ApiProperty({ type: CancellationPolicyDto, nullable: true }) cancellationPolicy!: CancellationPolicyDto | null;
   acceptsDeposit!: boolean;
   shareUrl!: string;
 }

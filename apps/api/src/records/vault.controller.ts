@@ -3,7 +3,7 @@ import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestj
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
-import { FollowUpDto, OkDto, RecordSharingDto, RxVerifyResultDto, VaultDetailDto, VaultItemDto, VaultListDto } from './records.dto';
+import { FollowUpDto, OkDto, RecordSharingDto, RxVerifyResultDto, VaultDetailDto, VaultItemDto, PrescriptionItemDto, VaultListDto } from './records.dto';
 import { RecordsService } from './records.service';
 
 export class UploadBody {
@@ -60,7 +60,7 @@ export class VaultController {
   setSharing(@CurrentUser() u: AuthUser, @Param('scope') scope: string, @Body() b: ShareBody) { return this.svc.setSharing(u.sub, scope, b.granted); }
 
   @Get('me/prescriptions') @ApiOperation({ summary: 'KXM-RC-02 prescriptions with verification QR payloads' })
-  @ApiOkResponse({ type: VaultItemDto, isArray: true })
+  @ApiOkResponse({ type: PrescriptionItemDto, isArray: true })
   prescriptions(@CurrentUser() u: AuthUser) { return this.svc.prescriptions(u.sub); }
 
   @Public() @Get('rx/verify') @ApiOperation({ summary: 'KXM-RC-02 pharmacist check of a prescription QR token: validity, issuing clinic id and signed date only (no patient data)' })

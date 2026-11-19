@@ -30,13 +30,53 @@ export class OpsBookingDto {
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
   @ApiProperty({ format: 'date-time' }) updatedAt!: string;
 }
+export class TimelineBookingDto {
+  @ApiProperty() id!: string; @ApiProperty() sub!: string; @ApiProperty({ nullable: true, type: String }) dependantId!: string | null;
+  @ApiProperty() providerId!: string; @ApiProperty() clinicId!: string; @ApiProperty() clinicianId!: string; @ApiProperty({ nullable: true, type: String }) tenantId!: string | null; @ApiProperty() typeId!: string;
+  @ApiProperty({ format: 'date-time' }) startsAt!: string; @ApiProperty({ format: 'date-time' }) endsAt!: string; @ApiProperty() status!: string; @ApiProperty() channel!: string;
+  @ApiProperty({ nullable: true, type: String }) holdId!: string | null; @ApiProperty({ nullable: true, type: String }) holdExternalRef!: string | null; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) holdExpiresAt!: string | null;
+  @ApiProperty() callState!: string; @ApiProperty({ nullable: true, type: String }) kiorlyAppointmentId!: string | null; @ApiProperty({ nullable: true, type: String }) kiorlyPatientId!: string | null; @ApiProperty() kiorlyVersion!: number;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) confirmationDueAt!: string | null; @ApiProperty({ nullable: true, type: String }) cancelledBy!: string | null; @ApiProperty({ nullable: true, type: String }) cancellationReason!: string | null;
+  @ApiProperty({ nullable: true, type: Boolean }) depositRefundable!: boolean | null; @ApiProperty({ nullable: true, type: String }) failureCode!: string | null; @ApiProperty() depositStatus!: string; @ApiProperty() depositAmountMinor!: number; @ApiProperty() currency!: string;
+  @ApiProperty({ nullable: true, type: Number }) feeMinor!: number | null; @ApiProperty() version!: number; @ApiProperty({ format: 'date-time' }) createdAt!: string; @ApiProperty({ format: 'date-time' }) updatedAt!: string; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) terminalAt!: string | null;
+}
+export class TimelineEventDto {
+  @ApiProperty() id!: string; @ApiProperty() bookingId!: string;
+  @ApiProperty({ enum: ['INTENT', 'HOLD', 'KIORLY_CALL', 'WEBHOOK', 'PAYMENT', 'STATE', 'RECONCILE'] }) kind!: string;
+  @ApiProperty({ nullable: true, type: String }) fromStatus!: string | null; @ApiProperty({ nullable: true, type: String }) toStatus!: string | null;
+  @ApiProperty({ nullable: true, type: 'object', additionalProperties: true, description: 'Free-form diagnostic detail of the step (no PHI)' }) detail!: Record<string, unknown> | null;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+export class RefundRowDto {
+  @ApiProperty() id!: string; @ApiProperty() paymentId!: string; @ApiProperty() amountMinor!: number; @ApiProperty() reason!: string;
+  @ApiProperty({ enum: ['REQUESTED', 'SETTLED', 'FAILED'] }) status!: string; @ApiProperty() idempotencyKey!: string; @ApiProperty({ nullable: true, type: String }) pspRefundRef!: string | null;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) settledAt!: string | null;
+}
+export class PaymentRowDto {
+  @ApiProperty() id!: string; @ApiProperty({ nullable: true, type: String }) bookingId!: string | null; @ApiProperty({ nullable: true, type: String }) payLinkToken!: string | null; @ApiProperty({ nullable: true, type: String }) sub!: string | null;
+  @ApiProperty() clinicId!: string; @ApiProperty() amountMinor!: number; @ApiProperty() currency!: string; @ApiProperty() psp!: string; @ApiProperty({ nullable: true, type: String }) pspRef!: string | null; @ApiProperty({ nullable: true, type: String }) checkoutUrl!: string | null;
+  @ApiProperty({ enum: ['CREATED', 'CAPTURED', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'] }) status!: string; @ApiProperty() refundedMinor!: number; @ApiProperty() feeMinor!: number;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) releasedAt!: string | null; @ApiProperty({ nullable: true, type: String }) releaseKind!: string | null; @ApiProperty({ nullable: true, type: String }) payoutId!: string | null;
+  @ApiProperty({ enum: ['DEPOSIT', 'PHARMACY', 'LAB'] }) purpose!: string; @ApiProperty({ nullable: true, type: String }) orderRef!: string | null; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) capturedAt!: string | null;
+  @ApiProperty() kiorlyNotified!: boolean; @ApiProperty({ format: 'date-time' }) createdAt!: string; @ApiProperty({ format: 'date-time' }) updatedAt!: string;
+  @ApiProperty({ type: [RefundRowDto] }) refunds!: RefundRowDto[];
+}
+export class TimelineMessageDto {
+  @ApiProperty() id!: string; @ApiProperty() channel!: string; @ApiProperty() status!: string; @ApiProperty() templateId!: string; @ApiProperty({ nullable: true, type: String, format: 'date-time' }) scheduledFor!: string | null;
+}
+export class TimelineWebhookDto {
+  @ApiProperty() eventId!: string; @ApiProperty() type!: string; @ApiProperty() status!: string; @ApiProperty({ format: 'date-time' }) at!: string;
+}
+export class TimelineOutboxDto {
+  @ApiProperty() id!: string; @ApiProperty() type!: string; @ApiProperty() status!: string; @ApiProperty() attempts!: number;
+}
 export class BookingTimelineOpsDto {
-  @ApiProperty(OBJ) booking!: Record<string, unknown>;
-  @ApiProperty({ type: 'array', items: OBJ, description: 'BookingEvent rows: INTENT, HOLD, KIORLY_CALL, WEBHOOK, PAYMENT, STATE, RECONCILE' }) events!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) payments!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) messages!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) webhooks!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) outbox!: Record<string, unknown>[];
+  @ApiProperty({ type: TimelineBookingDto }) booking!: TimelineBookingDto;
+  @ApiProperty({ type: [TimelineEventDto] }) events!: TimelineEventDto[];
+  @ApiProperty({ type: [PaymentRowDto] }) payments!: PaymentRowDto[];
+  @ApiProperty({ type: [TimelineMessageDto] }) messages!: TimelineMessageDto[];
+  @ApiProperty({ type: [TimelineWebhookDto] }) webhooks!: TimelineWebhookDto[];
+  @ApiProperty({ type: [TimelineOutboxDto] }) outbox!: TimelineOutboxDto[];
 }
 export class OutboxEventDto {
   id!: string;
@@ -63,12 +103,24 @@ export class OutboxListDto {
   @ApiProperty({ type: [OutboxEventDto] }) items!: OutboxEventDto[];
 }
 export class ReplayResultDto { ok!: boolean; @ApiProperty({ required: false }) status?: string }
+export class StatusTotalDto { @ApiProperty() status!: string; @ApiProperty({ description: 'rows in this status' }) _count!: number; @ApiProperty({ type: 'object', properties: { amountMinor: { type: 'number', nullable: true } } }) _sum!: { amountMinor: number | null } }
+export class PayoutRowDto {
+  @ApiProperty() id!: string; @ApiProperty() payoutRef!: string; @ApiProperty() clinicId!: string; @ApiProperty() amountMinor!: number; @ApiProperty() currency!: string;
+  @ApiProperty({ enum: ['SENT', 'KIORLY_RECORDED'] }) status!: string; @ApiProperty() periodKey!: string; @ApiProperty({ type: [String] }) paymentRefs!: string[];
+  @ApiProperty({ format: 'date-time' }) paidAt!: string; @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+export class ReconRunRowDto {
+  @ApiProperty() id!: string; @ApiProperty({ enum: ['PSP_DAILY', 'BOOKING_NIGHTLY'] }) kind!: string; @ApiProperty({ enum: ['OK', 'DISCREPANCIES'] }) status!: string;
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true }, description: 'Per-item mismatch records (kind-specific)' }) discrepancies!: Record<string, unknown>[];
+  @ApiProperty({ nullable: true, type: 'object', additionalProperties: { type: 'number' } }) stats!: Record<string, number> | null; @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+export class LedgerBalanceDto { @ApiProperty({ description: 'PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES' }) account!: string; @ApiProperty() debitMinor!: number; @ApiProperty() creditMinor!: number }
 export class PaymentsDashboardDto {
-  @ApiProperty({ type: 'array', items: OBJ }) intents!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) refunds!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) payouts!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ }) reconciliationRuns!: Record<string, unknown>[];
-  @ApiProperty({ type: 'array', items: OBJ, description: 'Ledger balances per account (PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES)' }) balances!: Record<string, unknown>[];
+  @ApiProperty({ type: [StatusTotalDto] }) intents!: StatusTotalDto[];
+  @ApiProperty({ type: [StatusTotalDto] }) refunds!: StatusTotalDto[];
+  @ApiProperty({ type: [PayoutRowDto] }) payouts!: PayoutRowDto[];
+  @ApiProperty({ type: [ReconRunRowDto] }) reconciliationRuns!: ReconRunRowDto[];
+  @ApiProperty({ type: [LedgerBalanceDto] }) balances!: LedgerBalanceDto[];
 }
 export class RefundDto {
   id!: string;
@@ -131,7 +183,7 @@ export class LiquidityDto {
   windowDays!: number;
   listedDoctors!: number;
   liveDoctors!: number;
-  @ApiProperty({ type: 'array', items: OBJ }) bookingsByStatus!: Record<string, unknown>[];
+  @ApiProperty({ type: 'array', items: { type: 'object', properties: { status: { type: 'string' }, count: { type: 'number' } }, required: ['status', 'count'] } }) bookingsByStatus!: { status: string; count: number }[];
   @ApiProperty({ nullable: true, type: Number }) searchToBook!: number | null;
   searches!: number;
   confirmedBookings!: number;
