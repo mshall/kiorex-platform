@@ -26,6 +26,7 @@ export default function Appointments() {
   const q = useBookings(status === "signedIn");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
 
+  if (status === "loading") return <Screen style={{ paddingTop: insets.top }}><LoadingState /></Screen>;
   if (status !== "signedIn") {
     return <Screen style={{ paddingTop: insets.top }}><EmptyState icon="calendar" title={t("states.notSignedIn")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} /></Screen>;
   }

@@ -102,3 +102,11 @@ describe("offline mock mirrors the real wire for the new endpoints", () => {
     expect((await r.json()).status).toBe("HELD");
   });
 });
+
+describe("push registration stub (no API endpoint yet)", () => {
+  it("never throws and sends nothing when permission is denied", async () => {
+    jest.doMock("expo-notifications", () => ({ getPermissionsAsync: async () => ({ granted: false }), requestPermissionsAsync: async () => ({ granted: false }) }));
+    const { registerForPush } = await import("@/lib/push");
+    await expect(registerForPush()).resolves.toBeNull();
+  });
+});

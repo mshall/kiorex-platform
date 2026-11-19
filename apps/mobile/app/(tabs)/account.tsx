@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthProvider";
 import { useMe } from "@/api/hooks";
-import { EmptyState } from "@/components/states";
+import { EmptyState, LoadingState } from "@/components/states";
 import { Icon, type IconName } from "@/components/Icon";
 import { Button, Card, Chip, Row, Screen, T } from "@/components/ui";
 import { setLanguage, type Lang } from "@/i18n";
@@ -46,6 +46,7 @@ export default function Account() {
     </Card>
   );
 
+  if (status === "loading") return <Screen style={{ paddingTop: insets.top + 12 }}><LoadingState /></Screen>;
   if (status !== "signedIn") {
     return <Screen style={{ paddingTop: insets.top + 12, gap: 16 }}><EmptyState icon="user" title={t("account.signedOutTitle")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} />{settings}</Screen>;
   }
