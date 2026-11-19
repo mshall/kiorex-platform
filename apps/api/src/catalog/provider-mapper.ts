@@ -1,5 +1,20 @@
 import { isSpecialtyCode, normalizeText, SPECIALTY_LABELS } from '../safety/safety-public';
 
+/** Kiorly stores free-text/US spellings; fold them onto the Kiorex launch specialty codes (KXM-DS-02 filter by specialty). */
+const SPECIALTY_ALIASES: Record<string, string> = {
+  pediatrics: 'paediatrics', pediatric: 'paediatrics', paediatric: 'paediatrics', paediatrician: 'paediatrics',
+  gynecology: 'obgyn', gynaecology: 'obgyn', obstetrics_and_gynecology: 'obgyn', obstetrics_gynaecology: 'obgyn', ob_gyn: 'obgyn',
+  orthopedics: 'orthopaedics', orthopedic: 'orthopaedics', orthopaedic: 'orthopaedics',
+  ear_nose_and_throat: 'ent', otolaryngology: 'ent', internal: 'internal_medicine', general_medicine: 'internal_medicine',
+  dermatologist: 'dermatology', cardiologist: 'cardiology', dental: 'dentistry', dentist: 'dentistry',
+};
+export function canonicalSpecialty(raw: string): string | null {
+  const sp = normalizeText(raw).replace(/\s+/g, '_');
+  if (!sp) return null;
+  const aliased = SPECIALTY_ALIASES[sp] ?? sp;
+  return aliased;
+}
+
 /** Map Kiorly PublishedProviderDto (GET /marketplace/v1/providers) into a Provider projection row. */
 export function mapProviderDto(dto: any) {
   const p = dto.provider ?? {};
@@ -7,8 +22,7 @@ export function mapProviderDto(dto: any) {
   const fees: { amount: number; currency?: string }[] = Array.isArray(p.fees) ? p.fees : [];
   const feeMinors = fees.map((f) => Math.round(Number(f.amount) * 100)).filter((n) => Number.isFinite(n));
   const specialtyRaw = String(p.specialty ?? c.clinicalSpecialty ?? '').trim();
-  const sp = normalizeText(specialtyRaw).replace(/\s+/g, '_');
-  const specialty = isSpecialtyCode(sp) ? sp : specialtyRaw ? sp : null;
+  const specialty = canonicalSpecialty(specialtyRaw);
   const label = specialty && isSpecialtyCode(specialty) ? SPECIALTY_LABELS[specialty] : undefined;
   const area = p.area ?? c.area ?? null;
   const governorate = p.governorate ?? c.governorate ?? null;
