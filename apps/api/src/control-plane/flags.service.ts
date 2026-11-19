@@ -314,7 +314,7 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     try {
       const res = await fetch(reg.webhookUrl, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...signed.headers },
+        headers: { ...signed.headers }, // signed.headers already carries Content-Type; a second one made Express skip body parsing (no rawBody -> 401)
         body,
         signal: AbortSignal.timeout(10_000),
       });

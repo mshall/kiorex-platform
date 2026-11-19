@@ -178,6 +178,7 @@ describe('control plane (KXM-OP-07..11)', () => {
       await c.get(OutboxService).processBatch();
       expect(received).toHaveLength(1);
       const h = received[0].headers;
+      expect(h['content-type']).toBe('application/json'); // not 'application/json, application/json' (Express then skips raw-body capture)
       expect(verifyWebhook({ secret: 'ff_dev_secret_change_me', body: received[0].body, timestamp: h['x-kiorly-timestamp'], signature: h['x-kiorly-signature'] }).ok).toBe(true);
       expect(JSON.parse(received[0].body)).toMatchObject({ type: 'flag.changed', aggregateType: 'Flag', data: { product: 'kiorly-clinic', keys: ['clinic.ai_scribe'], key: 'clinic.ai_scribe' } });
       let p = (await c.http().get('/api/v1/admin/flags/propagation').set(a1).expect(200)).body;
