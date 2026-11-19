@@ -2,7 +2,7 @@ import { apiOrigin } from "@/lib/apiBase";
 import { b64urlDecode, decodeClaims } from "@/auth/jwt";
 import { buildIcs, directionsUrl, googleCalendarUrl, telUrl } from "@/lib/calendar";
 import { toApiError } from "@/api/errors";
-import { mapBooking, mapPolicy, mapProfile, mapSearchItem } from "@/api/adapters";
+import { mapPolicy, mapProfile, mapSearchItem } from "@/api/adapters";
 import { pushRecent } from "@/lib/recent";
 import { waitForDeposit } from "@/hooks/useDepositPay";
 import { dayKey, pick } from "@/lib/format";
@@ -59,16 +59,10 @@ describe("API error envelope + adapters (real wire shapes)", () => {
   });
   it("search item without a visit type is not bookable", () => expect(mapSearchItem({ id: "x", defaultTypeId: null, bookable: false }).bookable).toBe(false));
   it("maps a profile and never invents a policy", () => {
-    const p = mapProfile({ id: "d1", nameEn: "Dr A", status: "LIVE", bookable: true, verified: true, fees: [{ typeId: "t1", nameEn: "Consultation", amountMinor: 50000 }], clinic: { id: "c", nameEn: "Clinic", phone: "+20", latitude: 1, longitude: 2 }, acceptsDeposit: false, cancellationPolicy: null });
+    const p = mapProfile({ id: "d1", nameEn: "Dr A", status: "LIVE", bookable: true, verified: true, fees: [{ typeId: "t1", nameEn: "Consultation", nameAr: "كشف", currency: "EGP", amountMinor: 50000 }], clinic: { id: "c", nameEn: "Clinic", phone: "+20", latitude: 1, longitude: 2 }, acceptsDeposit: false, cancellationPolicy: null } as never);
     expect(p.visitTypes[0].feeEgp).toBe(500);
     expect(p.cancellationPolicy).toEqual({ freeCancelHoursBefore: null, depositRefundable: null, textAr: "", textEn: "" });
     expect(mapPolicy({ cancellationWindowHours: 24 }).freeCancelHoursBefore).toBe(24);
-  });
-  it("maps a booking, dropping null timeline rows", () => {
-    const b = mapBooking({ id: "b", status: "PENDING_CLINIC", providerId: "d1", clinicId: "c", typeId: "t", startsAt: "s", endsAt: "e", confirmationDueAt: "2030-01-01T12:00:00Z", depositStatus: "REQUIRED", depositAmountMinor: 15000, timeline: [{ status: "HELD", at: "a" }, { status: null, at: "b" }], createdAt: "c" });
-    expect(b.timeline).toHaveLength(1);
-    expect(b.confirmationDueAt).toBe("2030-01-01T12:00:00Z");
-    expect(b.depositAmountMinor).toBe(15000);
   });
 });
 
@@ -89,9 +83,9 @@ describe("misc", () => {
   it("waitForDeposit resolves paid once the webhook lands, pending if it never does", async () => {
     const seq = ["REQUIRED", "REQUIRED", "PAID"];
     const sleep = jest.fn(async () => {});
-    expect(await waitForDeposit(async () => ({ depositStatus: seq.shift()! }), 5, 1, sleep)).toBe("paid");
+    expect(await waitForDeposit(async () => ({ depositStatus: seq.shift()! as "PAID" }), 5, 1, sleep)).toBe("paid");
     expect(sleep).toHaveBeenCalledTimes(2);
-    expect(await waitForDeposit(async () => ({ depositStatus: "REQUIRED" }), 3, 1, sleep)).toBe("pending");
+    expect(await waitForDeposit(async () => ({ depositStatus: "REQUIRED" as const }), 3, 1, sleep)).toBe("pending");
     expect(await waitForDeposit(async () => { throw new Error("net"); }, 2, 1, sleep)).toBe("pending");
   });
 });

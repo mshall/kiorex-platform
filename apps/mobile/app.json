@@ -12,24 +12,69 @@
     "ios": {
       "bundleIdentifier": "com.kiorex.app",
       "supportsTablet": true,
-      "infoPlist": { "CFBundleAllowMixedLocalizations": true }
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "package": "com.kiorex.app",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#3730A3" }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#3730A3"
+      }
     },
-    "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png" },
-    "locales": { "ar": "./src/i18n/infoplist/ar.json", "en": "./src/i18n/infoplist/en.json" },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "locales": {
+      "ar": "./src/i18n/infoplist/ar.json",
+      "en": "./src/i18n/infoplist/en.json"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-font",
       "expo-web-browser",
-      ["expo-localization", { "supportedLocales": { "ios": ["ar", "en"], "android": ["ar", "en"] } }],
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#3730A3", "dark": { "backgroundColor": "#0F1024" } }],
-      ["expo-notifications", { "color": "#3730A3" }]
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "ar",
+              "en"
+            ],
+            "android": [
+              "ar",
+              "en"
+            ]
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#3730A3",
+          "dark": {
+            "backgroundColor": "#0F1024"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#3730A3"
+        }
+      ],
+      "expo-sharing"
     ],
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
       "storeAccounts": "NEEDS_HUMAN: bundle ids com.kiorex.app are placeholders until Apple/Google accounts exist (KX-19)"
     }

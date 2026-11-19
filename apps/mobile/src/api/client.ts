@@ -31,9 +31,9 @@ const mockFetchLazy = async (req: Request) => (await import("@/mocks/mockFetch")
 export const api = createClient<paths>({ baseUrl: config.apiOrigin, ...(config.mock ? { fetch: mockFetchLazy } : {}) });
 api.use(auth);
 
-/** Unwraps an openapi-fetch result, throwing a typed ApiError for non-2xx. The spec leaves bodies untyped, so T is asserted by the caller's adapter. */
-export async function send<T = Record<string, any>>(p: Promise<{ data?: unknown; error?: unknown; response: Response }>): Promise<T> { // eslint-disable-line @typescript-eslint/no-explicit-any
+/** Unwraps an openapi-fetch result, throwing a typed ApiError for non-2xx. The 2xx body type comes from the generated spec. */
+export async function send<D>(p: Promise<{ data?: D; error?: unknown; response: Response }>): Promise<NonNullable<D>> {
   const { data, error, response } = await p;
   if (!response.ok) throw toApiError(response.status, error);
-  return data as T;
+  return data as NonNullable<D>;
 }

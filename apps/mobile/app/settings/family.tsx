@@ -6,11 +6,12 @@ import { useAddFamily, useFamily, useRemoveFamily } from "@/api/hooks";
 import { EmptyState, ErrorState, LoadingState, UnavailableState } from "@/components/states";
 import { Banner, Button, Card, Chip, Field, Row, Screen, Sheet, T } from "@/components/ui";
 import { useFeature } from "@/hooks/useFeature";
+import { pick } from "@/lib/format";
 
 const RELS = ["CHILD", "PARENT", "SPOUSE", "OTHER"] as const;
 
 export default function Family() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const family = useFamily();
   const add = useAddFamily();
   const remove = useRemoveFamily();
@@ -32,8 +33,8 @@ export default function Family() {
         {msg ? <Banner tone="ink" body={msg} /> : null}
         {family.isLoading ? <LoadingState /> : family.error ? <ErrorState error={family.error} onRetry={() => void family.refetch()} /> : !family.data?.length ? <EmptyState icon="users" title={t("family.empty")} hint={t("family.emptyHint")} /> : family.data.map((m) => (
           <Card key={m.id} style={{ gap: 8 }}>
-            <Row style={{ justifyContent: "space-between" }}><View><T weight="semibold">{m.name}</T><T variant="small" muted>{t(`family.rel.${m.relationship}`, { defaultValue: m.relationship })}{m.dob ? ` · ${m.dob.slice(0, 10)}` : ""}</T></View>
-              <Button small variant="ghost" title={t("common.close") && t("family.remove", { name: m.name })} onPress={() => remove.mutate(m.id)} /></Row>
+            <Row style={{ justifyContent: "space-between" }}><View><T weight="semibold">{pick(m, "name", i18n.language)}</T><T variant="small" muted>{t(`family.rel.${m.relationship}`, { defaultValue: m.relationship })}{m.dateOfBirth ? ` · ${m.dateOfBirth.slice(0, 10)}` : ""}</T></View>
+              <Button small variant="ghost" title={t("common.close") && t("family.remove", { name: pick(m, "name", i18n.language) })} onPress={() => remove.mutate(m.id)} /></Row>
           </Card>
         ))}
         {flag.enabled ? <Button testID="add-family" title={t("family.add")} icon="users" onPress={() => setOpen(true)} /> : <UnavailableState featureKey="kiorex.family_accounts" />}

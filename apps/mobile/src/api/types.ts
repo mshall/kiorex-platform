@@ -1,5 +1,7 @@
-// View-models used by the UI. Wire shapes come from the REAL Kiorex API (apps/api controllers); the OpenAPI spec only
-// types paths (response/request bodies are not decorated yet), so bodies are modelled here and mapped in ./adapters.
+import type { components } from "./schema";
+/** Generated wire types (npm run gen:api). Where the wire shape is already what the UI needs, the generated type is used directly. */
+export type S = components["schemas"];
+// View-models: only for catalog data where the UI wants whole-EGP money and flat AR/EN pairs (see ./adapters).
 export interface Specialty { code: string; nameAr: string; nameEn: string }
 /** slotId === startsAt: Kiorex identifies a slot by provider + visit type + start time. */
 export interface Slot { slotId: string; startsAt: string; endsAt: string; visitTypeId: string }
@@ -19,29 +21,20 @@ export interface Review { id: string; rating: number; text: string | null; creat
 export interface ReviewList { average: number | null; count: number; items: Review[] }
 export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean }
 
-export interface Patient { id: string; nameEn: string | null; nameAr: string | null; phone: string | null; preferredLocale: "ar" | "en"; email: string | null }
-export interface FamilyMember { id: string; name: string; relationship: string; dob: string | null; gender: string | null }
-export type ConsentPurpose = "MARKETPLACE_PROCESSING" | "REMINDERS" | "RECORD_SHARING" | "AI_PROCESSING";
-export interface Consent { purpose: ConsentPurpose; granted: boolean; updatedAt: string | null }
-export interface Session { id: string; device: string | null; lastSeenAt: string; current: boolean }
+export type Patient = S["PatientProfileDto"];
+export type FamilyMember = S["DependantDto"];
+export type ConsentPurpose = S["ConsentStateDto"]["purpose"];
+export type Consent = S["ConsentStateDto"];
+export type Session = S["AuthSessionDto"];
 
-export type BookingStatus = "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
-export type DepositStatus = "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | string;
-export interface BookingEvent { status: BookingStatus; at: string }
-export interface Booking {
-  id: string; status: BookingStatus; providerId: string; clinicId: string; typeId: string; startsAt: string; endsAt: string; dependantId: string | null;
-  holdExpiresAt: string | null; confirmationDueAt: string | null; cancelledBy: string | null; cancellationReason: string | null; failureCode: string | null;
-  depositStatus: DepositStatus; depositAmountMinor: number; currency: string; depositRefundable: boolean | null;
-  deposit: { paymentId: string; status: string; checkoutUrl: string | null } | null;
-  doctor: { nameEn: string | null; nameAr: string | null; specialty: string | null } | null;
-  clinic: { nameEn?: string; nameAr?: string; addressEn?: string; addressAr?: string; phone?: string | null; latitude?: number | null; longitude?: number | null } | null;
-  cancellationPolicy: unknown; timeline: BookingEvent[]; createdAt: string;
-}
+export type BookingStatus = S["BookingDto"]["status"];
+export type DepositStatus = S["BookingDto"]["depositStatus"];
+export type Booking = S["BookingDto"];
+export type BookingChannel = Booking["channel"];
 
 export interface SearchParams {
   q?: string; specialty?: string; area?: string; gender?: "F" | "M" | ""; language?: string;
   sort?: "earliest" | "distance" | "rating" | "fee"; maxFee?: number; minRating?: number;
   acceptsDeposit?: boolean; availableWithinDays?: number; page?: number;
 }
-export interface FlagsEffective { market: string; version?: number; flags: Record<string, { enabled: boolean; reason?: string; scope?: string }> }
-export interface ExportResult { id?: string; generatedAt?: string }
+export type FlagsEffective = S["EffectiveFlagsDto"];

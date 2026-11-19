@@ -20,7 +20,7 @@ export function PatientProvider({ children }: { children: ReactNode }) {
   const patients = useMemo<PatientOption[]>(() => {
     if (!me.data) return [];
     const self: PatientOption = { id: me.data.id, name: me.data.nameEn ?? me.data.nameAr ?? me.data.phone ?? "—", relationship: "self" };
-    return [self, ...(family.data ?? []).map((m) => ({ id: m.id, name: m.name, relationship: m.relationship, dependantId: m.id }))];
+    return [self, ...(family.data ?? []).map((m) => ({ id: m.id, name: m.nameEn ?? m.nameAr ?? "—", relationship: m.relationship, dependantId: m.id }))];
   }, [me.data, family.data]);
 
   useEffect(() => { if (patients.length && !patients.some((p) => p.id === selectedId)) setSelected(patients[0].id); }, [patients, selectedId]);

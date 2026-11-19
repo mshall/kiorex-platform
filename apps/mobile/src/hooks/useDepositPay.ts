@@ -3,7 +3,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDepositCheckout, qk } from "@/api/hooks";
 import { api, send } from "@/api/client";
-import { mapBooking } from "@/api/adapters";
 import type { Booking } from "@/api/types";
 
 export type DepositOutcome = "paid" | "pending" | "failed";
@@ -29,9 +28,10 @@ export function useDepositPay() {
     setBusy(true);
     try {
       const r = await checkout.mutateAsync(bookingId);
+      if (!r.checkoutUrl) return "failed";
       await WebBrowser.openBrowserAsync(r.checkoutUrl, { presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET });
       const outcome = await waitForDeposit(async () => {
-        const b = mapBooking(await send(api.GET("/api/v1/bookings/{id}", { params: { path: { id: bookingId } } })));
+        const b = await send(api.GET("/api/v1/bookings/{id}", { params: { path: { id: bookingId } } }));
         qc.setQueryData(qk.booking(bookingId), b);
         return b;
       });

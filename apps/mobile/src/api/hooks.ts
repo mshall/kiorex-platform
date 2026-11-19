@@ -1,10 +1,9 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, send } from "./client";
-import { mapBooking, mapConsent, mapDependant, mapPatient, mapProfile, mapReviews, mapSearch, mapSession, mapSlot, mapSpecialty } from "./adapters";
+import { mapProfile, mapReviews, mapSearch, mapSlot, mapSpecialty } from "./adapters";
 import type { Booking, ConsentPurpose, FlagsEffective, SearchParams } from "./types";
 import { pollIntervalFor } from "@/lib/booking-state";
 
-type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const NEXT: Record<number, string> = { 1: "today", 3: "tomorrow", 7: "week" };
 
 export const qk = {
@@ -17,7 +16,7 @@ export const qk = {
 export const useFlags = () => useQuery({ queryKey: qk.flags, queryFn: () => send<FlagsEffective>(api.GET("/api/v1/flags/effective")), staleTime: 30_000, retry: 0 });
 
 export const useSpecialties = () =>
-  useQuery({ queryKey: qk.specialties, staleTime: 3_600_000, queryFn: async () => (await send<Any[]>(api.GET("/api/v1/specialties"))).map(mapSpecialty) });
+  useQuery({ queryKey: qk.specialties, staleTime: 3_600_000, queryFn: async () => (await send(api.GET("/api/v1/specialties"))).map(mapSpecialty) });
 
 export const useSearchDoctors = (p: SearchParams, enabled = true) =>
   useQuery({
@@ -40,8 +39,8 @@ export const useSlots = (id: string, visitTypeId: string | undefined) =>
     queryKey: qk.slots(id, visitTypeId ?? ""), enabled: !!visitTypeId, refetchInterval: 60_000,
     queryFn: async () => {
       const from = new Date(); const to = new Date(from.getTime() + 14 * 86_400_000);
-      const r = await send<Any>(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: { typeId: visitTypeId!, from: from.toISOString(), to: to.toISOString() } } }));
-      return ((r.slots ?? []) as Any[]).map((s) => mapSlot(s, visitTypeId!));
+      const r = await send(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: { typeId: visitTypeId!, from: from.toISOString(), to: to.toISOString() } } }));
+      return r.slots.map((s) => mapSlot(s, visitTypeId!));
     },
   });
 
@@ -49,8 +48,8 @@ export const useDoctorReviews = (id: string) =>
   useQuery({ queryKey: qk.reviews(id), enabled: !!id, queryFn: async () => mapReviews(await send(api.GET("/api/v1/providers/{id}/reviews", { params: { path: { id } } }))) });
 
 // ---- account ----
-export const useMe = (enabled = true) => useQuery({ queryKey: qk.me, enabled, queryFn: async () => mapPatient(await send(api.GET("/api/v1/me/profile"))) });
-export const useFamily = (enabled = true) => useQuery({ queryKey: qk.family, enabled, queryFn: async () => (await send<Any[]>(api.GET("/api/v1/me/dependants"))).map(mapDependant) });
+export const useMe = (enabled = true) => useQuery({ queryKey: qk.me, enabled, queryFn: () => send(api.GET("/api/v1/me/profile")) });
+export const useFamily = (enabled = true) => useQuery({ queryKey: qk.family, enabled, queryFn: () => send(api.GET("/api/v1/me/dependants")) });
 export const useAddFamily = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -62,7 +61,7 @@ export const useRemoveFamily = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => send(api.DELETE("/api/v1/me/dependants/{id}", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: qk.family }) });
 };
-export const useConsents = (enabled = true) => useQuery({ queryKey: qk.consents, enabled, queryFn: async () => (await send<Any[]>(api.GET("/api/v1/me/consents"))).map(mapConsent) });
+export const useConsents = (enabled = true) => useQuery({ queryKey: qk.consents, enabled, queryFn: () => send(api.GET("/api/v1/me/consents")) });
 export const useSetConsent = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -70,33 +69,33 @@ export const useSetConsent = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.consents }),
   });
 };
-export const useSessions = (enabled = true) => useQuery({ queryKey: qk.sessions, enabled, queryFn: async () => (await send<Any[]>(api.GET("/api/v1/me/sessions"))).map(mapSession) });
+export const useSessions = (enabled = true) => useQuery({ queryKey: qk.sessions, enabled, queryFn: () => send(api.GET("/api/v1/me/sessions")) });
 export const useRevokeSession = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => send(api.DELETE("/api/v1/me/sessions/{id}", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: qk.sessions }) });
 };
-export const useRequestExport = () => useMutation({ mutationFn: () => send<Any>(api.POST("/api/v1/me/export")) });
+export const useRequestExport = () => useMutation({ mutationFn: () => send(api.POST("/api/v1/me/export")) });
 /** In-app deletion (KXM-AC-06). includeExport returns the export payload in the response. */
 export const useDeleteAccount = () =>
-  useMutation({ mutationFn: (includeExport: boolean) => send<Any>(api.POST("/api/v1/me/deletion", { body: { confirm: true, includeExport } as never })) });
+  useMutation({ mutationFn: (includeExport: boolean) => send(api.POST("/api/v1/me/deletion", { body: { confirm: true, includeExport } })) });
 
 // ---- bookings ----
 export const useBookings = (enabled = true) =>
-  useQuery({ queryKey: qk.bookings, enabled, queryFn: async () => (await send<Any[]>(api.GET("/api/v1/bookings", { params: { query: {} as never } }))).map(mapBooking) });
+  useQuery({ queryKey: qk.bookings, enabled, queryFn: () => send(api.GET("/api/v1/bookings", { params: { query: {} as never } })) });
 
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({
     queryKey: qk.booking(id), enabled: !!id,
     refetchInterval: (q) => (opts?.poll ? pollIntervalFor(q.state.data?.status) : false),
-    queryFn: async () => mapBooking(await send(api.GET("/api/v1/bookings/{id}", { params: { path: { id } } }))),
+    queryFn: () => send(api.GET("/api/v1/bookings/{id}", { params: { path: { id } } })),
   });
 
-export const useMyReviews = (enabled = true) => useQuery({ queryKey: qk.myReviews, enabled, queryFn: () => send<Any[]>(api.GET("/api/v1/me/reviews")) });
+export const useMyReviews = (enabled = true) => useQuery({ queryKey: qk.myReviews, enabled, queryFn: () => send(api.GET("/api/v1/me/reviews")) });
 
-const useBookingWrite = <V,>(fn: (v: V) => Promise<Any>) => {
+const useBookingWrite = <V,>(fn: (v: V) => Promise<Booking>) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: V): Promise<Booking> => mapBooking(await fn(v)),
+    mutationFn: (v: V) => fn(v),
     onSuccess: (b) => { qc.setQueryData(qk.booking(b.id), b); void qc.invalidateQueries({ queryKey: qk.bookings }); },
   });
 };
@@ -115,7 +114,7 @@ export const useRescheduleBooking = () =>
   useBookingWrite((v: { id: string; startsAt: string; endsAt?: string }) => send(api.POST("/api/v1/bookings/{id}/reschedule", { params: { path: { id: v.id } }, body: { startsAt: v.startsAt, endsAt: v.endsAt } as never })));
 
 export const useDepositCheckout = () =>
-  useMutation({ mutationFn: (id: string) => send<{ paymentId: string; checkoutUrl: string; amountMinor: number; currency: string }>(api.POST("/api/v1/bookings/{id}/deposit-checkout", { params: { path: { id } } })) });
+  useMutation({ mutationFn: (id: string) => send(api.POST("/api/v1/bookings/{id}/deposit-checkout", { params: { path: { id } } })) });
 
 export const useSubmitReview = () => {
   const qc = useQueryClient();
