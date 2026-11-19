@@ -1,27 +1,16 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { MessagingAdapter, MessagingHub, MsgChannel } from '../messaging/messaging-public';
 import { PatientService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotifyKind, render, TEMPLATES } from './templates';
 
 export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 
-export interface ChannelAdapter { channel: string; send(m: { id: string; templateId: string; locale: string; body: string; sub: string }): Promise<void> }
-
-/** MESSAGING_MODE=log: adapters write to console (no PHI: template id + message id only). Real senders: NEEDS_HUMAN (Meta, SMS, FCM). */
-class LogAdapter implements ChannelAdapter {
-  private readonly log = new Logger('messaging');
-  constructor(public channel: string) {}
-  async send(m: { id: string; templateId: string }) {
-    this.log.log(`[${this.channel}] ${m.templateId} msg=${m.id}`);
-  }
-}
-
 @Injectable()
 export class EngagementService implements OnModuleInit, OnModuleDestroy {
-  private adapters = new Map<string, ChannelAdapter>(CHANNELS.map((c) => [c, new LogAdapter(c)]));
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService) {}
+  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub) {}
 
   onModuleInit() {
     if (!cfg().jobsEnabled) return;
@@ -30,7 +19,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 
-  setAdapter(a: ChannelAdapter) { this.adapters.set(a.channel, a); }
+  setAdapter(a: MessagingAdapter) { this.hub.setAdapter(a); }
 
   /** Local-hour quiet window check (KXM-NT-02). Returns the end of the window as a Date if inside it. */
   quietUntil(at: Date, startH: number, endH: number): Date | null {
@@ -82,9 +71,12 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
         return 'DEFERRED';
       }
     }
+    const profile = await this.patients.profileBySub(m.sub);
+    const to = m.channel === 'EMAIL' ? profile?.email : m.channel === 'PUSH' ? `device:${m.sub}` : profile?.phone; // PUSH: device-token registry is part of the FCM/APNs go-live pass
+    if (!to) return finish('FAILED', 'NO_RECIPIENT');
     try {
-      await this.adapters.get(m.channel)!.send({ id: m.id, templateId: m.templateId, locale: m.locale, body, sub: m.sub });
-      return finish('SENT');
+      const r = await this.hub.send({ messageId: m.id, channel: m.channel as MsgChannel, sub: m.sub, to, templateId: m.templateId, locale: m.locale, body });
+      return r.ok ? finish('SENT') : finish('FAILED', (r.error ?? 'SEND_FAILED').slice(0, 200));
     } catch (e) {
       return finish('FAILED', String(e).slice(0, 200));
     }

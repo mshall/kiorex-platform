@@ -25,7 +25,44 @@ export const cfg = () => ({
   /** NEEDS_HUMAN (KX-12): PSP fee rate and deposit amount are never invented; 0 = unset. */
   pspFeeBps: num('PSP_FEE_BPS', 0),
   depositDefaultMinor: num('DEPOSIT_DEFAULT_MINOR', 0),
-  messagingMode: env('MESSAGING_MODE', 'log'),
+  /** mock | real. `log` (legacy value) means mock. Real providers are wired in the pre-launch pass (Docs/NEEDS_HUMAN.md "Provider go-live"). */
+  messagingMode: (['real'].includes(env('MESSAGING_MODE', 'mock')) ? 'real' : 'mock') as 'mock' | 'real',
+  videoMode: (env('VIDEO_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
+  storageMode: (env('STORAGE_MODE', 'local') === 's3' ? 's3' : 'local') as 'local' | 's3',
+  storageLocalDir: env('STORAGE_LOCAL_DIR', '.data/vault'),
+  vaultMaxBytes: num('VAULT_MAX_BYTES', 5 * 1024 * 1024),
+  /** Dev inbox + dev routes (/dev/messaging/*) exist only outside production AND in mock messaging mode. */
+  devRoutesEnabled: env('NODE_ENV') !== 'production' && env('MESSAGING_MODE', 'mock') !== 'real',
+  appLinkBase: env('PUBLIC_APP_URL', 'https://kiorex.com/app'),
+  /** NEEDS_HUMAN: Meta webhook verification/app secret. Mock inbound requires HMAC with this dev secret. */
+  whatsappWebhookSecret: env('WHATSAPP_WEBHOOK_SECRET', 'wa_dev_webhook_secret_change_me'),
+  /** Kiorly marketplace API only accepts channel MARKETPLACE|CLINIC_LINK today; flip when Kiorly adds KIOREX_WHATSAPP. */
+  kiorlyAcceptsWhatsappChannel: bool('KIORLY_ACCEPTS_WHATSAPP_CHANNEL', false),
+  whatsappSessionMinutes: num('WHATSAPP_SESSION_MINUTES', 30),
+  waitlistOfferMinutes: num('WAITLIST_OFFER_MINUTES', 15),
+  waitlistHorizonDays: num('WAITLIST_HORIZON_DAYS', 30),
+  /** KX-11 record shares: HMAC secret shared with Kiorly (KIOREX_RECORD_SHARE_HMAC_SECRET there). */
+  recordShareSecret: env('KIOREX_RECORD_SHARE_HMAC_SECRET', 'dev-record-share-secret'),
+  rxVerifySecret: env('RX_VERIFY_HMAC_SECRET', 'rx_dev_verify_secret_change_me'),
+  rxVerifyBase: env('RX_VERIFY_BASE_URL', 'https://kiorex.com/rx/verify'),
+  /** Vertical partners (Kiorly Pharmacy / Lab): HMAC REST, same scheme as the marketplace client. Not built yet; tests use fakes. */
+  pharmacyBaseUrl: env('KIORLY_PHARMACY_BASE_URL', 'http://localhost:3020/pharmacy/v1'),
+  pharmacyClientKey: env('KIORLY_PHARMACY_CLIENT_KEY', 'kx_dev_pharmacy_client'),
+  pharmacyClientSecret: env('KIORLY_PHARMACY_CLIENT_SECRET', 'kx_dev_pharmacy_secret_change_me'),
+  pharmacyWebhookSecret: env('KIORLY_PHARMACY_WEBHOOK_SECRET', 'kx_dev_pharmacy_webhook_secret'),
+  labBaseUrl: env('KIORLY_LAB_BASE_URL', 'http://localhost:3030/lab/v1'),
+  labClientKey: env('KIORLY_LAB_CLIENT_KEY', 'kx_dev_lab_client'),
+  labClientSecret: env('KIORLY_LAB_CLIENT_SECRET', 'kx_dev_lab_secret_change_me'),
+  labWebhookSecret: env('KIORLY_LAB_WEBHOOK_SECRET', 'kx_dev_lab_webhook_secret'),
+  partnerTimeoutMs: num('PARTNER_TIMEOUT_MS', 8000),
+  /** NEEDS_HUMAN (KX-12): marketplace take rates in basis points. 0 = unset. KX-03 §08 lists 4% / 8% only as "test points" — never final. */
+  pharmacyTakeRateBps: num('PHARMACY_TAKE_RATE_BPS', 0),
+  labTakeRateBps: num('LAB_TAKE_RATE_BPS', 0),
+  teleConsultFeeMinor: num('TELE_CONSULT_FEE_MINOR', 0),
+  /** NEEDS_HUMAN: VAT is config on Kiorex's OWN fee statements only (never reported to any authority). */
+  feeStatementVatBps: num('FEE_STATEMENT_VAT_BPS', 0),
+  deliveryFeeMinor: num('PHARMACY_DELIVERY_FEE_MINOR', 0),
+  analyticsMaxBatch: num('ANALYTICS_MAX_BATCH', 20),
   aiProvider: env('AI_PROVIDER', 'fake'),
   aiDailyQuota: num('AI_DAILY_QUOTA', 20),
   openaiBase: env('OPENAI_EU_BASE_URL'),

@@ -7,12 +7,14 @@ import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { KiorlyClient } from '../kiorly/kiorly-public';
+import { MessagingHub } from '../messaging/messaging-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
 class RefundBody { @IsString() paymentId!: string; @IsString() reason!: string; @IsOptional() @IsInt() @Min(1) amountMinor?: number }
+class SimulateBody { @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED' }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }
 class SettlementLine {
   @IsString() psp!: string;
@@ -32,7 +34,7 @@ class ImportBody {
 export class OpsController {
   constructor(
     private readonly catalog: CatalogService, private readonly bookings: BookingService, private readonly outbox: OutboxService, private readonly pay: PayService, private readonly trust: TrustService,
-    private readonly kiorly: KiorlyClient, private readonly prisma: PrismaService, private readonly engagement: EngagementService,
+    private readonly kiorly: KiorlyClient, private readonly prisma: PrismaService, private readonly engagement: EngagementService, private readonly hub: MessagingHub,
   ) {}
 
   @Get('providers') @ApiOperation({ summary: 'KXM-OP-01 provider directory' })
@@ -73,5 +75,15 @@ export class OpsController {
   @Get('liquidity') @ApiOperation({ summary: 'KXM-OP-06 cluster liquidity metrics' }) liquidity(@Query('days') days?: string) { return this.bookings.liquidity(days ? Number(days) : 30); }
   @Get('circuits') circuits() { return this.kiorly.circuitStates(); }
   @Get('messages') messages() { return this.engagement.messageLog(); }
+  @Get('messaging/stats') @ApiOperation({ summary: 'OP: unified messaging (email/whatsapp/sms/push) mode and counts per channel/status' })
+  messagingStats() { return this.hub.stats(); }
+  @Get('messaging/log') @ApiOperation({ summary: 'OP: unified message log (recipient masked; body only present in mock mode)' })
+  async messagingLog(@Query('channel') channel?: string, @Query('status') status?: string, @Query('direction') direction?: string, @Query('limit') limit?: string) {
+    const rows = await this.hub.list({ channel, status, direction, limit: limit ? Number(limit) : 100 });
+    return { mode: this.hub.mode(), items: rows.map(({ recipient: _r, ...m }) => m) };
+  }
+  @Post('messaging/log/:id/simulate') @HttpCode(200) @ApiOperation({ summary: 'OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling' })
+  async messagingSimulate(@Param('id') id: string, @Body() b: SimulateBody) { const { recipient: _r, ...m } = await this.hub.simulate(id, b.state); return m; }
+  @Post('messaging/delivery-tick') @HttpCode(200) messagingTick() { return this.hub.simulateDeliveries(); }
   @Get('audit-log') auditLog() { return this.prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }); }
 }
