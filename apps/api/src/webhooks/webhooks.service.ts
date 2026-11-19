@@ -6,6 +6,7 @@ import { verifyWebhook } from '../common/hmac';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
+import { WaitlistService } from '../waitlist/waitlist-public';
 import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
@@ -16,7 +17,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService) {}
 
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string }) {
     if (!verifyWebhook(cfg().kiorlyWebhookSecret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
@@ -49,6 +50,7 @@ export class WebhooksService {
     switch (type) {
       case 'SLOTS_CHANGED': // aggregateId = clinicianId
         this.catalog.invalidateSlots(data.clinicianId ?? env.aggregateId);
+        await this.waitlist.onSlotsChanged(data.clinicianId ?? env.aggregateId); // BK-12: fill freed capacity from the waitlist
         return 'APPLIED';
       case 'PROVIDER_PROFILE_UPDATED':
       case 'LISTING_STATUS_CHANGED': // reindex; PAUSED listings are hidden by the sync (status column)
