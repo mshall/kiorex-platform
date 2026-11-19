@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Platform } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,7 @@ const KEY = "kx-passport-tokens";
 interface Stored { accessToken: string; refreshToken?: string; idToken?: string; expiresAt: number }
 export interface AuthUser { sub: string; name?: string; phone?: string; roles: string[] }
 type Status = "loading" | "signedOut" | "signedIn";
-interface Ctx { status: Status; user: AuthUser | null; login: () => Promise<boolean>; logout: () => Promise<void>; error: string | null; busy: boolean }
+interface Ctx { status: Status; user: AuthUser | null; login: () => Promise<boolean>; completeWebLogin: (p: { code?: string; state?: string }) => Promise<boolean>; logout: () => Promise<void>; error: string | null; busy: boolean }
 const AuthCtx = createContext<Ctx | null>(null);
 
 export const redirectUri = () => AuthSession.makeRedirectUri({ scheme: "kiorex", path: "auth/callback" });
@@ -26,6 +27,7 @@ const toUser = (t: Stored): AuthUser => {
   const c = decodeClaims(t.accessToken) ?? decodeClaims(t.idToken);
   return { sub: c?.sub ?? "unknown", name: c?.name, phone: c?.phone_number, roles: c?.kx_roles ?? [] };
 };
+const WEB_PKCE = "kx-web-pkce"; // sessionStorage: { state, verifier } for the redirect flow
 const MOCK_TOKEN: Stored = { accessToken: "mock.e30.mock", expiresAt: Date.now() + 365 * 86_400_000 };
 
 /** Kiorex Passport sign-in: OIDC authorization-code + PKCE (expo-auth-session), tokens in expo-secure-store. */
@@ -79,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (config.mock) { await setSession(MOCK_TOKEN); return true; }
       const d = await discover();
       const request = new AuthSession.AuthRequest({ clientId: config.oidcClientId, redirectUri: redirectUri(), scopes: config.oidcScopes, usePKCE: true, responseType: AuthSession.ResponseType.Code });
+      if (Platform.OS === "web") {
+        // Full-page redirect (no popup: popup blockers and embedded browsers break the opener hand-off). The code is exchanged on /auth/callback.
+        const url = await request.makeAuthUrlAsync(d);
+        sessionStorage.setItem(WEB_PKCE, JSON.stringify({ state: request.state, verifier: request.codeVerifier }));
+        window.location.assign(url);
+        return false;
+      }
       const res = await request.promptAsync(d);
       if (res.type !== "success") return false;
       const tr = await AuthSession.exchangeCodeAsync({ clientId: config.oidcClientId, code: res.params.code, redirectUri: redirectUri(), extraParams: { code_verifier: request.codeVerifier ?? "" } }, d);
@@ -91,8 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally { setBusy(false); }
   }, [setSession]);
 
+  /** Web redirect flow, step 2: called by /auth/callback with the `code` + `state` query params. */
+  const completeWebLogin = useCallback(async (p: { code?: string; state?: string }) => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(WEB_PKCE) ?? "null") as { state: string; verifier: string } | null;
+      sessionStorage.removeItem(WEB_PKCE);
+      if (!p.code || !saved || saved.state !== p.state) throw new Error("state mismatch");
+      const d = await discover();
+      const tr = await AuthSession.exchangeCodeAsync({ clientId: config.oidcClientId, code: p.code, redirectUri: redirectUri(), extraParams: { code_verifier: saved.verifier } }, d);
+      await setSession(fromResponse(tr));
+      return true;
+    } catch (e) { console.log("[auth] web callback failed:", (e as Error).message); setError("signIn.failed"); return false; }
+  }, [setSession]);
+
   const logout = useCallback(async () => { await setSession(null); }, [setSession]);
-  const value = useMemo(() => ({ status, user, login, logout, error, busy }), [status, user, login, logout, error, busy]);
+  const value = useMemo(() => ({ status, user, login, completeWebLogin, logout, error, busy }), [status, user, login, completeWebLogin, logout, error, busy]);
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
 
