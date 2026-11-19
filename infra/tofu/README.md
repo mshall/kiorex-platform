@@ -69,3 +69,11 @@ approves the first deploy. Repository variables: `AWS_TOFU_PLAN_ROLE_ARN`, `AWS_
 - OpenSearch (`enable_opensearch`, from M9) and ElastiCache Redis (`enable_redis`) are disabled by default.
 - Secret containers (PSP keys, WhatsApp, HMAC clients, flag product keys) are created empty — humans fill them (NEEDS_HUMAN). Prod `PSP_MODE`/`MESSAGING_MODE`/`AI_PROVIDER` are `TODO_NEEDS_HUMAN`.
 - One SPA bucket/distribution: the ops console hostname/hosting (ops.kiorex.com?) is not decided (NEEDS_HUMAN).
+
+## Rev 2.3 note: SAFETY_ALERT_RAISED alarms (KX-09, KX-23; nothing applied)
+Kiorex consumes `SAFETY_ALERT_RAISED` for ops (safety console, KXMOP12), so `safety_alerts` is enabled with `role = "consumer"` in both
+stacks: alarms on end-to-end latency (> 60 s) and on consume failures (outbox DEAD), published to `<product>-<env>-safety-oncall`.
+They stay OK until the platform API emits `safety_alert.received` (+ `endToEndLatencyMs`) / `safety_alert.consume_failed` logs; the log
+contract, alarms and rota notes are in `clinics-management/infra/tofu/README.md` section 6. The on-call rota is NEEDS_HUMAN. `modules/` was re-copied
+from clinics-management (it now also contains `aws/safety-alerts`, `aws/location` and `alias_domains`; the latter two are unused here,
+no resources). No alias, Location or geostamp job exists in this stack.

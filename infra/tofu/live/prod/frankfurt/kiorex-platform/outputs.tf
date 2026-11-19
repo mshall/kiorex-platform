@@ -72,3 +72,8 @@ output "app_runner_service_arn" {
   description = "App Runner service ARN."
   value       = module.kiorex_platform.app_runner_service_arn
 }
+
+output "safety_alerts_topic_arn" {
+  description = "Safety on-call SNS topic (null when disabled)."
+  value       = module.kiorex_platform.safety_alerts_topic_arn
+}

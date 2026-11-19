@@ -192,3 +192,9 @@ variable "observability_enabled" {
   type        = bool
   default     = true
 }
+
+variable "safety_alerts" {
+  description = "Safety-alert alarms as CONSUMER of SAFETY_ALERT_RAISED (Kiorex ops; KX-09: delivered <= 60 s, on-call alarm if undelivered). Fields: enabled, role, latency_threshold_ms, alarm_emails, alarm_webhook_urls."
+  type        = any
+  default     = {}
+}

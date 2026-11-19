@@ -66,3 +66,15 @@ placeholder_secrets = [
   "flag-control-product-keys",
   "openai-eu",
 ]
+
+# --- Rev 2.3 / KX-23: Kiorex consumes SAFETY_ALERT_RAISED (KX-09) -> Kiorex ops safety console (backlog item 7; nothing applied) ---
+# Alarms only: end-to-end latency (event occurredAt -> ops notified) must stay <= 60 s, and any consume failure (outbox DEAD) pages.
+# They read the platform API's structured logs (see modules/aws/safety-alerts/main.tf for the log contract) and stay OK until the
+# platform emits those events (KXMOP12). Safety on-call rota is NEEDS_HUMAN.
+safety_alerts = {
+  enabled              = true
+  role                 = "consumer"
+  latency_threshold_ms = 60000
+  alarm_emails         = [] # NEEDS_HUMAN: safety on-call rota
+  alarm_webhook_urls   = []
+}

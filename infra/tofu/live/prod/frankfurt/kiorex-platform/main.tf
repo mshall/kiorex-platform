@@ -82,6 +82,7 @@ module "kiorex_platform" {
   generated_secrets   = var.generated_secrets
   placeholder_secrets = var.placeholder_secrets
   scheduled_jobs      = var.scheduled_jobs
+  safety_alerts       = var.safety_alerts
 
   alarm_emails          = var.alarm_emails
   alarm_webhook_urls    = var.alarm_webhook_urls
