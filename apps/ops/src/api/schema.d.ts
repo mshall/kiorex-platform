@@ -4,6 +4,92 @@
  */
 
 export interface paths {
+    "/api/v1/dev/messaging/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DEV: simulate a patient reply on a channel (drives the WhatsApp booking state machine) */
+        post: operations["DevMessagingController_inbound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/messaging/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DEV: messages the platform "sent" (all channels), newest first */
+        get: operations["DevMessagingController_outbox"];
+        put?: never;
+        post?: never;
+        /** DEV: clear the dev inbox */
+        delete: operations["DevMessagingController_clear"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/messaging/delivery-tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DEV: advance SENT -> DELIVERED for all mock messages */
+        post: operations["DevMessagingController_tick"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Markets (countries) that are LIVE; use for the sign-up country picker. ?all=true also lists gated markets with their state */
+        get: operations["MarketController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KX-03 §07 client analytics (PHI-free whitelist, anonymous, all-or-nothing batch) */
+        post: operations["AnalyticsController_ingest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me": {
         parameters: {
             query?: never;
@@ -572,6 +658,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/sponsored": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled */
+        get: operations["CatalogController_sponsored"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notifications": {
         parameters: {
             query?: never;
@@ -1005,6 +1108,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/pharmacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET */
+        post: operations["WebhooksController_pharmacy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/lab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET */
+        post: operations["WebhooksController_lab"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/providers": {
         parameters: {
             query?: never;
@@ -1133,6 +1270,23 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["OpsController_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/fee-statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Kiorex's own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line. */
+        get: operations["OpsController_feeStatements"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1333,6 +1487,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/messaging/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: unified messaging (email/whatsapp/sms/push) mode and counts per channel/status */
+        get: operations["OpsController_messagingStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: unified message log (recipient masked; body only present in mock mode) */
+        get: operations["OpsController_messagingLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/log/{id}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling */
+        post: operations["OpsController_messagingSimulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/delivery-tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OpsController_messagingTick"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit-log": {
         parameters: {
             query?: never;
@@ -1349,51 +1570,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/pharmacy/orders": {
+    "/api/v1/me/vault": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** KXM-RC-01 patient vault: shared + uploaded records (always readable; readOnly=true when kiorex.record_vault is OFF) */
+        get: operations["VaultController_list"];
         put?: never;
-        /** Pharmacy order (launch-locked, phase 2) */
-        post: operations["Phase2Controller_pharmacy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/lab/bookings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Lab booking (launch-locked, phase 2) */
-        post: operations["Phase2Controller_lab"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/telemedicine/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Telemedicine (launch-locked) */
-        post: operations["Phase2Controller_tele"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1409,25 +1596,229 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Patient vault upload (phase 1b); vault stays readable when OFF */
-        post: operations["Phase2Controller_vaultUpload"];
+        /** KXM-RC-01 upload a PDF/JPEG/PNG to the vault (flag kiorex.record_vault; JSON base64, stored encrypted via the storage adapter) */
+        post: operations["VaultController_upload"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/me/vault": {
+    "/api/v1/me/vault/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Vault is always readable (OFF never hides data) */
-        get: operations["Phase2Controller_vault"];
+        /** KXM-RC-01 view a record (owner only; prescriptions include the verification QR payload) */
+        get: operations["VaultController_detail"];
         put?: never;
         post?: never;
+        /** KXM-RC-01 revoke/delete a record from the vault (always allowed, even when the vault flag is OFF) */
+        delete: operations["VaultController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/vault/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download an uploaded file (decrypted on the fly, owner only) */
+        get: operations["VaultController_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/record-sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXM-RC-01 record-share consent per scope (VISIT_SUMMARY, PRESCRIPTIONS, LAB_RESULTS, SHARE_WITH_OTHER_CLINICS) */
+        get: operations["VaultController_sharing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/record-sharing/{scope}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Grant (needs flags kiorex.record_vault + clinic.record_share_patient_app) or revoke (always allowed; deletes Kiorex copies and tells Kiorly) */
+        put: operations["VaultController_setSharing"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXM-RC-02 prescriptions with verification QR payloads */
+        get: operations["VaultController_prescriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rx/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXM-RC-02 pharmacist check of a prescription QR token: validity, issuing clinic id and signed date only (no patient data) */
+        get: operations["VaultController_verify"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/follow-ups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXM-RC-03 follow-up reminders (doctor-specified or patient-set) */
+        get: operations["VaultController_followUps"];
+        put?: never;
+        /** KXM-RC-03 set a follow-up reminder N days from now (optionally tied to a vault record) */
+        post: operations["VaultController_createFollowUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/follow-ups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["VaultController_cancelFollowUp"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXM-BK-12 my waitlist entries with their offers */
+        get: operations["WaitlistController_list"];
+        put?: never;
+        /** KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type) */
+        post: operations["WaitlistController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waitlist/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["WaitlistController_cancel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waitlist/offers/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KXM-BK-12 accept an offered slot: creates the normal 5-minute hold (returns the booking; then POST /bookings/{id}/confirm). 409 SLOT_TAKEN / 410 OFFER_EXPIRED */
+        post: operations["WaitlistController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waitlist/offers/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["WaitlistController_decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/waitlist/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: run the waitlist autofill scan now */
+        post: operations["WaitlistController_scan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1443,25 +1834,411 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** KXM-BK-11 WhatsApp booking channel (P2) */
-        post: operations["Phase2Controller_whatsapp"];
+        /** KXM-BK-11 WhatsApp inbound (normalised, HMAC-signed). Server-to-server; the booking conversation runs from here */
+        post: operations["ChannelsController_inbound"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/search/sponsored": {
+    "/api/v1/dev/channels/whatsapp/conversation": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Sponsored listings (P3); labelled when on */
-        get: operations["Phase2Controller_sponsored"];
+        /** DEV: current WhatsApp conversation state for a phone */
+        get: operations["ChannelsController_conversation"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/pharmacies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pharmacies that accept Kiorex orders (from Kiorly Pharmacy) */
+        get: operations["PharmacyController_pharmacies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Medicine search with availability-to-promise (controlled medicines are never returned) */
+        get: operations["PharmacyController_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PharmacyController_cart"];
+        /** Replace the cart (one pharmacy per cart); prices come from the pharmacy quote */
+        put: operations["PharmacyController_putCart"];
+        post?: never;
+        delete: operations["PharmacyController_clear"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/cart/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Delivery choice: PICKUP or DELIVERY (with address) */
+        put: operations["PharmacyController_delivery"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PharmacyController_list"];
+        put?: never;
+        /** Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation */
+        post: operations["PharmacyController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PharmacyController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pharmacy/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel before the pharmacy marks it ready; paid orders are refunded automatically */
+        post: operations["PharmacyController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pharmacy/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: pharmacy orders (status filter) */
+        get: operations["PharmacyController_opsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pharmacy/orders/{id}/resubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: re-send a PAID order to Kiorly Pharmacy (idempotent) */
+        post: operations["PharmacyController_resubmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lab test catalogue search */
+        get: operations["LabController_tests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Collection slots (home collection or walk-in) from the lab */
+        get: operations["LabController_slots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LabController_list"];
+        put?: never;
+        /** Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab */
+        post: operations["LabController_book"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/bookings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LabController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/bookings/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["LabController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/lab/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: lab bookings (status filter) */
+        get: operations["LabController_opsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/lab/bookings/{id}/resubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: re-send a PAID booking to Kiorly Lab (idempotent) */
+        post: operations["LabController_resubmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Matching: video-capable doctors for a specialty/keyword (emergency language returns 123 guidance, no results) */
+        get: operations["TelemedicineController_providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TelemedicineController_list"];
+        put?: never;
+        /** Create the video session for your confirmed booking (idempotent per booking) */
+        post: operations["TelemedicineController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TelemedicineController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/sessions/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join: issues a room token (MOCK video provider: fake token). Room opens 15 min before the visit */
+        post: operations["TelemedicineController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/sessions/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TelemedicineController_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/clinician/bookings/{bookingId}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kiorly Clinic (product-key HMAC): clinician room token for a Kiorex booking id */
+        post: operations["TelemedicineController_clinicianToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/clinician/bookings/{bookingId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kiorly Clinic (product-key HMAC): end the session */
+        post: operations["TelemedicineController_clinicianEnd"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1504,30 +2281,1512 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        LogoutBody: Record<string, never>;
-        SetFlagBody: Record<string, never>;
-        GateBody: Record<string, never>;
-        ReasonBody: Record<string, never>;
-        DefinitionBody: Record<string, never>;
-        ProductBody: Record<string, never>;
-        ProfileBody: Record<string, never>;
-        DependantBody: Record<string, never>;
-        DependantPatch: Record<string, never>;
-        ConsentBody: Record<string, never>;
-        DeleteBody: Record<string, never>;
-        PrefBody: Record<string, never>;
-        PayLinkBody: Record<string, never>;
-        CreateBody: Record<string, never>;
-        ConfirmBody: Record<string, never>;
-        CancelBody: Record<string, never>;
-        RescheduleBody: Record<string, never>;
-        ReviewBody: Record<string, never>;
-        ReviewEdit: Record<string, never>;
-        ComplaintBody: Record<string, never>;
-        NavBody: Record<string, never>;
-        RefundBody: Record<string, never>;
-        ImportBody: Record<string, never>;
-        ResolveBody: Record<string, never>;
+        DevInboundBody: {
+            /** @enum {string} */
+            channel: "EMAIL" | "WHATSAPP" | "SMS" | "PUSH";
+            from: string;
+            text?: string;
+            buttonPayload?: string;
+        };
+        DevMessageDto: {
+            messageId: string | null;
+            /** @enum {string} */
+            channel: "EMAIL" | "WHATSAPP" | "SMS" | "PUSH";
+            /** @enum {string} */
+            direction: "OUT" | "IN";
+            /** @enum {string} */
+            mode: "mock" | "real";
+            sub: string | null;
+            /** @description Masked recipient; raw recipients never leave the dev inbox */
+            recipientMasked: string;
+            templateId: string | null;
+            /** @description Only present in mock mode */
+            body: string | null;
+            /** @enum {string} */
+            status: "QUEUED" | "SENT" | "DELIVERED" | "READ" | "FAILED" | "RECEIVED";
+            providerRef: string | null;
+            error: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            sentAt: string | null;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            /** Format: date-time */
+            readAt: string | null;
+            /** Format: date-time */
+            failedAt: string | null;
+            /** @description Raw recipient / sender (dev inbox only) */
+            recipient: string | null;
+            id: string;
+            locale: string;
+        };
+        DevInboundResultDto: {
+            inboundId: string;
+            /** @description Messages the platform sent in reaction to this inbound message */
+            replies: components["schemas"]["DevMessageDto"][];
+        };
+        DevOutboxDto: {
+            items: components["schemas"]["DevMessageDto"][];
+        };
+        DeliveryTickDto: {
+            delivered: number;
+        };
+        DevClearResultDto: {
+            deleted: number;
+        };
+        MarketDto: {
+            /** @example EG */
+            code: string;
+            live: boolean;
+            /** @example market.eg.live */
+            flag: string;
+            /** @description LIVE or the reason it is not (AWAITING_GATE, OFF_GLOBAL, ...) */
+            state: string;
+        };
+        ClientEventBody: {
+            /** @enum {string} */
+            name: "search_started" | "results_viewed" | "slot_viewed" | "booking_started" | "booking_failed" | "review_submitted" | "waitlist_joined" | "vault_opened" | "whatsapp_link_clicked";
+            /** @description Only these keys are accepted: specialtyCode, providerId, market, code. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400. */
+            props?: {
+                [key: string]: string;
+            };
+        };
+        ClientEventsBody: {
+            events: components["schemas"]["ClientEventBody"][];
+        };
+        IngestResultDto: {
+            accepted: number;
+        };
+        MeDto: {
+            /** @description Kiorex Passport subject */
+            sub: string;
+            /** @description kx_roles claim: patient, ops_admin, super_admin */
+            roles: string[];
+            phone?: string;
+            name?: string;
+            locale?: string;
+        };
+        LogoutBody: {
+            logout_token?: string;
+        };
+        LogoutResultDto: {
+            ok: boolean;
+        };
+        SnapshotFlagValuesDto: {
+            /** @enum {string} */
+            global?: "OFF";
+            markets: {
+                [key: string]: string;
+            };
+            orgs: {
+                [key: string]: string;
+            };
+        };
+        SnapshotFlagDto: {
+            scopes: string[];
+            dependsOn: string[];
+            values: components["schemas"]["SnapshotFlagValuesDto"];
+            /** Format: date-time */
+            expiresAt?: string;
+            key: string;
+            class: string;
+            launchLocked: boolean;
+            gateSatisfied: boolean;
+        };
+        FlagSnapshotDto: {
+            /** Format: date-time */
+            generatedAt: string;
+            flags: components["schemas"]["SnapshotFlagDto"][];
+            /** @description base64url HMAC-SHA256 over the sorted-key JSON of the snapshot without this field */
+            signature: string;
+            product: string;
+            version: number;
+        };
+        EffectiveFlagsDto: {
+            /** @example EG */
+            market: string;
+            /** @description Map of Kiorex flag key -> effective state (hide entry points when enabled=false) */
+            flags: {
+                [key: string]: {
+                    enabled: boolean;
+                    reason: string;
+                    scope?: string;
+                };
+            };
+            version: number;
+        };
+        AdminFlagDto: {
+            scopes: string[];
+            dependsOn: string[];
+            whenOff: string | null;
+            gateHint: string | null;
+            effective: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            state: "ON" | "ON_AWAITING_GATE" | "OFF";
+            source: {
+                [key: string]: unknown;
+            } | null;
+            overrides: {
+                [key: string]: unknown;
+            }[];
+            /** @description Launch-gate evidence recorded by a human; null until then */
+            gate: {
+                [key: string]: unknown;
+            } | null;
+            lastChange: {
+                [key: string]: unknown;
+            } | null;
+            key: string;
+            product: string;
+            class: string;
+            moneyPath: boolean;
+            launchLocked: boolean;
+            reason: string;
+        };
+        SetFlagBody: {
+            /** @enum {string} */
+            scope: "GLOBAL" | "MARKET" | "ORG";
+            scopeId?: string;
+            /** @enum {string} */
+            value: "ON" | "OFF";
+            reason: string;
+            ticket: string;
+            expiresAt?: string;
+            startsAt?: string;
+            emergency?: boolean;
+        };
+        SetFlagResultDto: {
+            /** @enum {string} */
+            status: "APPLIED" | "PENDING_APPROVAL";
+            requestId?: string;
+            version?: number;
+        };
+        GateBody: {
+            gateId: string;
+            approver: string;
+            approvedOn: string;
+            documentUrl: string;
+        };
+        VersionDto: {
+            version: number;
+        };
+        ReasonBody: {
+            reason: string;
+        };
+        DefinitionBody: {
+            key: string;
+            /** @enum {string} */
+            product: "kiorly-clinic" | "kiorex" | "kiorex-account" | "kiorly-pharmacy" | "kiorly-lab" | "all";
+            /** @enum {string} */
+            class: "MODULE" | "COMMERCIAL" | "INTEGRATION" | "AI" | "LAUNCH_LOCKED";
+            scopes: Record<string, never>[];
+            dependsOn?: string[];
+            description: string;
+            whenOff?: string;
+            moneyPath?: boolean;
+        };
+        FlagDefinitionDto: {
+            scopes: string[];
+            dependsOn: string[];
+            key: string;
+            product: string;
+            class: string;
+            launchLocked: boolean;
+            moneyPath: boolean;
+            description: string;
+        };
+        FlagChangeRequestDto: {
+            /** @enum {string} */
+            value: "ON" | "OFF";
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED";
+            /** Format: date-time */
+            reviewDueAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            flagKey: string;
+            scope: string;
+            scopeId: string;
+            reason: string;
+            ticket: string;
+            requestedBy: string;
+            emergency: boolean;
+        };
+        RequestDecisionDto: {
+            /** @enum {string} */
+            status: "APPROVED" | "REJECTED" | "REVIEWED";
+            version?: number;
+        };
+        FlagAuditDto: {
+            oldValue: string | null;
+            reason: string | null;
+            ticket: string | null;
+            /** @enum {string} */
+            event: "TOGGLE" | "GATE" | "EXPIRY" | "REQUEST" | "APPROVE" | "REVIEW";
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            flagKey: string;
+            scope: string;
+            scopeId: string;
+            newValue: string;
+            actor: string;
+            emergency: boolean;
+        };
+        PropagationProductDto: {
+            /** Format: date-time */
+            lastFetchedAt: string | null;
+            ageSeconds: number | null;
+            /** @enum {string} */
+            status: "NEVER_FETCHED" | "IN_SYNC" | "STALE" | "PROPAGATING";
+            lastPush: {
+                [key: string]: unknown;
+            };
+            product: string;
+            snapshotVersion: number;
+            versionsBehind: number;
+            webhookConfigured: boolean;
+        };
+        PropagationDto: {
+            products: components["schemas"]["PropagationProductDto"][];
+            currentVersion: number;
+        };
+        ProductBody: {
+            webhookUrl?: string;
+            active?: boolean;
+        };
+        ProductRegistrationDto: {
+            webhookUrl: string | null;
+            product: string;
+            active: boolean;
+        };
+        SweepResultDto: {
+            expired: number;
+            started: number;
+        };
+        PatientProfileDto: {
+            /** Format: date-time */
+            dateOfBirth: string | null;
+            /** @enum {string|null} */
+            gender: "MALE" | "FEMALE" | null;
+            /** @description National ID is never returned; last 4 digits only */
+            nationalIdLast4: string | null;
+            /** @enum {string} */
+            preferredLocale: "ar" | "en";
+            /** @example EG */
+            market: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            sub: string;
+            phone: string | null;
+            email: string | null;
+            nameEn: string | null;
+            nameAr: string | null;
+            hasNationalId: boolean;
+            noShowCount: number;
+        };
+        ProfileBody: {
+            nameEn?: string;
+            nameAr?: string;
+            dateOfBirth?: string;
+            /** @enum {string} */
+            gender?: "MALE" | "FEMALE";
+            nationalId?: string | null;
+            /** @enum {string} */
+            preferredLocale?: "ar" | "en";
+            email?: string;
+            market?: string;
+        };
+        DependantDto: {
+            nameAr: string | null;
+            /** Format: date-time */
+            dateOfBirth: string;
+            gender: string | null;
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+            evidence: string | null;
+            /**
+             * Format: date-time
+             * @description Age of majority: guardian access ends
+             */
+            expiresAt: string | null;
+            /** Format: date-time */
+            deletedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Present on list responses */
+            guardianAccessExpired?: boolean;
+            id: string;
+            guardianSub: string;
+            nameEn: string;
+        };
+        DependantBody: {
+            nameEn: string;
+            nameAr?: string;
+            dateOfBirth: string;
+            /** @enum {string} */
+            gender?: "MALE" | "FEMALE";
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+            evidence?: string;
+        };
+        DependantPatch: {
+            nameEn?: string;
+            nameAr?: string;
+            /** @enum {string} */
+            gender?: "MALE" | "FEMALE";
+            relationship?: string;
+        };
+        OkDto: {
+            ok: boolean;
+        };
+        ConsentStateDto: {
+            /** @enum {string} */
+            purpose: "MARKETPLACE_PROCESSING" | "REMINDERS" | "RECORD_SHARING" | "AI_PROCESSING";
+            version: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+            granted: boolean;
+        };
+        ConsentRecordDto: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            sub: string;
+            purpose: string;
+            granted: boolean;
+            version: string;
+            source: string;
+        };
+        ConsentBody: {
+            granted: boolean;
+        };
+        ConsentSetResultDto: {
+            purpose: string;
+            granted: boolean;
+        };
+        AuthSessionDto: {
+            device: string | null;
+            clientId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            id: string;
+            current: boolean;
+        };
+        KiorlyLinkDto: {
+            dependantId: string | null;
+            /** @enum {string} */
+            evidence: "PHONE" | "NATIONAL_ID" | "PHONE_AND_NATIONAL_ID";
+            /** @enum {string} */
+            status: "LINKED" | "CONFLICT_REVIEW";
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            sub: string;
+            clinicId: string;
+            kiorlyPatientId: string;
+        };
+        DataExportDto: {
+            /** @description DataRequest id */
+            id: string;
+            /** Format: date-time */
+            generatedAt: string;
+            profile: {
+                [key: string]: unknown;
+            } | null;
+            dependants: {
+                [key: string]: unknown;
+            }[];
+            consents: {
+                [key: string]: unknown;
+            }[];
+            kiorlyLinks: {
+                [key: string]: unknown;
+            }[];
+            /** @description Contributed by other modules (bookings, vault, pharmacyOrders, labBookings ...) */
+            bookings?: {
+                [key: string]: unknown;
+            }[];
+        };
+        DeleteBody: {
+            confirm: boolean;
+            includeExport?: boolean;
+        };
+        DeletionResultDto: {
+            code?: string;
+            note?: string;
+            export?: {
+                [key: string]: unknown;
+            };
+            ok: boolean;
+            deleted: boolean;
+        };
+        RatingDto: {
+            average: number;
+            count: number;
+        };
+        SlotDto: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
+        SearchItemDto: {
+            nameEn: string | null;
+            nameAr: string | null;
+            clinicNameEn: string | null;
+            clinicNameAr: string | null;
+            /** @description Launch specialty code */
+            specialty: string | null;
+            governorate: string | null;
+            area: string | null;
+            minFeeMinor: number | null;
+            maxFeeMinor: number | null;
+            rating: components["schemas"]["RatingDto"];
+            languages: string[];
+            gender: string | null;
+            distanceKm: number | null;
+            /** @description false when kiorex.marketplace is OFF: show clinicPhone instead */
+            bookable: boolean;
+            defaultTypeId: string | null;
+            nextSlots: components["schemas"]["SlotDto"][] | null;
+            clinicPhone?: string | null;
+            id: string;
+            currency: string;
+            acceptsDeposit: boolean;
+            verified: boolean;
+            slotsUnavailable: boolean;
+            sponsored: boolean;
+        };
+        SpecialtyDto: {
+            /** @example dermatology */
+            code: string;
+            en: string;
+            ar: string;
+        };
+        EmergencyDto: {
+            /** @example 123 */
+            number: string;
+            service: string;
+            messageEn: string;
+            messageAr: string;
+            bookingBlocked: boolean;
+            categories: string[];
+        };
+        SearchResultDto: {
+            items: components["schemas"]["SearchItemDto"][];
+            sort?: string;
+            specialties: components["schemas"]["SpecialtyDto"][];
+            /** @description Present for emergency language: show 123 guidance, never booking */
+            emergency?: components["schemas"]["EmergencyDto"];
+            /** @description Only present (empty) when no market is live */
+            marketsLive?: string[];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        ProviderFeeDto: {
+            typeId: string;
+            nameEn: string;
+            nameAr: string;
+            amountMinor: number;
+            currency: string;
+        };
+        ProviderProfileDto: {
+            nameEn: string | null;
+            nameAr: string | null;
+            specialty: string | null;
+            subSpecialties: string[];
+            languages: string[];
+            gender: string | null;
+            titleEn: string | null;
+            titleAr: string | null;
+            photoUrl: string | null;
+            fees: components["schemas"]["ProviderFeeDto"][];
+            /** @description Clinic: id, nameEn/Ar, addressEn/Ar, latitude, longitude, phone, amenities... */
+            clinic: {
+                [key: string]: unknown;
+            };
+            rating: components["schemas"]["RatingDto"];
+            cancellationPolicy: {
+                [key: string]: unknown;
+            } | null;
+            id: string;
+            status: string;
+            bookable: boolean;
+            verified: boolean;
+            acceptsDeposit: boolean;
+            shareUrl: string;
+        };
+        ProviderSlotsDto: {
+            slots: components["schemas"]["SlotDto"][];
+            providerId: string;
+            typeId: string;
+        };
+        ViewResultDto: {
+            ok?: boolean;
+        };
+        SponsoredResultDto: {
+            items: components["schemas"]["SearchItemDto"][];
+            sponsored: boolean;
+            label: string;
+        };
+        InboxItemDto: {
+            /** @description Notification kind, e.g. BOOKING_CONFIRMED, REMINDER_24H, WAITLIST_OFFER, FOLLOW_UP_DUE, RECORD_SHARED */
+            kind: string;
+            bookingId: string | null;
+            /** @description Rendered in the patient locale */
+            body: string;
+            /** Format: date-time */
+            readAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+        };
+        NotificationPreferenceDto: {
+            /** @enum {string} */
+            channel: "WHATSAPP" | "PUSH" | "SMS" | "EMAIL";
+            /** @description Local quiet-hours start (0-23) */
+            quietStart: number | null;
+            quietEnd: number | null;
+            sub: string;
+            enabled: boolean;
+        };
+        PrefBody: {
+            enabled?: boolean;
+            quietStart?: number;
+            quietEnd?: number;
+        };
+        PayIntentDto: {
+            bookingId: string | null;
+            /** @enum {string} */
+            status: "CREATED" | "CAPTURED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+            checkoutUrl: string | null;
+            id: string;
+            amountMinor: number;
+            currency: string;
+            refundedMinor: number;
+        };
+        PspWebhookAckDto: {
+            /** @description CAPTURED | ALREADY_CAPTURED | FAILED_RECORDED | DUPLICATE | IGNORED */
+            status: string;
+        };
+        PayLinkBody: {
+            token: string;
+            clinicId: string;
+            amountMinor: number;
+            currency?: string;
+            externalRef?: string;
+        };
+        PayLinkDto: {
+            /** @enum {string} */
+            status: "OPEN" | "PAID" | "EXPIRED";
+            /** Format: date-time */
+            expiresAt: string;
+            token: string;
+            clinicId: string;
+            amountMinor: number;
+            currency: string;
+        };
+        PayLinkCheckoutDto: {
+            checkoutUrl: string | null;
+            paymentId: string;
+            status: string;
+        };
+        CreateBody: {
+            providerId: string;
+            typeId: string;
+            startsAt: string;
+            endsAt?: string;
+            dependantId?: string;
+            /** @enum {string} */
+            channel?: "MARKETPLACE" | "CLINIC_LINK";
+            bookingPageSlug?: string;
+        };
+        BookingDepositDto: {
+            /** @enum {string} */
+            status: "CREATED" | "CAPTURED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+            /** @description Hosted checkout URL while the payment is open */
+            checkoutUrl: string | null;
+            paymentId: string;
+        };
+        BookingDoctorDto: {
+            nameEn: string | null;
+            nameAr: string | null;
+            specialty: string | null;
+        };
+        BookingClinicDto: {
+            nameEn: string;
+            nameAr: string;
+            addressEn: string;
+            addressAr: string;
+            phone: string;
+            latitude: number;
+            longitude: number;
+        };
+        BookingTimelineDto: {
+            status: string | null;
+            /** Format: date-time */
+            at: string;
+        };
+        BookingDto: {
+            /** @description Kiorex booking id; also the Kiorly Idempotency-Key / externalReference */
+            id: string;
+            /** @enum {string} */
+            status: "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            dependantId: string | null;
+            /** @enum {string} */
+            channel: "MARKETPLACE" | "CLINIC_LINK" | "WHATSAPP";
+            /**
+             * Format: date-time
+             * @description Only while HELD (5-minute hold)
+             */
+            holdExpiresAt: string | null;
+            /** Format: date-time */
+            confirmationDueAt: string | null;
+            cancelledBy: string | null;
+            cancellationReason: string | null;
+            failureCode: string | null;
+            /** @enum {string} */
+            callState: "NONE" | "IN_FLIGHT" | "UNCERTAIN";
+            /** @enum {string} */
+            depositStatus: "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED";
+            depositRefundable: boolean | null;
+            deposit: components["schemas"]["BookingDepositDto"] | null;
+            doctor: components["schemas"]["BookingDoctorDto"] | null;
+            clinic: components["schemas"]["BookingClinicDto"] | null;
+            /** @description Kiorly cancellation policy as published on the listing */
+            cancellationPolicy: {
+                [key: string]: unknown;
+            } | null;
+            timeline: components["schemas"]["BookingTimelineDto"][];
+            /** Format: date-time */
+            createdAt: string;
+            providerId: string;
+            clinicId: string;
+            typeId: string;
+            depositAmountMinor: number;
+            currency: string;
+        };
+        ConfirmBody: {
+            marketplaceConsent: boolean;
+            remindersConsent?: boolean;
+            notes?: string;
+        };
+        CancelBody: {
+            reason?: string;
+        };
+        RescheduleBody: {
+            startsAt: string;
+            endsAt?: string;
+        };
+        DepositCheckoutDto: {
+            checkoutUrl: string | null;
+            paymentId: string;
+            amountMinor: number;
+            currency: string;
+        };
+        ReviewBody: {
+            rating: number;
+            text?: string;
+        };
+        ReviewDto: {
+            rating: number;
+            text: string | null;
+            /** @enum {string} */
+            status: "VISIBLE" | "HIDDEN";
+            clinicReply: string | null;
+            /**
+             * Format: date-time
+             * @description Editable for 7 days
+             */
+            editableUntil: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            bookingId: string;
+        };
+        ReviewEdit: {
+            rating?: number;
+            text?: string;
+        };
+        PublicReviewDto: {
+            text: string | null;
+            clinicReply: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            rating: number;
+        };
+        ProviderReviewsDto: {
+            reviews: components["schemas"]["PublicReviewDto"][];
+            average: number;
+            count: number;
+        };
+        ComplaintBody: {
+            category: string;
+            body: string;
+            bookingId?: string;
+        };
+        ComplaintCreatedDto: {
+            bookingId: string | null;
+            /** @enum {string} */
+            status: "OPEN" | "RESOLVED";
+            /**
+             * Format: date-time
+             * @description Support SLA due time
+             */
+            slaDueAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            category: string;
+        };
+        NavBody: {
+            text: string;
+        };
+        AiLabelDto: {
+            badge: string;
+            copyEn: string;
+            copyAr: string;
+        };
+        NavigationResultDto: {
+            /** @enum {string} */
+            source: "AI" | "RULES";
+            /** @description true only when a model produced the suggestion (AI badge) */
+            ai: boolean;
+            specialties: components["schemas"]["SpecialtyDto"][];
+            label?: components["schemas"]["AiLabelDto"];
+            /** @description Why the rules path answered: FLAG_AWAITING_GATE, NO_AI_CONSENT, QUOTA_EXCEEDED, PROVIDER_ERROR... */
+            fallbackReason?: string;
+            emergency?: components["schemas"]["EmergencyDto"];
+        };
+        WebhookAckDto: {
+            /** @description APPLIED | IGNORED | UNKNOWN_BOOKING | DUPLICATE (de-duplicated on eventId); other values are event-specific outcomes */
+            status: string;
+        };
+        OpsProviderDto: {
+            /** @description Mirrored Kiorly listing status (LIVE, PAUSED, ...) */
+            status: string;
+            nameEn: string | null;
+            nameAr: string | null;
+            specialty: string | null;
+            /** Format: date-time */
+            syncedAt?: string;
+            id: string;
+            clinicId: string;
+            clinicianId: string;
+        };
+        OpsProviderListDto: {
+            items: components["schemas"]["OpsProviderDto"][];
+            total: number;
+        };
+        SyncResultDto: {
+            upserted: number;
+            skipped: number;
+            pages: number;
+        };
+        OpsBookingDto: {
+            /** @enum {string} */
+            status: "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            startsAt: string;
+            failureCode: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            id: string;
+            providerId: string;
+            clinicId: string;
+            callState: string;
+            depositStatus: string;
+        };
+        BookingTimelineOpsDto: {
+            booking: {
+                [key: string]: unknown;
+            };
+            /** @description BookingEvent rows: INTENT, HOLD, KIORLY_CALL, WEBHOOK, PAYMENT, STATE, RECONCILE */
+            events: {
+                [key: string]: unknown;
+            }[];
+            payments: {
+                [key: string]: unknown;
+            }[];
+            messages: {
+                [key: string]: unknown;
+            }[];
+            webhooks: {
+                [key: string]: unknown;
+            }[];
+            outbox: {
+                [key: string]: unknown;
+            }[];
+        };
+        OutboxStatsDto: {
+            /** @description Age of the oldest undelivered event in ms */
+            lagMs: number;
+            /** @description true when lag exceeds 2 minutes */
+            lagAlert: boolean;
+            pending: number;
+            failed: number;
+            dead: number;
+        };
+        OutboxEventDto: {
+            /** @enum {string} */
+            status: "PENDING" | "SENT" | "FAILED" | "DEAD";
+            lastError: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            sentAt: string | null;
+            id: string;
+            type: string;
+            aggregateType: string;
+            aggregateId: string;
+            target: string;
+            attempts: number;
+        };
+        OutboxListDto: {
+            stats: components["schemas"]["OutboxStatsDto"];
+            items: components["schemas"]["OutboxEventDto"][];
+        };
+        ReplayResultDto: {
+            status?: string;
+            ok: boolean;
+        };
+        PaymentsDashboardDto: {
+            intents: {
+                [key: string]: unknown;
+            }[];
+            refunds: {
+                [key: string]: unknown;
+            }[];
+            payouts: {
+                [key: string]: unknown;
+            }[];
+            reconciliationRuns: {
+                [key: string]: unknown;
+            }[];
+            /** @description Ledger balances per account (PSP_CLEARING, HELD:*, PAYABLE:*, REFUND_PAYABLE, PSP_FEES, MARKETPLACE_FEES) */
+            balances: {
+                [key: string]: unknown;
+            }[];
+        };
+        RefundBody: {
+            paymentId: string;
+            reason: string;
+            amountMinor?: number;
+        };
+        RefundDto: {
+            /** @enum {string} */
+            status: "REQUESTED" | "SETTLED" | "FAILED";
+            id: string;
+            paymentId: string;
+            amountMinor: number;
+            reason: string;
+        };
+        FeeStatementLineDto: {
+            /** @description Ledger partner account owner, e.g. ph:<pharmacyId> or lab:<labId> */
+            partner: string;
+            orders: number;
+            feeMinor: number;
+            vatBps: number;
+            vatMinor: number;
+            totalMinor: number;
+        };
+        FeeStatementTotalsDto: {
+            feeMinor: number;
+            vatMinor: number;
+            totalMinor: number;
+        };
+        FeeStatementDto: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            /** @description VAT is a config line on Kiorex's own statements (FEE_STATEMENT_VAT_BPS, NEEDS_HUMAN). Never reported to any authority. */
+            vatBps: number;
+            lines: components["schemas"]["FeeStatementLineDto"][];
+            totals: components["schemas"]["FeeStatementTotalsDto"];
+            currency: string;
+            vatNote: string;
+        };
+        PayoutRunDto: {
+            payouts: {
+                [key: string]: unknown;
+            }[];
+            period: string;
+        };
+        ReconciliationRunDto: {
+            /** @enum {string} */
+            kind: "PSP_DAILY" | "BOOKING_NIGHTLY";
+            /** @enum {string} */
+            status: "OK" | "DISCREPANCIES";
+            discrepancies: {
+                [key: string]: unknown;
+            }[];
+            stats: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+        };
+        SettlementLine: {
+            psp: string;
+            pspRef: string;
+            /** @enum {string} */
+            kind: "CAPTURE" | "REFUND";
+            amountMinor: number;
+            feeMinor?: number;
+            date: string;
+        };
+        ImportBody: {
+            lines: components["schemas"]["SettlementLine"][];
+        };
+        ImportResultDto: {
+            imported: number;
+        };
+        ModerationCaseDto: {
+            /** @enum {string} */
+            status: "OPEN" | "RESOLVED";
+            resolution: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            reviewId: string;
+            reason: string;
+        };
+        ResolveBody: {
+            /** @enum {string} */
+            resolution: "RESTORED" | "KEPT_HIDDEN";
+        };
+        OpsOkDto: {
+            status?: string;
+            ok: boolean;
+        };
+        ComplaintDto: {
+            bookingId: string | null;
+            /** Format: date-time */
+            slaDueAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            sub: string;
+            category: string;
+            status: string;
+        };
+        LiquidityDto: {
+            bookingsByStatus: {
+                [key: string]: unknown;
+            }[];
+            searchToBook: number | null;
+            windowDays: number;
+            listedDoctors: number;
+            liveDoctors: number;
+            searches: number;
+            confirmedBookings: number;
+            attended: number;
+            noShow: number;
+        };
+        CircuitDto: {
+            /** Format: date-time */
+            openUntil: string | null;
+            clinicId: string;
+            fails: number;
+            open: boolean;
+        };
+        OpsMessageDto: {
+            bookingId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            sub: string;
+            channel: string;
+            templateId: string;
+            status: string;
+        };
+        MessagingCountDto: {
+            channel: string;
+            direction: string;
+            status: string;
+            count: number;
+        };
+        MessagingStatsDto: {
+            /** @enum {string} */
+            mode: "mock" | "real";
+            channels: string[];
+            counts: components["schemas"]["MessagingCountDto"][];
+        };
+        MessageLogItemDto: {
+            messageId: string | null;
+            /** @enum {string} */
+            channel: "EMAIL" | "WHATSAPP" | "SMS" | "PUSH";
+            /** @enum {string} */
+            direction: "OUT" | "IN";
+            /** @enum {string} */
+            mode: "mock" | "real";
+            sub: string | null;
+            /** @description Masked recipient; raw recipients never leave the dev inbox */
+            recipientMasked: string;
+            templateId: string | null;
+            /** @description Only present in mock mode */
+            body: string | null;
+            /** @enum {string} */
+            status: "QUEUED" | "SENT" | "DELIVERED" | "READ" | "FAILED" | "RECEIVED";
+            providerRef: string | null;
+            error: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            sentAt: string | null;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            /** Format: date-time */
+            readAt: string | null;
+            /** Format: date-time */
+            failedAt: string | null;
+            id: string;
+            locale: string;
+        };
+        MessageLogDto: {
+            /** @enum {string} */
+            mode: "mock" | "real";
+            items: components["schemas"]["MessageLogItemDto"][];
+        };
+        SimulateBody: {
+            /** @enum {string} */
+            state: "DELIVERED" | "READ" | "FAILED";
+        };
+        AuditLogDto: {
+            resourceId: string | null;
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            actor: string;
+            action: string;
+            resource: string;
+        };
+        VaultItemDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "VISIT_SUMMARY" | "PRESCRIPTION" | "LAB_RESULT" | "UPLOAD";
+            title: string | null;
+            /**
+             * @description Where the record came from
+             * @enum {string}
+             */
+            source: "CLINIC" | "LAB" | "PATIENT";
+            clinicId: string | null;
+            dependantId: string | null;
+            /** Format: date-time */
+            signedAt: string | null;
+            hasFile: boolean;
+            fileName: string | null;
+            mimeType: string | null;
+            sizeBytes: number | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        VaultListDto: {
+            items: components["schemas"]["VaultItemDto"][];
+            /** @description true when kiorex.record_vault is OFF: existing records stay readable/deletable, no uploads or new shares */
+            readOnly: boolean;
+        };
+        UploadBody: {
+            fileName: string;
+            mimeType: string;
+            contentBase64: string;
+            title?: string;
+        };
+        RxVerificationDto: {
+            /** @description Opaque signed token */
+            token: string;
+            /** @description Encode this string as the QR code */
+            qrPayload: string;
+            verifyUrl: string;
+        };
+        VaultDetailDto: {
+            id: string;
+            /** @enum {string} */
+            kind: "VISIT_SUMMARY" | "PRESCRIPTION" | "LAB_RESULT" | "UPLOAD";
+            title: string | null;
+            /**
+             * @description Where the record came from
+             * @enum {string}
+             */
+            source: "CLINIC" | "LAB" | "PATIENT";
+            clinicId: string | null;
+            dependantId: string | null;
+            /** Format: date-time */
+            signedAt: string | null;
+            hasFile: boolean;
+            fileName: string | null;
+            mimeType: string | null;
+            sizeBytes: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description VISIT_SUMMARY: SOAP note as shared by the clinic (clinical content) */
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description PRESCRIPTION: items are null until Kiorly shares line items (see Docs/NEEDS_HUMAN.md) */
+            prescription?: {
+                [key: string]: unknown;
+            };
+            verification?: components["schemas"]["RxVerificationDto"];
+            /** @description LAB_RESULT: signed report secure link (no raw values) */
+            report?: {
+                [key: string]: unknown;
+            };
+        };
+        RecordShareScopeDto: {
+            /** @enum {string} */
+            scope: "VISIT_SUMMARY" | "PRESCRIPTIONS" | "LAB_RESULTS" | "SHARE_WITH_OTHER_CLINICS";
+            granted: boolean;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        RecordSharingDto: {
+            scopes: components["schemas"]["RecordShareScopeDto"][];
+            /** @description false when clinic.record_share_patient_app is OFF: no NEW sharing can be granted; revoking always works */
+            canGrant: boolean;
+        };
+        ShareBody: {
+            granted: boolean;
+        };
+        RxVerifyResultDto: {
+            valid: boolean;
+            /** @enum {string} */
+            status: "ACTIVE" | "REVOKED" | "UNKNOWN";
+            clinicId?: string;
+            /** Format: date-time */
+            signedAt?: string;
+        };
+        FollowUpDto: {
+            id: string;
+            recordId: string | null;
+            clinicId: string | null;
+            /** Format: date-time */
+            dueAt: string;
+            /** @enum {string} */
+            source: "DOCTOR" | "PATIENT";
+            /** @enum {string} */
+            status: "SCHEDULED" | "DUE" | "CANCELLED";
+        };
+        FollowUpCreateBody: {
+            afterDays: number;
+            recordId?: string;
+        };
+        JoinWaitlistBody: {
+            providerId: string;
+            typeId: string;
+            preferredFrom?: string;
+            preferredTo?: string;
+            dependantId?: string;
+        };
+        WaitlistOfferDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "OFFERED" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+            /**
+             * Format: date-time
+             * @description Accept before this time; afterwards the slot is offered onward
+             */
+            expiresAt: string;
+            /** @description Held booking created on accept; confirm it with POST /bookings/{id}/confirm */
+            bookingId: string | null;
+        };
+        WaitlistEntryDto: {
+            id: string;
+            providerId: string;
+            typeId: string;
+            /** Format: date-time */
+            preferredFrom: string | null;
+            /** Format: date-time */
+            preferredTo: string | null;
+            /** @enum {string} */
+            status: "WAITING" | "OFFERED" | "BOOKED" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            expiresAt: string;
+            offers: components["schemas"]["WaitlistOfferDto"][];
+        };
+        WaitlistScanResultDto: {
+            offersCreated: number;
+            offersExpired: number;
+        };
+        WhatsappInboundBody: {
+            /** @description Sender E.164 phone, e.g. +201000000001 */
+            from: string;
+            text?: string;
+            buttonPayload?: string;
+            providerMessageId?: string;
+        };
+        WhatsappInboundResultDto: {
+            inboundId: string;
+        };
+        ConversationDto: {
+            phone: string;
+            /** @enum {string} */
+            state: "IDLE" | "CHOOSE_SPECIALTY" | "CHOOSE_DOCTOR" | "CHOOSE_SLOT" | "OFFER_WAITLIST" | "CONFIRM";
+            locale: string;
+        };
+        PharmacyDto: {
+            id: string;
+            name: string;
+            pickup: boolean;
+            deliveryEnabled: boolean;
+            deliveryFeeMinor: number;
+            prepMinutes?: number;
+        };
+        CatalogueItemDto: {
+            pharmacyId: string;
+            sku: string;
+            name: string;
+            strength?: string;
+            form?: string;
+            priceMinor: number;
+            /** @description Rx-only: ordering needs a prescription from your vault */
+            rxRequired: boolean;
+            available: boolean;
+        };
+        CatalogueResultDto: {
+            items: components["schemas"]["CatalogueItemDto"][];
+        };
+        CartLineDto: {
+            sku: string;
+            name: string;
+            qty: number;
+            unitPriceMinor: number;
+            rxRequired: boolean;
+            available: boolean;
+        };
+        CartDto: {
+            pharmacyId: string | null;
+            items: components["schemas"]["CartLineDto"][];
+            /** @enum {string|null} */
+            deliveryMethod: "PICKUP" | "DELIVERY" | null;
+            prescriptionRecordId: string | null;
+            subtotalMinor: number;
+            deliveryFeeMinor: number;
+            totalMinor: number;
+            currency: string;
+            rxRequired: boolean;
+        };
+        CartItemBody: {
+            sku: string;
+            qty: number;
+        };
+        CartBody: {
+            pharmacyId: string;
+            items: components["schemas"]["CartItemBody"][];
+            prescriptionRecordId?: string;
+        };
+        AddressBody: {
+            line1: string;
+            area?: string;
+            governorate?: string;
+            notes?: string;
+            phone?: string;
+        };
+        DeliveryBody: {
+            /** @enum {string} */
+            method: "PICKUP" | "DELIVERY";
+            address?: components["schemas"]["AddressBody"];
+        };
+        CreateOrderBody: {
+            prescriptionRecordId?: string;
+        };
+        OrderPaymentDto: {
+            paymentId: string;
+            status: string;
+            checkoutUrl: string | null;
+        };
+        PharmacyOrderDto: {
+            id: string;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "READY" | "DISPENSED" | "PARTIAL_REVIEW" | "REJECTED" | "CANCELLED";
+            pharmacyId: string;
+            items: components["schemas"]["CartLineDto"][];
+            subtotalMinor: number;
+            deliveryFeeMinor: number;
+            totalMinor: number;
+            currency: string;
+            /** @enum {string} */
+            deliveryMethod: "PICKUP" | "DELIVERY";
+            /** @enum {string} */
+            rxStatus: "NOT_REQUIRED" | "PENDING" | "VALID" | "INVALID";
+            rejectionReason: string | null;
+            /** Format: date-time */
+            readyAt: string | null;
+            /** Format: date-time */
+            dispensedAt: string | null;
+            payment: components["schemas"]["OrderPaymentDto"] | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        LabTestDto: {
+            labId: string;
+            labName: string;
+            code: string;
+            name: string;
+            priceMinor: number;
+            sampleType?: string;
+            homeCollection: boolean;
+            preparation?: string;
+        };
+        LabTestsResultDto: {
+            items: components["schemas"]["LabTestDto"][];
+        };
+        LabSlotDto: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
+        LabSlotsResultDto: {
+            labId: string;
+            /** @enum {string} */
+            collectionType: "HOME" | "WALK_IN";
+            slots: components["schemas"]["LabSlotDto"][];
+        };
+        LabSlotBody: {
+            startsAt: string;
+            endsAt: string;
+        };
+        LabAddressBody: {
+            line1: string;
+            area?: string;
+            governorate?: string;
+            notes?: string;
+            phone?: string;
+        };
+        LabBookBody: {
+            labId: string;
+            testCodes: string[];
+            /** @enum {string} */
+            collectionType: "HOME" | "WALK_IN";
+            slot: components["schemas"]["LabSlotBody"];
+            address?: components["schemas"]["LabAddressBody"];
+        };
+        LabBookingTestDto: {
+            code: string;
+            name: string;
+            priceMinor: number;
+        };
+        LabBookingPaymentDto: {
+            paymentId: string;
+            status: string;
+            checkoutUrl: string | null;
+        };
+        LabBookingDto: {
+            id: string;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "RESULT_RELEASED" | "REJECTED" | "CANCELLED";
+            labId: string;
+            tests: components["schemas"]["LabBookingTestDto"][];
+            /** @enum {string} */
+            collectionType: "HOME" | "WALK_IN";
+            /** Format: date-time */
+            slotStartsAt: string;
+            /** Format: date-time */
+            slotEndsAt: string;
+            subtotalMinor: number;
+            collectionFeeMinor: number;
+            totalMinor: number;
+            currency: string;
+            /** @description Vault record id of the released report (GET /me/vault/{id}) */
+            resultRecordId: string | null;
+            rejectionReason: string | null;
+            payment: components["schemas"]["LabBookingPaymentDto"] | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TeleProviderDto: {
+            id: string;
+            nameEn: string | null;
+            nameAr: string | null;
+            specialty: string | null;
+            defaultTypeId: string | null;
+            nextSlots: {
+                startsAt?: string;
+                endsAt?: string;
+            }[] | null;
+        };
+        TeleProvidersResultDto: {
+            items: components["schemas"]["TeleProviderDto"][];
+        };
+        CreateSessionBody: {
+            /** @description Your CONFIRMED booking id (kx_bk_...) with a video-capable doctor */
+            bookingId: string;
+        };
+        TeleSessionDto: {
+            id: string;
+            bookingId: string;
+            providerId: string;
+            /** @enum {string} */
+            status: "SCHEDULED" | "WAITING" | "IN_PROGRESS" | "ENDED" | "CANCELLED";
+            /** Format: date-time */
+            scheduledStartsAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            endedAt: string | null;
+            durationSec: number | null;
+            /** @description Per-consult fee placeholder (NEEDS_HUMAN, 0 while unset) */
+            consultFeeMinor: number;
+            /**
+             * Format: date-time
+             * @description Join window opens (15 min before the visit)
+             */
+            joinOpensAt: string;
+        };
+        VideoTokenDto: {
+            token: string;
+            room: string;
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @enum {string} */
+            role: "patient" | "clinician";
+            /** @description mock | the real provider name */
+            provider: string;
+        };
+        JoinResultDto: {
+            session: components["schemas"]["TeleSessionDto"];
+            video: components["schemas"]["VideoTokenDto"];
+        };
+        LiveDto: {
+            /** @example ok */
+            status: string;
+        };
+        ReadyDto: {
+            /** @example ready */
+            status: string;
+            /** @example up */
+            db: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1537,6 +3796,137 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    DevMessagingController_inbound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevInboundBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevInboundResultDto"];
+                };
+            };
+        };
+    };
+    DevMessagingController_outbox: {
+        parameters: {
+            query: {
+                channel: string;
+                to: string;
+                direction: string;
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevOutboxDto"];
+                };
+            };
+        };
+    };
+    DevMessagingController_clear: {
+        parameters: {
+            query: {
+                channel: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevClearResultDto"];
+                };
+            };
+        };
+    };
+    DevMessagingController_tick: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryTickDto"];
+                };
+            };
+        };
+    };
+    MarketController_list: {
+        parameters: {
+            query: {
+                all: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketDto"][];
+                };
+            };
+        };
+    };
+    AnalyticsController_ingest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientEventsBody"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestResultDto"];
+                };
+            };
+        };
+    };
     AuthController_me: {
         parameters: {
             query?: never;
@@ -1546,12 +3936,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Claims of the authenticated Kiorex Account subject */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
             };
         };
     };
@@ -1572,7 +3963,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LogoutResultDto"];
+                };
             };
         };
     };
@@ -1594,7 +3987,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FlagSnapshotDto"];
+                };
             };
         };
     };
@@ -1611,7 +4006,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EffectiveFlagsDto"];
+                };
             };
         };
     };
@@ -1631,7 +4028,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminFlagDto"][];
+                };
             };
         };
     };
@@ -1654,7 +4053,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SetFlagResultDto"];
+                };
             };
         };
     };
@@ -1677,7 +4078,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VersionDto"];
+                };
             };
         };
     };
@@ -1700,7 +4103,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VersionDto"];
+                };
             };
         };
     };
@@ -1717,11 +4122,13 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FlagDefinitionDto"];
+                };
             };
         };
     };
@@ -1740,7 +4147,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FlagChangeRequestDto"][];
+                };
             };
         };
     };
@@ -1759,7 +4168,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RequestDecisionDto"];
+                };
             };
         };
     };
@@ -1778,7 +4189,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RequestDecisionDto"];
+                };
             };
         };
     };
@@ -1797,7 +4210,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RequestDecisionDto"];
+                };
             };
         };
     };
@@ -1814,7 +4229,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FlagChangeRequestDto"][];
+                };
             };
         };
     };
@@ -1836,7 +4253,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FlagAuditDto"][];
+                };
             };
         };
     };
@@ -1853,7 +4272,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PropagationDto"];
+                };
             };
         };
     };
@@ -1876,7 +4297,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProductRegistrationDto"];
+                };
             };
         };
     };
@@ -1893,7 +4316,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SweepResultDto"];
+                };
             };
         };
     };
@@ -1910,7 +4335,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PatientProfileDto"];
+                };
             };
         };
     };
@@ -1931,7 +4358,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PatientProfileDto"];
+                };
             };
         };
     };
@@ -1948,7 +4377,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DependantDto"][];
+                };
             };
         };
     };
@@ -1969,7 +4400,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DependantDto"];
+                };
             };
         };
     };
@@ -1988,7 +4421,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2011,7 +4446,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DependantDto"];
+                };
             };
         };
     };
@@ -2028,7 +4465,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConsentStateDto"][];
+                };
             };
         };
     };
@@ -2045,7 +4484,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConsentRecordDto"][];
+                };
             };
         };
     };
@@ -2068,7 +4509,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConsentSetResultDto"];
+                };
             };
         };
     };
@@ -2085,7 +4528,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuthSessionDto"][];
+                };
             };
         };
     };
@@ -2104,7 +4549,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2121,7 +4568,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["KiorlyLinkDto"][];
+                };
             };
         };
     };
@@ -2138,7 +4587,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DataExportDto"];
+                };
             };
         };
     };
@@ -2159,7 +4610,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeletionResultDto"];
+                };
             };
         };
     };
@@ -2194,7 +4647,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SearchResultDto"];
+                };
             };
         };
     };
@@ -2211,7 +4666,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SpecialtyDto"][];
+                };
             };
         };
     };
@@ -2230,7 +4687,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProviderProfileDto"];
+                };
             };
         };
     };
@@ -2253,7 +4712,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProviderSlotsDto"];
+                };
             };
         };
     };
@@ -2272,7 +4733,28 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ViewResultDto"];
+                };
+            };
+        };
+    };
+    CatalogController_sponsored: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsoredResultDto"];
+                };
             };
         };
     };
@@ -2289,7 +4771,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InboxItemDto"][];
+                };
             };
         };
     };
@@ -2308,7 +4792,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2325,7 +4811,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferenceDto"][];
+                };
             };
         };
     };
@@ -2348,7 +4836,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferenceDto"];
+                };
             };
         };
     };
@@ -2367,7 +4857,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PayIntentDto"];
+                };
             };
         };
     };
@@ -2386,7 +4878,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PspWebhookAckDto"];
+                };
             };
         };
     };
@@ -2407,7 +4901,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PayLinkDto"];
+                };
             };
         };
     };
@@ -2426,7 +4922,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PayLinkDto"];
+                };
             };
         };
     };
@@ -2445,7 +4943,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PayLinkCheckoutDto"];
+                };
             };
         };
     };
@@ -2460,11 +4960,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Sandbox hosted checkout page (HTML) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": string;
+                };
             };
         };
     };
@@ -2483,7 +4986,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PspWebhookAckDto"];
+                };
             };
         };
     };
@@ -2502,7 +5007,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"][];
+                };
             };
         };
     };
@@ -2523,7 +5030,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2546,7 +5055,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2565,7 +5076,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2588,7 +5101,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2611,7 +5126,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2630,7 +5147,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DepositCheckoutDto"];
+                };
             };
         };
     };
@@ -2649,7 +5168,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -2664,11 +5185,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description iCalendar (text/calendar) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": string;
+                };
             };
         };
     };
@@ -2691,7 +5215,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReviewDto"];
+                };
             };
         };
     };
@@ -2714,7 +5240,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReviewDto"];
+                };
             };
         };
     };
@@ -2731,7 +5259,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReviewDto"][];
+                };
             };
         };
     };
@@ -2750,7 +5280,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProviderReviewsDto"];
+                };
             };
         };
     };
@@ -2771,7 +5303,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ComplaintCreatedDto"];
+                };
             };
         };
     };
@@ -2792,7 +5326,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NavigationResultDto"];
+                };
             };
         };
     };
@@ -2813,7 +5349,55 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WebhookAckDto"];
+                };
+            };
+        };
+    };
+    WebhooksController_pharmacy: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorly-signature": string;
+                "x-kiorly-timestamp": string;
+                "x-kiorly-event-id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAckDto"];
+                };
+            };
+        };
+    };
+    WebhooksController_lab: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorly-signature": string;
+                "x-kiorly-timestamp": string;
+                "x-kiorly-event-id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAckDto"];
+                };
             };
         };
     };
@@ -2834,7 +5418,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OpsProviderListDto"];
+                };
             };
         };
     };
@@ -2853,7 +5439,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SyncResultDto"];
+                };
             };
         };
     };
@@ -2874,7 +5462,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OpsBookingDto"][];
+                };
             };
         };
     };
@@ -2893,7 +5483,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingTimelineOpsDto"];
+                };
             };
         };
     };
@@ -2913,7 +5505,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OutboxListDto"];
+                };
             };
         };
     };
@@ -2932,7 +5526,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReplayResultDto"];
+                };
             };
         };
     };
@@ -2949,7 +5545,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PaymentsDashboardDto"];
+                };
             };
         };
     };
@@ -2970,7 +5568,31 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RefundDto"];
+                };
+            };
+        };
+    };
+    OpsController_feeStatements: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStatementDto"];
+                };
             };
         };
     };
@@ -2987,7 +5609,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PayoutRunDto"];
+                };
             };
         };
     };
@@ -3006,7 +5630,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunDto"];
+                };
             };
         };
     };
@@ -3027,7 +5653,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportResultDto"];
+                };
             };
         };
     };
@@ -3040,11 +5668,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Nightly booking reconciliation counters */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
         };
     };
@@ -3061,7 +5694,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunDto"][];
+                };
             };
         };
     };
@@ -3080,7 +5715,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ModerationCaseDto"][];
+                };
             };
         };
     };
@@ -3103,7 +5740,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OpsOkDto"];
+                };
             };
         };
     };
@@ -3122,7 +5761,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ComplaintDto"][];
+                };
             };
         };
     };
@@ -3141,7 +5782,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OpsOkDto"];
+                };
             };
         };
     };
@@ -3160,7 +5803,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LiquidityDto"];
+                };
             };
         };
     };
@@ -3177,7 +5822,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CircuitDto"][];
+                };
             };
         };
     };
@@ -3194,7 +5841,96 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OpsMessageDto"][];
+                };
+            };
+        };
+    };
+    OpsController_messagingStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingStatsDto"];
+                };
+            };
+        };
+    };
+    OpsController_messagingLog: {
+        parameters: {
+            query: {
+                channel: string;
+                status: string;
+                direction: string;
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageLogDto"];
+                };
+            };
+        };
+    };
+    OpsController_messagingSimulate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageLogItemDto"];
+                };
+            };
+        };
+    };
+    OpsController_messagingTick: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryTickDto"];
+                };
             };
         };
     };
@@ -3211,11 +5947,121 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuditLogDto"][];
+                };
             };
         };
     };
-    Phase2Controller_pharmacy: {
+    VaultController_list: {
+        parameters: {
+            query: {
+                kind: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultListDto"];
+                };
+            };
+        };
+    };
+    VaultController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultItemDto"];
+                };
+            };
+        };
+    };
+    VaultController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultDetailDto"];
+                };
+            };
+        };
+    };
+    VaultController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    VaultController_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The uploaded file (application/pdf, image/jpeg, image/png) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    VaultController_sharing: {
         parameters: {
             query?: never;
             header?: never;
@@ -3228,11 +6074,38 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RecordSharingDto"];
+                };
             };
         };
     };
-    Phase2Controller_lab: {
+    VaultController_setSharing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSharingDto"];
+                };
+            };
+        };
+    };
+    VaultController_prescriptions: {
         parameters: {
             query?: never;
             header?: never;
@@ -3245,11 +6118,34 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VaultItemDto"][];
+                };
             };
         };
     };
-    Phase2Controller_tele: {
+    VaultController_verify: {
+        parameters: {
+            query: {
+                t: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RxVerifyResultDto"];
+                };
+            };
+        };
+    };
+    VaultController_followUps: {
         parameters: {
             query?: never;
             header?: never;
@@ -3262,11 +6158,57 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FollowUpDto"][];
+                };
             };
         };
     };
-    Phase2Controller_vaultUpload: {
+    VaultController_createFollowUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowUpCreateBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowUpDto"];
+                };
+            };
+        };
+    };
+    VaultController_cancelFollowUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    WaitlistController_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3279,11 +6221,99 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntryDto"][];
+                };
             };
         };
     };
-    Phase2Controller_vault: {
+    WaitlistController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinWaitlistBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntryDto"];
+                };
+            };
+        };
+    };
+    WaitlistController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    WaitlistController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
+            };
+        };
+    };
+    WaitlistController_decline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    WaitlistController_scan: {
         parameters: {
             query?: never;
             header?: never;
@@ -3296,11 +6326,59 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WaitlistScanResultDto"];
+                };
             };
         };
     };
-    Phase2Controller_whatsapp: {
+    ChannelsController_inbound: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorex-signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsappInboundBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsappInboundResultDto"];
+                };
+            };
+        };
+    };
+    ChannelsController_conversation: {
+        parameters: {
+            query: {
+                phone: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_pharmacies: {
         parameters: {
             query?: never;
             header?: never;
@@ -3313,11 +6391,35 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PharmacyDto"][];
+                };
             };
         };
     };
-    Phase2Controller_sponsored: {
+    PharmacyController_search: {
+        parameters: {
+            query: {
+                q: string;
+                pharmacyId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueResultDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_cart: {
         parameters: {
             query?: never;
             header?: never;
@@ -3330,7 +6432,555 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CartDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_putCart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_clear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_delivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CartDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacyOrderDto"][];
+                };
+            };
+        };
+    };
+    PharmacyController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacyOrderDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacyOrderDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacyOrderDto"];
+                };
+            };
+        };
+    };
+    PharmacyController_opsList: {
+        parameters: {
+            query: {
+                status: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": (components["schemas"]["PharmacyOrderDto"] & {
+                        sub?: string;
+                        platformFeeMinor?: number;
+                        takeRateBps?: number;
+                    })[];
+                };
+            };
+        };
+    };
+    PharmacyController_resubmit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description SUBMITTED | REJECTED | ... */
+                        status?: string;
+                    };
+                };
+            };
+        };
+    };
+    LabController_tests: {
+        parameters: {
+            query: {
+                q: string;
+                labId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabTestsResultDto"];
+                };
+            };
+        };
+    };
+    LabController_slots: {
+        parameters: {
+            query: {
+                labId: string;
+                from: string;
+                to: string;
+                tests: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabSlotsResultDto"];
+                };
+            };
+        };
+    };
+    LabController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBookingDto"][];
+                };
+            };
+        };
+    };
+    LabController_book: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabBookBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBookingDto"];
+                };
+            };
+        };
+    };
+    LabController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBookingDto"];
+                };
+            };
+        };
+    };
+    LabController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabBookingDto"];
+                };
+            };
+        };
+    };
+    LabController_opsList: {
+        parameters: {
+            query: {
+                status: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": (components["schemas"]["LabBookingDto"] & {
+                        sub?: string;
+                        platformFeeMinor?: number;
+                        takeRateBps?: number;
+                    })[];
+                };
+            };
+        };
+    };
+    LabController_resubmit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description SUBMITTED | REJECTED | ... */
+                        status?: string;
+                    };
+                };
+            };
+        };
+    };
+    TelemedicineController_providers: {
+        parameters: {
+            query: {
+                specialty: string;
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleProvidersResultDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleSessionDto"][];
+                };
+            };
+        };
+    };
+    TelemedicineController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSessionBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleSessionDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleSessionDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinResultDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleSessionDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_clinicianToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinResultDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_clinicianEnd: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleSessionDto"];
+                };
             };
         };
     };
@@ -3347,7 +6997,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LiveDto"];
+                };
             };
         };
     };
@@ -3364,7 +7016,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReadyDto"];
+                };
             };
         };
     };

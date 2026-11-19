@@ -1,12 +1,13 @@
+import type { components } from "./schema";
 import type { FinanceView, LiquidityView, ModerationRow, OutboxView, ProviderRow, TimelineEntry } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Any = Record<string, any>;
 const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : "");
 
-export const mapProviders = (r: Any): { items: ProviderRow[]; total: number } => ({
-  total: r.total ?? 0,
-  items: ((r.items ?? []) as Any[]).map((p) => ({ id: p.id, nameEn: p.nameEn ?? "", nameAr: p.nameAr ?? p.nameEn ?? "", clinicName: p.clinicId, specialty: p.specialty ?? null, status: p.status, listingStatus: p.status, area: p.governorate ?? null, updatedAt: iso(p.syncedAt) })),
+export const mapProviders = (r: components["schemas"]["OpsProviderListDto"]): { items: ProviderRow[]; total: number } => ({
+  total: r.total,
+  items: r.items.map((p) => ({ id: p.id, nameEn: p.nameEn ?? "", nameAr: p.nameAr ?? p.nameEn ?? "", clinicName: p.clinicId, specialty: p.specialty ?? null, status: p.status, listingStatus: p.status, area: null, updatedAt: iso(p.syncedAt) })),
 });
 
 export function mapTimeline(r: Any): { bookingId: string; status: string; entries: TimelineEntry[] } {
@@ -18,9 +19,9 @@ export function mapTimeline(r: Any): { bookingId: string; status: string; entrie
   return { bookingId: r.booking?.id ?? "", status: r.booking?.status ?? "", entries };
 }
 
-export const mapOutbox = (r: Any): OutboxView => ({
-  lagSeconds: Math.round((r.stats?.lagMs ?? 0) / 1000), pending: r.stats?.pending ?? 0, deadLetters: r.stats?.dead ?? 0,
-  items: ((r.items ?? []) as Any[]).map((o) => ({ id: o.id, type: o.type, aggregateId: o.aggregateId, status: o.status, attempts: o.attempts ?? 0, lastError: o.lastError ?? null, createdAt: iso(o.createdAt) })),
+export const mapOutbox = (r: components["schemas"]["OutboxListDto"]): OutboxView => ({
+  lagSeconds: Math.round(r.stats.lagMs / 1000), pending: r.stats.pending, deadLetters: r.stats.dead,
+  items: r.items.map((o) => ({ id: o.id, type: o.type, aggregateId: o.aggregateId, status: o.status, attempts: o.attempts, lastError: o.lastError, createdAt: iso(o.createdAt) })),
 });
 
 export function mapFinance(r: Any): FinanceView {
@@ -38,7 +39,7 @@ export function mapFinance(r: Any): FinanceView {
   };
 }
 
-export const mapModeration = (rows: Any[]): ModerationRow[] => (rows ?? []).map((m) => ({ id: m.id, kind: "REVIEW", excerpt: m.review?.text ?? m.reason ?? "", flags: String(m.reason ?? "").split(",").filter(Boolean), slaDueAt: m.createdAt ? new Date(new Date(m.createdAt).getTime() + 48 * 3_600_000).toISOString() : null, status: m.status }));
+export const mapModeration = (rows: components["schemas"]["ModerationCaseDto"][]): ModerationRow[] => rows.map((m) => ({ id: m.id, kind: "REVIEW", excerpt: m.reason, flags: m.reason.split(",").filter(Boolean), slaDueAt: new Date(new Date(m.createdAt).getTime() + 48 * 3_600_000).toISOString(), status: m.status }));
 
 export const mapLiquidity = (r: Any): LiquidityView => ({
   windowDays: r.windowDays ?? 30, listedDoctors: r.listedDoctors ?? 0, liveDoctors: r.liveDoctors ?? 0, searches: r.searches ?? 0, confirmedBookings: r.confirmedBookings ?? 0,

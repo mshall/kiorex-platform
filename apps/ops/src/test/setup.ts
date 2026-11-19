@@ -9,8 +9,8 @@ if (!window.matchMedia) {
 }
 
 import { afterAll, beforeAll } from "vitest";
-import { server } from "@/mocks/server";
-import { resetOpsMock } from "@/mocks/handlers";
+import { server } from "@/test/mocks/server";
+import { resetOpsMock } from "@/test/mocks/handlers";
 import "@/i18n";
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

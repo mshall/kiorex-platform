@@ -12,6 +12,10 @@ import { ApiError } from "@/api/errors";
 import { BookingTimelinePage, FinancePage, LiquidityPage, ModerationPage, OutboxPage, ProvidersPage } from "@/pages/SimplePages";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
 
+const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
+const FeesPage = lazy(() => import("@/pages/FeesPage"));
+const OrdersPage = lazy(() => import("@/pages/OrdersPage"));
+const OperationsPage = lazy(() => import("@/pages/OperationsPage"));
 const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
@@ -30,6 +34,10 @@ export function AppRoutes() {
           <Route path="finance" element={<FinancePage />} />
           <Route path="moderation" element={<ModerationPage />} />
           <Route path="liquidity" element={<LiquidityPage />} />
+          <Route path="messaging" element={<MessagingPage />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="fees" element={<FeesPage />} />
+          <Route path="operations" element={<OperationsPage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>

@@ -1,28 +1,32 @@
-// Response view-models. The real OpenAPI declares request bodies only, so response shapes are typed by hand
-// from apps/api/src (control-plane/flags.service.ts, ops/ops.controller.ts, booking, trust, pay).
-export interface FlagRow {
-  key: string; product: string; class: string; scopes: string[]; dependsOn: string[]; moneyPath: boolean; launchLocked: boolean; whenOff: string | null; gateHint: string | null;
+// Console view-models. Wire types come from the GENERATED contract (./schema.d.ts); only the objects the contract leaves
+// free-form (`effective`, `source`, `overrides`, `gate`, `lastChange`, dashboards) are narrowed here.
+import type { components } from "./schema";
+
+type S = components["schemas"];
+export type FlagRow = Omit<S["AdminFlagDto"], "effective" | "source" | "overrides" | "gate" | "lastChange"> & {
   effective: { global: boolean; market: Record<string, boolean> };
-  state: "ON" | "OFF" | "ON_AWAITING_GATE"; reason: string;
-  source: { scope: string; scopeId?: string | null; reason?: string | null; ticket?: string | null; setBy?: string | null; expiresAt?: string | null; at?: string | null };
+  source: { scope: string; scopeId?: string | null; reason?: string | null; ticket?: string | null; setBy?: string | null; expiresAt?: string | null; at?: string | null } | null;
   overrides: { scope: string; scopeId: string | null; reason: string | null; ticket: string | null; expiresAt: string | null; startsAt: string | null }[];
   gate: { gateId: string; approver: string; approvedOn: string; documentUrl: string } | null;
   lastChange: { at: string; actor: string; event: string; newValue: string | null; reason: string | null } | null;
-}
-export interface FlagAudit { id?: string; createdAt: string; flagKey: string; scope: string | null; scopeId: string | null; oldValue: string | null; newValue: string | null; actor: string; reason: string | null; ticket: string | null; expiresAt?: string | null; emergency?: boolean; event: string | null }
-export interface Propagation {
-  currentVersion: number;
-  products: { product: string; snapshotVersion: number; lastFetchedAt: string | null; ageSeconds: number | null; versionsBehind: number; status: string; lastPush: { version: number; at: string | null; error: string | null }; webhookConfigured: boolean }[];
-}
-export interface FlagRequest {
-  id: string; flagKey: string; scope: string; scopeId: string; value: string; reason: string; ticket: string; expiresAt: string | null;
-  requestedBy: string; status: "PENDING" | "APPROVED" | "REJECTED"; approvedBy: string | null; emergency: boolean; reviewDueAt: string | null;
-  reviewedBy: string | null; reviewedAt: string | null; createdAt: string; decidedAt: string | null;
-}
-export interface SetFlagResult { status: "APPLIED" | "PENDING_APPROVAL"; requestId?: string; version?: number }
-export interface SetFlagBody { scope: "GLOBAL" | "MARKET" | "ORG"; scopeId?: string; value: "ON" | "OFF"; reason: string; ticket: string; expiresAt?: string; startsAt?: string; emergency?: boolean }
-export interface GateBody { gateId: string; approver: string; approvedOn: string; documentUrl: string }
+};
+// The API returns a few columns the schema omits (reported to the API owner): kept optional so the UI never depends on them.
+export type FlagAudit = S["FlagAuditDto"] & { expiresAt?: string | null };
+export type FlagRequest = S["FlagChangeRequestDto"] & { expiresAt?: string | null; approvedBy?: string | null; reviewedBy?: string | null; reviewedAt?: string | null; decidedAt?: string | null };
+export type Propagation = S["PropagationDto"];
+export type PropagationProduct = S["PropagationProductDto"];
+export type SetFlagResult = S["SetFlagResultDto"];
+export type SetFlagBody = S["SetFlagBody"];
+export type GateBody = S["GateBody"];
 
+export type MessageLogItem = S["MessageLogItemDto"];
+export type MessagingStats = S["MessagingStatsDto"];
+export type FeeStatement = S["FeeStatementDto"];
+export type OpsOrder<T> = T & { sub: string; platformFeeMinor: number; takeRateBps: number };
+export type PharmacyOrder = OpsOrder<S["PharmacyOrderDto"]>;
+export type LabBooking = OpsOrder<S["LabBookingDto"]>;
+
+// Presentation models for the dashboards whose contract schemas are free-form
 export interface ProviderRow { id: string; nameEn: string; nameAr: string; clinicName: string; specialty: string | null; status: string; listingStatus: string; area: string | null; updatedAt: string }
 export interface TimelineEntry { at: string; kind: string; summary: string; status: string | null }
 export interface OutboxView { lagSeconds: number; pending: number; deadLetters: number; items: { id: string; type: string; aggregateId: string; status: string; attempts: number; lastError: string | null; createdAt: string }[] }

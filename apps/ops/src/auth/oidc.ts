@@ -1,7 +1,5 @@
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 
-export const MOCK_MODE = import.meta.env.VITE_MOCK === "1";
-
 export const oidcConfig = {
   authority: import.meta.env.VITE_OIDC_AUTHORITY ?? "http://localhost:4400",
   client_id: import.meta.env.VITE_OIDC_CLIENT_ID ?? "kiorex-ops",
@@ -33,5 +31,3 @@ export const toAuthUser = (u: User): AuthUser => ({
   token: u.access_token,
   roles: [...new Set([...(((u.profile as Record<string, unknown>).kx_roles as string[] | undefined) ?? []), ...rolesFromToken(u.access_token)])],
 });
-
-export const MOCK_USER: AuthUser = { sub: "mock-ops-1", name: "Ops Admin", token: "mock-token", roles: ["ops_admin", "super_admin"] };

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { MOCK, payFakeDeposit, signIn } from "./helpers";
+import { payFakeDeposit, signIn } from "./helpers";
 
 test("golden patient journey: search → profile → hold → confirm → appointment", async ({ page }) => {
   await signIn(page);
@@ -12,7 +12,7 @@ test("golden patient journey: search → profile → hold → confirm → appoin
   const cards = page.getByTestId("doctor-card");
   // Real stack prerequisite: Kiorly (:3000) running with a LIVE provider synced into Kiorex (POST /api/v1/admin/providers/sync).
   await page.getByTestId("result-count").waitFor();
-  test.skip(!(await cards.count().then((n) => n > 0, () => false)) && !MOCK, "No providers synced into the real stack — start Kiorly :3000 and run the provider sync (see README)");
+  test.skip(!(await cards.count().then((n) => n > 0, () => false)), "No providers synced into the real stack — start Kiorly :3000 and run the provider sync (see README)");
   await expect(cards.first()).toBeVisible();
   await expect(cards.first().getByTestId("slot-button").first()).toBeVisible(); // next slots inline (KXMDS04)
 

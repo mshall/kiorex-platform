@@ -10,7 +10,11 @@
     "liquidity": "Liquidity",
     "flags": "Feature flags",
     "signOut": "Sign out",
-    "theme": "Toggle theme"
+    "theme": "Toggle theme",
+    "messaging": "Messaging",
+    "orders": "Orders",
+    "fees": "Fee statements",
+    "operations": "Operations"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -174,5 +178,83 @@
     "age": "Snapshot age",
     "lastPush": "Last push",
     "noWebhook": "no webhook"
+  },
+  "messaging": {
+    "title": "Messaging log",
+    "hint": "Email, WhatsApp, SMS and push in one log. Recipients are masked.",
+    "modeMock": "Mock mode",
+    "modeReal": "Live provider",
+    "mockNote": "Mock mode: nothing leaves the platform. Messages are written to a test inbox; use the controls to simulate delivery states.",
+    "tick": "Advance deliveries",
+    "ticked": "{{count}} messages marked delivered.",
+    "simulated": "Marked {{state}}.",
+    "delivered": "Delivered or read",
+    "failed": "Failed",
+    "inbound": "Inbound",
+    "channel": {
+      "EMAIL": "Email",
+      "WHATSAPP": "WhatsApp",
+      "SMS": "SMS",
+      "PUSH": "Push"
+    },
+    "channelLabel": "Channel",
+    "statusLabel": "Status",
+    "directionLabel": "Direction",
+    "time": "Time",
+    "recipient": "Recipient",
+    "template": "Template",
+    "body": "Body",
+    "empty": "No messages yet",
+    "sim": {
+      "DELIVERED": "Delivered",
+      "READ": "Read",
+      "FAILED": "Fail"
+    }
+  },
+  "fees": {
+    "title": "Fee statements",
+    "hint": "Kiorex's own marketplace fee per partner. The VAT line is configuration, not a filing.",
+    "from": "From",
+    "to": "To",
+    "partner": "Partner",
+    "orders": "Orders",
+    "fee": "Marketplace fee",
+    "vatRate": "VAT rate",
+    "vat": "VAT",
+    "total": "Total",
+    "totals": "Totals",
+    "export": "Export CSV",
+    "empty": "No fees in this period",
+    "partnerName": {
+      "pharmacy": "Pharmacy",
+      "lab": "Lab"
+    }
+  },
+  "orders": {
+    "title": "Order monitors",
+    "hint": "Pharmacy orders and lab bookings. Resubmit a paid order that never reached the partner.",
+    "pharmacy": "Pharmacy orders",
+    "lab": "Lab bookings",
+    "id": "ID",
+    "status": "Status",
+    "items": "Items",
+    "total": "Total",
+    "fee": "Platform fee",
+    "created": "Created",
+    "empty": "No orders",
+    "resubmit": "Resubmit",
+    "resubmitTitle": "Resubmit to the partner?",
+    "resubmitBody": "The paid order is sent to the partner again with the same idempotency key, so it cannot be created twice.",
+    "resubmitted": "Resubmitted: {{status}}"
+  },
+  "operations": {
+    "title": "Operations",
+    "hint": "Run background jobs on demand.",
+    "waitlist": "Waitlist scan",
+    "waitlistHint": "Looks for free slots matching waiting patients and creates offers. It also runs every minute on its own.",
+    "runScan": "Run scan now",
+    "scanned": "{{created}} offers created, {{expired}} expired.",
+    "offersCreated": "Offers created",
+    "offersExpired": "Offers expired"
   }
 }

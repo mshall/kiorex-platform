@@ -64,7 +64,7 @@ function row(d: Def, market: string): FlagRow {
   };
 }
 
-const audit = (a: Partial<FlagAudit> & { flagKey: string }) => S.audit.unshift({ createdAt: new Date().toISOString(), scope: "GLOBAL", scopeId: "", oldValue: null, newValue: null, actor: ACTOR, reason: null, ticket: null, event: "TOGGLE", ...a });
+const audit = (a: Partial<FlagAudit> & { flagKey: string }) => S.audit.unshift({ id: `aud_${Math.random().toString(36).slice(2)}`, emergency: false, createdAt: new Date().toISOString(), scope: "GLOBAL", scopeId: "", oldValue: null, newValue: "", actor: ACTOR, reason: null, ticket: null, event: "TOGGLE", ...a });
 
 function apply(key: string, b: { scope: string; scopeId?: string; value: string; reason: string; ticket: string; expiresAt?: string; startsAt?: string }, emergency: boolean) {
   const scopeId = b.scope === "GLOBAL" ? "" : (b.scope === "MARKET" ? (b.scopeId ?? "").toUpperCase() : b.scopeId ?? "");

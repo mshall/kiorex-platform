@@ -4,7 +4,7 @@ import { signIn } from "./helpers";
 /** Every console page renders against the real API without an error state (empty tables are fine). */
 test("console pages load", async ({ page }) => {
   await signIn(page);
-  for (const path of ["providers", "outbox", "finance", "moderation", "liquidity", "flags"]) {
+  for (const path of ["providers", "outbox", "finance", "moderation", "liquidity", "messaging", "orders", "fees", "operations", "flags"]) {
     await page.goto(`/${path}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page.waitForLoadState("networkidle");
