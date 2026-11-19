@@ -256,7 +256,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/waitlist` | KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type) |
+| POST | `/api/v1/waitlist` | KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly |
 | GET | `/api/v1/waitlist` | KXM-BK-12 my waitlist entries with their offers |
 | DELETE | `/api/v1/waitlist/{id}` |  |
 | POST | `/api/v1/waitlist/offers/{id}/accept` | KXM-BK-12 accept an offered slot: creates the normal 5-minute hold (returns the booking; then POST /bookings/{id}/confirm). 409 SLOT_TAKEN / 410 OFFER_EXPIRED |

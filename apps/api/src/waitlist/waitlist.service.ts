@@ -38,8 +38,10 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   private presentOffer(o: WaitlistOffer) {
     return { id: o.id, startsAt: o.startsAt.toISOString(), endsAt: o.endsAt.toISOString(), status: o.status, expiresAt: o.expiresAt.toISOString(), bookingId: o.bookingId };
   }
-  private presentEntry(e: WaitlistEntry & { offers: WaitlistOffer[] }) {
-    return { id: e.id, providerId: e.providerId, typeId: e.typeId, preferredFrom: e.preferredFrom?.toISOString() ?? null, preferredTo: e.preferredTo?.toISOString() ?? null, status: e.status, expiresAt: e.expiresAt.toISOString(), offers: e.offers.map((o) => this.presentOffer(o)) };
+  private presentEntry(e: WaitlistEntry & { offers: WaitlistOffer[] }, p?: Provider | null) {
+    const raw: any = p?.raw ?? {};
+    const doctor = p ? { id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, specialty: p.specialty, photoUrl: raw.provider?.photoUrl ?? raw.provider?.photoRelativePath ?? null } : null;
+    return { id: e.id, doctor, clinicNameEn: p?.clinicNameEn ?? null, clinicNameAr: p?.clinicNameAr ?? null, providerId: e.providerId, typeId: e.typeId, preferredFrom: e.preferredFrom?.toISOString() ?? null, preferredTo: e.preferredTo?.toISOString() ?? null, status: e.status, expiresAt: e.expiresAt.toISOString(), offers: e.offers.map((o) => this.presentOffer(o)) };
   }
 
   async join(sub: string, i: JoinInput) {
@@ -55,19 +57,26 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
     if (from && to && to <= from) throw badRequest('INVALID_WINDOW', 'preferredTo must be after preferredFrom');
     if (to && to <= new Date()) throw badRequest('INVALID_WINDOW', 'preferredTo is in the past');
     const existing = await this.prisma.waitlistEntry.findFirst({ where: { sub, providerId: p.id, typeId: i.typeId, dependantId: i.dependantId ?? null, status: { in: ['WAITING', 'OFFERED'] } }, include: { offers: true } });
-    if (existing) return this.presentEntry(existing);
+    if (existing) return this.presentEntry(existing, p);
+    // KXM-BK-12 / KX-03: the waitlist is for FULL schedules. If the doctor already has open slots in the patient's window the
+    // patient must book directly; otherwise the autofill scan would immediately "offer" the pre-existing open slots.
+    const nowDt = new Date();
+    const slots = await this.catalog.slots(p, i.typeId, nowDt, new Date(nowDt.getTime() + cfg().waitlistHorizonDays * 86400_000), { fresh: true }).catch(() => []);
+    const open = slots.filter((s) => new Date(s.startsAt) > nowDt && this.fits({ preferredFrom: from, preferredTo: to } as WaitlistEntry, new Date(s.startsAt)));
+    if (open.length) throw conflict('SLOTS_AVAILABLE', 'This doctor has open slots: book directly instead of joining the waitlist', { nextSlots: open.slice(0, 3), openSlotCount: open.length });
     const horizon = new Date(Date.now() + cfg().waitlistHorizonDays * 86400_000);
     const e = await this.prisma.waitlistEntry.create({
       data: { id: newId('kx_wl'), sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, preferredFrom: from, preferredTo: to, expiresAt: to && to < horizon ? to : horizon },
       include: { offers: true },
     });
     await this.catalog.track('waitlist_joined', { providerId: p.id, specialtyCode: p.specialty ?? undefined });
-    return this.presentEntry(e);
+    return this.presentEntry(e, p);
   }
 
   async list(sub: string) {
     const rows = await this.prisma.waitlistEntry.findMany({ where: { sub, status: { not: 'CANCELLED' } }, include: { offers: { orderBy: { createdAt: 'desc' } } }, orderBy: { createdAt: 'desc' }, take: 100 });
-    return rows.map((e) => this.presentEntry(e));
+    const provs = new Map((await this.prisma.provider.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.providerId))] } } })).map((p) => [p.id, p]));
+    return rows.map((e) => this.presentEntry(e, provs.get(e.providerId)));
   }
 
   async cancel(sub: string, id: string) {

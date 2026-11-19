@@ -34,6 +34,15 @@ function check(schema: any, v: unknown, path: string, errs: string[]) {
 const responseSchema = (method: string, path: string, status: number) => doc.paths[`/api/v1${path}`]?.[method.toLowerCase()]?.responses?.[String(status)]?.content?.['application/json']?.schema;
 
 describe('OpenAPI response schemas (committed spec) match real responses', () => {
+  it('only genuinely mandatory query params are required', () => {
+    const req: string[] = [];
+    for (const [path, item] of Object.entries<any>(doc.paths)) for (const [m, op] of Object.entries<any>(item)) for (const q of op.parameters ?? []) if (q.in === 'query' && q.required) req.push(`${m} ${path} ${q.name}`);
+    expect(req.sort()).toEqual([
+      'get /api/v1/control/v1/flags/snapshot product', 'get /api/v1/dev/channels/whatsapp/conversation phone', 'get /api/v1/lab/slots labId',
+      'get /api/v1/providers/{id}/slots typeId', 'get /api/v1/rx/verify t',
+    ]);
+  });
+
   it('every operation documents a 2xx response body', () => {
     const missing: string[] = [];
     for (const [p, ops] of Object.entries<any>(doc.paths)) for (const [m, o] of Object.entries<any>(ops)) if (!Object.entries<any>(o.responses ?? {}).some(([c, r]) => c.startsWith('2') && r.content)) missing.push(`${m.toUpperCase()} ${p}`);

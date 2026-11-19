@@ -28,6 +28,33 @@ describe('waitlist autofill (KXM-BK-12)', () => {
     expect((await c.http().get('/api/v1/waitlist').set(a)).body).toEqual([]);
   });
 
+  it('join for a doctor with open slots is rejected 409 SLOTS_AVAILABLE: no entry, no offer, no booking, other patients untouched', async () => {
+    const eb = await join(b).expect(201); // b waits while the schedule is full
+    c.kiorly.slots = [futureSlot(72), futureSlot(96)];
+    const r = await join(a).expect(409);
+    expect(r.body).toMatchObject({ code: 'SLOTS_AVAILABLE', openSlotCount: 2 });
+    expect(r.body.nextSlots).toHaveLength(2);
+    expect((await c.http().get('/api/v1/waitlist').set(a)).body).toEqual([]);
+    await c.get(WaitlistService).scan();
+    expect(c.kiorly.callsTo('POST', '/holds')).toHaveLength(0);
+    expect(await c.prisma.waitlistEntry.count({ where: { sub: 'sub_a' } })).toBe(0);
+    const mine = (await c.http().get('/api/v1/waitlist').set(b)).body;
+    expect(mine[0].id).toBe(eb.body.id);
+    // outside a preferred window with no fitting slot the join is a normal WAITING entry
+    const w = await join(a, { preferredFrom: new Date(Date.now() + 200 * 3600_000).toISOString() }).expect(201);
+    expect(w.body.status).toBe('WAITING');
+    expect(w.body.offers).toEqual([]);
+    expect(await c.prisma.waitlistOffer.count({ where: { sub: 'sub_a' } })).toBe(0);
+  });
+
+  it('entry carries doctor summary and clinic name', async () => {
+    const e = await join(a).expect(201);
+    expect(e.body.doctor).toMatchObject({ id: pid });
+    expect(Object.keys(e.body.doctor).sort()).toEqual(['id', 'nameAr', 'nameEn', 'photoUrl', 'specialty']);
+    expect(e.body).toHaveProperty('clinicNameEn');
+    expect((await c.http().get('/api/v1/waitlist').set(a)).body[0].doctor.id).toBe(pid);
+  });
+
   it('SLOTS_CHANGED offers the freed slot to the OLDEST fitting entry, notifies them, and accept creates a normal hold', async () => {
     await join(a).expect(201); await join(b).expect(201);
     const slot = futureSlot(72);
@@ -70,7 +97,7 @@ describe('waitlist autofill (KXM-BK-12)', () => {
     await join(a, { preferredFrom: new Date(Date.now() + 100 * 3600_000).toISOString() }).expect(201);
     await open([futureSlot(72)]);
     expect(await offers(a)).toHaveLength(0);
-    await join(b).expect(201);
+    c.kiorly.slots = []; await join(b).expect(201);
     await open([futureSlot(72)]);
     const ob = (await offers(b))[0];
     c.kiorly.holdMode = '409';

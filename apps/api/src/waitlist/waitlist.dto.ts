@@ -8,9 +8,19 @@ export class WaitlistOfferDto {
   @ApiProperty({ format: 'date-time', description: 'Accept before this time; afterwards the slot is offered onward' }) expiresAt!: string;
   @ApiProperty({ nullable: true, type: String, description: 'Held booking created on accept; confirm it with POST /bookings/{id}/confirm' }) bookingId!: string | null;
 }
+export class WaitlistDoctorDto {
+  @ApiProperty() id!: string;
+  @ApiProperty({ nullable: true, type: String }) nameEn!: string | null;
+  @ApiProperty({ nullable: true, type: String }) nameAr!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'Launch specialty code' }) specialty!: string | null;
+  @ApiProperty({ nullable: true, type: String }) photoUrl!: string | null;
+}
 export class WaitlistEntryDto {
   @ApiProperty() id!: string;
   @ApiProperty() providerId!: string;
+  @ApiProperty({ type: WaitlistDoctorDto, nullable: true, description: 'Doctor summary so clients need not fetch the profile per entry' }) doctor!: WaitlistDoctorDto | null;
+  @ApiProperty({ nullable: true, type: String }) clinicNameEn!: string | null;
+  @ApiProperty({ nullable: true, type: String }) clinicNameAr!: string | null;
   @ApiProperty() typeId!: string;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) preferredFrom!: string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) preferredTo!: string | null;

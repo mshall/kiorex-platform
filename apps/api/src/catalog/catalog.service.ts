@@ -107,10 +107,10 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Slots from Kiorly's engine, cached 60 s (KXM-BK-01). */
-  async slots(p: Provider, typeId: string, from: Date, to: Date): Promise<Slot[]> {
+  async slots(p: Provider, typeId: string, from: Date, to: Date, opts: { fresh?: boolean } = {}): Promise<Slot[]> {
     const key = `${p.clinicId}|${p.clinicianId}|${typeId}|${from.toISOString().slice(0, 13)}|${to.toISOString().slice(0, 13)}`;
     const hit = this.slotCache.get(key);
-    if (hit && Date.now() - hit.at < cfg().slotCacheTtlMs) return hit.slots;
+    if (!opts.fresh && hit && Date.now() - hit.at < cfg().slotCacheTtlMs) return hit.slots;
     try {
       const { data } = await this.kiorly.slots(p.clinicId, { clinicianId: p.clinicianId, typeId, from: from.toISOString(), to: to.toISOString() });
       const slots: Slot[] = ((data as any)?.slots ?? data ?? []).map((s: any) => ({ startsAt: s.startsAt, endsAt: s.endsAt }));

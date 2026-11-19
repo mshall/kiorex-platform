@@ -35,5 +35,6 @@ Local dependencies: Kiorly API `:3000` (marketplace client `kx_dev_client`), Pas
 - Vault uploads use `STORAGE_LOCAL_DIR` (default `.data/vault`, git-ignored). Record-share HMAC secret: `KIOREX_RECORD_SHARE_HMAC_SECRET` (must equal Kiorly's). Rx QR secret: `RX_VERIFY_HMAC_SECRET`.
 - Background jobs (`JOBS_ENABLED=true`): waitlist scan 60 s, mock delivery tick 5 s (plus the existing outbox/engagement/booking jobs).
 - OpenAPI: `npm run openapi:export -w apps/api` regenerates `openapi/kiorex-api.v1.openapi.json` (typed responses) and `Docs/API.md`; `test/openapi-contract.int.spec.ts` validates live responses against the committed file, so commit both together.
+- Waitlist (KXM-BK-12): `POST /waitlist` for a doctor that already has open slots in the requested window returns `409 SLOTS_AVAILABLE {nextSlots, openSlotCount}` (book directly); the waitlist is only for full schedules. Autofill only offers slots freed AFTER joining and never books: accept is always the patient's own call.
 - Guards: `src/no-tax-authority.unit.spec.ts` (no tax-authority reporting), `src/module-boundaries.unit.spec.ts`.
 

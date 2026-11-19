@@ -21,7 +21,7 @@ export class WaitlistController {
   constructor(private readonly svc: WaitlistService) {}
 
   @Post('waitlist') @HttpCode(201) @RequiresFlag('kiorex.marketplace')
-  @ApiOperation({ summary: 'KXM-BK-12 join a doctor\'s waitlist (idempotent per patient+doctor+visit type)' })
+  @ApiOperation({ summary: 'KXM-BK-12 join a doctor\'s waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly' })
   @ApiCreatedResponse({ type: WaitlistEntryDto })
   join(@CurrentUser() u: AuthUser, @Body() b: JoinWaitlistBody) { return this.svc.join(u.sub, b); }
 
