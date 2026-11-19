@@ -133,7 +133,7 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
           where: { product: p },
           create: {
             product: p, keyId: `ff_${p}_dev`, secretEnc: encryptField(DEV_PRODUCT_SECRET),
-            webhookUrl: p === 'kiorly-clinic' ? 'http://localhost:3000/api/v1/feature-flags/kiorex/changed' : null,
+            webhookUrl: p === 'kiorly-clinic' ? 'http://localhost:3010/api/v1/feature-flags/kiorex/changed' : null,
             webhookSecretEnc: encryptField(DEV_PRODUCT_SECRET),
           },
           update: {},

@@ -12,7 +12,7 @@ export const cfg = () => ({
   isProd: env('NODE_ENV') === 'production',
   oidcIssuer: env('OIDC_ISSUER', 'http://localhost:4400'),
   oidcAudience: env('OIDC_AUDIENCE', 'kiorex-api'),
-  kiorlyBaseUrl: env('KIORLY_BASE_URL', 'http://localhost:3000/api/v1/marketplace/v1'),
+  kiorlyBaseUrl: env('KIORLY_BASE_URL', 'http://localhost:3010/api/v1/marketplace/v1'),
   kiorlyClientKey: env('KIORLY_CLIENT_KEY', 'kx_dev_client'),
   kiorlyClientSecret: env('KIORLY_CLIENT_SECRET', 'kx_dev_secret_change_me'),
   kiorlyWebhookSecret: env('KIORLY_WEBHOOK_SECRET', 'kx_dev_webhook_secret'),
