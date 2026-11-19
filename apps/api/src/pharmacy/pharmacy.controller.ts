@@ -1,0 +1,69 @@
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
+import { OkDto } from '../common/dto';
+import { RequiresFlag } from '../control-plane/control-plane-public';
+import { CartDto, CatalogueResultDto, PharmacyDto, PharmacyOrderDto } from './pharmacy.dto';
+import { PharmacyService } from './pharmacy.service';
+
+export class CartItemBody { @IsString() @MaxLength(64) sku!: string; @IsInt() @Min(1) @Max(20) qty!: number }
+export class CartBody {
+  @IsString() pharmacyId!: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(30) @ValidateNested({ each: true }) @Type(() => CartItemBody) items!: CartItemBody[];
+  @IsOptional() @IsString() prescriptionRecordId?: string;
+}
+export class AddressBody {
+  @IsString() @MaxLength(200) line1!: string;
+  @IsOptional() @IsString() @MaxLength(80) area?: string;
+  @IsOptional() @IsString() @MaxLength(80) governorate?: string;
+  @IsOptional() @IsString() @MaxLength(200) notes?: string;
+  @IsOptional() @IsString() @MaxLength(32) phone?: string;
+}
+export class DeliveryBody {
+  @IsIn(['PICKUP', 'DELIVERY']) method!: 'PICKUP' | 'DELIVERY';
+  @IsOptional() @ValidateNested() @Type(() => AddressBody) address?: AddressBody;
+}
+export class CreateOrderBody { @IsOptional() @IsString() prescriptionRecordId?: string }
+
+/**
+ * Pharmacy marketplace (launch-locked `kiorex.pharmacy_orders`). New actions (search, cart, order) are flag-gated; reading
+ * and cancelling existing orders is never blocked ("open orders completed or refunded").
+ */
+@ApiTags('pharmacy')
+@Controller()
+export class PharmacyController {
+  constructor(private readonly svc: PharmacyService) {}
+
+  @Get('pharmacy/pharmacies') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Pharmacies that accept Kiorex orders (from Kiorly Pharmacy)' })
+  @ApiOkResponse({ type: PharmacyDto, isArray: true })
+  pharmacies() { return this.svc.pharmacies(); }
+
+  @Get('pharmacy/search') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Medicine search with availability-to-promise (controlled medicines are never returned)' })
+  @ApiOkResponse({ type: CatalogueResultDto })
+  search(@Query('q') q?: string, @Query('pharmacyId') pharmacyId?: string) { return this.svc.search({ q, pharmacyId }); }
+
+  @Get('pharmacy/cart') @RequiresFlag('kiorex.pharmacy_orders') @ApiOkResponse({ type: CartDto }) cart(@CurrentUser() u: AuthUser) { return this.svc.getCart(u.sub); }
+  @Put('pharmacy/cart') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Replace the cart (one pharmacy per cart); prices come from the pharmacy quote' })
+  @ApiOkResponse({ type: CartDto })
+  putCart(@CurrentUser() u: AuthUser, @Body() b: CartBody) { return this.svc.putCart(u.sub, b); }
+  @Put('pharmacy/cart/delivery') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Delivery choice: PICKUP or DELIVERY (with address)' })
+  @ApiOkResponse({ type: CartDto })
+  delivery(@CurrentUser() u: AuthUser, @Body() b: DeliveryBody) { return this.svc.setDelivery(u.sub, b); }
+  @Delete('pharmacy/cart') @RequiresFlag('kiorex.pharmacy_orders') @ApiOkResponse({ type: OkDto }) clear(@CurrentUser() u: AuthUser) { return this.svc.clearCart(u.sub); }
+
+  @Post('pharmacy/orders') @HttpCode(201) @RequiresFlag('kiorex.pharmacy_orders')
+  @ApiOperation({ summary: 'Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation' })
+  @ApiOkResponse({ type: PharmacyOrderDto, status: 201 })
+  create(@CurrentUser() u: AuthUser, @Body() b: CreateOrderBody) { return this.svc.createOrder(u.sub, b); }
+
+  @Get('pharmacy/orders') @ApiOkResponse({ type: PharmacyOrderDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
+  @Get('pharmacy/orders/:id') @ApiOkResponse({ type: PharmacyOrderDto }) get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.get(u.sub, id); }
+  @Post('pharmacy/orders/:id/cancel') @HttpCode(200) @ApiOperation({ summary: 'Cancel before the pharmacy marks it ready; paid orders are refunded automatically' })
+  @ApiOkResponse({ type: PharmacyOrderDto })
+  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.cancel(u.sub, id); }
+
+  @OpsOnly() @Get('admin/pharmacy/orders') @ApiOperation({ summary: 'OP: pharmacy orders (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @OpsOnly() @Post('admin/pharmacy/orders/:id/resubmit') @HttpCode(200) @ApiOperation({ summary: 'OP: re-send a PAID order to Kiorly Pharmacy (idempotent)' }) resubmit(@Param('id') id: string) { return this.svc.resubmit(id); }
+}

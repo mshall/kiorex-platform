@@ -16,4 +16,20 @@ export class WebhooksController {
     if (!raw) throw new ApiError(400, 'RAW_BODY_REQUIRED', 'raw body unavailable');
     return this.svc.receive(raw.toString('utf8'), { signature: sig, timestamp: ts, eventIdHeader: hdrId });
   }
+
+  @Public() @Post('pharmacy') @HttpCode(200)
+  @ApiOperation({ summary: 'Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET' })
+  async pharmacy(@Req() req: any, @Headers('x-kiorly-signature') sig?: string, @Headers('x-kiorly-timestamp') ts?: string, @Headers('x-kiorly-event-id') hdrId?: string) {
+    const raw: Buffer | undefined = req.rawBody;
+    if (!raw) throw new ApiError(400, 'RAW_BODY_REQUIRED', 'raw body unavailable');
+    return this.svc.receive(raw.toString('utf8'), { signature: sig, timestamp: ts, eventIdHeader: hdrId }, 'pharmacy');
+  }
+
+  @Public() @Post('lab') @HttpCode(200)
+  @ApiOperation({ summary: 'Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET' })
+  async lab(@Req() req: any, @Headers('x-kiorly-signature') sig?: string, @Headers('x-kiorly-timestamp') ts?: string, @Headers('x-kiorly-event-id') hdrId?: string) {
+    const raw: Buffer | undefined = req.rawBody;
+    if (!raw) throw new ApiError(400, 'RAW_BODY_REQUIRED', 'raw body unavailable');
+    return this.svc.receive(raw.toString('utf8'), { signature: sig, timestamp: ts, eventIdHeader: hdrId }, 'lab');
+  }
 }

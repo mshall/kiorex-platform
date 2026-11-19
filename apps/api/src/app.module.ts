@@ -12,18 +12,20 @@ import { MessagingModule } from './messaging/messaging-public';
 import { KiorlyModule } from './kiorly/kiorly-public';
 import { OpsModule } from './ops/ops.module';
 import { OutboxModule } from './outbox/outbox-public';
+import { LabModule } from './lab/lab-public';
+import { PharmacyModule } from './pharmacy/pharmacy-public';
 import { ChannelsModule } from './channels/channels-public';
 import { WaitlistModule } from './waitlist/waitlist-public';
 import { RecordsModule } from './records/records-public';
 import { PatientModule } from './patient/patient-public';
 import { PayModule } from './pay/pay-public';
-import { Phase2Module } from './phase2/phase2.module';
+import { TelemedicineModule } from './telemedicine/telemedicine-public';
 import { PrismaModule } from './prisma/prisma.module';
 import { TrustModule } from './trust/trust-public';
 import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, Phase2Module, RecordsModule, WaitlistModule, ChannelsModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, TelemedicineModule, HealthModule],
 })
 export class AppModule {}

@@ -88,9 +88,9 @@ describe('flag-OFF contract per Kiorex flag', () => {
       expect(r.status).toBe(403);
       expect(r.body).toMatchObject({ code: 'FEATURE_DISABLED', scope: 'GATE' });
     }
-    // with the gate recorded the guard opens (feature itself is phase 2 → 501, not 403)
+    // with the gate recorded the guard opens (request without a body is then a 400 validation error, not 403)
     await recordGate('kiorex.telemedicine');
-    expect((await actions['kiorex.telemedicine']()).status).toBe(501);
+    expect((await actions['kiorex.telemedicine']()).status).toBe(400);
   });
 
   it('dependent flags: kiorex.marketplace OFF also stops kiorex.reviews and kiorex.pay_deposits (dependsOn)', async () => {

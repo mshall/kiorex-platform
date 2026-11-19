@@ -7,7 +7,7 @@ import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService, Tx } from '../prisma/prisma.service';
-import { assertValid, LedgerTxInput, Posting, capture, payout as payoutPosting, pspFee, refundRequest, refundSettle, release } from './ledger';
+import { assertValid, LedgerTxInput, Posting, capture, payout as payoutPosting, pspFee, refundRequest, refundSettle, release, releaseOrder } from './ledger';
 import { FakePspAdapter, pspAdapter, PspWebhookEvent } from './psp';
 
 const isoWeek = (d: Date) => {
@@ -21,6 +21,7 @@ const isoWeek = (d: Date) => {
 @Injectable()
 export class PayService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
+  private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
   constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService) {}
 
   onModuleInit() {
@@ -28,6 +29,11 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     this.outbox.register('kiorly.payout_recorded', (e) => this.notifyKiorlyPayout(e.payload));
     this.outbox.register('pay.refund_requested', (e) => this.settleRefund(e.payload.refundId));
     this.outbox.register('pay.refund_settled', async () => undefined);
+    this.outbox.register('pay.order_captured', async (e) => { // vertical modules subscribe per purpose (PHARMACY | LAB)
+      const fn = this.orderHandlers.get(e.payload.purpose);
+      if (!fn) throw new Error(`no order handler for purpose ${e.payload.purpose}`);
+      await fn(e.payload);
+    });
     if (cfg().jobsEnabled) {
       // weekly payouts (checked hourly; idempotent by period), daily reconciliation
       this.timer = setInterval(() => {
@@ -63,6 +69,39 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const adapter = pspAdapter(i.psp ?? 'paymob');
     const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
     return this.prisma.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+  }
+
+  /** Vertical modules subscribe to captured payments of their purpose (delivered through the outbox: retried with backoff). */
+  onOrderCaptured(purpose: 'PHARMACY' | 'LAB', fn: (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>) { this.orderHandlers.set(purpose, fn); }
+
+  /** Vertical order payment (pharmacy / lab). `partnerId` is the ledger sub-account owner (e.g. ph:<pharmacyId>). Idempotent per order. */
+  async createOrderIntent(i: { orderRef: string; purpose: 'PHARMACY' | 'LAB'; sub: string; partnerId: string; amountMinor: number; currency: string; psp?: string }): Promise<PaymentIntent> {
+    const existing = await this.prisma.paymentIntent.findFirst({ where: { orderRef: i.orderRef, purpose: i.purpose, status: { in: ['CREATED', 'CAPTURED'] } } });
+    if (existing) return existing;
+    if (!Number.isInteger(i.amountMinor) || i.amountMinor <= 0) throw badRequest('INVALID_AMOUNT', 'amount must be positive');
+    const id = newId('pay');
+    const adapter = pspAdapter(i.psp ?? 'paymob');
+    const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
+    return this.prisma.paymentIntent.create({ data: { id, orderRef: i.orderRef, purpose: i.purpose, sub: i.sub, clinicId: i.partnerId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+  }
+
+  /** Order fulfilled: held funds become partner-payable minus Kiorex's marketplace take. Idempotent. */
+  async releaseOrder(paymentId: string, o: { feeMinor: number }) {
+    const p = await this.getIntent(paymentId);
+    if (p.status !== 'CAPTURED' || p.releasedAt) return null;
+    await this.prisma.$transaction(async (tx) => {
+      const c = await tx.paymentIntent.updateMany({ where: { id: p.id, releasedAt: null }, data: { releasedAt: new Date(), releaseKind: 'COMPLETED' } });
+      if (c.count) await this.postLedger(tx, { key: `release-order:${p.id}`, kind: `RELEASE_ORDER_${p.purpose}`, postings: releaseOrder(p.clinicId, p.amountMinor, o.feeMinor), paymentId: p.id, clinicId: p.clinicId });
+    });
+    return 'RELEASED';
+  }
+
+  /** Cancelled/rejected order: refund the captured amount (idempotent per reason key); cancel an uncaptured intent. */
+  async refundOrder(paymentId: string, reason: string) {
+    const p = await this.getIntent(paymentId);
+    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; }
+    if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status) || p.releasedAt) return null;
+    return this.refund(p.id, { reason, idempotencyKey: `refund-order:${p.id}:${reason}` });
   }
 
   async getIntent(id: string) {
@@ -104,6 +143,11 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       if (!claimed.count) return;
       await this.postLedger(tx, { key: `capture:${p.id}`, kind: 'CAPTURE', postings: capture(p.clinicId, p.amountMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
       if (fee > 0) await this.postLedger(tx, { key: `fee:${p.id}`, kind: 'PSP_FEE', postings: pspFee(fee), paymentId: p.id, clinicId: p.clinicId });
+      if (p.purpose !== 'DEPOSIT') {
+        // vertical orders (pharmacy/lab): the owning module reacts; Kiorly clinic deposit endpoints are never called
+        await this.outbox.enqueue(tx, { type: 'pay.order_captured', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id, purpose: p.purpose, orderRef: p.orderRef, amountMinor: p.amountMinor }, dedupeKey: `pay.order_captured:${p.id}` });
+        return;
+      }
       await this.outbox.enqueue(tx, { type: 'kiorly.deposit_paid', target: 'KIORLY', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id }, dedupeKey: `kiorly.deposit_paid:${p.id}` });
       await this.outbox.enqueue(tx, { type: 'pay.deposit_captured', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id, bookingId: p.bookingId, amountMinor: p.amountMinor }, dedupeKey: `pay.deposit_captured:${p.id}` });
     });
@@ -183,7 +227,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   /** Weekly, idempotent. Each released, unpaid deposit is claimed exactly once; Kiorly is told via outbox with payoutRef. */
   async runPayouts(now = new Date()) {
     const period = isoWeek(now);
-    const due = await this.prisma.paymentIntent.findMany({ where: { status: { in: ['CAPTURED', 'PARTIALLY_REFUNDED'] }, releasedAt: { not: null }, payoutId: null } });
+    const due = await this.prisma.paymentIntent.findMany({ where: { purpose: 'DEPOSIT', status: { in: ['CAPTURED', 'PARTIALLY_REFUNDED'] }, releasedAt: { not: null }, payoutId: null } }); // vertical partner payouts are NEEDS_HUMAN (merchant-of-record decision)
     const byClinic = new Map<string, PaymentIntent[]>();
     for (const p of due) byClinic.set(p.clinicId, [...(byClinic.get(p.clinicId) ?? []), p]);
     const out: { payoutRef: string; clinicId: string; amountMinor: number }[] = [];

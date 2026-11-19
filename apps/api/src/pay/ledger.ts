@@ -16,6 +16,8 @@ export const A = {
   refundPayable: 'REFUND_PAYABLE',
   held: (clinic: string) => `HELD:${clinic}`,
   payable: (clinic: string) => `PAYABLE:${clinic}`,
+  /** Kiorex's own marketplace take on vertical orders (credit-normal revenue). NEEDS_HUMAN rate; VAT only as config on fee statements. */
+  marketplaceFees: 'MARKETPLACE_FEES',
 };
 
 const dr = (account: string, n: number): Posting => ({ account, debit: n, credit: 0 });
@@ -26,6 +28,8 @@ export const pspFee = (fee: number): Posting[] => [dr(A.fees, fee), cr(A.clearin
 export const refundRequest = (clinic: string, n: number): Posting[] => [dr(A.held(clinic), n), cr(A.refundPayable, n)];
 export const refundSettle = (n: number): Posting[] => [dr(A.refundPayable, n), cr(A.clearing, n)];
 export const release = (clinic: string, n: number): Posting[] => [dr(A.held(clinic), n), cr(A.payable(clinic), n)];
+/** Vertical order fulfilled: held goods money -> partner payable, minus Kiorex's take (fee may be 0 while the rate is unset). */
+export const releaseOrder = (partner: string, total: number, fee: number): Posting[] => [dr(A.held(partner), total), cr(A.payable(partner), total - fee), ...(fee > 0 ? [cr(A.marketplaceFees, fee)] : [])];
 export const payout = (clinic: string, n: number): Posting[] => [dr(A.payable(clinic), n), cr(A.clearing, n)];
 
 export class LedgerError extends Error {}

@@ -91,6 +91,13 @@ export class RecordsService implements OnModuleInit {
     return { token, qrPayload: rxQrPayload(token), verifyUrl: rxVerifyUrl(token) };
   }
 
+  /** For pharmacy orders: the patient's own active prescription + the token Kiorly Pharmacy verifies via GET /rx/verify. */
+  async prescriptionForOrder(sub: string, recordId: string) {
+    const r = await this.owned(sub, recordId);
+    if (r.kind !== 'PRESCRIPTION') throw badRequest('NOT_A_PRESCRIPTION', 'Record is not a prescription');
+    return { id: r.id, clinicId: r.clinicId, verificationToken: this.verification(r).token };
+  }
+
   async prescriptions(sub: string) {
     const rows = await this.prisma.sharedRecord.findMany({ where: { sub, kind: 'PRESCRIPTION', status: 'ACTIVE' }, orderBy: { createdAt: 'desc' }, take: 100 });
     return rows.map((r) => ({ ...this.present(r), verification: this.verification(r) }));

@@ -6,6 +6,8 @@ import { verifyWebhook } from '../common/hmac';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
+import { LabService } from '../lab/lab-public';
+import { PharmacyService } from '../pharmacy/pharmacy-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
 import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,10 +19,12 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService) {}
 
-  async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string }) {
-    if (!verifyWebhook(cfg().kiorlyWebhookSecret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
+  /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
+  async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
+    const secret = source === 'pharmacy' ? cfg().pharmacyWebhookSecret : source === 'lab' ? cfg().labWebhookSecret : cfg().kiorlyWebhookSecret;
+    if (!verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
     let env: any;
     try { env = JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Body is not JSON'); }
     const eventId: string = env.eventId ?? h.eventIdHeader;
@@ -30,7 +34,7 @@ export class WebhooksService {
       if (!v.valid) this.log.warn(`event ${env.type} failed contract schema: ${(v as any).errors?.slice(0, 2).join('; ')}`);
     }
     // dedupe on eventId (insert-or-ignore is the lock)
-    const inserted = await this.prisma.webhookReceipt.createMany({ data: [{ eventId, source: 'kiorly', type: env.type, aggregateId: env.aggregateId, payload: RecordsService.redactEnvelope(env) }], skipDuplicates: true });
+    const inserted = await this.prisma.webhookReceipt.createMany({ data: [{ eventId, source, type: env.type, aggregateId: env.aggregateId, payload: RecordsService.redactEnvelope(env) }], skipDuplicates: true });
     if (!inserted.count) return { status: 'DUPLICATE' };
     try {
       const outcome = await this.route(env);
@@ -66,8 +70,14 @@ export class WebhooksService {
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'LabResultReleased': {
-        const o = await this.records.storeLabResult({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels });
+        const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels });
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
+      }
+      case 'OrderReady':
+      case 'DispenseCompleted':
+      case 'OrderRejected': { // Kiorly Pharmacy (kiorex-contracts v2-draft); pharmacist sign-off enforced in the module
+        const o = await this.pharmacy.onPartnerEvent(type, data);
+        return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'COMMISSION_CHARGE_CREATED':
       case 'COMMISSION_CHARGE_REVERSED': // reporting only: Kiorly decides attendance/commission (KX-09 §06)
