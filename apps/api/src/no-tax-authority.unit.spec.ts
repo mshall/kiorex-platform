@@ -11,11 +11,11 @@ import { join, relative, resolve } from 'node:path';
 const ROOT = resolve(__dirname, '..');
 const FORBIDDEN: [string, RegExp][] = [
   ['ETA (Egyptian Tax Authority)', /\bETA\b/],
-  ['e-invoice', /e[-_ ]?invoic/i],
-  ['e-receipt', /e[-_ ]?receipt/i],
+  ['e-invoice', /\be[-_]?invoic/i],
+  ['e-receipt', /\be[-_]?receipt/i],
   ['ZATCA', /zatca/i],
   ['FTA', /\bFTA\b/],
-  ['e-seal / signing certificate', /e[-_ ]?seal|signing[-_ ]certificate/i],
+  ['e-seal / signing certificate', /\be[-_]?seal\b|signing[-_ ]certificate/i],
   ['fiscal device', /fiscal[-_ ]?(device|printer|memory)/i],
   ['tax-authority submission', /tax[-_ ]?authority[-_ ]?(submi|report|api|client)|submit[a-z]*[-_ ]to[-_ ]the[-_ ]tax/i],
 ];
@@ -42,5 +42,7 @@ describe('no tax-authority reporting anywhere (KX-01 ADR-011)', () => {
   it('the guard itself works (sanity)', () => {
     expect(FORBIDDEN.some(([, re]) => re.test('POST /eta/einvoice/submit'))).toBe(true);
     expect(FORBIDDEN.some(([, re]) => re.test('estimatedMinutes for delivery'))).toBe(false);
+    expect(FORBIDDEN.some(([, re]) => re.test('drop the receipt so the next attempt'))).toBe(false);
+    expect(FORBIDDEN.some(([, re]) => re.test('submitEReceipt(); e-invoice'))).toBe(true);
   });
 });
