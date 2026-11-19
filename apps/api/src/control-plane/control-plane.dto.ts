@@ -1,0 +1,119 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+const OBJ = { type: 'object', additionalProperties: true } as const;
+
+export class FlagEffectiveDto {
+  enabled!: boolean;
+  @ApiProperty({ enum: ['ON', 'OFF_GLOBAL', 'OFF_MARKET', 'OFF_ORG', 'AWAITING_GATE', 'DEPENDENCY_OFF', 'UNKNOWN_FLAG'] }) reason!: string;
+  @ApiProperty({ required: false, enum: ['GLOBAL', 'MARKET', 'ORG', 'GATE', 'DEPENDENCY'] }) scope?: string;
+}
+export class EffectiveFlagsDto {
+  @ApiProperty({ example: 'EG' }) market!: string;
+  version!: number;
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'object', required: ['enabled', 'reason'], properties: { enabled: { type: 'boolean' }, reason: { type: 'string' }, scope: { type: 'string' } } }, description: 'Map of Kiorex flag key -> effective state (hide entry points when enabled=false)' }) flags!: Record<string, FlagEffectiveDto>;
+}
+export class SnapshotFlagValuesDto {
+  @ApiProperty({ required: false, enum: ['OFF'] }) global?: string;
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } }) markets!: Record<string, string>;
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } }) orgs!: Record<string, string>;
+}
+export class SnapshotFlagDto {
+  key!: string;
+  class!: string;
+  @ApiProperty({ type: [String] }) scopes!: string[];
+  @ApiProperty({ type: [String] }) dependsOn!: string[];
+  launchLocked!: boolean;
+  gateSatisfied!: boolean;
+  @ApiProperty({ type: SnapshotFlagValuesDto }) values!: SnapshotFlagValuesDto;
+  @ApiProperty({ required: false, format: 'date-time' }) expiresAt?: string;
+}
+export class FlagSnapshotDto {
+  product!: string;
+  version!: number;
+  @ApiProperty({ format: 'date-time' }) generatedAt!: string;
+  @ApiProperty({ type: [SnapshotFlagDto] }) flags!: SnapshotFlagDto[];
+  @ApiProperty({ description: 'base64url HMAC-SHA256 over the sorted-key JSON of the snapshot without this field' }) signature!: string;
+}
+export class AdminFlagDto {
+  key!: string;
+  product!: string;
+  class!: string;
+  @ApiProperty({ type: [String] }) scopes!: string[];
+  @ApiProperty({ type: [String] }) dependsOn!: string[];
+  moneyPath!: boolean;
+  launchLocked!: boolean;
+  @ApiProperty({ nullable: true, type: String }) whenOff!: string | null;
+  @ApiProperty({ nullable: true, type: String }) gateHint!: string | null;
+  @ApiProperty({ ...OBJ }) effective!: Record<string, unknown>;
+  @ApiProperty({ enum: ['ON', 'ON_AWAITING_GATE', 'OFF'] }) state!: string;
+  reason!: string;
+  @ApiProperty({ ...OBJ, nullable: true }) source!: Record<string, unknown> | null;
+  @ApiProperty({ type: 'array', items: OBJ }) overrides!: Record<string, unknown>[];
+  @ApiProperty({ ...OBJ, nullable: true, description: 'Launch-gate evidence recorded by a human; null until then' }) gate!: Record<string, unknown> | null;
+  @ApiProperty({ ...OBJ, nullable: true }) lastChange!: Record<string, unknown> | null;
+}
+export class SetFlagResultDto {
+  @ApiProperty({ enum: ['APPLIED', 'PENDING_APPROVAL'] }) status!: string;
+  @ApiProperty({ required: false }) requestId?: string;
+  @ApiProperty({ required: false }) version?: number;
+}
+export class VersionDto { version!: number }
+export class FlagDefinitionDto {
+  key!: string;
+  product!: string;
+  class!: string;
+  @ApiProperty({ type: [String] }) scopes!: string[];
+  @ApiProperty({ type: [String] }) dependsOn!: string[];
+  launchLocked!: boolean;
+  moneyPath!: boolean;
+  description!: string;
+}
+export class FlagChangeRequestDto {
+  id!: string;
+  flagKey!: string;
+  scope!: string;
+  scopeId!: string;
+  @ApiProperty({ enum: ['ON', 'OFF'] }) value!: string;
+  reason!: string;
+  ticket!: string;
+  requestedBy!: string;
+  @ApiProperty({ enum: ['PENDING', 'APPROVED', 'REJECTED'] }) status!: string;
+  emergency!: boolean;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) reviewDueAt!: string | null;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+export class FlagAuditDto {
+  id!: string;
+  flagKey!: string;
+  scope!: string;
+  scopeId!: string;
+  @ApiProperty({ nullable: true, type: String }) oldValue!: string | null;
+  newValue!: string;
+  actor!: string;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null;
+  @ApiProperty({ nullable: true, type: String }) ticket!: string | null;
+  emergency!: boolean;
+  @ApiProperty({ enum: ['TOGGLE', 'GATE', 'EXPIRY', 'REQUEST', 'APPROVE', 'REVIEW'] }) event!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+export class PropagationProductDto {
+  product!: string;
+  snapshotVersion!: number;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) lastFetchedAt!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) ageSeconds!: number | null;
+  versionsBehind!: number;
+  @ApiProperty({ enum: ['NEVER_FETCHED', 'IN_SYNC', 'STALE', 'PROPAGATING'] }) status!: string;
+  @ApiProperty(OBJ) lastPush!: Record<string, unknown>;
+  webhookConfigured!: boolean;
+}
+export class PropagationDto {
+  currentVersion!: number;
+  @ApiProperty({ type: [PropagationProductDto] }) products!: PropagationProductDto[];
+}
+export class ProductRegistrationDto {
+  product!: string;
+  @ApiProperty({ nullable: true, type: String }) webhookUrl!: string | null;
+  active!: boolean;
+}
+export class SweepResultDto { expired!: number; started!: number }
+export class RequestDecisionDto { @ApiProperty({ enum: ['APPROVED', 'REJECTED', 'REVIEWED'] }) status!: string; @ApiProperty({ required: false }) version?: number }

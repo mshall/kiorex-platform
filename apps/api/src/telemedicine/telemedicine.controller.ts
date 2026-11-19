@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { forbidden } from '../common/errors';
@@ -24,7 +24,7 @@ export class TelemedicineController {
   providers(@Query('specialty') specialty?: string, @Query('q') q?: string) { return this.svc.match({ specialty, q }); }
 
   @Post('telemedicine/sessions') @HttpCode(201) @RequiresFlag('kiorex.telemedicine') @ApiOperation({ summary: 'Create the video session for your confirmed booking (idempotent per booking)' })
-  @ApiOkResponse({ type: TeleSessionDto, status: 201 })
+  @ApiCreatedResponse({ type: TeleSessionDto })
   create(@CurrentUser() u: AuthUser, @Body() b: CreateSessionBody) { return this.svc.create(u.sub, b.bookingId); }
 
   @Get('telemedicine/sessions') @ApiOkResponse({ type: TeleSessionDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }

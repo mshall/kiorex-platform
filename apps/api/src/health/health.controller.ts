@@ -1,17 +1,22 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { PrismaService } from '../prisma/prisma.service';
+import { LiveDto, ReadyDto } from './health.dto';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @ApiOkResponse({ type: LiveDto })
+
   @Public() @Get('live')
   live() {
     return { status: 'ok' };
   }
+
+  @ApiOkResponse({ type: ReadyDto })
 
   @Public() @Get('ready')
   async ready() {

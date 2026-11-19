@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { DeliveryTickDto, DevClearResultDto, DevInboundResultDto, DevOutboxDto } from './messaging.dto';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Public } from '../common/auth';
 import { cfg } from '../common/config';
@@ -26,6 +27,8 @@ export class DevMessagingController {
   constructor(private readonly hub: MessagingHub) {}
   private guard() { if (!cfg().devRoutesEnabled) throw notFound('NOT_FOUND', 'Not found'); }
 
+  @ApiOkResponse({ type: DevInboundResultDto })
+
   @Post('inbound') @HttpCode(200) @ApiOperation({ summary: 'DEV: simulate a patient reply on a channel (drives the WhatsApp booking state machine)' })
   async inbound(@Body() b: DevInboundBody) {
     this.guard();
@@ -34,14 +37,20 @@ export class DevMessagingController {
     return { inboundId: row.id, replies: replies.reverse() };
   }
 
+  @ApiOkResponse({ type: DevOutboxDto })
+
   @Get('outbox') @ApiOperation({ summary: 'DEV: messages the platform "sent" (all channels), newest first' })
   async outbox(@Query('channel') channel?: string, @Query('to') to?: string, @Query('direction') direction?: string, @Query('limit') limit?: string) {
     this.guard();
     return { items: await this.hub.list({ channel, to, direction: direction ?? 'OUT', limit: limit ? Number(limit) : 50 }) };
   }
 
+  @ApiOkResponse({ type: DeliveryTickDto })
+
   @Post('delivery-tick') @HttpCode(200) @ApiOperation({ summary: 'DEV: advance SENT -> DELIVERED for all mock messages' })
   async tick() { this.guard(); return this.hub.simulateDeliveries(); }
+
+  @ApiOkResponse({ type: DevClearResultDto })
 
   @Delete('outbox') @ApiOperation({ summary: 'DEV: clear the dev inbox' })
   async clear(@Query('channel') channel?: string) { this.guard(); return { deleted: (await this.hub.clear(channel)).count }; }

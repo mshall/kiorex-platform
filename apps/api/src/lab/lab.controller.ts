@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
@@ -44,13 +44,16 @@ export class LabController {
 
   @Post('lab/bookings') @HttpCode(201) @RequiresFlag('kiorex.lab_bookings')
   @ApiOperation({ summary: 'Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab' })
-  @ApiOkResponse({ type: LabBookingDto, status: 201 })
+  @ApiCreatedResponse({ type: LabBookingDto })
   book(@CurrentUser() u: AuthUser, @Body() b: LabBookBody) { return this.svc.book(u.sub, b); }
 
   @Get('lab/bookings') @ApiOkResponse({ type: LabBookingDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
   @Get('lab/bookings/:id') @ApiOkResponse({ type: LabBookingDto }) get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.get(u.sub, id); }
   @Post('lab/bookings/:id/cancel') @HttpCode(200) @ApiOkResponse({ type: LabBookingDto }) cancel(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.cancel(u.sub, id); }
 
+  @ApiOkResponse({ schema: { type: 'array', items: { allOf: [{ $ref: '#/components/schemas/LabBookingDto' }, { type: 'object', properties: { sub: { type: 'string' }, platformFeeMinor: { type: 'number' }, takeRateBps: { type: 'number' } } }] } } })
+
   @OpsOnly() @Get('admin/lab/bookings') @ApiOperation({ summary: 'OP: lab bookings (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @ApiOkResponse({ schema: { type: 'object', properties: { status: { type: 'string', description: 'SUBMITTED | REJECTED | ...' } } } })
   @OpsOnly() @Post('admin/lab/bookings/:id/resubmit') @HttpCode(200) @ApiOperation({ summary: 'OP: re-send a PAID booking to Kiorly Lab (idempotent)' }) resubmit(@Param('id') id: string) { return this.svc.resubmit(id); }
 }

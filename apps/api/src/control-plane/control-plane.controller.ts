@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, Headers, HttpCode, Param, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 import type { Response } from 'express';
 import { AuthUser, CurrentUser, OpsOnly, Public, SuperAdminOnly } from '../common/auth';
@@ -8,6 +8,7 @@ import { FLAG_CATALOGUE } from './flag-catalogue';
 import { FlagGuard } from './flag.guard';
 import { FlagsService } from './flags.service';
 import { ProductKeyGuard } from './product-key.guard';
+import { AdminFlagDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
 
 class SetFlagBody {
   @IsIn(['GLOBAL', 'MARKET', 'ORG']) scope!: 'GLOBAL' | 'MARKET' | 'ORG';
@@ -47,6 +48,7 @@ export class ControlPlaneController {
   constructor(private readonly flags: FlagsService) {}
 
   // ── product-facing (HMAC) ──
+  @ApiOkResponse({ type: FlagSnapshotDto })
   @Public() @UseGuards(ProductKeyGuard) @Get('control/v1/flags/snapshot')
   @ApiOperation({ summary: 'Signed flag snapshot per product (ETag, poll every 30 s)' })
   @ApiQuery({ name: 'product', required: true })
@@ -66,6 +68,7 @@ export class ControlPlaneController {
   }
 
   // ── Kiorex clients: effective flags for UI gating ──
+  @ApiOkResponse({ type: EffectiveFlagsDto })
   @Public() @Get('flags/effective')
   @ApiOperation({ summary: 'Effective state of every Kiorex flag (for web/mobile to hide entry points)' })
   async effective(@Query('market') market = 'EG') {
@@ -78,11 +81,14 @@ export class ControlPlaneController {
   }
 
   // ── super admin (KXM-OP-07..11) ──
+  @ApiOkResponse({ type: AdminFlagDto, isArray: true })
   @OpsOnly() @Get('admin/flags')
   @ApiOperation({ summary: 'Every flag of every product with effective value, source, class, deps, last change (OP-07)' })
   list(@Query('market') market?: string, @Query('product') product?: string) {
     return this.flags.listAdmin({ market, product });
   }
+
+  @ApiOkResponse({ type: SetFlagResultDto })
 
   @SuperAdminOnly() @Put('admin/flags/:key/values')
   @ApiOperation({ summary: 'Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10)' })
@@ -90,16 +96,22 @@ export class ControlPlaneController {
     return this.flags.setValue(u.sub, { key, scope: b.scope, scopeId: b.scopeId, value: b.value, reason: b.reason, ticket: b.ticket, expiresAt: b.expiresAt ? new Date(b.expiresAt) : null, startsAt: b.startsAt ? new Date(b.startsAt) : null, emergency: b.emergency });
   }
 
+  @ApiOkResponse({ type: VersionDto })
+
   @SuperAdminOnly() @Put('admin/flags/:key/gate')
   @ApiOperation({ summary: 'Record launch gate evidence (OP-09). STOP flag: only a human may call this.' })
   gate(@CurrentUser() u: AuthUser, @Param('key') key: string, @Body() b: GateBody) {
     return this.flags.recordGate(u.sub, key, { ...b, approvedOn: new Date(b.approvedOn) });
   }
 
+  @ApiOkResponse({ type: VersionDto })
+
   @SuperAdminOnly() @Post('admin/flags/:key/gate/revoke') @HttpCode(200)
   revokeGate(@CurrentUser() u: AuthUser, @Param('key') key: string, @Body() b: ReasonBody) {
     return this.flags.revokeGate(u.sub, key, b.reason);
   }
+
+  @ApiOkResponse({ type: FlagDefinitionDto })
 
   @SuperAdminOnly() @Post('admin/flags/definitions')
   @ApiOperation({ summary: 'Register a flag definition (e.g. market.<cc>.live). Safety controls are refused (ADR-025).' })
@@ -107,26 +119,34 @@ export class ControlPlaneController {
     return this.flags.registerDefinition(u.sub, { ...b, dependsOn: b.dependsOn ?? [], whenOff: b.whenOff ?? '', launchLocked: b.class === 'LAUNCH_LOCKED' });
   }
 
+  @ApiOkResponse({ type: FlagChangeRequestDto, isArray: true })
+
   @OpsOnly() @Get('admin/flags/requests')
   requests(@Query('status') status?: string) {
     return this.flags.listRequests(status);
   }
+  @ApiOkResponse({ type: RequestDecisionDto })
   @SuperAdminOnly() @Post('admin/flags/requests/:id/approve') @HttpCode(200)
   approve(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.flags.approveRequest(u.sub, id);
   }
+  @ApiOkResponse({ type: RequestDecisionDto })
   @SuperAdminOnly() @Post('admin/flags/requests/:id/reject') @HttpCode(200)
   reject(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.flags.rejectRequest(u.sub, id);
   }
+  @ApiOkResponse({ type: RequestDecisionDto })
   @SuperAdminOnly() @Post('admin/flags/requests/:id/review') @HttpCode(200)
   review(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.flags.reviewEmergency(u.sub, id);
   }
+  @ApiOkResponse({ type: FlagChangeRequestDto, isArray: true })
   @OpsOnly() @Get('admin/flags/emergency-reviews/overdue')
   overdue() {
     return this.flags.overdueEmergencyReviews();
   }
+
+  @ApiOkResponse({ type: FlagAuditDto, isArray: true })
 
   @OpsOnly() @Get('admin/flags/audit')
   @ApiOperation({ summary: 'Flag audit trail; ?format=csv exports (OP-11)' })
@@ -140,11 +160,15 @@ export class ControlPlaneController {
     return rows;
   }
 
+  @ApiOkResponse({ type: PropagationDto })
+
   @OpsOnly() @Get('admin/flags/propagation')
   @ApiOperation({ summary: 'Snapshot version and age per product (OP-11)' })
   propagation() {
     return this.flags.propagation();
   }
+
+  @ApiOkResponse({ type: ProductRegistrationDto })
 
   @SuperAdminOnly() @Put('admin/flags/products/:product')
   async product(@Param('product') product: string, @Body() b: ProductBody) {
@@ -153,6 +177,8 @@ export class ControlPlaneController {
     if (b.active !== undefined) data.active = b.active;
     return this.flags['prisma'].productRegistration.update({ where: { product }, data, select: { product: true, webhookUrl: true, active: true } });
   }
+
+  @ApiOkResponse({ type: SweepResultDto })
 
   @SuperAdminOnly() @Post('admin/flags/sweep') @HttpCode(200)
   sweep() {

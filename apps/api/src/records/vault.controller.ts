@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, StreamableFile } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
@@ -32,12 +32,14 @@ export class VaultController {
 
   @Post('me/vault/uploads') @HttpCode(201) @RequiresFlag('kiorex.record_vault')
   @ApiOperation({ summary: 'KXM-RC-01 upload a PDF/JPEG/PNG to the vault (flag kiorex.record_vault; JSON base64, stored encrypted via the storage adapter)' })
-  @ApiOkResponse({ type: VaultItemDto, status: 201 })
+  @ApiCreatedResponse({ type: VaultItemDto })
   upload(@CurrentUser() u: AuthUser, @Body() b: UploadBody) { return this.svc.upload(u.sub, b); }
 
   @Get('me/vault/:id') @ApiOperation({ summary: 'KXM-RC-01 view a record (owner only; prescriptions include the verification QR payload)' })
   @ApiOkResponse({ type: VaultDetailDto })
   detail(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.detail(u.sub, id); }
+
+  @ApiOkResponse({ description: 'The uploaded file (application/pdf, image/jpeg, image/png)', schema: { type: 'string', format: 'binary' } })
 
   @Get('me/vault/:id/content') @ApiOperation({ summary: 'Download an uploaded file (decrypted on the fly, owner only)' })
   async content(@CurrentUser() u: AuthUser, @Param('id') id: string) {
@@ -70,7 +72,7 @@ export class VaultController {
   followUps(@CurrentUser() u: AuthUser) { return this.svc.followUps(u.sub); }
 
   @Post('me/follow-ups') @HttpCode(201) @ApiOperation({ summary: 'KXM-RC-03 set a follow-up reminder N days from now (optionally tied to a vault record)' })
-  @ApiOkResponse({ type: FollowUpDto, status: 201 })
+  @ApiCreatedResponse({ type: FollowUpDto })
   async createFollowUp(@CurrentUser() u: AuthUser, @Body() b: FollowUpCreateBody) { return b.recordId ? this.svc.followUpForOwner(u.sub, b.recordId, b.afterDays) : this.svc.createFollowUp({ sub: u.sub, afterDays: b.afterDays, source: 'PATIENT' }); }
 
   @Delete('me/follow-ups/:id') @ApiOkResponse({ type: OkDto }) cancelFollowUp(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.cancelFollowUp(u.sub, id); }

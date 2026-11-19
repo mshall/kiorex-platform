@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { ApiError, badRequest } from '../common/errors';
@@ -7,6 +7,7 @@ import { OutboxService } from '../outbox/outbox-public';
 import { AuthSessionService } from './auth-session.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TOKEN_VERIFIER, TokenVerifier } from './token-verifier';
+import { LogoutResultDto, MeDto } from './auth.dto';
 
 class LogoutBody {
   @IsOptional() @IsString() logout_token?: string;
@@ -24,6 +25,8 @@ export class AuthController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @ApiOkResponse({ type: MeDto })
+
   @Get('me')
   @ApiOkResponse({ description: 'Claims of the authenticated Kiorex Account subject' })
   me(@CurrentUser() u: AuthUser) {
@@ -31,6 +34,7 @@ export class AuthController {
   }
 
   /** OIDC back-channel logout (KA05/KA07). Accepts form-encoded or JSON `logout_token`. */
+  @ApiOkResponse({ type: LogoutResultDto })
   @Public() @Post('backchannel-logout') @HttpCode(200)
   async backchannelLogout(@Body() body: LogoutBody) {
     if (!body?.logout_token) throw badRequest('LOGOUT_TOKEN_REQUIRED', 'logout_token is required');

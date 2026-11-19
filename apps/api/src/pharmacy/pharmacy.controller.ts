@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
@@ -55,7 +55,7 @@ export class PharmacyController {
 
   @Post('pharmacy/orders') @HttpCode(201) @RequiresFlag('kiorex.pharmacy_orders')
   @ApiOperation({ summary: 'Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation' })
-  @ApiOkResponse({ type: PharmacyOrderDto, status: 201 })
+  @ApiCreatedResponse({ type: PharmacyOrderDto })
   create(@CurrentUser() u: AuthUser, @Body() b: CreateOrderBody) { return this.svc.createOrder(u.sub, b); }
 
   @Get('pharmacy/orders') @ApiOkResponse({ type: PharmacyOrderDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
@@ -64,6 +64,9 @@ export class PharmacyController {
   @ApiOkResponse({ type: PharmacyOrderDto })
   cancel(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.cancel(u.sub, id); }
 
+  @ApiOkResponse({ schema: { type: 'array', items: { allOf: [{ $ref: '#/components/schemas/PharmacyOrderDto' }, { type: 'object', properties: { sub: { type: 'string' }, platformFeeMinor: { type: 'number' }, takeRateBps: { type: 'number' } } }] } } })
+
   @OpsOnly() @Get('admin/pharmacy/orders') @ApiOperation({ summary: 'OP: pharmacy orders (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @ApiOkResponse({ schema: { type: 'object', properties: { status: { type: 'string', description: 'SUBMITTED | REJECTED | ...' } } } })
   @OpsOnly() @Post('admin/pharmacy/orders/:id/resubmit') @HttpCode(200) @ApiOperation({ summary: 'OP: re-send a PAID order to Kiorly Pharmacy (idempotent)' }) resubmit(@Param('id') id: string) { return this.svc.resubmit(id); }
 }

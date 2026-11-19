@@ -9,22 +9,25 @@
 - **Errors**: JSON `{ code, message, ...extra }`. Examples: `409 SLOT_TAKEN { alternatives[] }`, `503 CLINIC_SYSTEM_BUSY { retryable, bookingId }`, `422 HOLD_EXPIRED { alternatives[] }`, `403 FEATURE_DISABLED { key, scope: GLOBAL|MARKET|ORG|GATE|DEPENDENCY }`.
 - **Market**: optional header `X-Kiorex-Market` (default `EG`) selects market-scope flag evaluation.
 - **Money** is integer minor units (`amountMinor`, piastres). **Booking id** doubles as the Kiorly Idempotency-Key.
-- **Booking flow**: `POST /bookings` (hold) → `POST /bookings/{id}/confirm` (idempotent; safe to retry on 503) → optional `POST /bookings/{id}/deposit-checkout` → hosted checkout URL → status via `GET /bookings/{id}`.
-- **Server-to-server** (not for browsers): `POST /webhooks/kiorly` (Kiorly outbox, `X-Kiorly-Signature: sha256=HMAC(ts.rawBody)`), `POST /pay/webhooks/{psp}`, `GET /control/v1/flags/snapshot` and `POST /pay/links` (product-key HMAC).
-- Full schema: `apps/api/openapi/kiorex-api.v1.openapi.json` (request bodies typed; responses are described here).
-
-## Key response shapes
-
-- **Booking** (`POST /bookings`, `GET /bookings[/id]`): `{ id, status: INTENT|HELD|PENDING_CLINIC|CONFIRMED|CHECKED_IN|COMPLETED|NO_SHOW|CANCELLED|EXPIRED, providerId, clinicId, typeId, startsAt, endsAt, holdExpiresAt, confirmationDueAt, cancelledBy, cancellationReason, failureCode, callState, depositStatus: NONE|REQUIRED|PAID|REFUNDED|FORFEITED|RELEASED, depositAmountMinor, currency, deposit: { paymentId, status, checkoutUrl }|null, doctor, clinic: { nameEn, nameAr, addressEn, addressAr, phone, latitude, longitude }, cancellationPolicy, timeline: [{ status, at }] }`.
-- **Search** (`GET /search/providers`): `{ items: [{ id, nameEn, nameAr, clinicNameEn, clinicNameAr, specialty, governorate, area, minFeeMinor, maxFeeMinor, currency, rating: { average, count }, acceptsDeposit, languages, gender, distanceKm, verified, bookable, defaultTypeId, nextSlots: [{ startsAt, endsAt }]|null, slotsUnavailable, sponsored, clinicPhone? }], total, page, pageSize, sort, specialties[] }`. Emergency text returns `{ emergency: { number: "123", messageEn, messageAr, bookingBlocked: true, categories[] }, items: [] }` — show guidance, never booking.
-- **Flags for UI gating**: `GET /flags/effective?market=EG` → `{ version, flags: { "<key>": { enabled, reason, scope } } }`.
-- **Consents** purposes: `MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING`.
+- **Server-to-server** (not for browsers): `POST /webhooks/kiorly` (Kiorly Clinic outbox, `X-Kiorly-Signature: sha256=HMAC(ts.rawBody)`), `POST /webhooks/pharmacy` and `/webhooks/lab` (same scheme, own secrets), `POST /pay/webhooks/{psp}`, `GET /control/v1/flags/snapshot`, `POST /pay/links` and `/telemedicine/clinician/*` (product-key HMAC), `POST /channels/whatsapp/booking-intents` (HMAC-signed provider inbound).
+- **Response schemas are typed** in `apps/api/openapi/kiorex-api.v1.openapi.json` (every operation has a 2xx body schema; a contract test validates live responses against it). Generate client types from that file instead of hand-typing adapters.
+- **Booking flow**: `POST /bookings` (hold) → `POST /bookings/{id}/confirm` (idempotent; safe to retry on 503) → optional `POST /bookings/{id}/deposit-checkout` → hosted checkout URL → status via `GET /bookings/{id}`. Waitlist offers (`POST /waitlist/offers/{id}/accept`) return the same held booking. WhatsApp bookings are the same bookings with `channel: WHATSAPP`.
+- **Flags for UI gating**: `GET /flags/effective?market=EG` → `{ version, flags: { "<key>": { enabled, reason, scope } } }`. Launch-locked flags (pharmacy, lab, telemedicine, AI navigation, `market.<cc>.live`) report `reason: AWAITING_GATE` until a human records gate evidence. `GET /markets` lists LIVE markets for the sign-up country picker.
+- **Mock providers** (`MESSAGING_MODE=mock`, `VIDEO_MODE=mock`, `PSP_MODE=sandbox-fake`): `/dev/messaging/*` is the dev inbox (simulate patient replies, read the outbox); routes 404 in production or real mode. See Docs/NEEDS_HUMAN.md "Provider go-live".
+- **Consents** purposes: `MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING`; record-share scopes: `VISIT_SUMMARY | PRESCRIPTIONS | LAB_RESULTS | SHARE_WITH_OTHER_CLINICS`.
+- **Emergency routing** is a safety control, never a flag: search/AI/WhatsApp/telemedicine matching return `emergency { number: "123", bookingBlocked: true }` for emergency language.
 
 ## ai
 
 | Method | Path | Summary |
 |---|---|---|
 | POST | `/api/v1/navigation/symptoms` | Symptom → specialty navigation (emergency check first; AI only when kiorex.ai_navigation is effective, else keyword map) |
+
+## analytics
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/analytics/events` | KX-03 §07 client analytics (PHI-free whitelist, anonymous, all-or-nothing batch) |
 
 ## auth
 
@@ -56,6 +59,14 @@
 | GET | `/api/v1/providers/{id}` | KXM-PR-01/02/04 provider profile |
 | GET | `/api/v1/providers/{id}/slots` | KXM-BK-01 slots from Kiorly (60 s cache) |
 | POST | `/api/v1/providers/{id}/view` | KXM-DS-08 count a profile view (pushed daily to Kiorly) |
+| GET | `/api/v1/search/sponsored` | Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled |
+
+## channels
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/channels/whatsapp/booking-intents` | KXM-BK-11 WhatsApp inbound (normalised, HMAC-signed). Server-to-server; the booking conversation runs from here |
+| GET | `/api/v1/dev/channels/whatsapp/conversation` | DEV: current WhatsApp conversation state for a phone |
 
 ## control-plane
 
@@ -78,6 +89,15 @@
 | PUT | `/api/v1/admin/flags/products/{product}` |  |
 | POST | `/api/v1/admin/flags/sweep` |  |
 
+## dev
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/dev/messaging/inbound` | DEV: simulate a patient reply on a channel (drives the WhatsApp booking state machine) |
+| GET | `/api/v1/dev/messaging/outbox` | DEV: messages the platform "sent" (all channels), newest first |
+| DELETE | `/api/v1/dev/messaging/outbox` | DEV: clear the dev inbox |
+| POST | `/api/v1/dev/messaging/delivery-tick` | DEV: advance SENT -> DELIVERED for all mock messages |
+
 ## engagement
 
 | Method | Path | Summary |
@@ -94,6 +114,25 @@
 | GET | `/api/v1/health/live` |  |
 | GET | `/api/v1/health/ready` |  |
 
+## lab
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/lab/tests` | Lab test catalogue search |
+| GET | `/api/v1/lab/slots` | Collection slots (home collection or walk-in) from the lab |
+| POST | `/api/v1/lab/bookings` | Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab |
+| GET | `/api/v1/lab/bookings` |  |
+| GET | `/api/v1/lab/bookings/{id}` |  |
+| POST | `/api/v1/lab/bookings/{id}/cancel` |  |
+| GET | `/api/v1/admin/lab/bookings` | OP: lab bookings (status filter) |
+| POST | `/api/v1/admin/lab/bookings/{id}/resubmit` | OP: re-send a PAID booking to Kiorly Lab (idempotent) |
+
+## market
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/markets` | Markets (countries) that are LIVE; use for the sign-up country picker. ?all=true also lists gated markets with their state |
+
 ## ops
 
 | Method | Path | Summary |
@@ -106,6 +145,7 @@
 | POST | `/api/v1/admin/outbox/{id}/replay` | KXM-OP-03 replay a DEAD/FAILED event |
 | GET | `/api/v1/admin/payments/dashboard` | KXM-OP-04 refunds, payouts, reconciliation dashboard |
 | POST | `/api/v1/admin/payments/refund` |  |
+| GET | `/api/v1/admin/fee-statements` | Kiorex's own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line. |
 | POST | `/api/v1/admin/payouts/run` |  |
 | POST | `/api/v1/admin/reconciliation/psp/run` |  |
 | POST | `/api/v1/admin/reconciliation/psp/import` |  |
@@ -118,6 +158,10 @@
 | GET | `/api/v1/admin/liquidity` | KXM-OP-06 cluster liquidity metrics |
 | GET | `/api/v1/admin/circuits` |  |
 | GET | `/api/v1/admin/messages` |  |
+| GET | `/api/v1/admin/messaging/stats` | OP: unified messaging (email/whatsapp/sms/push) mode and counts per channel/status |
+| GET | `/api/v1/admin/messaging/log` | OP: unified message log (recipient masked; body only present in mock mode) |
+| POST | `/api/v1/admin/messaging/log/{id}/simulate` | OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling |
+| POST | `/api/v1/admin/messaging/delivery-tick` |  |
 | GET | `/api/v1/admin/audit-log` |  |
 
 ## patient
@@ -151,17 +195,52 @@
 | GET | `/api/v1/pay/fake-checkout/{id}` |  |
 | POST | `/api/v1/pay/fake-checkout/{id}/complete` |  |
 
-## phase2
+## pharmacy
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/pharmacy/orders` | Pharmacy order (launch-locked, phase 2) |
-| POST | `/api/v1/lab/bookings` | Lab booking (launch-locked, phase 2) |
-| POST | `/api/v1/telemedicine/sessions` | Telemedicine (launch-locked) |
-| POST | `/api/v1/me/vault/uploads` | Patient vault upload (phase 1b); vault stays readable when OFF |
-| GET | `/api/v1/me/vault` | Vault is always readable (OFF never hides data) |
-| POST | `/api/v1/channels/whatsapp/booking-intents` | KXM-BK-11 WhatsApp booking channel (P2) |
-| GET | `/api/v1/search/sponsored` | Sponsored listings (P3); labelled when on |
+| GET | `/api/v1/pharmacy/pharmacies` | Pharmacies that accept Kiorex orders (from Kiorly Pharmacy) |
+| GET | `/api/v1/pharmacy/search` | Medicine search with availability-to-promise (controlled medicines are never returned) |
+| GET | `/api/v1/pharmacy/cart` |  |
+| PUT | `/api/v1/pharmacy/cart` | Replace the cart (one pharmacy per cart); prices come from the pharmacy quote |
+| DELETE | `/api/v1/pharmacy/cart` |  |
+| PUT | `/api/v1/pharmacy/cart/delivery` | Delivery choice: PICKUP or DELIVERY (with address) |
+| POST | `/api/v1/pharmacy/orders` | Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation |
+| GET | `/api/v1/pharmacy/orders` |  |
+| GET | `/api/v1/pharmacy/orders/{id}` |  |
+| POST | `/api/v1/pharmacy/orders/{id}/cancel` | Cancel before the pharmacy marks it ready; paid orders are refunded automatically |
+| GET | `/api/v1/admin/pharmacy/orders` | OP: pharmacy orders (status filter) |
+| POST | `/api/v1/admin/pharmacy/orders/{id}/resubmit` | OP: re-send a PAID order to Kiorly Pharmacy (idempotent) |
+
+## records
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/me/vault` | KXM-RC-01 patient vault: shared + uploaded records (always readable; readOnly=true when kiorex.record_vault is OFF) |
+| POST | `/api/v1/me/vault/uploads` | KXM-RC-01 upload a PDF/JPEG/PNG to the vault (flag kiorex.record_vault; JSON base64, stored encrypted via the storage adapter) |
+| GET | `/api/v1/me/vault/{id}` | KXM-RC-01 view a record (owner only; prescriptions include the verification QR payload) |
+| DELETE | `/api/v1/me/vault/{id}` | KXM-RC-01 revoke/delete a record from the vault (always allowed, even when the vault flag is OFF) |
+| GET | `/api/v1/me/vault/{id}/content` | Download an uploaded file (decrypted on the fly, owner only) |
+| GET | `/api/v1/me/record-sharing` | KXM-RC-01 record-share consent per scope (VISIT_SUMMARY, PRESCRIPTIONS, LAB_RESULTS, SHARE_WITH_OTHER_CLINICS) |
+| PUT | `/api/v1/me/record-sharing/{scope}` | Grant (needs flags kiorex.record_vault + clinic.record_share_patient_app) or revoke (always allowed; deletes Kiorex copies and tells Kiorly) |
+| GET | `/api/v1/me/prescriptions` | KXM-RC-02 prescriptions with verification QR payloads |
+| GET | `/api/v1/rx/verify` | KXM-RC-02 pharmacist check of a prescription QR token: validity, issuing clinic id and signed date only (no patient data) |
+| GET | `/api/v1/me/follow-ups` | KXM-RC-03 follow-up reminders (doctor-specified or patient-set) |
+| POST | `/api/v1/me/follow-ups` | KXM-RC-03 set a follow-up reminder N days from now (optionally tied to a vault record) |
+| DELETE | `/api/v1/me/follow-ups/{id}` |  |
+
+## telemedicine
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/telemedicine/providers` | Matching: video-capable doctors for a specialty/keyword (emergency language returns 123 guidance, no results) |
+| POST | `/api/v1/telemedicine/sessions` | Create the video session for your confirmed booking (idempotent per booking) |
+| GET | `/api/v1/telemedicine/sessions` |  |
+| GET | `/api/v1/telemedicine/sessions/{id}` |  |
+| POST | `/api/v1/telemedicine/sessions/{id}/join` | Join: issues a room token (MOCK video provider: fake token). Room opens 15 min before the visit |
+| POST | `/api/v1/telemedicine/sessions/{id}/end` |  |
+| POST | `/api/v1/telemedicine/clinician/bookings/{bookingId}/token` | Kiorly Clinic (product-key HMAC): clinician room token for a Kiorex booking id |
+| POST | `/api/v1/telemedicine/clinician/bookings/{bookingId}/end` | Kiorly Clinic (product-key HMAC): end the session |
 
 ## trust
 
@@ -173,8 +252,21 @@
 | GET | `/api/v1/providers/{id}/reviews` | KXM-PR-03 latest 20 visible reviews with clinic replies |
 | POST | `/api/v1/complaints` |  |
 
+## waitlist
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/waitlist` | KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type) |
+| GET | `/api/v1/waitlist` | KXM-BK-12 my waitlist entries with their offers |
+| DELETE | `/api/v1/waitlist/{id}` |  |
+| POST | `/api/v1/waitlist/offers/{id}/accept` | KXM-BK-12 accept an offered slot: creates the normal 5-minute hold (returns the booking; then POST /bookings/{id}/confirm). 409 SLOT_TAKEN / 410 OFFER_EXPIRED |
+| POST | `/api/v1/waitlist/offers/{id}/decline` |  |
+| POST | `/api/v1/admin/waitlist/scan` | OP: run the waitlist autofill scan now |
+
 ## webhooks
 
 | Method | Path | Summary |
 |---|---|---|
 | POST | `/api/v1/webhooks/kiorly` | Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId |
+| POST | `/api/v1/webhooks/pharmacy` | Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET |
+| POST | `/api/v1/webhooks/lab` | Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET |
