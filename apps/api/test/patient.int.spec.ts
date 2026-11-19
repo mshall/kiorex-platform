@@ -1,4 +1,6 @@
 import { createCtx, TestCtx } from './harness';
+import { OutboxService } from '../src/outbox/outbox-public';
+import { PatientService } from '../src/patient/patient-public';
 
 describe('patient & auth (KXM-AC-01..07, KA05/07)', () => {
   let c: TestCtx;
@@ -97,12 +99,12 @@ describe('patient & auth (KXM-AC-01..07, KA05/07)', () => {
     await c.http().put('/api/v1/me/profile').set(await c.as('sub_hassan')).send({ nameEn: 'Hassan Ali' }).expect(200);
     const lt = await c.logoutToken({ sub: 'sub_hassan', event: 'subject.deleted' });
     await c.http().post('/api/v1/auth/backchannel-logout').send({ logout_token: lt }).expect(200);
-    await c.get(require('../src/outbox/outbox-public').OutboxService).processBatch();
+    await c.get(OutboxService).processBatch();
     expect((await c.prisma.patientProfile.findUniqueOrThrow({ where: { sub: 'sub_hassan' } })).nameEn).toBeNull();
   });
 
   it('KXM-AC-07 Kiorly record link: first link recorded; a different Kiorly patient is parked, never merged', async () => {
-    const svc = c.get(require('../src/patient/patient-public').PatientService);
+    const svc = c.get(PatientService);
     const a = await svc.linkKiorlyPatient({ sub: 'sub_amira', clinicId: 'cl_1', kiorlyPatientId: 'pat_1', evidence: 'PHONE' });
     expect(a.status).toBe('LINKED');
     const same = await svc.linkKiorlyPatient({ sub: 'sub_amira', clinicId: 'cl_1', kiorlyPatientId: 'pat_1', evidence: 'PHONE' });

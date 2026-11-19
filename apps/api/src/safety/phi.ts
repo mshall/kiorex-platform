@@ -7,7 +7,7 @@ const RE: [PhiKind, RegExp][] = [
   ['URL', /\bhttps?:\/\/\S+/gi],
   ['NATIONAL_ID', /(?<!\d)[23]\d{13}(?!\d)/g], // Egyptian national ID: 14 digits starting 2/3
   ['PHONE', /(?<!\d)(?:\+?20|0)?1[0-25]\d{8}(?!\d)|(?<!\d)\+?\d[\d\s-]{8,13}\d(?!\d)/g],
-  ['NAME_CLAIM', /\b(?:my name is|i am|i'm)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?|(?:اسمي|انا)\s+[؀-ۿ]{2,}(?:\s+[؀-ۿ]{2,})?/g],
+  ['NAME_CLAIM', /\b(?:[Mm]y name is|[Ii] am|[Ii]'m)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?|(?:اسمي|انا)\s+[؀-ۿ]{2,}(?:\s+[؀-ۿ]{2,})?/g],
 ];
 
 function arabicDigitsToAscii(s: string) {

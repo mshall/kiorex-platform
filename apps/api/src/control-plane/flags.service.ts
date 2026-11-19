@@ -4,7 +4,7 @@ import { FlagDefinition, FlagValue, Prisma } from '@prisma/client';
 import { cfg } from '../common/config';
 import { decryptField, encryptField } from '../common/crypto';
 import { badRequest, forbidden, notFound, conflict } from '../common/errors';
-import { OutboxService } from '../outbox/outbox.service';
+import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG_CATALOGUE, FlagDef, FlagScope, PRODUCTS } from './flag-catalogue';
 import { EvalContext, EvalResult, evaluateFlag, SnapshotFlag } from './flag-evaluator';

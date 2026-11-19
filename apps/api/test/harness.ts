@@ -7,6 +7,8 @@ import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/app.setup';
 import { TOKEN_VERIFIER, JoseTokenVerifier } from '../src/auth/auth-public';
 import { FlagsService } from '../src/control-plane/control-plane-public';
+import { KiorlyClient } from '../src/kiorly/kiorly-public';
+import { CatalogService } from '../src/catalog/catalog-public';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { FakeKiorly } from './fake-kiorly';
 import { signControlPlaneRequest, signWebhook } from '@kiorex/contracts';
@@ -61,7 +63,7 @@ export async function createCtx(): Promise<TestCtx> {
     get: (c) => app.get(c as any),
     reset: async () => {
       kiorly.reset();
-      app.get(require('../src/kiorly/kiorly-public').KiorlyClient).resetCircuit();
+      app.get(KiorlyClient).resetCircuit();
       const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations'`;
       await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(',')} RESTART IDENTITY CASCADE`);
       await flags.seed();
@@ -84,7 +86,7 @@ export const hmacHex = (secret: string, raw: string) => createHmac('sha256', sec
 export async function seedProvider(ctx: TestCtx, o: Parameters<typeof FakeKiorly.provider>[0] = {}) {
   const dto = FakeKiorly.provider(o);
   ctx.kiorly.providers.push(dto);
-  await ctx.get(require('../src/catalog/catalog-public').CatalogService).syncOnce();
+  await ctx.get(CatalogService).syncOnce();
   return dto.listingId as string;
 }
 

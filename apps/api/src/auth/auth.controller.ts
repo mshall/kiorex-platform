@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { ApiError, badRequest } from '../common/errors';
-import { OutboxService } from '../outbox/outbox.service';
+import { OutboxService } from '../outbox/outbox-public';
 import { AuthSessionService } from './auth-session.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TOKEN_VERIFIER, TokenVerifier } from './token-verifier';
