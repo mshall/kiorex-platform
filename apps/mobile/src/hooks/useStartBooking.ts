@@ -22,10 +22,10 @@ export function useStartBooking() {
     setFailed(false); setUnavailable(false); lastDoctor.current = doctor.id;
     if (status !== "signedIn") { router.push({ pathname: "/sign-in", params: { next: `/doctor/${doctor.id}` } }); return; }
     hold.mutate({ providerId: doctor.id, typeId: slot.visitTypeId, startsAt: slot.startsAt, endsAt: slot.endsAt, dependantId: selected?.dependantId }, {
-      onSuccess: (b) => { track("hold_created", { doctorId: doctor.id, visitTypeId: slot.visitTypeId, bookingId: b.id }); router.push(`/checkout/${b.id}`); },
+      onSuccess: (b) => { track("booking_started", { providerId: doctor.id }); router.push(`/checkout/${b.id}`); },
       onError: (e) => {
         const a = classifyBookingError(e);
-        track("booking_failed", { code: a.kind === "generic" ? a.code : a.kind.toUpperCase(), doctorId: doctor.id });
+        track("booking_failed", { code: a.kind === "generic" ? a.code : a.kind.toUpperCase(), providerId: doctor.id });
         if (a.kind === "slot_taken") setAlternatives(a.alternatives.map((x) => ({ slotId: x.startsAt, startsAt: x.startsAt, endsAt: x.endsAt, visitTypeId: slot.visitTypeId })));
         else if (a.kind === "unavailable") setUnavailable(true);
         else setFailed(true);

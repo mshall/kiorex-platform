@@ -2,6 +2,7 @@ import createClient, { type Middleware } from "openapi-fetch";
 import type { paths } from "./schema";
 import { toApiError } from "./errors";
 import { config } from "@/lib/config";
+import i18n from "@/i18n";
 
 type TokenGetter = () => Promise<string | null>;
 let getToken: TokenGetter = async () => null;
@@ -16,7 +17,7 @@ const auth: Middleware = {
   async onRequest({ request }) {
     const token = await getToken();
     if (token) request.headers.set("Authorization", `Bearer ${token}`);
-    request.headers.set("Accept-Language", "ar");
+    request.headers.set("Accept-Language", i18n.language?.startsWith("en") ? "en" : "ar");
     return request;
   },
   async onResponse({ response }) {

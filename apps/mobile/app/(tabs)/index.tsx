@@ -11,6 +11,9 @@ import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { Icon } from "@/components/Icon";
 import { Wordmark } from "@/components/Logo";
 import { Badge, Button, Card, Chip, Field, Row, T } from "@/components/ui";
+import { MarketGateBanner } from "@/components/feature";
+import { useFeature } from "@/hooks/useFeature";
+import type { IconName } from "@/components/Icon";
 import { isEmergencyQuery } from "@/lib/emergency";
 import { isUpcoming } from "@/lib/booking-state";
 import { formatDayLong, formatTime, pick } from "@/lib/format";
@@ -18,6 +21,37 @@ import { getRecent, type RecentDoctor } from "@/lib/recent";
 import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import { useTheme } from "@/theme";
 import { usePatient } from "@/hooks/usePatient";
+
+function Tile({ icon, label, flag, href, testID }: { icon: IconName; label: string; flag: string; href: string; testID: string }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const router = useRouter();
+  const f = useFeature(flag);
+  return (
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={f.enabled ? label : `${label}. ${t("unavailable.title")}`} onPress={() => router.push(href as never)}
+      style={{ flexBasis: "47%", flexGrow: 1, minHeight: 88, padding: 12, gap: 8, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, opacity: f.enabled ? 1 : 0.7 }}>
+      <Icon name={icon} color={f.enabled ? colors.ink : colors.muted} />
+      <T weight="semibold">{label}</T>
+      {f.enabled ? null : <Badge tone="warning" label={t("unavailable.short")} />}
+    </Pressable>
+  );
+}
+
+/** Patient services. A tile stays visible when its flag is OFF and opens a localized "temporarily unavailable" state (never a dead end). */
+function Services() {
+  const { t } = useTranslation();
+  return (
+    <View style={{ gap: 10 }}>
+      <T variant="h2" accessibilityRole="header">{t("home.services")}</T>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        <Tile testID="tile-pharmacy" icon="pill" label={t("services.pharmacy")} flag="kiorex.pharmacy_orders" href="/pharmacy" />
+        <Tile testID="tile-lab" icon="flask" label={t("services.lab")} flag="kiorex.lab_bookings" href="/lab" />
+        <Tile testID="tile-tele" icon="video" label={t("services.telemedicine")} flag="kiorex.telemedicine" href="/telemedicine" />
+        <Tile testID="tile-waitlist" icon="clock" label={t("services.waitlist")} flag="kiorex.marketplace" href="/waitlist" />
+      </View>
+    </View>
+  );
+}
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -38,7 +72,7 @@ export default function Home() {
   const upcoming = (bookings.data ?? []).filter((b) => isUpcoming(b)).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const submit = () => {
     if (emergency || !q.trim()) return;
-    track("search_started", { specialty: mapKeywordToSpecialty(q) }); // keyword → specialty code BEFORE logging
+    track("search_started", { specialtyCode: mapKeywordToSpecialty(q) }); // keyword → specialty code BEFORE logging
     router.push({ pathname: "/results", params: { q: q.trim() } });
   };
   const name = user?.name ?? selected?.name;
@@ -61,10 +95,13 @@ export default function Home() {
         <T variant="h2">{t("search.specialties")}</T>
         <Row style={{ flexWrap: "wrap" }} gap={8}>
           {(specialties.data ?? []).map((s) => (
-            <Chip key={s.code} testID={`chip-${s.code}`} label={pick(s, "name", lang)} onPress={() => { track("search_started", { specialty: s.code }); router.push({ pathname: "/results", params: { specialty: s.code } }); }} />
+            <Chip key={s.code} testID={`chip-${s.code}`} label={pick(s, "name", lang)} onPress={() => { track("search_started", { specialtyCode: s.code }); router.push({ pathname: "/results", params: { specialty: s.code } }); }} />
           ))}
         </Row>
       </View>
+
+      <MarketGateBanner />
+      <Services />
 
       {signedIn ? <FamilySwitcher /> : (
         <Card style={{ gap: 10 }}>

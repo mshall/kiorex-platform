@@ -17,6 +17,7 @@ import { dayKey, formatDay, formatDayLong, formatMoney, formatNumber, formatTime
 import { addRecent } from "@/lib/recent";
 import { directionsUrl, telUrl } from "@/lib/calendar";
 import { track } from "@/lib/analytics";
+import { WaitlistJoin } from "@/components/WaitlistJoin";
 import { useTheme } from "@/theme";
 
 export default function DoctorProfile() {
@@ -46,7 +47,7 @@ export default function DoctorProfile() {
   }, [slots.data]);
   const days = [...byDay.keys()];
   useEffect(() => { if (days.length && (!day || !byDay.has(day))) { setDay(days[0]); setSlot(undefined); } }, [days, day, byDay]);
-  useEffect(() => { if (slots.data?.length) track("slot_viewed", { doctorId: id, visitTypeId: typeId }); }, [slots.data?.length, id, typeId]);
+  useEffect(() => { if (slots.data?.length) track("slot_viewed", { providerId: id }); }, [slots.data?.length, id, typeId]);
 
   if (doctor.isLoading) return <LoadingState />;
   if (doctor.error || !d) return <ErrorState error={doctor.error} onRetry={() => void doctor.refetch()} />;
@@ -100,6 +101,8 @@ export default function DoctorProfile() {
             )}
           </Card>
         ) : null}
+
+        {bookable ? <WaitlistJoin providerId={id} typeId={typeId} /> : null}
 
         {/* Cancellation policy is shown BEFORE booking (KX-03 §06). Wording comes from the clinic; no refund terms are invented here. */}
         <Card testID="policy" style={{ gap: 6 }}>

@@ -19,7 +19,7 @@ export interface CancellationPolicy { freeCancelHoursBefore: number | null; depo
 export interface DoctorProfile { summary: DoctorSummary; visitTypes: VisitType[]; clinic: Clinic; cancellationPolicy: CancellationPolicy; bookable: boolean; titleAr: string | null; titleEn: string | null }
 export interface Review { id: string; rating: number; text: string | null; createdAt: string; clinicReply: string | null }
 export interface ReviewList { average: number | null; count: number; items: Review[] }
-export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean }
+export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean; marketsLive?: string[] }
 
 export type Patient = S["PatientProfileDto"];
 export type FamilyMember = S["DependantDto"];

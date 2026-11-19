@@ -14,6 +14,7 @@ export default function TabsLayout() {
     }}>
       <Tabs.Screen name="index" options={{ title: t("tabs.home"), tabBarButtonTestID: "tab-home", tabBarIcon: ({ color }) => <Icon name="home" color={color as string} /> }} />
       <Tabs.Screen name="appointments" options={{ title: t("tabs.appointments"), tabBarButtonTestID: "tab-appointments", tabBarIcon: ({ color }) => <Icon name="calendar" color={color as string} /> }} />
+      <Tabs.Screen name="records" options={{ title: t("tabs.records"), tabBarButtonTestID: "tab-records", tabBarIcon: ({ color }) => <Icon name="file" color={color as string} /> }} />
       <Tabs.Screen name="account" options={{ title: t("tabs.account"), tabBarButtonTestID: "tab-account", tabBarIcon: ({ color }) => <Icon name="user" color={color as string} /> }} />
     </Tabs>
   );

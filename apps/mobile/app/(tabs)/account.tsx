@@ -60,6 +60,10 @@ export default function Account() {
       </Card>
       <Card style={{ paddingVertical: 4 }}>
         <NavRow testID="nav-family" icon="users" label={t("account.familyTitle")} onPress={() => router.push("/settings/family")} />
+        <NavRow testID="nav-sharing" icon="lock" label={t("records.sharing")} onPress={() => router.push("/records/sharing")} />
+        <NavRow testID="nav-pharmacy-orders" icon="pill" label={t("pharmacy.myOrders")} onPress={() => router.push("/pharmacy/orders")} />
+        <NavRow testID="nav-lab-bookings" icon="flask" label={t("lab.myBookings")} onPress={() => router.push("/lab/bookings")} />
+        <NavRow testID="nav-followups-acc" icon="bell" label={t("records.followUps")} onPress={() => router.push("/records/follow-ups")} />
         <NavRow testID="nav-consents" icon="shield" label={t("account.consentsTitle")} onPress={() => router.push("/settings/consents")} />
         <NavRow testID="nav-sessions" icon="device" label={t("account.sessionsTitle")} onPress={() => router.push("/settings/sessions")} />
       </Card>

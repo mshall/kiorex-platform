@@ -14,11 +14,15 @@ import { AuthProvider } from "@/auth/AuthProvider";
 import { PatientProvider } from "@/hooks/usePatient";
 import { setAnalyticsSink } from "@/lib/analytics";
 import { ApiError } from "@/api/errors";
+import { api } from "@/api/client";
 
 void SplashScreen.preventAutoHideAsync();
 
-// Analytics: privacy-safe whitelist only (lib/analytics). The API has no client ingestion endpoint yet, so events are logged (log mode).
-setAnalyticsSink((batch) => { if (__DEV__) console.log("[analytics]", JSON.stringify(batch.map((e) => ({ n: e.name, p: e.props })))); });
+// Analytics: privacy-safe whitelist only (lib/analytics) → POST /analytics/events (public, fire-and-forget; never blocks the UI).
+setAnalyticsSink((batch) => {
+  if (__DEV__) console.log("[analytics]", JSON.stringify(batch.map((e) => ({ n: e.name, p: e.props }))));
+  void api.POST("/api/v1/analytics/events", { body: { events: batch.map((e) => ({ name: e.name, props: e.props })) } }).catch(() => {});
+});
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } },
@@ -45,6 +49,19 @@ function Shell() {
         <Stack.Screen name="settings/consents" options={{ title: t("account.consentsTitle") }} />
         <Stack.Screen name="settings/sessions" options={{ title: t("account.sessionsTitle") }} />
         <Stack.Screen name="settings/delete" options={{ title: t("account.deleteTitle") }} />
+        <Stack.Screen name="waitlist" options={{ title: t("waitlist.title") }} />
+        <Stack.Screen name="records/[id]" options={{ title: t("records.title") }} />
+        <Stack.Screen name="records/sharing" options={{ title: t("records.sharing") }} />
+        <Stack.Screen name="records/follow-ups" options={{ title: t("records.followUps") }} />
+        <Stack.Screen name="pharmacy/index" options={{ title: t("services.pharmacy") }} />
+        <Stack.Screen name="pharmacy/cart" options={{ title: t("pharmacy.cart") }} />
+        <Stack.Screen name="pharmacy/orders" options={{ title: t("pharmacy.myOrders") }} />
+        <Stack.Screen name="pharmacy/order/[id]" options={{ title: t("pharmacy.orderTitle") }} />
+        <Stack.Screen name="lab/index" options={{ title: t("services.lab") }} />
+        <Stack.Screen name="lab/bookings" options={{ title: t("lab.myBookings") }} />
+        <Stack.Screen name="lab/booking/[id]" options={{ title: t("lab.bookingTitle") }} />
+        <Stack.Screen name="telemedicine/index" options={{ title: t("services.telemedicine") }} />
+        <Stack.Screen name="telemedicine/room/[id]" options={{ title: t("tele.roomTitle") }} />
         <Stack.Screen name="+not-found" options={{ title: t("notFound.title") }} />
       </Stack>
     </>

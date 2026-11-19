@@ -1,28 +1,32 @@
-import { flushAnalytics, mapKeywordToSpecialty, sanitize, setAnalyticsSink, track } from "@/lib/analytics";
+import { CLIENT_EVENTS, flushAnalytics, mapKeywordToSpecialty, sanitize, setAnalyticsSink, track } from "@/lib/analytics";
 
-describe("privacy-safe analytics (KX-03 §07)", () => {
-  it("drops non-whitelisted keys (no symptoms / free text)", () => {
-    expect(sanitize({ specialty: "cardiology", symptom: "chest pain", query: "my diagnosis", resultCount: 3 })).toEqual({ specialty: "cardiology", resultCount: 3 });
+describe("privacy-safe analytics (KX-03 §07) — mirrors the API whitelist", () => {
+  it("drops non-whitelisted keys (no symptoms / free text / ids of people)", () => {
+    expect(sanitize({ specialtyCode: "cardiology", symptom: "chest pain", query: "my diagnosis", bookingId: "b1", rating: 5 })).toEqual({ specialtyCode: "cardiology" });
   });
-  it("drops long strings even under an allowed key", () => expect(sanitize({ code: "x".repeat(80) })).toEqual({}));
+  it("drops values the API would reject (whole batch is all-or-nothing server-side)", () => {
+    expect(sanitize({ code: "x".repeat(80), providerId: "has space", market: "egypt", specialtyCode: "other" })).toEqual({});
+    expect(sanitize({ code: "SLOT_TAKEN", providerId: "kx_prov-1", market: "EG" })).toEqual({ code: "SLOT_TAKEN", providerId: "kx_prov-1", market: "EG" });
+  });
   it("maps keywords to specialty codes and never returns raw text", () => {
     expect(mapKeywordToSpecialty("طبيب أسنان")).toBe("dentistry");
-    expect(mapKeywordToSpecialty("my knee hurts after a fall")).toBe("other");
+    expect(mapKeywordToSpecialty("باطنة")).toBe("internal_medicine");
+    expect(mapKeywordToSpecialty("my knee hurts after a fall")).toBeNull();
   });
-  it("batches events with a mobile platform tag and sanitized props", () => {
+  it("only the server's event names exist", () => expect(CLIENT_EVENTS).toContain("waitlist_joined"));
+  it("batches events with sanitized props and drops unknown event names", () => {
     const sink = jest.fn();
     setAnalyticsSink(sink);
-    track("search_started", { specialty: "dentistry", note: "free text" } as never);
+    track("search_started", { specialtyCode: "dentistry", note: "free text" } as never);
+    track("hold_created" as never);
     flushAnalytics();
-    expect(sink).toHaveBeenCalledTimes(1);
     const [batch] = sink.mock.calls[0];
-    expect(batch[0].name).toBe("search_started");
-    expect(batch[0].props).toEqual({ platform: "mobile", specialty: "dentistry" });
+    expect(batch).toEqual([{ name: "search_started", props: { specialtyCode: "dentistry" } }]);
     setAnalyticsSink(null);
   });
   it("never throws if the sink does", () => {
     setAnalyticsSink(() => { throw new Error("boom"); });
-    track("results_viewed", { resultCount: 1 });
+    track("results_viewed");
     expect(() => flushAnalytics()).not.toThrow();
     setAnalyticsSink(null);
   });

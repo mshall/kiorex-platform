@@ -20,7 +20,7 @@ export function mapSearchItem(i: Partial<S["SearchItemDto"]> & { id: string; pho
 }
 
 export function mapSearch(r: S["SearchResultDto"]): SearchResponse {
-  return { items: r.items.map(mapSearchItem), total: r.total, page: r.page, pageSize: r.pageSize, emergency: !!r.emergency };
+  return { items: r.items.map(mapSearchItem), total: r.total, page: r.page, pageSize: r.pageSize, emergency: !!r.emergency, marketsLive: r.marketsLive };
 }
 
 /** The wire cancellationPolicy is Kiorly's free-form object: read the hours defensively, never invent a refund policy. */

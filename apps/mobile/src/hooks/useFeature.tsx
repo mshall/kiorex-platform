@@ -11,6 +11,6 @@ export function useFeature(key: string) {
 }
 
 export function FeatureGate({ flag, children, fallback }: { flag: string; children: ReactNode; fallback?: ReactNode }) {
-  const { enabled } = useFeature(flag);
-  return <>{enabled ? children : fallback ?? <UnavailableState featureKey={flag} />}</>;
+  const { enabled, scope } = useFeature(flag);
+  return <>{enabled ? children : fallback ?? <UnavailableState featureKey={flag} scope={scope} />}</>;
 }

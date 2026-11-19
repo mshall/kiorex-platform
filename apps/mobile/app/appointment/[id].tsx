@@ -6,6 +6,8 @@ import { useBooking, useCancelBooking, useMyReviews, useRescheduleBooking, useSl
 import type { Slot } from "@/api/types";
 import { SlotButton, VerifiedBadge } from "@/components/bits";
 import { Icon } from "@/components/Icon";
+import { ChannelBadge } from "@/components/feature";
+import { useCreateTeleSession } from "@/api/features";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { Badge, Banner, Button, Card, Row, Screen, Sheet, T } from "@/components/ui";
@@ -29,6 +31,8 @@ export default function AppointmentDetail() {
   const reviews = useMyReviews(b?.status === "COMPLETED");
   const reviewsOn = useFeature("kiorex.reviews");
   const { pay, busy } = useDepositPay();
+  const tele = useCreateTeleSession();
+  const teleOn = useFeature("kiorex.telemedicine");
   const [sheet, setSheet] = useState<"cancel" | "reschedule" | null>(null);
   const [pick1, setPick1] = useState<Slot>();
   const [msg, setMsg] = useState<string | null>(null);
@@ -51,7 +55,7 @@ export default function AppointmentDetail() {
       <Screen testID="appointment" style={{ gap: 14 }}>
         <Card style={{ gap: 8 }}>
           <Row style={{ justifyContent: "space-between" }}><T variant="title" style={{ flex: 1 }} accessibilityRole="header">{b.doctor ? pick(b.doctor, "name", lang) : ""}</T><Badge testID="status-badge" tone={b.status === "CONFIRMED" || b.status === "COMPLETED" ? "success" : b.status === "CANCELLED" || b.status === "NO_SHOW" ? "danger" : "warning"} label={t(`status.${b.status}`)} /></Row>
-          <VerifiedBadge />
+          <Row style={{ flexWrap: "wrap" }}><VerifiedBadge /><ChannelBadge channel={b.channel} /></Row>
           <Row gap={6}><Icon name="calendar" size={18} color={colors.ink2} /><T>{formatDayLong(b.startsAt, lang)} · <T weight="bold">{formatTime(b.startsAt, lang)}</T></T></Row>
           {clinic ? <Row gap={6} style={{ alignItems: "flex-start" }}><Icon name="pin" size={18} color={colors.ink2} /><View style={{ flex: 1 }}><T weight="medium">{pick(clinic, "name", lang)}</T><T variant="small" muted>{pick(clinic, "address", lang)}</T></View></Row> : null}
         </Card>
@@ -87,6 +91,7 @@ export default function AppointmentDetail() {
           </Row>
         ) : null}
 
+        {b.status === "CONFIRMED" && teleOn.enabled ? <Button testID="video-visit" icon="video" variant="secondary" loading={tele.isPending} title={t("tele.startVideo")} onPress={() => tele.mutate(b.id, { onSuccess: (s) => router.push(`/telemedicine/room/${s.id}`), onError: () => setMsg(t("tele.notVideoVisit")) })} /> : null}
         {b.status === "CONFIRMED" ? <Button testID="reschedule" variant="secondary" title={t("appointment.reschedule")} onPress={() => { setPick1(undefined); setSheet("reschedule"); }} /> : null}
         {active ? <Button testID="cancel-booking" variant="danger" title={t("appointment.cancel")} onPress={() => setSheet("cancel")} /> : null}
         {canReview(b, reviewedIds) && reviewsOn.enabled ? <Button testID="leave-review" icon="star" title={t("appointment.leaveReview")} onPress={() => router.push(`/review/${b.id}`)} /> : null}

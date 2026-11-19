@@ -74,7 +74,6 @@ export default function Checkout() {
     // The server uses the booking id as the idempotency key: tapping twice or retrying can never create a second booking.
     confirm.mutate({ id: b.id, marketplaceConsent: consentData, remindersConsent: consentReminders }, {
       onSuccess: async (res) => {
-        track("booking_confirmed", { bookingId: res.id, doctorId: res.providerId, hasDeposit: res.depositStatus !== "NONE" });
         if (res.depositStatus === "REQUIRED" && deposits.enabled) {
           const outcome = await pay(res.id); // deposit via the hosted checkout (WebBrowser); never blocks the confirmed booking
           if (outcome !== "paid") setMessage(t("checkout.depositCancelled"));
@@ -84,7 +83,7 @@ export default function Checkout() {
       onError: async (e) => {
         const a = classifyBookingError(e);
         setInFlow(false);
-        track("booking_failed", { code: a.kind === "generic" ? a.code : a.kind.toUpperCase(), doctorId: b.providerId });
+        track("booking_failed", { code: a.kind === "generic" ? a.code : a.kind.toUpperCase(), providerId: b.providerId });
         if (a.kind === "slot_taken") setAlternatives(a.alternatives.map((x) => ({ slotId: x.startsAt, startsAt: x.startsAt, endsAt: x.endsAt, visitTypeId: b.typeId })));
         else if (a.kind === "hold_expired") void booking.refetch();
         else if (a.kind === "unavailable") setUnavailable(true);

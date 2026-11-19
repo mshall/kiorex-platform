@@ -7,6 +7,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { useBookings } from "@/api/hooks";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Icon } from "@/components/Icon";
+import { ChannelBadge } from "@/components/feature";
 import { Badge, Button, Card, Chip, Row, Screen, T } from "@/components/ui";
 import { isUpcoming } from "@/lib/booking-state";
 import { formatDayLong, formatTime, pick } from "@/lib/format";
@@ -36,7 +37,8 @@ export default function Appointments() {
   return (
     <Screen style={{ paddingTop: insets.top + 12, gap: 14 }} refresh={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.ink} />} testID="appointments">
       <T variant="title" accessibilityRole="header">{t("appointments.title")}</T>
-      <Row gap={8}>
+      <Row gap={8} style={{ flexWrap: "wrap" }}>
+        <Chip testID="waitlist-link" icon="clock" label={t("waitlist.title")} onPress={() => router.push("/waitlist")} />
         <Chip testID="tab-upcoming" label={t("appointments.upcoming")} selected={tab === "upcoming"} onPress={() => setTab("upcoming")} />
         <Chip testID="tab-past" label={t("appointments.past")} selected={tab === "past"} onPress={() => setTab("past")} />
       </Row>
@@ -46,6 +48,7 @@ export default function Appointments() {
         <Card key={b.id} testID={`appt-${b.id}`} onPress={() => router.push(b.status === "HELD" ? `/checkout/${b.id}` : `/appointment/${b.id}`)} accessibilityLabel={b.doctor ? pick(b.doctor, "name", lang) : ""} style={{ gap: 8 }}>
           <Row style={{ justifyContent: "space-between" }}><T variant="h2" style={{ flex: 1 }}>{b.doctor ? pick(b.doctor, "name", lang) : ""}</T><Badge tone={tone(b.status)} label={t(`status.${b.status}`)} /></Row>
           <Row gap={6}><Icon name="calendar" size={16} color={colors.ink2} /><T variant="small">{formatDayLong(b.startsAt, lang)} · {formatTime(b.startsAt, lang)}</T></Row>
+          <ChannelBadge channel={b.channel} />
           {b.clinic ? <Row gap={6}><Icon name="pin" size={16} color={colors.ink2} /><T variant="small" muted>{pick(b.clinic, "name", lang)}</T></Row> : null}
         </Card>
       ))}

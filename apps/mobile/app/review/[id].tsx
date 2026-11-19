@@ -33,7 +33,7 @@ export default function ReviewScreen() {
   if (b.status !== "COMPLETED") return <Screen><Banner tone="warning" title={t("review.notEligible")} body={t("review.onlyCompleted")} /></Screen>;
 
   const send = () => submit.mutate({ bookingId: id, rating, text: text.trim() || undefined }, {
-    onSuccess: () => { track("review_submitted", { bookingId: id, rating }); setDone(true); },
+    onSuccess: () => { track("review_submitted"); setDone(true); },
     onError: (e) => setMsg(e instanceof ApiError && e.isFeatureDisabled ? t("unavailable.title") : e instanceof ApiError && (e.code === "REVIEW_EXISTS" || e.code === "NOT_A_COMPLETED_VISIT") ? t("review.notEligible") : t("review.failed")),
   });
 
