@@ -3,7 +3,11 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+/** Radix defaults to dir="ltr" and stamps it on the root, which silently un-RTLs everything inside the tabs. Follow the document direction instead. */
+const Tabs = React.forwardRef<React.ElementRef<typeof TabsPrimitive.Root>, React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>>(({ dir, ...props }, ref) => (
+  <TabsPrimitive.Root ref={ref} dir={dir ?? (typeof document !== "undefined" && document.documentElement.dir === "rtl" ? "rtl" : "ltr")} {...props} />
+));
+Tabs.displayName = "Tabs";
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
