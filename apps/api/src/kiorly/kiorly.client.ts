@@ -119,4 +119,8 @@ export class KiorlyClient {
   syncProfileViews(body: { clinicId: string; items: { clinicianId: string; date: string; views: number }[] }) {
     return this.request<any>({ method: 'POST', path: '/analytics/profile-views', body });
   }
+  /** KX-11: mirror the patient's record-share scope consents to Kiorly (clinic patient id from the KiorlyPatientLink). */
+  upsertRecordShareConsents(kiorlyPatientId: string, consents: { scope: string; granted: boolean }[], clinicId?: string) {
+    return this.request<any>({ method: 'POST', path: `/patients/${encodeURIComponent(kiorlyPatientId)}/consents`, body: { consents }, clinicId });
+  }
 }

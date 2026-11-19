@@ -5,3 +5,4 @@ process.env.PSP_MODE = 'sandbox-fake';
 process.env.KIORLY_TIMEOUT_MS = '400';
 process.env.OIDC_ISSUER = 'http://localhost:4400';
 process.env.OIDC_AUDIENCE = 'kiorex-api';
+process.env.STORAGE_LOCAL_DIR = '.data/test-vault';

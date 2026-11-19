@@ -6,6 +6,7 @@ import { verifyWebhook } from '../common/hmac';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
+import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
@@ -15,7 +16,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService) {}
 
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string }) {
     if (!verifyWebhook(cfg().kiorlyWebhookSecret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
@@ -28,11 +29,11 @@ export class WebhooksService {
       if (!v.valid) this.log.warn(`event ${env.type} failed contract schema: ${(v as any).errors?.slice(0, 2).join('; ')}`);
     }
     // dedupe on eventId (insert-or-ignore is the lock)
-    const inserted = await this.prisma.webhookReceipt.createMany({ data: [{ eventId, source: 'kiorly', type: env.type, aggregateId: env.aggregateId, payload: env }], skipDuplicates: true });
+    const inserted = await this.prisma.webhookReceipt.createMany({ data: [{ eventId, source: 'kiorly', type: env.type, aggregateId: env.aggregateId, payload: RecordsService.redactEnvelope(env) }], skipDuplicates: true });
     if (!inserted.count) return { status: 'DUPLICATE' };
     try {
       const outcome = await this.route(env);
-      await this.prisma.webhookReceipt.update({ where: { eventId }, data: { status: outcome === 'IGNORED' || outcome === 'UNKNOWN_BOOKING' ? 'IGNORED' : 'PROCESSED', processedAt: new Date(), error: outcome === 'UNKNOWN_BOOKING' ? 'not a Kiorex booking' : null } });
+      await this.prisma.webhookReceipt.update({ where: { eventId }, data: { status: outcome === 'IGNORED' || outcome === 'UNKNOWN_BOOKING' ? 'IGNORED' : 'PROCESSED', processedAt: new Date(), error: outcome === 'UNKNOWN_BOOKING' ? 'no matching Kiorex booking or linked patient' : null } });
       return { status: outcome };
     } catch (e) {
       // allow Kiorly's retry to re-deliver: drop the receipt so the next attempt is processed
@@ -56,6 +57,16 @@ export class WebhooksService {
         return 'APPLIED';
       case 'REVIEW_INVITATION_ELIGIBLE': return this.trust.onInvitationEligible(data);
       case 'REVIEW_REPLY_POSTED': return this.trust.onReply(data);
+      case 'VISIT_SUMMARY_SHARED':
+      case 'PRESCRIPTION_SHARED':
+      case 'RECORD_SHARE_REVOKED': { // KX-11 record shares: consent-based, signed, content never logged
+        const o = await this.records.onKiorlyEvent({ type, aggregateId: env.aggregateId, eventId: (env as any).eventId, data });
+        return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
+      }
+      case 'LabResultReleased': {
+        const o = await this.records.storeLabResult({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels });
+        return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
+      }
       case 'COMMISSION_CHARGE_CREATED':
       case 'COMMISSION_CHARGE_REVERSED': // reporting only: Kiorly decides attendance/commission (KX-09 §06)
         await this.prisma.auditLog.create({ data: { actor: 'kiorly', action: `finance.${type.toLowerCase()}`, resource: 'Appointment', resourceId: env.aggregateId, metadata: data as any } });

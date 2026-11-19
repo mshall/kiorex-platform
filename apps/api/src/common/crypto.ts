@@ -35,3 +35,16 @@ export function safeEqual(a: string, b: string): boolean {
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 }
+
+/** AES-256-GCM for file bytes (vault uploads): iv(12) | tag(16) | ciphertext. */
+export function encryptBytes(plain: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const c = createCipheriv('aes-256-gcm', key(), iv);
+  const ct = Buffer.concat([c.update(plain), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), ct]);
+}
+export function decryptBytes(enc: Buffer): Buffer {
+  const d = createDecipheriv('aes-256-gcm', key(), enc.subarray(0, 12));
+  d.setAuthTag(enc.subarray(12, 28));
+  return Buffer.concat([d.update(enc.subarray(28)), d.final()]);
+}

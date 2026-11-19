@@ -16,6 +16,7 @@ export class FakeKiorly {
   payouts = new Map<string, any>();
   reviewPushes: any[] = [];
   profileViews: any[] = [];
+  consentPushes: { patientId: string; consents: any[] }[] = [];
   bookingMode: Mode;
   holdMode: Mode;
   getBookingMode: Mode;
@@ -34,7 +35,7 @@ export class FakeKiorly {
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
-    this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = [];
+    this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
@@ -117,6 +118,8 @@ export class FakeKiorly {
       return send(200, { accepted: body.reviews.length, rejected: body.reviews.filter((r: any) => this.rejectReviews.includes(r.reviewId)).map((r: any) => ({ reviewId: r.reviewId, reason: 'NOT_A_COMPLETED_VISIT' })) });
     }
     if (m === 'POST' && path === '/analytics/profile-views') { this.profileViews.push(body); return send(200, { accepted: body.items.length, rejected: [] }); }
+    const cp = path.match(/^\/patients\/([^/]+)\/consents$/);
+    if (m === 'POST' && cp) { this.consentPushes.push({ patientId: cp[1], consents: body.consents }); return send(200, body.consents); }
     const dl = path.match(/^\/deposit-links\/([^/]+)\/paid$/);
     if (m === 'POST' && dl) { this.deposits.set(body.paymentRef, { link: dl[1], ...body }); return send(200, { ok: true }); }
     return send(404, { message: `no route ${m} ${path}` });

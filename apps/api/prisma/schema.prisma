@@ -684,6 +684,7 @@ model SharedRecord {
   kind         String // VISIT_SUMMARY | PRESCRIPTION | LAB_RESULT | UPLOAD
   clinicId     String?
   kiorlyPatientId String?
+  dependantId  String? // set when the Kiorly patient link belongs to a dependant (guardian vault)
   sourceRef    String? // encounterId / reportId; unique per (sub, kind) for idempotent re-delivery
   sourceEventId String?
   title        String?
