@@ -1,0 +1,416 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Find a doctor",
+    "appointments": "Appointments",
+    "account": "Account",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "main": "Main navigation",
+    "skip": "Skip to content",
+    "switchLanguage": "Switch language",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode"
+  },
+  "footer": {
+    "tagline": "Kiorex — real doctors, real slots, real reviews.",
+    "emergency": "In an emergency call 123."
+  },
+  "states": {
+    "loading": "Loading…",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We couldn't load this. Check your connection and try again.",
+    "retry": "Try again",
+    "offline": "You appear to be offline",
+    "notSignedIn": "Please sign in to continue"
+  },
+  "unavailable": {
+    "title": "Temporarily unavailable",
+    "body": "This feature is switched off for now. Your existing appointments and data are safe and unchanged."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or was moved."
+  },
+  "auth": {
+    "signingIn": "Signing you in…"
+  },
+  "landing": {
+    "eyebrow": "Verified doctors · Real slots",
+    "title": "Book a verified doctor in under two minutes.",
+    "subtitle": "Real slots from the clinic's own schedule, the fee upfront, and reviews only from patients who attended.",
+    "howTitle": "How it works",
+    "steps": {
+      "find": {
+        "title": "Find",
+        "body": "Search by specialty, doctor or clinic and filter by area, fee and availability."
+      },
+      "pick": {
+        "title": "Pick a time",
+        "body": "See the next free slots at a glance. We hold yours for five minutes while you check out."
+      },
+      "confirm": {
+        "title": "Confirm",
+        "body": "Know the cancellation policy first, then confirm. You get reminders before your visit."
+      }
+    },
+    "whyTitle": "Why patients trust Kiorex",
+    "features": {
+      "verified": {
+        "title": "Verified, not just listed",
+        "body": "Every bookable doctor passed syndicate-number and licence checks."
+      },
+      "slots": {
+        "title": "Real slots",
+        "body": "Slots come straight from the clinic's own system, so there are no double bookings."
+      },
+      "reviews": {
+        "title": "Reviews you can believe",
+        "body": "Only patients with a completed visit can review. No anonymous ratings."
+      },
+      "fees": {
+        "title": "Know the fee upfront",
+        "body": "Fees and any deposit are shown before you book."
+      }
+    },
+    "ctaTitle": "Ready to book?",
+    "ctaBody": "Sign in with your phone number — no password to remember.",
+    "ctaPrimary": "Continue with Kiorex Passport",
+    "ctaSecondary": "Browse doctors",
+    "forClinics": "Are you a clinic or doctor? Learn about Kiorly at"
+  },
+  "search": {
+    "label": "Search for a doctor, specialty or clinic",
+    "placeholder": "Specialty, doctor or clinic name",
+    "submit": "Search",
+    "specialties": "Specialties"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}",
+    "greetingAnon": "Hello",
+    "upcoming": "Your next appointment",
+    "noUpcoming": "No upcoming appointments",
+    "noUpcomingHint": "When you book, your next visit will appear here.",
+    "findDoctor": "Find a doctor",
+    "recent": "Recently viewed",
+    "recentEmpty": "Doctors you view will be listed here on this device.",
+    "searchPlaceholder": "Specialty, doctor or clinic",
+    "signInPrompt": "Sign in to book and manage visits",
+    "seeAll": "See all",
+    "viewDetails": "View details"
+  },
+  "family": {
+    "switcher": "Who is this visit for?",
+    "me": "Me",
+    "add": "Add family member",
+    "added": "Family member added",
+    "addFailed": "Couldn't add this family member",
+    "name": "Name",
+    "relationship": "Relationship",
+    "dob": "Date of birth",
+    "remove": "Remove {{name}}",
+    "empty": "No family members yet",
+    "emptyHint": "Add children or parents to book on their behalf.",
+    "rel": {
+      "child": "Child",
+      "spouse": "Spouse",
+      "parent": "Parent",
+      "sibling": "Sibling",
+      "other": "Other"
+    }
+  },
+  "results": {
+    "title": "Find a doctor",
+    "count_one": "{{count}} doctor",
+    "count_other": "{{count}} doctors",
+    "count_zero": "No doctors",
+    "count_two": "2 doctors",
+    "count_few": "{{count}} doctors",
+    "count_many": "{{count}} doctors",
+    "sort": "Sort by",
+    "filters": "Filters",
+    "filtersHint": "Narrow down the results.",
+    "nextSlots": "Next available",
+    "noSlots": "No free slots right now",
+    "emptyTitle": "No doctors match your search",
+    "emptyHint": "Try a different specialty or remove some filters.",
+    "pagination": "Pagination",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}"
+  },
+  "sort": {
+    "earliest": "Earliest slot",
+    "distance": "Distance",
+    "rating": "Rating",
+    "fee": "Fee"
+  },
+  "filters": {
+    "area": "Area",
+    "any": "Any",
+    "maxFee": "Maximum fee (EGP)",
+    "anyFee": "No limit",
+    "gender": "Doctor gender",
+    "female": "Female",
+    "male": "Male",
+    "language": "Language",
+    "rating": "Minimum rating",
+    "availability": "Available within",
+    "today": "Today",
+    "threeDays": "3 days",
+    "week": "A week",
+    "acceptsDeposit": "Only doctors who take a deposit",
+    "reset": "Reset",
+    "apply": "Show results"
+  },
+  "doctor": {
+    "verified": "Verified",
+    "verifiedVisit": "Verified visit",
+    "feeFrom": "From {{fee}}",
+    "distance": "{{km}} km",
+    "depositRequired": "Deposit required",
+    "deposit": "Deposit {{amount}}",
+    "noReviews": "No reviews yet",
+    "noReviewsHint": "Reviews appear after patients complete a visit.",
+    "ratingLabel": "Rated {{avg}} from {{count}} reviews",
+    "notFound": "Doctor not found",
+    "share": "Share",
+    "linkCopied": "Link copied",
+    "linkCopyFailed": "Couldn't copy the link",
+    "bookTitle": "Book a visit",
+    "visitType": "Visit type",
+    "days": "Days",
+    "times": "Times",
+    "slotsCount_one": "{{count}} slot",
+    "slotsCount_other": "{{count}} slots",
+    "slotsCount_zero": "none",
+    "slotsCount_two": "2 slots",
+    "slotsCount_few": "{{count}} slots",
+    "slotsCount_many": "{{count}} slots",
+    "noSlots": "No free slots for this visit type",
+    "noSlotsHint": "Check back soon or try another visit type.",
+    "policyTitle": "Cancellation policy",
+    "pickSlot": "Pick a time to continue",
+    "selected": "Selected",
+    "continue": "Continue to booking",
+    "bookingFor": "Booking for",
+    "reviews": "Reviews from verified visits",
+    "clinicReply": "Clinic reply",
+    "clinic": "Clinic",
+    "mapPlaceholder": "Map of the clinic location (interactive map coming soon)",
+    "callClinic": "Call clinic",
+    "signInToBook": "Sign in to book",
+    "slotsFor": "Times on {{day}}",
+    "reviewsCount_one": "{{count}} review",
+    "reviewsCount_other": "{{count}} reviews",
+    "feeLine": "Fee {{fee}}",
+    "policyBefore": "Please read before booking",
+    "policyHours": "Free cancellation up to {{hours}} hours before the visit.",
+    "policyAsk": "The clinic has not published a cancellation window. Please ask the clinic before booking.",
+    "depositNonRefundable": "The deposit is not refundable on cancellation."
+  },
+  "booking": {
+    "holdFailed": "Couldn't hold this slot. Please try again.",
+    "slotTakenTitle": "That time was just taken",
+    "slotTakenBody": "Here are the closest free times with the same doctor:",
+    "slotTakenNone": "No nearby times are free. Please pick another day."
+  },
+  "checkout": {
+    "title": "Confirm your booking",
+    "holdLabel": "We're holding this time for you",
+    "holdRemaining": "{{time}} remaining",
+    "summary": "Booking summary",
+    "patient": "Patient",
+    "depositTitle": "Deposit",
+    "depositBody": "This doctor asks for a deposit of {{amount}} to secure the visit. It is refunded automatically if you cancel within the policy.",
+    "payDeposit": "Pay deposit {{amount}}",
+    "depositPaid": "Deposit paid",
+    "depositFailed": "Couldn't start the payment. Please try again.",
+    "depositFirst": "Please pay the deposit first.",
+    "consents": "Consent",
+    "consentData": "I agree that Kiorex shares my name, phone number and booking details with the clinic to arrange this visit.",
+    "consentReminders": "Send me reminders about this appointment (optional).",
+    "consentRequired": "Please accept the first consent to confirm.",
+    "confirm": "Confirm booking",
+    "confirmFailed": "We couldn't confirm the booking. Please try again.",
+    "timeout": "The connection dropped. Nothing was charged twice — please try again.",
+    "expiredTitle": "Your hold expired",
+    "expiredBody": "The time was released so others can book it. Pick a new time to continue.",
+    "pickAnother": "Pick another time",
+    "depositPending": "Checking your payment…",
+    "depositCancelled": "Payment wasn't completed. You can try again while your time is held.",
+    "depositOpening": "Opening secure payment…",
+    "pendingTitle": "Request sent to the clinic",
+    "pendingBody": "This clinic confirms bookings by hand. Your time stays reserved and we'll tell you when it's confirmed.",
+    "depositAfterConfirm": "After you confirm, the secure Kiorex Pay page opens so you can pay the deposit."
+  },
+  "status": {
+    "INTENT": "Started",
+    "HELD": "Time held",
+    "PENDING_CLINIC": "Waiting for the clinic",
+    "CONFIRMED": "Confirmed",
+    "CHECKED_IN": "Checked in",
+    "COMPLETED": "Completed",
+    "NO_SHOW": "Did not attend",
+    "CANCELLED": "Cancelled",
+    "EXPIRED": "Expired"
+  },
+  "deposit": {
+    "NONE": "No deposit for this visit.",
+    "REQUIRED": "A deposit of {{amount}} is required.",
+    "PAID": "Deposit paid.",
+    "REFUNDED": "Deposit refunded.",
+    "FORFEITED": "Deposit forfeited (visit missed)."
+  },
+  "appointments": {
+    "title": "My appointments",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "empty": {
+      "upcoming": "No upcoming appointments",
+      "past": "No past appointments"
+    }
+  },
+  "appointment": {
+    "title": "Appointment",
+    "directions": "Directions",
+    "call": "Call clinic",
+    "addToCalendar": "Add to calendar",
+    "timeline": "Status",
+    "deposit": "Deposit",
+    "payDeposit": "Pay deposit {{amount}}",
+    "reschedule": "Reschedule",
+    "cancel": "Cancel appointment",
+    "windowClosed": "The free change window has closed. Please call the clinic for help.",
+    "actionFailed": "That didn't work. Please try again or call the clinic.",
+    "pendingTitle": "Waiting for the clinic to confirm",
+    "pendingBody": "This clinic confirms bookings manually. We'll notify you as soon as it does.",
+    "pendingDue": "Expected by {{time}}.",
+    "clinicCancelledTitle": "The clinic had to cancel this appointment",
+    "reason": "Reason",
+    "autoRefund": "Your deposit has been refunded automatically.",
+    "findAlternatives": "Find another time with this doctor",
+    "cancelTitle": "Cancel this appointment?",
+    "cancelBody": "The clinic will be told and the time will be released.",
+    "cancelRefund": "The clinic will be told and your deposit will be refunded automatically.",
+    "keep": "Keep it",
+    "confirmCancel": "Yes, cancel",
+    "cancelled": "Appointment cancelled",
+    "rescheduleTitle": "Pick a new time",
+    "rescheduleBody": "Choose one of the next free times with the same doctor.",
+    "rescheduled": "Appointment moved",
+    "leaveReview": "Rate your visit",
+    "reviewed": "Thanks — you've reviewed this visit.",
+    "calendarOpened": "Opened your calendar",
+    "directionsFailed": "Couldn't open maps",
+    "callFailed": "Couldn't start the call",
+    "newTime": "New time",
+    "confirmReschedule": "Move to this time",
+    "noAlternatives": "No other free times right now.",
+    "clinicDetails": "Clinic",
+    "depositStatus": "Deposit",
+    "payDepositOpening": "Opening secure payment…"
+  },
+  "review": {
+    "title": "Rate your visit with {{name}}",
+    "rating": "Your rating",
+    "text": "Your comment (optional)",
+    "phiWarning": "Please don't include medical details or personal information.",
+    "editWindow": "You can edit your review for 7 days.",
+    "submit": "Submit review",
+    "thanks": "Thank you for your review",
+    "failed": "Couldn't submit your review",
+    "notEligible": "This visit can't be reviewed",
+    "onlyCompleted": "Only completed visits can be reviewed."
+  },
+  "account": {
+    "title": "Account",
+    "name": "Name",
+    "phone": "Phone",
+    "managedBy": "Sign-in details are managed by Kiorex Passport.",
+    "tabs": {
+      "family": "Family",
+      "consents": "Consents",
+      "sessions": "Devices"
+    },
+    "deleteTitle": "Delete account",
+    "deleteBody": "Permanently delete your Kiorex account and personal data. You can download a copy of your data first.",
+    "deleteCta": "Delete my account",
+    "deleteConfirmTitle": "Delete your account?",
+    "deleteConfirmBody": "This can't be undone. Upcoming appointments will be cancelled.",
+    "exportFirst": "Prepare a download of my data first",
+    "deleteWord": "DELETE",
+    "typeToConfirm": "Type “{{word}}” to confirm",
+    "deleteConfirm": "Delete permanently",
+    "deleteRequested": "Deletion requested",
+    "signOut": "Sign out",
+    "signedOutTitle": "Sign in to manage your account",
+    "profile": "Profile",
+    "more": "Settings",
+    "notifications": "Notifications",
+    "pushNote": "Push notifications are in log mode on this build.",
+    "familyTitle": "Family",
+    "consentsTitle": "Consents",
+    "sessionsTitle": "Devices and sessions",
+    "exportReady": "Your data export is being prepared.",
+    "deleteWarn": "Type the word to enable deletion."
+  },
+  "consent": {
+    "updated": "Updated {{date}}",
+    "marketplace_processing": {
+      "title": "Marketplace data processing",
+      "body": "Lets Kiorex process your details to book and manage visits."
+    },
+    "reminders": {
+      "title": "Reminders",
+      "body": "Appointment reminders by WhatsApp, push and in-app."
+    },
+    "record_sharing": {
+      "title": "Record sharing",
+      "body": "Allow clinics to share visit summaries with your account."
+    }
+  },
+  "sessions": {
+    "current": "This device",
+    "signOut": "Sign out"
+  },
+  "emergency": {
+    "title": "This sounds like an emergency",
+    "body": "If you or someone near you is in danger, call the ambulance now. Kiorex can't help with emergencies and won't book an appointment for them.",
+    "call": "Call {{number}}",
+    "note": "123 is Egypt's ambulance number."
+  },
+  "tabs": {
+    "home": "Home",
+    "appointments": "Appointments",
+    "account": "Account"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "cancel": "Cancel",
+    "done": "Done",
+    "save": "Save",
+    "loading": "Loading…"
+  },
+  "signIn": {
+    "title": "Book a verified doctor in minutes",
+    "subtitle": "Real slots, the fee upfront, and reviews only from patients who attended.",
+    "cta": "Continue with Kiorex Passport",
+    "browse": "Browse doctors first",
+    "failed": "Sign-in didn't complete. Please try again.",
+    "passportNote": "One Kiorex Passport for all Kiorex services. Sign in with your phone number — no password.",
+    "signingIn": "Signing you in…",
+    "mockNote": "Offline demo mode: no real sign-in."
+  },
+  "settings": {
+    "language": "Language",
+    "ar": "العربية",
+    "en": "English",
+    "theme": "Appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "restart": "Close and reopen the app to apply the new layout direction."
+  }
+}
