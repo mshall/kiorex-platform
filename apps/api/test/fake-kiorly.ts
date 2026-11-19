@@ -29,7 +29,7 @@ export class FakeKiorly {
     this.server = createServer((req, res) => void this.handle(req, res));
     await new Promise<void>((r) => this.server.listen(0, '127.0.0.1', r));
     this.port = (this.server.address() as any).port;
-    process.env.KIORLY_BASE_URL = `http://127.0.0.1:${this.port}/api/v1/marketplace/v1`;
+    process.env.KIORLY_BASE_URL = `http://127.0.0.1:${this.port}/marketplace/v1`;
     return this;
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
@@ -46,7 +46,7 @@ export class FakeKiorly {
     const url = new URL(req.url!, 'http://x');
     const v = verifyKiorlyRequest({ headers: req.headers as any, method: req.method!, path: url.pathname, body: raw, secret: 'kx_dev_secret_change_me' });
     if (!v.ok || req.headers['x-kiorly-client-key'] !== 'kx_dev_client') { this.bad++; return this.send(res, 401, { code: 'BAD_HMAC', reason: (v as any).reason }); }
-    const path = url.pathname.replace('/api/v1/marketplace/v1', '');
+    const path = url.pathname.replace('/marketplace/v1', '');
     const body = raw.length ? JSON.parse(raw.toString()) : undefined;
     this.calls.push({ method: req.method!, path, body, headers: req.headers });
     const m = req.method!;
