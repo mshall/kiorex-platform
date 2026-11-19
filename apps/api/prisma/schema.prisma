@@ -286,6 +286,9 @@ model PaymentIntent {
   releasedAt     DateTime? // deposit released to clinic payable (completed / forfeited)
   releaseKind    String? // COMPLETED | FORFEITED
   payoutId       String?
+  /// DEPOSIT (Kiorly clinic deposit) | PHARMACY | LAB — vertical orders never reach Kiorly clinic payouts.
+  purpose        String    @default("DEPOSIT")
+  orderRef       String?
   capturedAt     DateTime?
   kiorlyNotified Boolean   @default(false)
   createdAt      DateTime  @default(now())
@@ -579,4 +582,238 @@ model AiUsage {
   createdAt     DateTime @default(now())
 
   @@index([sub, createdAt])
+}
+
+
+// ───────────────────────── unified messaging (mock adapters, KX-00 provider rules) ─────────────────────────
+
+/// Every outbound/inbound message of every channel (EMAIL | WHATSAPP | SMS | PUSH). In MODE=mock this IS the dev inbox.
+/// `recipient` and `body` are stored only in mock mode (dev inbox); real mode keeps masked recipient and no body.
+model MessageLog {
+  id              String    @id @default(cuid())
+  messageId       String? // engagement Message that produced it
+  channel         String
+  direction       String    @default("OUT") // OUT | IN
+  mode            String    @default("mock")
+  sub             String?
+  recipient       String?
+  recipientMasked String
+  templateId      String?
+  locale          String    @default("ar")
+  body            String?
+  status          String    @default("QUEUED") // QUEUED SENT DELIVERED READ FAILED RECEIVED
+  providerRef     String?
+  error           String?
+  createdAt       DateTime  @default(now())
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  failedAt        DateTime?
+
+  @@index([channel, createdAt])
+  @@index([recipient, createdAt])
+  @@index([status, createdAt])
+}
+
+// ───────────────────────── WhatsApp booking channel (KXM-BK-11) ─────────────────────────
+
+model ChannelConversation {
+  id            String    @id @default(cuid())
+  channel       String    @default("WHATSAPP")
+  phone         String
+  sub           String?
+  state         String    @default("IDLE")
+  context       Json?
+  locale        String    @default("ar")
+  lastInboundAt DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([channel, phone])
+}
+
+// ───────────────────────── waitlist (KXM-BK-12) ─────────────────────────
+
+model WaitlistEntry {
+  id            String    @id // kx_wl_<id>
+  sub           String
+  dependantId   String?
+  providerId    String
+  clinicId      String
+  clinicianId   String
+  tenantId      String?
+  typeId        String
+  preferredFrom DateTime?
+  preferredTo   DateTime?
+  status        String    @default("WAITING") // WAITING OFFERED BOOKED CANCELLED EXPIRED
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  offers WaitlistOffer[]
+
+  @@index([providerId, status])
+  @@index([sub, status])
+}
+
+model WaitlistOffer {
+  id          String        @id // kx_wo_<id>
+  entryId     String
+  entry       WaitlistEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  sub         String
+  providerId  String
+  startsAt    DateTime
+  endsAt      DateTime
+  status      String        @default("OFFERED") // OFFERED ACCEPTED DECLINED EXPIRED
+  expiresAt   DateTime
+  bookingId   String?
+  createdAt   DateTime      @default(now())
+  respondedAt DateTime?
+
+  @@unique([entryId, startsAt])
+  @@index([status, expiresAt])
+}
+
+// ───────────────────────── records & continuity (KXM-RC-01..03) ─────────────────────────
+
+/// A record visible in the patient vault. Clinical content is AES-GCM encrypted (payloadEnc) and NEVER logged.
+model SharedRecord {
+  id           String    @id // kx_rec_<id>
+  sub          String
+  kind         String // VISIT_SUMMARY | PRESCRIPTION | LAB_RESULT | UPLOAD
+  clinicId     String?
+  kiorlyPatientId String?
+  sourceRef    String? // encounterId / reportId; unique per (sub, kind) for idempotent re-delivery
+  sourceEventId String?
+  title        String?
+  payloadEnc   String?
+  signedAt     DateTime?
+  storageKey   String?
+  fileName     String?
+  mimeType     String?
+  sizeBytes    Int?
+  sha256       String?
+  status       String    @default("ACTIVE") // ACTIVE | REVOKED
+  revokedAt    DateTime?
+  revokedReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([sub, kind, sourceRef])
+  @@index([sub, status, createdAt])
+  @@index([kiorlyPatientId])
+}
+
+/// Per-scope record-share consent as the patient set it in Kiorex (mirrored to Kiorly by outbox).
+model RecordShareConsent {
+  sub       String
+  scope     String // VISIT_SUMMARY | PRESCRIPTIONS | LAB_RESULTS | SHARE_WITH_OTHER_CLINICS
+  granted   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@id([sub, scope])
+}
+
+model FollowUpReminder {
+  id        String    @id // kx_fu_<id>
+  sub       String
+  recordId  String?
+  clinicId  String?
+  dueAt     DateTime
+  source    String    @default("PATIENT") // DOCTOR | PATIENT
+  status    String    @default("SCHEDULED") // SCHEDULED | SENT | CANCELLED
+  createdAt DateTime  @default(now())
+
+  @@index([sub, status, dueAt])
+}
+
+// ───────────────────────── Phase-2/3 verticals (KX-03 §08; launch-locked) ─────────────────────────
+
+model PharmacyCart {
+  id              String   @id @default(cuid())
+  sub             String   @unique
+  pharmacyId      String?
+  items           Json // [{ sku, name, qty, unitPriceMinor, rxRequired }]
+  deliveryMethod  String? // PICKUP | DELIVERY
+  deliveryAddress Json?
+  prescriptionRecordId String?
+  updatedAt       DateTime @updatedAt
+}
+
+model PharmacyOrder {
+  id                   String    @id // kx_ph_<id>; also the Idempotency-Key towards Kiorly Pharmacy
+  sub                  String
+  pharmacyId           String
+  status               String // PENDING_PAYMENT PAID SUBMITTED READY DISPENSED REJECTED CANCELLED
+  items                Json
+  subtotalMinor        Int
+  deliveryFeeMinor     Int       @default(0)
+  totalMinor           Int
+  currency             String    @default("EGP")
+  deliveryMethod       String
+  deliveryAddress      Json?
+  prescriptionRecordId String?
+  rxStatus             String    @default("NOT_REQUIRED") // NOT_REQUIRED PENDING VALID INVALID
+  partnerOrderId       String?
+  paymentId            String?
+  takeRateBps          Int       @default(0)
+  platformFeeMinor     Int       @default(0)
+  rejectionReason      String?
+  readyAt              DateTime?
+  dispensedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([sub, status])
+  @@index([partnerOrderId])
+}
+
+model LabBooking {
+  id               String    @id // kx_lb_<id>
+  sub              String
+  labId            String
+  tests            Json // [{ code, name, priceMinor }]
+  collectionType   String // HOME | WALK_IN
+  slotStartsAt     DateTime
+  slotEndsAt       DateTime
+  address          Json?
+  status           String // PENDING_PAYMENT PAID SUBMITTED COLLECTED RESULT_RELEASED REJECTED CANCELLED
+  subtotalMinor    Int
+  collectionFeeMinor Int     @default(0)
+  totalMinor       Int
+  currency         String    @default("EGP")
+  paymentId        String?
+  partnerOrderId   String?
+  takeRateBps      Int       @default(0)
+  platformFeeMinor Int       @default(0)
+  rejectionReason  String?
+  resultRecordId   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([sub, status])
+  @@index([partnerOrderId])
+}
+
+model TeleSession {
+  id                String    @id // kx_ts_<id>
+  sub               String
+  bookingId         String    @unique
+  providerId        String
+  clinicId          String
+  status            String    @default("SCHEDULED") // SCHEDULED WAITING IN_PROGRESS ENDED CANCELLED
+  videoProvider     String    @default("mock")
+  roomName          String
+  scheduledStartsAt DateTime
+  patientJoinedAt   DateTime?
+  clinicianJoinedAt DateTime?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  durationSec       Int?
+  consultFeeMinor   Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([sub, status])
 }
