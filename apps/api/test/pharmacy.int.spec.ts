@@ -87,6 +87,13 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       // vertical money never reaches Kiorly clinic deposit/payout endpoints
       expect((await c.get(OutboxService).list({ type: 'kiorly.deposit_paid' })).length).toBe(0);
       expect((await c.http().post('/api/v1/admin/payouts/run').set(admin)).body.payouts).toEqual([]);
+      // Kiorex's own fee statement: VAT is a config line only (test value), never reported anywhere
+      process.env.FEE_STATEMENT_VAT_BPS = '1400';
+      try {
+        const st = (await c.http().get('/api/v1/admin/fee-statements').set(admin).expect(200)).body;
+        expect(st.lines).toEqual([{ partner: 'ph:ph_1', orders: 1, feeMinor: 200, vatBps: 1400, vatMinor: 28, totalMinor: 228 }]);
+        expect(st.totals).toEqual({ feeMinor: 200, vatMinor: 28, totalMinor: 228 });
+      } finally { delete process.env.FEE_STATEMENT_VAT_BPS; }
     });
 
     it('take rate is config only: unset => 0 fee (never hard-coded 4%)', async () => {

@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { A, assertValid, capture, identityHolds, LedgerBook, LedgerError, payout, pspFee, refundRequest, refundSettle, release } from './ledger';
+import { A, assertValid, capture, identityHolds, LedgerBook, LedgerError, payout, pspFee, refundRequest, refundSettle, release, releaseOrder } from './ledger';
 
 /** Money-path property tests (fast-check) — KXM-PAY-05 ledger invariants. */
 type Op =
@@ -111,5 +111,20 @@ describe('ledger invariants (property-based)', () => {
     b.post({ key: 'r', kind: 'RELEASE', postings: release('c1', 1000) });
     expect(() => b.post({ key: 'p', kind: 'PAYOUT', postings: payout('c1', 1001) })).toThrow(LedgerError);
     expect(b.post({ key: 'p2', kind: 'PAYOUT', postings: payout('c1', 1000) })).toBe(true);
+  });
+
+  it('vertical order release (pharmacy/lab): held -> partner payable minus Kiorex take; identity holds; fee 0 is valid; take never exceeds the order', () => {
+    fc.assert(fc.property(fc.integer({ min: 100, max: 1e8 }), fc.integer({ min: 0, max: 10_000 }), (total, bps) => {
+      const fee = Math.round((total * bps) / 10000) > total ? total : Math.round((total * bps) / 10000);
+      const b = new LedgerBook();
+      b.post({ key: 'c', kind: 'CAPTURE', postings: capture('ph:1', total) });
+      expect(b.post({ key: 'r', kind: 'RELEASE_ORDER_PHARMACY', postings: releaseOrder('ph:1', total, fee) })).toBe(true);
+      expect(b.balance(A.held('ph:1'))).toBe(0);
+      expect(b.balance(A.payable('ph:1'))).toBe(total - fee);
+      expect(b.balance(A.marketplaceFees)).toBe(fee);
+      expect(identityHolds(b)).toBe(true);
+      expect(b.post({ key: 'r', kind: 'RELEASE_ORDER_PHARMACY', postings: releaseOrder('ph:1', total, fee) })).toBe(false); // idempotent
+    }), { numRuns: 200 });
+    expect(() => assertValid(releaseOrder('ph:1', 1000, 1001))).toThrow(LedgerError); // a fee above the order cannot balance
   });
 });

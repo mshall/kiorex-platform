@@ -61,6 +61,12 @@ export class OpsController {
     await this.prisma.auditLog.create({ data: { actor: u.sub, action: 'pay.ops_refund', resource: 'PaymentIntent', resourceId: b.paymentId, metadata: { reason: b.reason, amountMinor: b.amountMinor } } });
     return this.pay.refund(b.paymentId, { reason: `OPS:${b.reason}`, amountMinor: b.amountMinor, idempotencyKey: `ops-refund:${b.paymentId}:${b.amountMinor ?? 'full'}:${b.reason}` });
   }
+  @Get('fee-statements') @ApiOperation({ summary: 'Kiorex\'s own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line.' })
+  async feeStatements(@Query('from') from?: string, @Query('to') to?: string) {
+    const f = from ? new Date(from) : new Date(Date.now() - 30 * 86400_000);
+    const t = to ? new Date(to) : new Date(Date.now() + 86400_000);
+    return this.pay.feeStatement({ from: f, to: t });
+  }
   @Post('payouts/run') @HttpCode(200) runPayouts() { return this.pay.runPayouts(); }
   @Post('reconciliation/psp/run') @HttpCode(200) reconcilePsp(@Query('date') date?: string) { return this.pay.reconcileDaily(date ? new Date(date) : new Date()); }
   @Post('reconciliation/psp/import') @HttpCode(200) importLines(@Body() b: ImportBody) { return this.pay.importSettlementLines(b.lines); }

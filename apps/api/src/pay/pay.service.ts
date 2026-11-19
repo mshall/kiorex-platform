@@ -342,6 +342,21 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     return run;
   }
 
+  /**
+   * Kiorex's OWN marketplace fee statement (pharmacy/lab take) per partner and period, from the ledger. VAT is a CONFIG line
+   * (FEE_STATEMENT_VAT_BPS, NEEDS_HUMAN, 0 while unset) shown on this statement only; nothing is ever reported to any authority.
+   */
+  async feeStatement(q: { from: Date; to: Date }) {
+    const rows = await this.prisma.$queryRaw<{ partner: string; fee: bigint; orders: bigint }[]>(Prisma.sql`
+      SELECT t."clinicId" AS partner, COALESCE(SUM(e."creditMinor"),0)::bigint AS fee, COUNT(DISTINCT t.id)::bigint AS orders
+      FROM "LedgerEntry" e JOIN "LedgerTx" t ON t.id = e."txId"
+      WHERE e.account = 'MARKETPLACE_FEES' AND t."createdAt" >= ${q.from} AND t."createdAt" < ${q.to}
+      GROUP BY t."clinicId" ORDER BY t."clinicId"`);
+    const bps = cfg().feeStatementVatBps;
+    const lines = rows.map((r) => { const feeMinor = Number(r.fee); const vatMinor = Math.round((feeMinor * bps) / 10000); return { partner: r.partner, orders: Number(r.orders), feeMinor, vatBps: bps, vatMinor, totalMinor: feeMinor + vatMinor }; });
+    return { from: q.from.toISOString(), to: q.to.toISOString(), currency: 'EGP', vatBps: bps, vatNote: bps ? 'VAT per FEE_STATEMENT_VAT_BPS config (NEEDS_HUMAN)' : 'VAT rate not configured (NEEDS_HUMAN)', lines, totals: { feeMinor: lines.reduce((s, l) => s + l.feeMinor, 0), vatMinor: lines.reduce((s, l) => s + l.vatMinor, 0), totalMinor: lines.reduce((s, l) => s + l.totalMinor, 0) } };
+  }
+
   async dashboard() {
     const [intents, refunds, payouts, runs, balances] = await Promise.all([
       this.prisma.paymentIntent.groupBy({ by: ['status'], _count: true, _sum: { amountMinor: true } }),
