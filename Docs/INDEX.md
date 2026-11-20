@@ -12,6 +12,7 @@ Start with the [README](../README.md), then pick a document.
 | [VERTICALS.md](VERTICALS.md) | Pharmacy, Lab, telemedicine and records design notes |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Brand tokens and UI rules |
 | [CONTRACTS_DISTRIBUTION.md](CONTRACTS_DISTRIBUTION.md) | Vendored `@kiorex/contracts` tarball |
+| [UPGRADE_NOTES.md](UPGRADE_NOTES.md) | Nov 2026 dependency and toolchain upgrade: versions, migration changes, pins and why |
 | [TEST_DATA.md](TEST_DATA.md) | Synthetic QA data (DEV ONLY) |
 | [kiorex-cursor-build-sequence.md](kiorex-cursor-build-sequence.md) | Build sequence and progress tracker |
 

@@ -7,12 +7,14 @@
 **The Kiorex patient marketplace: web, mobile, ops console and the Kiorex API.**
 Real slots from real clinics, deposits through Kiorex Pay, verified reviews, and the feature-flag control plane.
 
-![NestJS](https://img.shields.io/badge/NestJS-10-3730A3?logo=nestjs&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-6-0369A1?logo=prisma&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-12-3730A3?logo=nestjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-7-0369A1?logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-3730A3?logo=postgresql&logoColor=white)
-![React](https://img.shields.io/badge/React-18%20%2B%20Vite-0369A1?logo=react&logoColor=white)
-![Expo](https://img.shields.io/badge/Expo-mobile-3730A3?logo=expo&logoColor=white)
-![Node](https://img.shields.io/badge/node-%3E%3D20-0369A1?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-19%20%2B%20Vite%208-0369A1?logo=react&logoColor=white)
+![Expo](https://img.shields.io/badge/Expo-SDK%2058-3730A3?logo=expo&logoColor=white)
+![Node](https://img.shields.io/badge/node-26%20LTS-0369A1?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3730A3?logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-4-0369A1?logo=tailwindcss&logoColor=white)
 ![Status](https://img.shields.io/badge/status-pre--launch-E8735E)
 ![Providers](https://img.shields.io/badge/providers-mocked-lightgrey)
 ![License](https://img.shields.io/badge/license-private-lightgrey)
@@ -35,8 +37,9 @@ Kiorex is the patient side of the ecosystem. Patients find a verified doctor, pi
 
 | | |
 |---|---|
-| **API** | NestJS 10 + Prisma 6 + PostgreSQL 16, `:4000`, prefix `/api/v1`, 56 tables, 21 bounded modules |
-| **Apps** | Patient web (Vite, `:5180`), ops console / super admin (`:5181`), Expo app (`:8081`) |
+| **API** | NestJS 12 + Prisma 7 + PostgreSQL 16, `:4000`, prefix `/api/v1`, 56 tables, 21 bounded modules |
+| **Apps** | Patient web (React 19, Vite 8, Tailwind 4, `:5180`), ops console / super admin (`:5181`), Expo SDK 58 app (`:8081`) |
+| **Toolchain** | Node 26 LTS, npm 12, TypeScript 6.0, Jest 30, Vitest 5, ESLint 10; see [`Docs/UPGRADE_NOTES.md`](Docs/UPGRADE_NOTES.md) |
 | **Languages** | Arabic and English, RTL verified; Jost + IBM Plex Sans Arabic |
 | **Identity** | Kiorex Passport OIDC (auth code + PKCE), JWT RS256 with `aud=kiorex-api` |
 | **Talks to** | Kiorly Clinic (HMAC REST + webhooks), Pharmacy and Lab (partner APIs), Passport (OIDC) |
@@ -152,12 +155,13 @@ Captured from the running apps with synthetic data (light theme, English). Arabi
 
 ## Quick start
 
-Prerequisites: Node 20+, Postgres on `:5433` (workspace cluster; see the [workspace README](https://github.com/mshall/kiorex-workspace)), a sibling `kiorex-contracts` (or the vendored tarball in `vendor/`).
+Prerequisites: Node 26 LTS (`.nvmrc`) with npm 12+, Postgres on `:5433` (workspace cluster; see the [workspace README](https://github.com/mshall/kiorex-workspace)), a sibling `kiorex-contracts` (or the vendored tarball in `vendor/`).
 
 ```bash
+nvm use                                       # Node 26 (.nvmrc)
 npm install
 cp apps/api/.env.example apps/api/.env       # never commit .env
-npm run db:deploy -w apps/api                # prisma migrate deploy
+npm run db:deploy -w apps/api                # prisma migrate deploy (Prisma 7 reads prisma.config.ts; generates the client into src/prisma/generated)
 npm run db:seed   -w apps/api                # flag registry + dev product keys (no providers, no gate evidence)
 npm run dev                                  # api :4000 + web :5180 + ops :5181
 ```

@@ -1,6 +1,6 @@
 # Kiorex API architecture
 
-NestJS 10 + Prisma 6 modular monolith (`apps/api`), PostgreSQL 16+, port 4000, prefix `/api/v1`. Same discipline as Kiorly Clinic.
+NestJS 12 + Prisma 7 modular monolith (`apps/api`), PostgreSQL 16+, port 4000, prefix `/api/v1`. Same discipline as Kiorly Clinic.
 
 ## Bounded contexts (src/<module>/, façade `<module>-public.ts`)
 
