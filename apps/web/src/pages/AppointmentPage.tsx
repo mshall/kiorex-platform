@@ -94,7 +94,7 @@ export default function AppointmentPage() {
         <div className="flex items-start gap-4">
           <DateBlock iso={b.startsAt} />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="flex items-center gap-2 text-lg font-semibold"><DoctorAvatar name={pick(b.doctor, "name", lang)} size="sm" className="[&>span]:h-8 [&>span]:w-8 [&>span]:text-sm" />{pick(b.doctor, "name", lang)}</p>
+            <div className="flex items-center gap-2 text-lg font-semibold"><DoctorAvatar name={pick(b.doctor, "name", lang)} size="sm" className="[&>span]:h-8 [&>span]:w-8 [&>span]:text-sm" />{pick(b.doctor, "name", lang)}</div>
             <p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", lang) : ""} · {nameOf(b.patient.id)}</p>
             <p data-testid="appt-time">{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
             {isHome ? <p className="text-sm text-muted-foreground" data-testid="appt-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
