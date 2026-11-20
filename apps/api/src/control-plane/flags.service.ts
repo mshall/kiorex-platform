@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { signSnapshot, signWebhook as cSignWebhook } from '@kiorex/contracts';
 import { FlagDefinition, FlagValue, Prisma } from '@prisma/client';
 import { cfg } from '../common/config';
+import { outboundFetch } from '../common/outbound-http';
 import { decryptField, encryptField } from '../common/crypto';
 import { badRequest, forbidden, notFound, conflict } from '../common/errors';
 import { OutboxService } from '../outbox/outbox-public';
@@ -355,7 +356,7 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     });
     const signed = cSignWebhook({ secret, body, eventType: 'flag.changed', eventId });
     try {
-      const res = await fetch(reg.webhookUrl, {
+      const res = await outboundFetch(reg.webhookUrl, {
         method: 'POST',
         headers: { ...signed.headers }, // signed.headers already carries Content-Type; a second one made Express skip body parsing (no rawBody -> 401)
         body,

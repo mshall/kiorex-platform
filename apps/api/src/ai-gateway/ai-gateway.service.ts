@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { outboundFetch } from '../common/outbound-http';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PatientService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,7 +21,7 @@ export class OpenAiEuProvider implements AiProvider {
   name = 'openai-eu';
   async classify(t: string): Promise<SpecialtyCode[]> {
     const c = cfg();
-    const res = await fetch(`${c.openaiBase.replace(/\/$/, '')}/chat/completions`, {
+    const res = await outboundFetch(`${c.openaiBase.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${c.openaiKey}` }, signal: AbortSignal.timeout(10_000),
       body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: `Map the patient's text to at most 3 medical specialty codes from: ${SPECIALTY_CODES.join(', ')}. Reply JSON {"specialties":[...]}. Never diagnose.` }, { role: 'user', content: t }] }),
     });

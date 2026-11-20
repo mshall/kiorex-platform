@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { outboundFetch } from '../common/outbound-http';
 import { signKiorlyRequest } from '../common/hmac';
 
 /** 4xx from Kiorly (a definitive answer). */
@@ -63,7 +64,7 @@ export class KiorlyClient {
     if (r.idempotencyKey) headers['idempotency-key'] = r.idempotencyKey;
     let res: Response;
     try {
-      res = await fetch(url, { method: r.method, headers, body, signal: AbortSignal.timeout(c.kiorlyTimeoutMs) });
+      res = await outboundFetch(url, { method: r.method, headers, body, signal: AbortSignal.timeout(c.kiorlyTimeoutMs) });
     } catch (e) {
       this.record(r.clinicId, false);
       const timeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');

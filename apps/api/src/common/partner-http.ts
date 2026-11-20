@@ -1,3 +1,4 @@
+import { outboundFetch } from './outbound-http';
 import { signKiorlyRequest } from './hmac';
 
 /** A definitive 4xx answer from a partner product (Kiorly Pharmacy / Kiorly Lab). */
@@ -26,7 +27,7 @@ export async function partnerRequest<T = any>(c: PartnerConn, r: PartnerReq): Pr
   if (r.idempotencyKey) headers['idempotency-key'] = r.idempotencyKey;
   let res: Response;
   try {
-    res = await fetch(url, { method: r.method, headers, body, signal: AbortSignal.timeout(c.timeoutMs) });
+    res = await outboundFetch(url, { method: r.method, headers, body, signal: AbortSignal.timeout(c.timeoutMs) });
   } catch (e) {
     const timeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
     throw new PartnerTransientError(timeout ? 'timeout' : `network: ${(e as Error).message}`, timeout ? 'TIMEOUT' : 'NETWORK');
