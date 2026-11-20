@@ -70,6 +70,7 @@ export default function Home() {
   const careTypes = useCareTypes();
   const bookings = useBookings(signedIn);
   const [q, setQ] = useState("");
+  const [specFilter, setSpecFilter] = useState("");
   const [recent, setRecent] = useState<RecentDoctor[]>([]);
   useFocusEffect(useCallback(() => { void getRecent().then(setRecent); }, []));
 
@@ -81,6 +82,9 @@ export default function Home() {
     router.push({ pathname: "/results", params: { q: q.trim() } });
   };
   const name = user?.name ?? selected?.name;
+  const shownSpecialties = [...(specialties.data ?? [])]
+    .filter((s) => { const f = specFilter.trim().toLowerCase(); return !f || `${s.nameEn} ${s.nameAr}`.toLowerCase().includes(f); })
+    .sort((a, b) => pick(a, "name", lang).localeCompare(pick(b, "name", lang), lang));
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" testID="home">
@@ -105,11 +109,14 @@ export default function Home() {
 
       <View style={{ gap: 10 }}>
         <T variant="h2">{t("search.specialties")}</T>
-        <Row style={{ flexWrap: "wrap" }} gap={8}>
-          {[...(specialties.data ?? [])].sort((a, b) => pick(a, "name", lang).localeCompare(pick(b, "name", lang), lang)).map((s) => (
-            <Chip key={s.code} testID={`chip-${s.code}`} label={pick(s, "name", lang)} onPress={() => { track("search_started", { specialtyCode: s.code }); router.push({ pathname: "/results", params: { specialty: s.code } }); }} />
-          ))}
-        </Row>
+        <Field testID="specialty-filter" value={specFilter} onChangeText={setSpecFilter} placeholder={t("search.filterSpecialties")} accessibilityLabel={t("search.filterSpecialties")} returnKeyType="done" autoCorrect={false} />
+        {shownSpecialties.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" testID="specialty-strip" contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+            {shownSpecialties.map((s) => (
+              <Chip key={s.code} testID={`chip-${s.code}`} label={pick(s, "name", lang)} onPress={() => { track("search_started", { specialtyCode: s.code }); router.push({ pathname: "/results", params: { specialty: s.code } }); }} />
+            ))}
+          </ScrollView>
+        ) : specialties.data ? <T variant="small" color={colors.muted}>{t("search.noSpecialty")}</T> : null}
       </View>
 
       <MarketGateBanner />

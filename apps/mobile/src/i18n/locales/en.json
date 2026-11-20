@@ -86,7 +86,9 @@
     "label": "Search for a doctor, specialty or clinic",
     "placeholder": "Specialty, doctor or clinic name",
     "submit": "Search",
-    "specialties": "Specialties"
+    "specialties": "Specialties",
+    "filterSpecialties": "Filter specialties",
+    "noSpecialty": "No specialty matches"
   },
   "home": {
     "greeting": "Hello, {{name}}",

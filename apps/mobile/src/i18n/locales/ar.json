@@ -86,7 +86,9 @@
     "label": "ابحث عن طبيب أو تخصص أو عيادة",
     "placeholder": "التخصص أو اسم الطبيب أو العيادة",
     "submit": "بحث",
-    "specialties": "التخصصات"
+    "specialties": "التخصصات",
+    "filterSpecialties": "ابحث في التخصصات",
+    "noSpecialty": "لا يوجد تخصص مطابق"
   },
   "home": {
     "greeting": "أهلًا، {{name}}",
