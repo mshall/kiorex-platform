@@ -26,9 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { path: kiorex-platform }
-      # @kiorex/contracts is consumed from ../kiorex-contracts/dist-pack (file: dependency)
-      - uses: actions/checkout@v4
-        with: { repository: mshall/kiorex-contracts, path: kiorex-contracts, token: "${{ secrets.CONTRACTS_READ_TOKEN }}" }
+      # @kiorex/contracts comes from the vendored tarball committed in vendor/ (file: dependency). No cross-repo checkout, no
+      # CONTRACTS_READ_TOKEN and no GitHub Packages token (the token that built it has no write:packages). Refresh: scripts/vendor-contracts.sh
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
       - run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -c 'CREATE DATABASE kiorex_platform_test'
@@ -61,8 +60,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { path: kiorex-platform }
-      - uses: actions/checkout@v4
-        with: { repository: mshall/kiorex-contracts, path: kiorex-contracts, token: "${{ secrets.CONTRACTS_READ_TOKEN }}" }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
       - run: npm ci
