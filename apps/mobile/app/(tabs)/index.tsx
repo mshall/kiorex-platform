@@ -106,7 +106,7 @@ export default function Home() {
       <View style={{ gap: 10 }}>
         <T variant="h2">{t("search.specialties")}</T>
         <Row style={{ flexWrap: "wrap" }} gap={8}>
-          {(specialties.data ?? []).map((s) => (
+          {[...(specialties.data ?? [])].sort((a, b) => pick(a, "name", lang).localeCompare(pick(b, "name", lang), lang)).map((s) => (
             <Chip key={s.code} testID={`chip-${s.code}`} label={pick(s, "name", lang)} onPress={() => { track("search_started", { specialtyCode: s.code }); router.push({ pathname: "/results", params: { specialty: s.code } }); }} />
           ))}
         </Row>

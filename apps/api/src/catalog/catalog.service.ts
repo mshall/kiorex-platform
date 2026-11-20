@@ -328,7 +328,8 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   }
 
   specialties() {
-    return SPECIALTY_CODES.map((code) => ({ code, ...SPECIALTY_LABELS[code] }));
+    // Complete catalogue, alphabetical by English name (clients re-sort by the active language).
+    return SPECIALTY_CODES.map((code) => ({ code, ...SPECIALTY_LABELS[code] })).sort((a, b) => a.en.localeCompare(b.en, 'en'));
   }
 
   // ───────────── analytics (KXM-DS-08) — never records free text ─────────────

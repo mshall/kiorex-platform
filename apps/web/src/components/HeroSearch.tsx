@@ -51,7 +51,7 @@ export function HeroSearch({ className }: { className?: string }) {
             <span className="sr-only">{t("search.specialty")}</span>
             <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} data-testid="hero-specialty">
               <option value="">{t("search.anySpecialty")}</option>
-              {(specialties.data ?? []).map((s) => <option key={s.code} value={s.code}>{pick(s, "name", i18n.language)}</option>)}
+              {[...(specialties.data ?? [])].sort((a, b) => pick(a, "name", i18n.language).localeCompare(pick(b, "name", i18n.language), i18n.language)).map((s) => <option key={s.code} value={s.code}>{pick(s, "name", i18n.language)}</option>)}
             </select></label>
           <label className="kx-field"><MapPin className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="sr-only">{t("filters.area")}</span>

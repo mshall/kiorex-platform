@@ -1,7 +1,7 @@
 import { normalizeText } from './text';
 
 /** Launch specialty codes (KX-16 §02 specialty advisory board list). */
-export const SPECIALTY_CODES = ['dermatology', 'paediatrics', 'obgyn', 'orthopaedics', 'ent', 'internal_medicine', 'cardiology', 'psychiatry', 'ophthalmology', 'urology', 'dentistry'] as const;
+export const SPECIALTY_CODES = ['dermatology', 'paediatrics', 'obgyn', 'orthopaedics', 'ent', 'internal_medicine', 'cardiology', 'psychiatry', 'ophthalmology', 'urology', 'dentistry', 'allergy_immunology', 'anesthesiology', 'audiology', 'cardiothoracic_surgery', 'diabetes_endocrinology', 'emergency_medicine', 'family_medicine', 'gastroenterology', 'general_surgery', 'geriatrics', 'haematology', 'infectious_diseases', 'nephrology', 'neurology', 'neurosurgery', 'nutrition', 'oncology', 'pain_management', 'physiotherapy', 'plastic_surgery', 'pulmonology', 'radiology', 'rheumatology', 'sports_medicine', 'vascular_surgery'] as const;
 export type SpecialtyCode = (typeof SPECIALTY_CODES)[number];
 
 export const SPECIALTY_LABELS: Record<SpecialtyCode, { en: string; ar: string }> = {
@@ -16,6 +16,31 @@ export const SPECIALTY_LABELS: Record<SpecialtyCode, { en: string; ar: string }>
   ophthalmology: { en: 'Ophthalmology', ar: 'العيون' },
   urology: { en: 'Urology', ar: 'المسالك البولية' },
   dentistry: { en: 'Dentistry', ar: 'الأسنان' },
+  allergy_immunology: { en: 'Allergy & Immunology', ar: 'الحساسية والمناعة' },
+  anesthesiology: { en: 'Anaesthesiology', ar: 'التخدير' },
+  audiology: { en: 'Audiology & Speech', ar: 'السمعيات والتخاطب' },
+  cardiothoracic_surgery: { en: 'Cardiothoracic Surgery', ar: 'جراحة القلب والصدر' },
+  diabetes_endocrinology: { en: 'Diabetes & Endocrinology', ar: 'السكر والغدد الصماء' },
+  emergency_medicine: { en: 'Emergency Medicine', ar: 'الطوارئ' },
+  family_medicine: { en: 'Family Medicine', ar: 'طب الأسرة' },
+  gastroenterology: { en: 'Gastroenterology', ar: 'الجهاز الهضمي والكبد' },
+  general_surgery: { en: 'General Surgery', ar: 'الجراحة العامة' },
+  geriatrics: { en: 'Geriatrics', ar: 'طب المسنين' },
+  haematology: { en: 'Haematology', ar: 'أمراض الدم' },
+  infectious_diseases: { en: 'Infectious Diseases', ar: 'الأمراض المعدية' },
+  nephrology: { en: 'Nephrology', ar: 'أمراض الكلى' },
+  neurology: { en: 'Neurology', ar: 'المخ والأعصاب' },
+  neurosurgery: { en: 'Neurosurgery', ar: 'جراحة المخ والأعصاب' },
+  nutrition: { en: 'Nutrition & Dietetics', ar: 'التغذية' },
+  oncology: { en: 'Oncology', ar: 'الأورام' },
+  pain_management: { en: 'Pain Management', ar: 'علاج الألم' },
+  physiotherapy: { en: 'Physiotherapy', ar: 'العلاج الطبيعي' },
+  plastic_surgery: { en: 'Plastic & Cosmetic Surgery', ar: 'جراحة التجميل' },
+  pulmonology: { en: 'Pulmonology & Chest', ar: 'الصدر والجهاز التنفسي' },
+  radiology: { en: 'Radiology', ar: 'الأشعة' },
+  rheumatology: { en: 'Rheumatology', ar: 'الروماتيزم' },
+  sports_medicine: { en: 'Sports Medicine', ar: 'الطب الرياضي' },
+  vascular_surgery: { en: 'Vascular Surgery', ar: 'جراحة الأوعية الدموية' },
 };
 
 /** Keyword → specialty (KXM-DS-01 fallback; also the rules path when kiorex.ai_navigation is not effective). NEEDS_HUMAN: CMO review of the map. */
@@ -31,6 +56,31 @@ const MAP: Record<SpecialtyCode, string[]> = {
   ophthalmology: ['eye', 'vision', 'blurry', 'cataract', 'عين', 'نظر', 'عيون', 'مياه بيضاء'],
   urology: ['urine', 'urinary', 'kidney stone', 'prostate', 'بول', 'مسالك', 'حصوات', 'بروستاتا'],
   dentistry: ['tooth', 'teeth', 'dental', 'gum', 'cavity', 'سن', 'اسنان', 'ضرس', 'لثه'],
+  allergy_immunology: ['allergy', 'allergic', 'hives', 'asthma allergy', 'حساسيه', 'مناعه', 'ارتكاريا'],
+  anesthesiology: ['anesthesia', 'anaesthesia', 'sedation', 'تخدير', 'بنج'],
+  audiology: ['speech', 'stutter', 'hearing test', 'تخاطب', 'تاتاه', 'سمعيات'],
+  cardiothoracic_surgery: ['open heart', 'bypass', 'chest surgery', 'جراحه قلب', 'جراحه صدر'],
+  diabetes_endocrinology: ['insulin', 'hormone', 'endocrin', 'pcos', 'غدد صماء', 'هرمون', 'انسولين'],
+  emergency_medicine: ['emergency', 'trauma', 'طوارئ', 'اسعاف'],
+  family_medicine: ['family doctor', 'checkup', 'check up', 'طب اسره', 'كشف عام'],
+  gastroenterology: ['gastro', 'reflux', 'ibs', 'bowel', 'liver', 'diarrhea', 'constipation', 'قولون', 'كبد', 'اسهال', 'امساك', 'ارتجاع'],
+  general_surgery: ['hernia', 'appendix', 'gallbladder', 'surgery', 'فتق', 'زايده', 'مراره', 'جراحه'],
+  geriatrics: ['elderly', 'dementia', 'مسن', 'شيخوخه', 'خرف'],
+  haematology: ['anemia', 'anaemia', 'blood disorder', 'clotting', 'انيميا', 'فقر دم', 'امراض دم'],
+  infectious_diseases: ['infection', 'hepatitis', 'hiv', 'malaria', 'عدوي', 'التهاب كبدي'],
+  nephrology: ['kidney', 'dialysis', 'renal', 'كلي', 'غسيل كلوي', 'فشل كلوي'],
+  neurology: ['headache', 'migraine', 'seizure', 'epilepsy', 'stroke', 'numbness', 'صداع', 'صرع', 'جلطه', 'تنميل', 'اعصاب', 'مخ'],
+  neurosurgery: ['brain tumor', 'spine surgery', 'disc', 'جراحه مخ', 'ديسك', 'جراحه عمود فقري'],
+  nutrition: ['diet', 'weight loss', 'obesity', 'nutrition', 'تغذيه', 'رجيم', 'سمنه', 'نحافه'],
+  oncology: ['cancer', 'tumor', 'tumour', 'chemotherapy', 'سرطان', 'ورم', 'اورام', 'كيماوي'],
+  pain_management: ['chronic pain', 'pain clinic', 'الم مزمن', 'علاج الم'],
+  physiotherapy: ['physio', 'rehab', 'rehabilitation', 'physical therapy', 'علاج طبيعي', 'تاهيل'],
+  plastic_surgery: ['cosmetic', 'plastic', 'rhinoplasty', 'burn scar', 'تجميل', 'جراحه تجميل', 'تجميلي'],
+  pulmonology: ['cough', 'asthma', 'breath', 'lung', 'copd', 'shortness of breath', 'كحه', 'ربو', 'صدر', 'ضيق تنفس', 'رئه'],
+  radiology: ['x-ray', 'xray', 'mri', 'ct scan', 'ultrasound', 'اشعه', 'رنين', 'سونار', 'مقطعيه'],
+  rheumatology: ['rheumat', 'lupus', 'arthritis', 'gout', 'روماتيزم', 'نقرس', 'ذئبه', 'التهاب مفاصل'],
+  sports_medicine: ['sports injury', 'athlete', 'sprain', 'اصابات ملاعب', 'رياضي', 'التواء'],
+  vascular_surgery: ['varicose', 'vascular', 'دوالي', 'اوعيه دمويه'],
 };
 const NMAP = (Object.entries(MAP) as [SpecialtyCode, string[]][]).map(([c, l]) => [c, l.map(normalizeText)] as const);
 

@@ -45,7 +45,7 @@ export function SpecialtyChips({ active, onPick }: { active?: string; onPick: (c
   return (
     <div className="-mx-4 overflow-x-auto px-4 pb-1" role="group" aria-label={t("search.specialties")}>
       <div className="flex gap-2 rounded-2xl border bg-card p-1.5 shadow-card focus-within:border-primary/60 focus-within:ring-[3px] focus-within:ring-ring/40">
-        {(data ?? []).map((s) => (
+        {[...(data ?? [])].sort((a, b) => pick(a, "name", i18n.language).localeCompare(pick(b, "name", i18n.language), i18n.language)).map((s) => (
           <button key={s.code} type="button" className="kx-chip shrink-0" aria-pressed={active === s.code} onClick={() => onPick(active === s.code ? undefined : s.code)} data-testid={`chip-${s.code}`}>
             <SpecialtyIcon code={s.code} className="h-[18px] w-[18px] text-primary" />{pick(s, "name", i18n.language)}
           </button>

@@ -1,4 +1,4 @@
-import { detectEmergency, detectPhi, EMERGENCY_GUIDANCE, mapSymptomToSpecialties, normalizeText, redactPhi } from './safety-public';
+import { detectEmergency, detectPhi, EMERGENCY_GUIDANCE, isSpecialtyCode, mapSymptomToSpecialties, SPECIALTY_CODES, SPECIALTY_LABELS, normalizeText, redactPhi } from './safety-public';
 
 describe('safety: emergency routing (KXM-DS-06, KX-16 H07)', () => {
   it.each([
@@ -36,5 +36,17 @@ describe('safety: symptom keyword → specialty and PHI redaction', () => {
     expect(r.text).not.toMatch(/Amira|01012345678|a@b\.com|29004020101234|http/);
     expect(r.count).toBeGreaterThanOrEqual(4);
     expect(detectPhi('call +20 100 123 4567')).toContain('PHONE');
+  });
+});
+
+describe('specialty catalogue', () => {
+  it('covers the full set, every code has EN+AR labels, and symptoms route to the new specialties', () => {
+    expect(SPECIALTY_CODES.length).toBeGreaterThanOrEqual(30);
+    for (const c of SPECIALTY_CODES) { expect(isSpecialtyCode(c)).toBe(true); expect(SPECIALTY_LABELS[c].en).toBeTruthy(); expect(SPECIALTY_LABELS[c].ar).toMatch(/[\u0600-\u06FF]/); }
+    expect(mapSymptomToSpecialties('severe migraine headache')[0]).toBe('neurology');
+    expect(mapSymptomToSpecialties('كحه وضيق تنفس')).toContain('pulmonology');
+  });
+  it('keeps the first six codes stable (WhatsApp quick list)', () => {
+    expect(SPECIALTY_CODES.slice(0, 6)).toEqual(['dermatology', 'paediatrics', 'obgyn', 'orthopaedics', 'ent', 'internal_medicine']);
   });
 });
