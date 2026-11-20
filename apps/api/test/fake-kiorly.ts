@@ -17,6 +17,8 @@ export class FakeKiorly {
   reviewPushes: any[] = [];
   profileViews: any[] = [];
   consentPushes: { patientId: string; consents: any[] }[] = [];
+  /** patient ids the clinic does not know: POST /patients/:id/consents answers 404 for them (stale KiorlyPatientLink). */
+  unknownPatients = new Set<string>();
   bookingMode: Mode;
   holdMode: Mode;
   /** Rev 2.3 (contracts 1.5.0): '422-coverage' answers every HOME slot query with 422 OUT_OF_COVERAGE regardless of the provider's coverage list. */
@@ -44,7 +46,7 @@ export class FakeKiorly {
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
-    this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = [];
+    this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined;
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
@@ -163,6 +165,7 @@ export class FakeKiorly {
     }
     if (m === 'POST' && path === '/analytics/profile-views') { this.profileViews.push(body); return send(200, { accepted: body.items.length, rejected: [] }); }
     const cp = path.match(/^\/patients\/([^/]+)\/consents$/);
+    if (m === 'POST' && cp && this.unknownPatients.has(cp[1])) return send(404, { code: 'PATIENT_NOT_FOUND' });
     if (m === 'POST' && cp) { this.consentPushes.push({ patientId: cp[1], consents: body.consents }); return send(200, body.consents); }
     const dl = path.match(/^\/deposit-links\/([^/]+)\/paid$/);
     if (m === 'POST' && dl) { this.deposits.set(body.paymentRef, { link: dl[1], ...body }); return send(200, { ok: true }); }

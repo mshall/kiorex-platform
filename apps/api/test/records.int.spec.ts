@@ -105,6 +105,20 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
     expect((await c.http().get('/api/v1/me/consents').set(auth)).body.find((x: any) => x.purpose === 'RECORD_SHARING').granted).toBe(false);
   });
 
+  it('RC-01 a consent push for a patient the clinic does not know (404) is dropped, marks the link STALE and never dead-letters or fans out again', async () => {
+    await c.prisma.kiorlyPatientLink.create({ data: { sub: 'sub_amira', clinicId: 'cl_ghost', kiorlyPatientId: 'pat_ghost', evidence: 'PHONE' } });
+    c.kiorly.unknownPatients.add('pat_ghost');
+    await c.http().put('/api/v1/me/record-sharing/PRESCRIPTIONS').set(auth).send({ granted: true }).expect(200);
+    await c.get(OutboxService).processBatch();
+    expect((await c.prisma.kiorlyPatientLink.findFirst({ where: { kiorlyPatientId: 'pat_ghost' } }))!.status).toBe('STALE');
+    expect(await c.prisma.outboxEvent.count({ where: { type: 'kiorly.record_share_consent', status: { in: ['DEAD', 'FAILED'] } } })).toBe(0);
+    const before = await c.prisma.outboxEvent.count({ where: { type: 'kiorly.record_share_consent' } });
+    await c.http().put('/api/v1/me/record-sharing/PRESCRIPTIONS').set(auth).send({ granted: false }).expect(200);
+    expect(await c.prisma.outboxEvent.count({ where: { type: 'kiorly.record_share_consent' } })).toBe(before + 1); // only the real link (pat_1)
+    await c.get(OutboxService).processBatch();
+    expect(c.kiorly.consentPushes.at(-1)).toEqual({ patientId: 'pat_1', consents: [{ scope: 'PRESCRIPTIONS', granted: false }] });
+  });
+
   it('flags: kiorex.record_vault OFF => vault read-only (list/view/delete work; upload, grant, new shares blocked)', async () => {
     await share();
     const id = (await c.http().get('/api/v1/me/vault').set(auth)).body.items[0].id;

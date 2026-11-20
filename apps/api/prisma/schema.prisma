@@ -145,7 +145,7 @@ model KiorlyPatientLink {
   clinicId        String
   kiorlyPatientId String
   evidence        String // PHONE | NATIONAL_ID | PHONE_AND_NATIONAL_ID
-  status          String   @default("LINKED") // LINKED | CONFLICT_REVIEW
+  status          String   @default("LINKED") // LINKED | CONFLICT_REVIEW | STALE (clinic answered 404: patient unknown there)
   createdAt       DateTime @default(now())
 
   @@unique([sub, clinicId, kiorlyPatientId])

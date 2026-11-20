@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SharedRecord } from '@prisma/client';
 import { createHash, createHmac } from 'node:crypto';
 import { cfg } from '../common/config';
@@ -7,7 +7,7 @@ import { badRequest, notFound } from '../common/errors';
 import { newId } from '../common/ids';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { EngagementService } from '../engagement/engagement-public';
-import { KiorlyClient } from '../kiorly/kiorly-public';
+import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -33,6 +33,7 @@ type Outcome = 'APPLIED' | 'IGNORED' | 'UNMAPPED_PATIENT';
  */
 @Injectable()
 export class RecordsService implements OnModuleInit {
+  private readonly log = new Logger('records');
   constructor(
     private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient,
     private readonly flags: FlagsService, private readonly engagement: EngagementService, @Inject(STORAGE) private readonly storage: StorageAdapter,
@@ -178,7 +179,15 @@ export class RecordsService implements OnModuleInit {
   }
 
   private async pushConsent(p: { kiorlyPatientId: string; clinicId?: string; scope: string; granted: boolean }) {
-    await this.kiorly.upsertRecordShareConsents(p.kiorlyPatientId, [{ scope: p.scope, granted: p.granted }], p.clinicId);
+    try {
+      await this.kiorly.upsertRecordShareConsents(p.kiorlyPatientId, [{ scope: p.scope, granted: p.granted }], p.clinicId);
+    } catch (err) {
+      // 404 = the clinic does not know this patient: the link is stale and retrying can never succeed. Mark it so no further pushes fan out to it
+      // (every later consent change would otherwise add another event that dies after 8 attempts) and drop this event instead of dead-lettering it.
+      if (!(err instanceof KiorlyHttpError) || err.status !== 404) throw err;
+      await this.prisma.kiorlyPatientLink.updateMany({ where: { kiorlyPatientId: p.kiorlyPatientId, ...(p.clinicId ? { clinicId: p.clinicId } : {}), status: 'LINKED' }, data: { status: 'STALE' } });
+      this.log.warn(`record-share consent push skipped: Kiorly patient ${p.kiorlyPatientId} not found, link marked STALE`);
+    }
   }
 
   private async deleteScopeCopies(sub: string, scope: ShareScope, reason: string) {
