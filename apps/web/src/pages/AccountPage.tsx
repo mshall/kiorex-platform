@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Laptop, Trash2, UserPlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { ClipboardList, Laptop, MapPin, Trash2, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -144,6 +146,10 @@ export default function AccountPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="text-2xl">{t("account.title")}</h1>
       <Profile />
+      <nav aria-label={t("hv.homeCare")} className="flex flex-wrap gap-3">
+        <Link to="/account/addresses" className={cn(buttonVariants({ variant: "outline" }))} data-testid="link-addresses"><MapPin aria-hidden="true" />{t("hv.addressBook")}</Link>
+        <Link to="/care-plans" className={cn(buttonVariants({ variant: "outline" }))} data-testid="link-care-plans"><ClipboardList aria-hidden="true" />{t("hv.carePlans")}</Link>
+      </nav>
       <Tabs defaultValue="family">
         <TabsList className="h-auto flex-wrap justify-start">
           {(["family", "consents", "sessions"] as const).map((k) => <TabsTrigger key={k} value={k} className="min-h-11 px-5">{t(`account.tabs.${k}`)}</TabsTrigger>)}

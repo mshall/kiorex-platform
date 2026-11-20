@@ -20,7 +20,9 @@ export type LabSlot = S["LabSlotDto"];
 export type LabBooking = S["LabBookingDto"];
 export type TeleProvider = S["TeleProviderDto"];
 export type TeleSession = S["TeleSessionDto"];
-export type DeliveryInput = S["DeliveryBody"];
+/** The generated contract merges same-named DTO classes from different modules (AddressBody, ShareBody, ReviewBody: API defect, see Docs/NEEDS_HUMAN.md);
+ *  these local shapes are the real wire bodies for pharmacy delivery, record sharing and reviews. */
+export type DeliveryInput = { method: "PICKUP" | "DELIVERY"; address?: { line1: string; area?: string; governorate?: string; notes?: string; phone?: string } };
 export type LabBookInput = S["LabBookBody"];
 export type ClientEvent = S["ClientEventBody"];
 
@@ -90,7 +92,7 @@ export const useSetRecordSharing = () => {
   const qc = useQueryClient();
   const inv = useInvalidateVault();
   return useMutation({
-    mutationFn: (v: { scope: RecordScope; granted: boolean }) => unwrap(api.PUT("/api/v1/me/record-sharing/{scope}", { params: { path: { scope: v.scope } }, body: { granted: v.granted } })),
+    mutationFn: (v: { scope: RecordScope; granted: boolean }) => unwrap(api.PUT("/api/v1/me/record-sharing/{scope}", { params: { path: { scope: v.scope } }, body: { granted: v.granted } as unknown as S["ShareBody"] })),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: sk.sharing }); inv(); },
   });
 };
@@ -116,7 +118,7 @@ const useCartMutation = <V,>(fn: (v: V) => Promise<Cart | unknown>) => {
 };
 export const usePutCart = () => useCartMutation((body: S["CartBody"]) => unwrap(api.PUT("/api/v1/pharmacy/cart", { body })));
 export const useClearCart = () => useCartMutation(() => unwrap(api.DELETE("/api/v1/pharmacy/cart")));
-export const usePutDelivery = () => useCartMutation((body: DeliveryInput) => unwrap(api.PUT("/api/v1/pharmacy/cart/delivery", { body })));
+export const usePutDelivery = () => useCartMutation((body: DeliveryInput) => unwrap(api.PUT("/api/v1/pharmacy/cart/delivery", { body: body as unknown as S["DeliveryBody"] })));
 export const useCreateOrder = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (body: S["CreateOrderBody"]) => unwrap(api.POST("/api/v1/pharmacy/orders", { body })), onSuccess: () => { void qc.invalidateQueries({ queryKey: sk.cart }); void qc.invalidateQueries({ queryKey: sk.orders }); } });

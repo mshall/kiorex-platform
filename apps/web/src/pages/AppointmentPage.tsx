@@ -19,6 +19,7 @@ import { buildIcs, downloadIcs } from "@/lib/ics";
 import { statusVariant } from "./AppointmentsPage";
 import { usePatient } from "@/hooks/usePatient";
 import { cn } from "@/lib/utils";
+import { FamilySharePanel, HomeFee, HomeProgress, SafetyCardPanel, VisitAddressView } from "@/components/HomeVisitBits";
 
 export default function AppointmentPage() {
   const { id = "" } = useParams();
@@ -57,6 +58,8 @@ export default function AppointmentPage() {
   const clinicCancelled = b.status === "CANCELLED" && b.cancellation.byClinic;
   const active = ["PENDING_CLINIC", "CONFIRMED"].includes(b.status);
   const refundable = b.deposit.status === "PAID";
+  const isHome = b.serviceLocation === "HOME";
+  const homeLive = isHome && !!b.home && ["PENDING_CLINIC", "CONFIRMED", "CHECKED_IN", "COMPLETED", "NO_SHOW"].includes(b.status);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -83,10 +86,11 @@ export default function AppointmentPage() {
         <p className="text-lg font-semibold">{pick(b.doctor, "name", lang)}</p>
         <p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", lang) : ""} · {nameOf(b.patient.id)}</p>
         <p data-testid="appt-time">{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
-        <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>
+        {isHome ? <p className="text-sm text-muted-foreground" data-testid="appt-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
+        {b.home && <HomeFee home={b.home} />}
         <div className="flex flex-wrap gap-2 pt-2">
-          <a href={directionsUrl(b.clinic)} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "outline" }))}><Navigation className="rtl-flip" aria-hidden="true" />{t("appointment.directions")}</a>
-          <a href={`tel:${b.clinic.phone.replace(/\s/g, "")}`} className={cn(buttonVariants({ variant: "outline" }))}><Phone aria-hidden="true" />{t("appointment.call")}</a>
+          {!isHome && <a href={directionsUrl(b.clinic)} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "outline" }))}><Navigation className="rtl-flip" aria-hidden="true" />{t("appointment.directions")}</a>}
+          {!isHome && <a href={`tel:${b.clinic.phone.replace(/\s/g, "")}`} className={cn(buttonVariants({ variant: "outline" }))}><Phone aria-hidden="true" />{t("appointment.call")}</a>}
           {active && <Button variant="outline" onClick={() => downloadIcs(`kiorex-${b.id}.ics`, buildIcs({ id: b.id, title: pick(b.doctor, "name", "en"), location: pick(b.clinic, "address", "en"), startsAt: b.startsAt, endsAt: b.endsAt }))}><CalendarPlus aria-hidden="true" />{t("appointment.addToCalendar")}</Button>}
         </div>
       </section>
@@ -98,6 +102,12 @@ export default function AppointmentPage() {
           {b.deposit.status === "REQUIRED" && active && <Button onClick={onPayLink} disabled={intent.isPending} data-testid="pay-deposit-link">{t("appointment.payDeposit", { amount: formatMoney(b.deposit.requiredEgp, lang) })}</Button>}
         </section>
       )}
+
+      {b.deposit.status === "HOLD_FOR_REVIEW" && <div role="status" className="rounded-xl border border-warning/50 bg-warning-soft p-4 text-sm" data-testid="deposit-hold-review">{t("hv.depositUnderReview")}</div>}
+      {homeLive && b.home && <HomeProgress home={b.home} />}
+      {isHome && b.home && <VisitAddressView home={b.home} />}
+      {homeLive && <SafetyCardPanel bookingId={b.id} />}
+      {isHome && active && <FamilySharePanel bookingId={b.id} />}
 
       <section className="kx-card p-5"><h2 className="mb-4 text-lg">{t("appointment.timeline")}</h2><StatusTimeline booking={b} /></section>
 
@@ -112,7 +122,7 @@ export default function AppointmentPage() {
       {b.reviewable && !b.reviewed && <Link to={`/appointments/${b.id}/review`} className={cn(buttonVariants({ variant: "pulse", size: "lg" }))} data-testid="leave-review"><Star aria-hidden="true" />{t("appointment.leaveReview")}</Link>}
       {b.reviewed && <p className="text-sm text-success">{t("appointment.reviewed")}</p>}
 
-      <ClinicMap clinic={b.clinic} />
+      {!isHome && <ClinicMap clinic={b.clinic} />}
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>

@@ -4,6 +4,7 @@ import { BadgeCheck, CalendarClock, MessageSquareText, Search, ShieldCheck, Wall
 import { buttonVariants } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import { SearchBar, SpecialtyChips } from "@/components/SearchBar";
+import { CareTypeTabs } from "@/components/CareTypeTabs";
 import { FeatureCard } from "@/components/FeatureCard";
 import { PulseDivider } from "@/components/PulseLine";
 import { LogoMark } from "@/components/Logo";
@@ -30,7 +31,8 @@ export default function LandingPage() {
           <h1 id="hero-title" className="text-4xl leading-tight md:text-5xl">{t("landing.title")}</h1>
           <p className="text-lg text-muted-foreground">{t("landing.subtitle")}</p>
           <SearchBar />
-          <SpecialtyChips onPick={(code) => nav(code ? `/search?specialty=${code}` : "/search")} />
+          <CareTypeTabs onPick={(c) => nav(c ? `/search?careType=${c}${c === "HOME_NURSING" ? "&serviceLocation=HOME" : ""}` : "/search")} />
+        <SpecialtyChips onPick={(code) => nav(code ? `/search?specialty=${code}` : "/search")} />
         </div>
       </section>
 

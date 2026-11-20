@@ -2,7 +2,7 @@
 // Money on the wire is minor units (piastres); the UI works in whole EGP. Only the two fields the contract leaves as free-form
 // `object` (clinic, cancellationPolicy) are read through `Loose`.
 import type { components } from "./schema";
-import type { DoctorProfile, DoctorSummary, Slot, Specialty, VisitType } from "./types";
+import type { ServiceLocation, DoctorProfile, DoctorSummary, Slot, Specialty, VisitType } from "./types";
 
 type S = components["schemas"];
 type Loose = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -19,6 +19,8 @@ export function mapSearchItem(i: Pick<S["SearchItemDto"], "id"> & Partial<S["Sea
     verified: !!i.verified, ratingAvg: i.rating?.count ? i.rating.average : null, ratingCount: i.rating?.count ?? 0, feeFromEgp: egp(i.minFeeMinor), depositRequired: !!i.acceptsDeposit,
     clinicNameAr: i.clinicNameAr ?? i.clinicNameEn ?? "", clinicNameEn: i.clinicNameEn ?? i.clinicNameAr ?? "", areaAr: i.area ?? "", areaEn: i.area ?? "",
     distanceKm: i.distanceKm ?? null, languages: i.languages ?? [], gender: i.gender === "M" ? "M" : "F",
+    careType: i.careType, serviceLocations: (i.serviceLocations as ServiceLocation[] | undefined) ?? ["IN_CLINIC"], coverageDistricts: i.coverageDistricts ?? [],
+    homeFeeEgp: i.homeVisit?.enabled ? egp(i.homeVisit.visitFeeIncludingSurchargeMinor) : null, homeSurchargeEgp: egp(i.homeVisit?.homeSurchargeMinor), badge: i.professionBadge ?? null, assignsClinician: !!i.assignsClinician,
     nextSlots: (i.nextSlots ?? []).map((s) => mapSlot(s, typeId)), sponsored: !!i.sponsored, bookable: i.bookable ?? true, clinicPhone: i.clinicPhone ?? null,
   };
 }
@@ -30,7 +32,7 @@ export function mapSearch(r: S["SearchResultDto"]) {
 export function mapProfile(p: S["ProviderProfileDto"]): DoctorProfile {
   const clinic: Loose = p.clinic ?? {};
   const visitTypes: VisitType[] = p.fees.map((f) => ({
-    id: f.typeId, nameAr: f.nameAr ?? f.nameEn ?? "", nameEn: f.nameEn ?? f.nameAr ?? "", feeEgp: egp(f.amountMinor), durationMin: 20, depositRequired: !!p.acceptsDeposit, depositEgp: null,
+    id: f.typeId, nameAr: f.nameAr ?? f.nameEn ?? "", nameEn: f.nameEn ?? f.nameAr ?? "", feeEgp: egp(f.totalMinor ?? f.amountMinor), serviceLocation: f.serviceLocation ?? "IN_CLINIC", surchargeEgp: egp(f.homeSurchargeMinor), durationMin: 20, depositRequired: !!p.acceptsDeposit, depositEgp: null,
   }));
   const pol: Loose = p.cancellationPolicy ?? {};
   const summary = mapSearchItem({
@@ -38,7 +40,10 @@ export function mapProfile(p: S["ProviderProfileDto"]): DoctorProfile {
     acceptsDeposit: p.acceptsDeposit, clinicNameAr: clinic.nameAr, clinicNameEn: clinic.nameEn, area: clinic.area, languages: p.languages, gender: p.gender, nextSlots: [], defaultTypeId: visitTypes[0]?.id, bookable: p.bookable,
   });
   return {
-    summary, bookable: !!p.bookable, bioAr: null, bioEn: null, subSpecialtiesAr: p.subSpecialties ?? [], subSpecialtiesEn: p.subSpecialties ?? [], visitTypes,
+    summary: { ...summary, badge: p.professionBadge ?? null, assignsClinician: !!p.assignsClinician, careType: p.careType },
+    careType: p.careType, serviceLocations: p.serviceLocations?.length ? p.serviceLocations : ["IN_CLINIC"], categoryEnabled: p.categoryEnabled !== false,
+    home: { enabled: !!p.homeVisit?.enabled, coverageDistricts: p.homeVisit?.coverageDistricts ?? [], surchargeEgp: egp(p.homeVisit?.homeSurchargeMinor) },
+    bookable: !!p.bookable, bioAr: null, bioEn: null, subSpecialtiesAr: p.subSpecialties ?? [], subSpecialtiesEn: p.subSpecialties ?? [], visitTypes,
     clinic: {
       id: clinic.id ?? "", nameAr: clinic.nameAr ?? clinic.nameEn ?? "", nameEn: clinic.nameEn ?? clinic.nameAr ?? "", addressAr: clinic.addressAr ?? clinic.addressEn ?? "", addressEn: clinic.addressEn ?? clinic.addressAr ?? "",
       phone: clinic.phone ?? "", lat: clinic.latitude ?? null, lng: clinic.longitude ?? null, paymentMethods: clinic.paymentMethods ?? [], hoursAr: [], hoursEn: [],
@@ -81,6 +86,7 @@ export function mapBooking(b: S["BookingDto"]): Booking {
     cancellation: { reason: b.cancellationReason ?? null, byClinic: b.cancelledBy === "CLINIC", canCancel: ACTIVE.includes(status), canReschedule: ACTIVE.includes(status), windowClosesAt: null },
     timeline: (b.timeline ?? []).map((e) => ({ status: e.status as BookingStatus, at: iso2(e.at), note: null })),
     reviewable: status === "COMPLETED", reviewed: false,
+    serviceLocation: b.serviceLocation ?? "IN_CLINIC", careType: b.careType ?? null, visitDistrict: b.visitDistrict ?? null, home: b.home ?? null,
   };
 }
 const iso2 = (v: unknown) => new Date(v as string).toISOString();

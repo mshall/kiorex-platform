@@ -85,7 +85,7 @@ export const useBookings = (enabled = true) =>
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({
     queryKey: qk.booking(id),
-    refetchInterval: (q) => (opts?.poll && ["HELD", "PENDING_CLINIC"].includes(q.state.data?.status ?? "") ? 5_000 : false),
+    refetchInterval: (q) => (opts?.poll && (["HELD", "PENDING_CLINIC"].includes(q.state.data?.status ?? "") || (q.state.data?.serviceLocation === "HOME" && ["CONFIRMED", "CHECKED_IN"].includes(q.state.data.status))) ? 5_000 : false),
     queryFn: async () => mapBooking(await unwrap(api.GET("/api/v1/bookings/{id}", { params: { path: { id } } }))),
   });
 
@@ -97,8 +97,8 @@ export function useVisitType(b: Booking | undefined) {
 
 export const useCreateHold = () =>
   useMutation({
-    mutationFn: async (v: { providerId: string; slot: Slot; dependantId?: string }) =>
-      mapBooking(await unwrap(api.POST("/api/v1/bookings", { body: { providerId: v.providerId, typeId: v.slot.visitTypeId, startsAt: v.slot.startsAt, endsAt: v.slot.endsAt, ...(v.dependantId ? { dependantId: v.dependantId } : {}) } }))),
+    mutationFn: async (v: { providerId: string; slot: Slot; dependantId?: string; home?: { addressId: string } }) =>
+      mapBooking(await unwrap(api.POST("/api/v1/bookings", { body: { providerId: v.providerId, typeId: v.slot.visitTypeId, startsAt: v.slot.startsAt, endsAt: v.slot.endsAt, ...(v.dependantId ? { dependantId: v.dependantId } : {}), ...(v.home ? { serviceLocation: "HOME" as const, addressId: v.home.addressId } : {}) } }))),
   });
 
 export const useConfirmBooking = () => {
@@ -133,7 +133,7 @@ export const useRescheduleBooking = () => {
 export const useSubmitReview = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { bookingId: string; rating: number; text?: string }) => unwrap(api.POST("/api/v1/bookings/{id}/review", { params: { path: { id: v.bookingId } }, body: { rating: v.rating, text: v.text } })),
+    mutationFn: (v: { bookingId: string; rating: number; text?: string }) => unwrap(api.POST("/api/v1/bookings/{id}/review", { params: { path: { id: v.bookingId } }, body: { rating: v.rating, text: v.text } as unknown as { reason: string } })),
     onSuccess: (_r, v) => { void qc.invalidateQueries({ queryKey: qk.booking(v.bookingId) }); void qc.invalidateQueries({ queryKey: qk.bookings }); },
   });
 };

@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/api/errors";
+import { specialtyLabel } from "@/lib/specialties";
 import { useBookings, useSpecialties } from "@/api/hooks";
 import { useCreateTeleSession, useTeleProviders, useTeleSessions, type TeleSession } from "@/api/services";
 import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } from "@/components/states";
@@ -77,7 +78,7 @@ export default function TelemedicinePage() {
               <ul className="space-y-3" data-testid="tele-providers">
                 {providers.data!.items.map((p) => (
                   <li key={p.id} className="kx-card flex flex-wrap items-center justify-between gap-3 p-4" data-testid="tele-provider">
-                    <div><p className="font-semibold">{pick(p, "name", lang)}</p><p className="text-sm text-muted-foreground">{specialties.data?.find((s) => s.code === p.specialty) ? pick(specialties.data.find((s) => s.code === p.specialty)!, "name", lang) : p.specialty ?? ""}{p.nextSlots?.[0]?.startsAt ? ` · ${t("results.nextSlots")}: ${formatDateTime(p.nextSlots[0].startsAt, lang)}` : ""}</p></div>
+                    <div><p className="font-semibold">{pick(p, "name", lang)}</p><p className="text-sm text-muted-foreground">{specialtyLabel(p.specialty, lang, specialties.data)}{p.nextSlots?.[0]?.startsAt ? ` · ${t("results.nextSlots")}: ${formatDateTime(p.nextSlots[0].startsAt, lang)}` : ""}</p></div>
                     <Link to={`/doctors/${p.id}${p.defaultTypeId ? `?vt=${encodeURIComponent(p.defaultTypeId)}` : ""}`} className={cn(buttonVariants({ size: "sm" }))}>{t("tele.book")}</Link>
                   </li>
                 ))}

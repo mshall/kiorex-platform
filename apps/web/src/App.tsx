@@ -16,6 +16,7 @@ import ResultsPage from "@/pages/ResultsPage";
 import DoctorProfilePage from "@/pages/DoctorProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
+import VisitStatusPage from "@/pages/VisitStatusPage";
 
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const AppointmentsPage = lazy(() => import("@/pages/AppointmentsPage"));
@@ -34,6 +35,8 @@ const LabBookingPage = lazy(() => import("@/pages/LabBookingsPage"));
 const TelemedicinePage = lazy(() => import("@/pages/TelemedicinePage"));
 const TeleSessionPage = lazy(() => import("@/pages/TeleSessionPage"));
 const TeleRoomPage = lazy(() => import("@/pages/TeleSessionPage").then((m) => ({ default: m.TeleRoomPage })));
+const AddressesPage = lazy(() => import("@/pages/AddressesPage"));
+const CarePlansPage = lazy(() => import("@/pages/CarePlansPage"));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
 
 export const makeQueryClient = () =>
@@ -60,6 +63,7 @@ export function AppRoutes() {
     <Suspense fallback={<LoadingState />}>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/visit-status/:token" element={<VisitStatusPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<Root />} />
           <Route path="search" element={<ResultsPage />} />
@@ -82,6 +86,8 @@ export function AppRoutes() {
           <Route path="telemedicine/:id" element={guard(<TeleSessionPage />)} />
           <Route path="telemedicine/:id/room" element={guard(<TeleRoomPage />)} />
           <Route path="account" element={guard(<AccountPage />)} />
+          <Route path="account/addresses" element={guard(<AddressesPage />)} />
+          <Route path="care-plans" element={guard(<CarePlansPage />)} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

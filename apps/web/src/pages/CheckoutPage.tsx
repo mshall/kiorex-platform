@@ -17,6 +17,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { HomeFee, VisitAddressView } from "@/components/HomeVisitBits";
 
 export default function CheckoutPage() {
   const { bookingId = "" } = useParams();
@@ -86,11 +87,14 @@ export default function CheckoutPage() {
 
       <section className="kx-card space-y-3 p-5" aria-label={t("checkout.summary")}>
         <p className="text-lg font-semibold">{pick(b.doctor, "name", lang)}</p>
-        <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>
+        {b.home ? <p className="text-sm text-muted-foreground" data-testid="checkout-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
         <p>{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
         <p className="flex items-center gap-2 text-sm"><UserRound className="h-4 w-4 text-ocean" aria-hidden="true" />{t("checkout.patient")}: <b data-testid="checkout-patient">{nameOf(b.patient.id)}</b></p>
-        <div className="flex items-center justify-between border-t pt-3"><span>{vt ? pick(vt, "name", lang) : "…"}</span><b className="kx-label-num">{vt ? formatMoney(vt.feeEgp, lang) : ""}</b></div>
+        {b.home ? <><p className="border-t pt-3 text-sm">{vt ? pick(vt, "name", lang) : "…"}</p><HomeFee home={b.home} /></> : (
+          <div className="flex items-center justify-between border-t pt-3"><span>{vt ? pick(vt, "name", lang) : "…"}</span><b className="kx-label-num">{vt ? formatMoney(vt.feeEgp, lang) : ""}</b></div>
+        )}
       </section>
+      {b.home && <VisitAddressView home={b.home} />}
 
       {hasDeposit && (
         <section className="kx-card space-y-2 border-warning/50 p-5" aria-labelledby="dep-title" data-testid="deposit-panel">

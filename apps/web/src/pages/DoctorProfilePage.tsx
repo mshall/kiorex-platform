@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { CalendarClock, Languages, Link2, Phone, ShieldCheck } from "lucide-react";
+import { CalendarClock, Home, Hospital, Languages, Link2, Lock, Phone, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,13 @@ import { useAuth } from "@/auth/AuthProvider";
 import { useStartBooking } from "@/hooks/useStartBooking";
 import { dayKey, formatDay, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { pushRecent } from "@/lib/recent";
+import { specialtyLabel } from "@/lib/specialties";
 import { cn } from "@/lib/utils";
-import type { Slot } from "@/api/types";
+import type { ServiceLocation, Slot } from "@/api/types";
+import { useHomeSlots, type Address } from "@/api/home";
+import { HomeVisitPicker, covers } from "@/components/HomeVisitPicker";
+import { UnavailableState } from "@/components/states";
+import { useFeature } from "@/hooks/useFeature";
 
 export default function DoctorProfilePage() {
   const { id = "" } = useParams();
@@ -38,9 +43,21 @@ export default function DoctorProfilePage() {
   const booking = useStartBooking();
   const { status: authStatus } = useAuth();
 
-  const visitTypes = doctor.data?.visitTypes;
+  const homeFlag = useFeature("kiorex.home_visits");
+  const [locSel, setLocSel] = useState<ServiceLocation | null>(sp.get("loc") === "home" ? "HOME" : null);
+  const [addr, setAddr] = useState<Address | undefined>();
+  const offersHome = !!doctor.data?.serviceLocations.includes("HOME");
+  const offersClinic = !doctor.data?.serviceLocations || doctor.data.serviceLocations.includes("IN_CLINIC");
+  const loc: ServiceLocation = locSel ?? (offersClinic ? "IN_CLINIC" : "HOME");
+  const homeUnlocked = homeFlag.enabled && !!doctor.data?.home.enabled;
+  const isHome = loc === "HOME" && offersHome;
+  const coverage = doctor.data?.home.coverageDistricts ?? [];
+  const homeReady = isHome && homeUnlocked && !!addr && covers(coverage, addr.district);
+  const visitTypes = doctor.data?.visitTypes.filter((v) => (v.serviceLocation ?? "IN_CLINIC") === (isHome ? "HOME" : "IN_CLINIC"));
   const activeVt = visitTypes?.find((v) => v.id === vtId) ?? visitTypes?.[0];
-  const slots = useSlots(id, activeVt?.id);
+  const clinicSlots = useSlots(id, isHome ? undefined : activeVt?.id);
+  const homeSlots = useHomeSlots(id, homeReady ? activeVt?.id : undefined, addr?.district);
+  const slots = isHome ? homeSlots : clinicSlots;
 
   useEffect(() => {
     const d = doctor.data?.summary;
@@ -68,7 +85,6 @@ export default function DoctorProfilePage() {
   const p = doctor.data!;
   const d = p.summary;
   const name = pick(d, "name", lang);
-  const spec = specialties.data?.find((s) => s.code === d.specialtyCode);
   const policy = pick(p.cancellationPolicy, "text", lang);
   const dayList = days.find(([k]) => k === day)?.[1] ?? [];
   const bio = pick(p, "bio", lang);
@@ -84,8 +100,9 @@ export default function DoctorProfilePage() {
           <AvatarFallback className="bg-accent text-3xl font-semibold text-primary">{name.replace(/^(د\.|Dr\.)\s*/, "").slice(0, 1)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl" data-testid="doctor-name">{name}</h1>{d.verified && <VerifiedBadge />}</div>
-          <p className="text-muted-foreground">{spec ? pick(spec, "name", lang) : d.specialtyCode} · {pick(d, "clinicName", lang)}</p>
+          <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl" data-testid="doctor-name">{name}</h1>{d.verified && <VerifiedBadge />}{d.badge && <Badge variant="info" data-testid="profession-badge">{lang.startsWith("ar") ? d.badge.ar : d.badge.en}</Badge>}</div>
+          <p className="text-muted-foreground">{specialtyLabel(d.specialtyCode, lang, specialties.data)} · {pick(d, "clinicName", lang)}</p>
+          {d.assignsClinician && <p className="text-sm text-muted-foreground" data-testid="agency-note">{t("hv.agencyAssigns")}</p>}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <Rating avg={d.ratingAvg} count={d.ratingCount} />
             <span className="inline-flex items-center gap-1"><Languages className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{d.languages.map((l) => (l === "ar" ? "العربية" : l === "en" ? "English" : l)).join(" · ")}</span>
@@ -98,16 +115,34 @@ export default function DoctorProfilePage() {
 
       <section aria-labelledby="book-title" className="space-y-4">
         <h2 id="book-title" className="flex items-center gap-2 text-xl"><CalendarClock className="h-5 w-5 text-ocean" aria-hidden="true" />{t("doctor.bookTitle")}</h2>
+        {!p.categoryEnabled && <div role="status" className="rounded-xl border border-warning/50 bg-warning-soft p-4 text-sm text-warning" data-testid="category-awaiting">{t("hv.categoryAwaitingProfile")}</div>}
+        {offersHome && (
+          <div role="radiogroup" aria-label={t("hv.whereLabel")} className="flex flex-wrap gap-2" data-testid="service-location">
+            {offersClinic && <button type="button" role="radio" aria-checked={!isHome} data-active={!isHome} className="kx-chip" data-testid="loc-clinic" onClick={() => { setLocSel("IN_CLINIC"); setVtId(undefined); setSelected(null); setDay(null); }}><Hospital className="h-4 w-4" aria-hidden="true" />{t("hv.atClinic")}</button>}
+            <button type="button" role="radio" aria-checked={isHome} data-active={isHome} className="kx-chip" data-testid="loc-home" onClick={() => { setLocSel("HOME"); setVtId(undefined); setSelected(null); setDay(null); }}>
+              <Home className="h-4 w-4" aria-hidden="true" />{t("hv.atHome")}{!homeUnlocked && <Lock className="h-3.5 w-3.5" aria-hidden="true" />}</button>
+          </div>
+        )}
+        {isHome && !homeUnlocked && <UnavailableState featureKey="kiorex.home_visits" awaiting={homeFlag.awaiting || !homeFlag.enabled} />}
+        {isHome && homeUnlocked && (
+          <>
+            {p.home.surchargeEgp > 0 && <p className="text-sm text-muted-foreground" data-testid="home-surcharge">{t("hv.surchargeNote", { amount: formatMoney(p.home.surchargeEgp, lang) })}</p>}
+            {coverage.length > 0 && <p className="text-sm text-muted-foreground">{t("hv.visitsIn", { districts: coverage.join(" · ") })}</p>}
+            <HomeVisitPicker coverageDistricts={coverage} value={addr?.id} onChange={setAddr} />
+            {homeSlots.error instanceof ApiError && homeSlots.error.code === "OUT_OF_COVERAGE" && <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-4 text-sm" data-testid="out-of-coverage-api"><b>{t("hv.outOfCoverageTitle")}</b> {t("hv.outOfCoverageBody")}</div>}
+          </>
+        )}
         <div role="radiogroup" aria-label={t("doctor.visitType")} className="flex flex-wrap gap-2">
           {visitTypes?.map((v) => (
             <button key={v.id} type="button" role="radio" aria-checked={activeVt?.id === v.id} data-active={activeVt?.id === v.id} className="kx-chip" onClick={() => { setVtId(v.id); setSelected(null); setDay(null); }}>
               <span>{pick(v, "name", lang)}</span><b className="kx-label-num">{formatMoney(v.feeEgp, lang)}</b>
+              {isHome && !!v.surchargeEgp && <span className="text-xs text-muted-foreground">{t("hv.inclSurcharge")}</span>}
               {v.depositRequired && v.depositEgp != null && <Badge variant="warning">{t("doctor.deposit", { amount: formatMoney(v.depositEgp, lang) })}</Badge>}
             </button>
           ))}
         </div>
 
-        {slots.isLoading ? <CardSkeleton rows={1} /> : slots.error ? <ErrorState error={slots.error} onRetry={() => void slots.refetch()} /> : days.length === 0 ? (
+        {isHome && !homeReady ? null : slots.isLoading ? <CardSkeleton rows={1} /> : slots.error ? (slots.error instanceof ApiError && slots.error.code === "OUT_OF_COVERAGE" ? null : <ErrorState error={slots.error} onRetry={() => void slots.refetch()} />) : days.length === 0 ? (
           <div className="space-y-4" data-testid="no-slots"><EmptyState title={t("doctor.noSlots")} hint={t("doctor.noSlotsHint")} /><WaitlistJoin providerId={d.id} typeId={activeVt?.id} /></div>
         ) : (
           <div className="kx-card space-y-4 p-5" data-testid="slot-calendar">
@@ -140,7 +175,7 @@ export default function DoctorProfilePage() {
             <p className="text-sm" aria-live="polite" data-testid="selected-slot">
               {selected ? <>{t("doctor.selected")}: <b>{formatDay(selected.startsAt, lang)} · <span dir="ltr">{formatTime(selected.startsAt, lang)}</span></b></> : t("doctor.pickSlot")}
             </p>
-            <Button size="lg" disabled={!selected || booking.isPending} onClick={() => selected && booking.start(d.id, selected)} data-testid="continue-booking">
+            <Button size="lg" disabled={!selected || booking.isPending || !p.categoryEnabled || (isHome && !homeReady)} onClick={() => selected && booking.start(d.id, selected, isHome && addr ? { addressId: addr.id } : undefined)} data-testid="continue-booking">
               {booking.isPending ? t("states.loading") : t("doctor.continue")}
             </Button>
           </div>

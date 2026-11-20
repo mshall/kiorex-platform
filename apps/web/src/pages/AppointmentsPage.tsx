@@ -27,7 +27,7 @@ function Row({ b }: { b: Booking }) {
           <p className="font-semibold">{pick(b.doctor, "name", i18n.language)}</p>
           <p className="text-sm text-muted-foreground">{nameOf(b.patient.id)} · {formatDay(b.startsAt, i18n.language)} · <span dir="ltr">{formatTime(b.startsAt, i18n.language)}</span></p>
         </div>
-        <div className="flex items-center gap-2">{b.channel !== "MARKETPLACE" && <ChannelBadge channel={b.channel} />}<Badge variant={statusVariant(b.status)}>{t(`status.${b.status}`)}</Badge><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></div>
+        <div className="flex items-center gap-2">{b.serviceLocation === "HOME" && <Badge variant="info" data-testid="row-home">{t("hv.homeVisits")}</Badge>}{b.channel !== "MARKETPLACE" && <ChannelBadge channel={b.channel} />}<Badge variant={statusVariant(b.status)}>{t(`status.${b.status}`)}</Badge><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></div>
       </Link>
     </li>
   );

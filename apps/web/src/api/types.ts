@@ -1,15 +1,21 @@
+import type { components } from "./schema";
+export type CareType = components["schemas"]["CareTypeDto"]["code"];
+export type ServiceLocation = "IN_CLINIC" | "HOME";
+export type HomeBooking = components["schemas"]["HomeBookingDto"];
 // UI view-models (bilingual names, whole-EGP money) built by ./adapters.ts from the GENERATED response types in ./schema.d.ts.
 // These are presentation models, not hand-typed copies of the wire format.
 export interface Specialty { code: string; nameAr: string; nameEn: string }
 export interface Slot { slotId: string; startsAt: string; endsAt: string; visitTypeId: string }
-export interface VisitType { id: string; nameAr: string; nameEn: string; feeEgp: number; durationMin: number; depositRequired: boolean; depositEgp: number | null }
+export interface VisitType { id: string; nameAr: string; nameEn: string; feeEgp: number; durationMin: number; depositRequired: boolean; depositEgp: number | null; serviceLocation?: ServiceLocation; surchargeEgp?: number }
 export interface DoctorSummary {
   id: string; nameAr: string; nameEn: string; specialtyCode: string; photoUrl: string | null; verified: boolean; sponsored: boolean; bookable: boolean; clinicPhone: string | null; ratingAvg: number | null; ratingCount: number; feeFromEgp: number; depositRequired: boolean;
   clinicNameAr: string; clinicNameEn: string; areaAr: string; areaEn: string; distanceKm: number | null; languages: string[]; gender: "F" | "M"; nextSlots: Slot[];
+  careType?: CareType; serviceLocations?: ServiceLocation[]; coverageDistricts?: string[]; homeFeeEgp?: number | null; homeSurchargeEgp?: number; badge?: { en: string; ar: string } | null; assignsClinician?: boolean;
 }
 export interface Clinic { id: string; nameAr: string; nameEn: string; addressAr: string; addressEn: string; phone: string; lat: number | null; lng: number | null; paymentMethods: string[]; hoursAr: string[]; hoursEn: string[] }
 export interface DoctorProfile {
   summary: DoctorSummary; bioAr: string | null; bioEn: string | null; subSpecialtiesAr: string[]; subSpecialtiesEn: string[]; visitTypes: VisitType[]; clinic: Clinic;
+  careType: CareType; serviceLocations: ServiceLocation[]; categoryEnabled: boolean; home: { enabled: boolean; coverageDistricts: string[]; surchargeEgp: number };
   bookable: boolean; cancellationPolicy: { freeCancelHoursBefore: number; depositRefundable: boolean; textAr: string; textEn: string };
 }
 export interface Review { id: string; rating: number; text: string | null; createdAt: string; clinicReply: { text: string; createdAt: string | null } | null }
@@ -20,7 +26,7 @@ export type ConsentType = "marketplace_processing" | "reminders" | "record_shari
 export interface Consent { type: ConsentType; granted: boolean; updatedAt: string | null }
 export interface Session { id: string; device: string; lastSeenAt: string; current: boolean }
 export type BookingStatus = "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
-export type DepositStatus = "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED";
+export type DepositStatus = "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED" | "HOLD_FOR_REVIEW";
 export type BookingChannel = "MARKETPLACE" | "CLINIC_LINK" | "WHATSAPP";
 export interface Booking {
   id: string; status: BookingStatus; channel: BookingChannel;
@@ -30,6 +36,7 @@ export interface Booking {
   deposit: { requiredEgp: number; paidEgp: number; status: DepositStatus; payUrl: string | null };
   cancellation: { reason: string | null; byClinic: boolean; canCancel: boolean; canReschedule: boolean; windowClosesAt: string | null };
   timeline: { status: BookingStatus; at: string; note: string | null }[]; reviewable: boolean; reviewed: boolean;
+  serviceLocation: ServiceLocation; careType: CareType | null; visitDistrict: string | null; home: HomeBooking | null;
 }
 export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean; noMarketLive?: boolean }
 
@@ -37,4 +44,5 @@ export interface SearchParams {
   q?: string; specialty?: string; area?: string; gender?: "F" | "M" | ""; language?: string;
   sort?: "earliest" | "distance" | "rating" | "fee"; maxFee?: number; minRating?: number;
   acceptsDeposit?: boolean; availableWithinDays?: number; page?: number;
+  careType?: CareType; serviceLocation?: ServiceLocation; district?: string;
 }

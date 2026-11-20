@@ -58,6 +58,14 @@ const newFeatureDefaults = [
   http.get("/api/v1/lab/bookings", () => HttpResponse.json([])),
   http.get("/api/v1/telemedicine/providers", () => HttpResponse.json({ items: [] })),
   http.get("/api/v1/telemedicine/sessions", () => HttpResponse.json([])),
+  http.get("/api/v1/care-types", () => HttpResponse.json([
+    { code: "DOCTORS", enabled: true, flag: null, labelEn: "Doctors", labelAr: "أطباء", reason: "ON", providerCount: 3 },
+    { code: "PHYSIOTHERAPY", enabled: false, flag: "kiorex.category.physiotherapy", labelEn: "Physiotherapy", labelAr: "علاج طبيعي", reason: "AWAITING_GATE", providerCount: 0 },
+    { code: "HOME_NURSING", enabled: true, flag: "kiorex.category.nursing", labelEn: "Home nursing", labelAr: "تمريض منزلي", reason: "ON", providerCount: 2 },
+  ])),
+  http.get("/api/v1/me/addresses", () => HttpResponse.json([])),
+  http.get("/api/v1/care-plans", () => HttpResponse.json([])),
+  http.get("/api/v1/home/districts", () => HttpResponse.json([{ governorate: "cairo", district: "nasr-city", homeEnabledProviders: 2 }])),
 ];
 
 export const handlers = [

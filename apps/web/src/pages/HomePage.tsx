@@ -4,6 +4,7 @@ import { CalendarCheck, ChevronRight, Clock } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { useBookings, useMe } from "@/api/hooks";
 import { SearchBar, SpecialtyChips } from "@/components/SearchBar";
+import { CareTypeTabs } from "@/components/CareTypeTabs";
 import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ export default function HomePage() {
       <section className="space-y-4">
         <h1 className="text-3xl">{first ? t("home.greeting", { name: first }) : t("home.greetingAnon")}</h1>
         <SearchBar />
+        <CareTypeTabs onPick={(c) => nav(c ? `/search?careType=${c}${c === "HOME_NURSING" ? "&serviceLocation=HOME" : ""}` : "/search")} />
         <SpecialtyChips onPick={(code) => nav(code ? `/search?specialty=${code}` : "/search")} />
       </section>
 

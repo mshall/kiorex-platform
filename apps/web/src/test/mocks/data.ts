@@ -73,7 +73,7 @@ export function summaryFor(s: Seed): DoctorSummary {
 
 export function profileFor(s: Seed): DoctorProfile {
   return {
-    summary: summaryFor(s), bookable: true, bioAr: null, bioEn: null, subSpecialtiesAr: [], subSpecialtiesEn: [],
+    summary: summaryFor(s), careType: "DOCTORS", serviceLocations: ["IN_CLINIC"], categoryEnabled: true, home: { enabled: false, coverageDistricts: [], surchargeEgp: 0 }, bookable: true, bioAr: null, bioEn: null, subSpecialtiesAr: [], subSpecialtiesEn: [],
     visitTypes: visitTypesFor(s), clinic: clinics[s.clinic],
     cancellationPolicy: {
       freeCancelHoursBefore: 12, depositRefundable: true,

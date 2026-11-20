@@ -23,17 +23,19 @@ export function useStartBooking() {
   const [alternatives, setAlternatives] = useState<Slot[] | null>(null);
   const [takenDoctorId, setTakenDoctorId] = useState<string | null>(null);
 
-  const start = (doctorId: string, slot: Slot) => {
+  const start = (doctorId: string, slot: Slot, home?: { addressId: string }) => {
     if (status !== "signedIn") { void login(`/doctors/${doctorId}?vt=${encodeURIComponent(slot.visitTypeId)}&slot=${encodeURIComponent(slot.slotId)}`); return; }
     if (!selectedId) return;
-    hold.mutate({ providerId: doctorId, slot, dependantId }, {
+    hold.mutate({ providerId: doctorId, slot, dependantId, home }, {
       onSuccess: (b) => { track("booking_started", { providerId: doctorId }); nav(`/checkout/${b.id}`); },
       onError: (e) => {
         if (e instanceof ApiError && e.code === "SLOT_TAKEN") {
           track("booking_failed", { code: "SLOT_TAKEN", providerId: doctorId });
           setTakenDoctorId(doctorId);
           setAlternatives(altSlots(e.details?.alternatives, slot.visitTypeId));
-        } else if (e instanceof ApiError && e.isFeatureDisabled) toast.error(t("unavailable.title"));
+        } else if (e instanceof ApiError && e.code === "OUT_OF_COVERAGE") toast.error(t("hv.outOfCoverageTitle"));
+        else if (e instanceof ApiError && e.code === "ADDRESS_NOT_CONFIRMED") toast.error(t("hv.confirmAddressFirst"));
+        else if (e instanceof ApiError && e.isFeatureDisabled) toast.error(e.isAwaitingApproval ? t("unavailable.awaitingTitle") : t("unavailable.title"));
         else { track("booking_failed", { code: e instanceof ApiError ? e.code : "UNKNOWN", doctorId }); toast.error(t("booking.holdFailed")); }
       },
     });
