@@ -1,3 +1,4 @@
+import type { Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -116,7 +117,7 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
       const size = p.point_count < 10 ? 36 : p.point_count < 50 ? 44 : 52;
       el.style.cssText = `width:${size}px;height:${size}px;border-radius:9999px;background:${INDIGO};color:#fff;border:3px solid ${CORAL};font:600 13px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(55,48,163,.35);font-variant-numeric:tabular-nums`;
       el.textContent = new Intl.NumberFormat(document.documentElement.lang === "ar" ? "ar-EG" : "en").format(p.point_count);
-      const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+      const coords = (f.geometry as Point).coordinates as [number, number];
       el.addEventListener("click", () => {
         const src = map.getSource(SRC) as GeoJSONSource;
         void src.getClusterExpansionZoom(p.cluster_id).then((zoom) => map.easeTo({ center: coords, zoom: Math.min(zoom, 17) })).catch(() => undefined);

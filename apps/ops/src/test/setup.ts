@@ -13,7 +13,7 @@ import { server } from "@/test/mocks/server";
 import { resetOpsMock } from "@/test/mocks/handlers";
 import "@/i18n";
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => { server.resetHandlers(); resetOpsMock(); });
 afterAll(() => server.close());
 

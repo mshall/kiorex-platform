@@ -3064,6 +3064,7 @@ export interface components {
             gateId: string;
             approver: string;
             approvedOn: string;
+            /** Format: uri */
             documentUrl: string;
         };
         VersionDto: {
@@ -3087,6 +3088,7 @@ export interface components {
         GateAllBody: {
             approver: string;
             approvedOn: string;
+            /** Format: uri */
             documentUrl: string;
         };
         GateRecordedDto: {
@@ -3188,6 +3190,7 @@ export interface components {
             currentVersion: number;
         };
         ProductBody: {
+            /** Format: uri */
             webhookUrl?: string;
             active?: boolean;
         };
@@ -3231,6 +3234,7 @@ export interface components {
             nationalId?: string | null;
             /** @enum {string} */
             preferredLocale?: "ar" | "en";
+            /** Format: email */
             email?: string;
             market?: string;
         };
@@ -3457,6 +3461,10 @@ export interface components {
             languages: string[];
             gender: string | null;
             distanceKm: number | null;
+            /** @description Clinic latitude for the results map; omitted for home-only providers (never a personal address) */
+            latitude?: number | null;
+            /** @description Clinic longitude for the results map; omitted for home-only providers */
+            longitude?: number | null;
             /** @description false when kiorex.marketplace is OFF: show clinicPhone instead */
             bookable: boolean;
             defaultTypeId: string | null;
@@ -5363,6 +5371,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Claims of the authenticated Kiorex Passport subject */
             200: {
                 headers: {
                     [name: string]: unknown;

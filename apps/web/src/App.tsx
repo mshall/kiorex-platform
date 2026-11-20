@@ -56,7 +56,7 @@ function Root() {
   return status === "signedIn" ? <HomePage /> : <LandingPage />;
 }
 
-const guard = (el: JSX.Element) => <RequireAuth>{el}</RequireAuth>;
+const guard = (el: React.JSX.Element) => <RequireAuth>{el}</RequireAuth>;
 
 export function AppRoutes() {
   return (

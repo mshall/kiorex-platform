@@ -3064,6 +3064,7 @@ export interface components {
             gateId: string;
             approver: string;
             approvedOn: string;
+            /** Format: uri */
             documentUrl: string;
         };
         VersionDto: {
@@ -3087,6 +3088,7 @@ export interface components {
         GateAllBody: {
             approver: string;
             approvedOn: string;
+            /** Format: uri */
             documentUrl: string;
         };
         GateRecordedDto: {
@@ -3188,6 +3190,7 @@ export interface components {
             currentVersion: number;
         };
         ProductBody: {
+            /** Format: uri */
             webhookUrl?: string;
             active?: boolean;
         };
@@ -3231,6 +3234,7 @@ export interface components {
             nationalId?: string | null;
             /** @enum {string} */
             preferredLocale?: "ar" | "en";
+            /** Format: email */
             email?: string;
             market?: string;
         };
@@ -5367,6 +5371,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Claims of the authenticated Kiorex Passport subject */
             200: {
                 headers: {
                     [name: string]: unknown;

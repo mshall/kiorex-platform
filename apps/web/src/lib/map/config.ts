@@ -1,3 +1,4 @@
+import type { Feature } from "geojson";
 import type { StyleSpecification } from "maplibre-gl";
 
 /**
@@ -32,7 +33,7 @@ const CAIRO: [number, number] = [31.2357, 30.0444];
 /** Offline-safe style: flat ground colour plus a graticule drawn from inline GeoJSON. Needs no network request at all. */
 export function mockStyle(): StyleSpecification {
   // graticule limited to the launch window (Egypt/MENA) at 0.1 degree steps: light enough to inline, enough to show pan/zoom
-  const win: GeoJSON.Feature[] = [];
+  const win: Feature[] = [];
   for (let lng = 24; lng <= 38; lng += 0.1) win.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[Number(lng.toFixed(2)), 21], [Number(lng.toFixed(2)), 33]] } });
   for (let lat = 21; lat <= 33; lat += 0.1) win.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[24, Number(lat.toFixed(2))], [38, Number(lat.toFixed(2))]] } });
   return {

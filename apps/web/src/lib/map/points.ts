@@ -1,3 +1,4 @@
+import type { FeatureCollection, Point } from "geojson";
 import type { Clinic, DoctorSummary } from "@/api/types";
 
 /** One marker on the map: a clinic location (several providers can share a clinic and therefore a coordinate). */
@@ -22,7 +23,7 @@ export function pointFromClinic(c: Clinic, lang: string): MapPoint | undefined {
   return { id: c.id || "clinic", lng: c.lng as number, lat: c.lat as number, title: ar ? c.nameAr : c.nameEn, subtitle: ar ? c.addressAr : c.addressEn };
 }
 
-export function toGeoJSON(points: MapPoint[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+export function toGeoJSON(points: MapPoint[]): FeatureCollection<Point> {
   return { type: "FeatureCollection", features: points.map((p) => ({ type: "Feature", id: undefined, properties: { id: p.id }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })) };
 }
 
