@@ -46,7 +46,7 @@ jobs:
         run: npm run test:integration -w apps/api
         working-directory: kiorex-platform
       - name: contract tests (consumer expectations + flag snapshot + webhook signature)
-        run: npx jest --selectProjects integration --runInBand --testPathPattern "control-plane|webhooks|booking"
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --selectProjects integration --runInBand --testPathPattern "control-plane|webhooks|booking"
         working-directory: kiorex-platform/apps/api
       - name: flag-OFF contract tests (every Kiorex flag)
         run: npm run test:flag-off -w apps/api

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PatientProfileDto {
   id!: string;
@@ -78,5 +78,5 @@ export class DeletionResultDto {
   deleted!: boolean;
   @ApiProperty({ required: false }) code?: string;
   @ApiProperty({ required: false }) note?: string;
-  @ApiProperty({ type: 'object', additionalProperties: true, required: false }) export?: Record<string, unknown>;
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true }) export?: Record<string, unknown>;
 }
