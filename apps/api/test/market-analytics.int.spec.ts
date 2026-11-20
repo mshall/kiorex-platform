@@ -49,7 +49,7 @@ describe('market.eg.live gate behaviour + client analytics ingestion', () => {
       expect(r.body).toEqual({ accepted: 2 });
       const rows = await c.prisma.analyticsEvent.findMany({ where: { name: { in: ['search_started', 'booking_failed'] } } });
       expect(rows).toHaveLength(2);
-      expect(Object.keys(rows[0]).sort()).toEqual(['code', 'createdAt', 'id', 'market', 'name', 'providerId', 'specialtyCode']); // no sub/ip/device columns exist
+      expect(Object.keys(rows[0]).sort()).toEqual(['careType', 'code', 'createdAt', 'district', 'id', 'market', 'name', 'providerId', 'serviceLocation', 'specialtyCode']); // no sub/ip/device columns exist
     });
     it('rejects unknown events, unknown property keys, free text and PHI-looking values; all-or-nothing', async () => {
       const before = await c.prisma.analyticsEvent.count();

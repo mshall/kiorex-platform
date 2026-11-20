@@ -184,7 +184,17 @@ model Provider {
   raw              Json
   syncedAt         DateTime  @default(now())
   createdAt        DateTime  @default(now())
+  // Rev 2.3 projections (KX-09 §03): profession, home-visit capability, coverage DISTRICTS only (never a provider home address, KXMDS05)
+  profession         String? // PHYSICIAN | DENTIST | PHYSIOTHERAPIST | NURSE (null = legacy doctor)
+  edition            String? // CLINIC | NURSE
+  careType           String    @default("DOCTORS") // DOCTORS | PHYSIOTHERAPY | HOME_NURSING (derived from profession)
+  serviceLocations   String[]  @default([]) // IN_CLINIC | HOME
+  coverageDistricts  String[]  @default([])
+  assignsClinician   Boolean   @default(false) // agencies: clinician assigned after booking (HOME_VISIT_ASSIGNED)
+  verificationRegister String?
+  homeSurchargeMinor Int? // home surcharge (BR56) of the cheapest home fee; outside S and C
 
+  @@index([careType, status])
   @@index([status, specialty])
   @@index([clinicId, clinicianId])
 }
@@ -205,6 +215,10 @@ model AnalyticsEvent {
   providerId    String?
   market        String   @default("EG")
   code          String?
+  /// Rev 2.3 analytics rule: location is DISTRICT level only (never an address, coordinates or free text).
+  district      String?
+  careType      String?
+  serviceLocation String?
   createdAt     DateTime @default(now())
 
   @@index([name, createdAt])
@@ -246,12 +260,26 @@ model BookingIntent {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   terminalAt            DateTime?
+  // Rev 2.3 home visits (KXMHV). The address itself lives in BookingVisitAddress (encrypted, masked 24 h after the visit); only the DISTRICT is kept here.
+  serviceLocation       String    @default("IN_CLINIC") // IN_CLINIC | HOME
+  careType              String    @default("DOCTORS")
+  visitDistrict         String?
+  homeState             String? // ASSIGNED | EN_ROUTE | ARRIVED | ABORTED_UNSAFE (home sub-states; the main status stays in the KX-03 §05 machine)
+  homeSurchargeMinor    Int       @default(0)
+  assignee              Json? // {displayName, photoUrl, badge, profession} from HOME_VISIT_ASSIGNED; never a phone number
+  enRouteAt             DateTime?
+  etaMinutes            Int?
+  arrivedAt             DateTime?
+  abortedAt             DateTime?
+  carePlanId            String?
 
   events BookingEvent[]
 
   @@index([sub, status])
   @@index([status, updatedAt])
   @@index([kiorlyAppointmentId])
+  @@index([serviceLocation, status])
+  @@index([carePlanId])
 }
 
 model BookingEvent {
@@ -293,6 +321,12 @@ model PaymentIntent {
   kiorlyNotified Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  /// KXMPAY07: HELD_FOR_REVIEW (unsafe-aborted home visit; never auto-forfeited) | RELEASED_TO_PROVIDER | REFUNDED_TO_PATIENT
+  reviewState    String?
+  reviewReason   String?
+  heldForReviewAt DateTime?
+  reviewedBy     String?
+  reviewedAt     DateTime?
 
   refunds Refund[]
 
@@ -466,6 +500,8 @@ model Complaint {
   slaDueAt  DateTime
   createdAt DateTime  @default(now())
   resolvedAt DateTime?
+  /// KXMOP05: home-visit complaints carry a 1 h SLA.
+  homeVisit Boolean   @default(false)
 }
 
 // ───────────────────────── control plane (KXM-OP-07..11) ─────────────────────────
@@ -481,6 +517,10 @@ model FlagDefinition {
   description  String
   whenOff      String?
   gateHint     String?
+  /// Gate ids that must ALL have human-recorded evidence (e.g. GHV1 + GHV2). Empty = any single evidence row satisfies the lock.
+  gateIds      String[] @default([])
+  /// NURSE for nurse.* keys (catalogue metadata; evaluated in the Clinic runtime, served in the kiorly-clinic snapshot).
+  edition      String?
   createdAt    DateTime @default(now())
 }
 
@@ -502,13 +542,15 @@ model FlagValue {
 }
 
 model FlagGateEvidence {
-  flagKey     String    @id
+  flagKey     String
   gateId      String
   approver    String
   approvedOn  DateTime
   documentUrl String
   recordedBy  String
   createdAt   DateTime  @default(now())
+
+  @@id([flagKey, gateId])
 }
 
 model FlagChangeRequest {
@@ -834,4 +876,130 @@ model PartnerRegistration {
   updatedAt        DateTime @updatedAt
 
   @@index([kind, active])
+}
+
+
+// ───────────────────────── Rev 2.3 home visits (KXMHV01-10, KXMPAY07, KXMOP12) ─────────────────────────
+
+/// KXMHV01: patient address book. Street/building/floor/flat/landmark/pin are AES-GCM encrypted (addressEnc, FIELD_ENCRYPTION_KEY);
+/// governorate + district stay plain (district-level data is allowed in coverage checks and analytics). NEVER on the provider projection, NEVER logged.
+model PatientAddress {
+  id                  String    @id // kx_ad_<id>
+  sub                 String
+  label               String
+  governorate         String
+  district            String
+  addressEnc          String
+  confirmedAt         DateTime? // confirmed with the OTP-verified phone before the first home booking
+  confirmedPhoneLast4 String?
+  isDefault           Boolean   @default(false)
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([sub, deletedAt])
+}
+
+/// KXMHV03/10: the address snapshot a home booking was made with (so later address-book edits never change a booking).
+/// Wiped (addressEnc = null, maskedAt set) 24 h after the visit ended (mirrors Kiorly HV-PRV-01); district stays.
+model BookingVisitAddress {
+  bookingId   String    @id
+  sub         String
+  governorate String?
+  district    String
+  addressEnc  String?
+  maskAfter   DateTime? // set when the booking reaches a terminal state: terminalAt + 24 h
+  maskedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([maskAfter, maskedAt])
+}
+
+/// KXMOP12: SAFETY_ALERT_RAISED feed with the 60 s delivery SLO (KX-09 §08). Free text never appears here (the event has none).
+model SafetyAlert {
+  id                   String    @id // kx_sa_<id>
+  alertId              String    @unique // Kiorly alert id (semantic de-duplication; eventId de-duplication is separate)
+  eventId              String?
+  bookingId            String?
+  clinicId             String
+  appointmentId        String?
+  kind                 String // TIMER_EXPIRED | SOS | UNSAFE_ABORT
+  district             String?
+  deliverTo            String[]
+  raisedAt             DateTime
+  receivedAt           DateTime  @default(now())
+  deliverWithinSeconds Int       @default(60)
+  deliveredAt          DateTime?
+  deliveryMode         String? // mock | real
+  deliveryRef          String?
+  deliveryError        String?
+  status               String    @default("RAISED") // RAISED | ACKNOWLEDGED | ESCALATED | RESOLVED
+  acknowledgedAt       DateTime?
+  acknowledgedBy       String?
+  escalatedAt          DateTime?
+  escalatedBy          String?
+  escalationLevel      Int       @default(0)
+  resolvedAt           DateTime?
+  resolvedBy           String?
+  createdAt            DateTime  @default(now())
+
+  actions SafetyAlertAction[]
+
+  @@index([status, raisedAt])
+  @@index([bookingId])
+}
+
+model SafetyAlertAction {
+  id        String      @id @default(cuid())
+  alertId   String
+  alert     SafetyAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  action    String // RECEIVED | DELIVERED | DELIVERY_FAILED | ACKNOWLEDGE | ESCALATE | AUTO_ESCALATE | RESOLVE
+  actor     String
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([alertId, createdAt])
+}
+
+/// KXMHV07 / BR59: visit-status share with up to 3 family contacts by WhatsApp link. Phone encrypted; the public link token is stored hashed.
+model FamilyShare {
+  id                String    @id // kx_fs_<id>
+  bookingId         String
+  sub               String
+  contactName       String
+  phoneEnc          String
+  phoneMasked       String
+  phoneHash         String
+  tokenHash         String    @unique
+  consentAttestedAt DateTime
+  status            String    @default("ACTIVE") // ACTIVE | STOPPED | REVOKED
+  stoppedAt         DateTime?
+  locale            String    @default("ar")
+  lastNotifiedState String?
+  createdAt         DateTime  @default(now())
+
+  @@unique([bookingId, phoneHash])
+  @@index([bookingId, status])
+}
+
+/// KXMHV08 (P3, draft, behind nurse.care_plans / GKN1): a care plan booked from Kiorex = one booking with a schedule; each visit is a BookingIntent (carePlanId).
+model CarePlanBooking {
+  id                 String    @id // kx_cp_<id>; also the Kiorly requestRef
+  sub                String
+  providerId         String
+  clinicId           String
+  typeId             String?
+  status             String    @default("REQUESTED") // REQUESTED | CONFIRMED | ENDED | REJECTED
+  visitDistrict      String?
+  visitAddressId     String?
+  preferredStartDate DateTime?
+  notesEnc           String?
+  kiorlyCarePlanId   String?
+  endedReason        String?
+  confirmedAt        DateTime?
+  endedAt            DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([sub, status])
 }

@@ -77,7 +77,11 @@ export class AdminFlagDto {
   reason!: string;
   @ApiProperty({ type: FlagSourceDto }) source!: FlagSourceDto;
   @ApiProperty({ type: [FlagOverrideDto] }) overrides!: FlagOverrideDto[];
-  @ApiProperty({ type: FlagGateDto, nullable: true, description: 'Launch-gate evidence recorded by a human; null until then' }) gate!: FlagGateDto | null;
+  @ApiProperty({ type: FlagGateDto, nullable: true, description: 'Launch-gate evidence recorded by a human; null until then (first row when several gates are required)' }) gate!: FlagGateDto | null;
+  @ApiProperty({ type: [String], description: 'Gate ids that must ALL have evidence (e.g. GHV1, GHV2); empty = any single evidence row' }) gateIds!: string[];
+  @ApiProperty({ nullable: true, type: String, description: 'NURSE for nurse.* keys (served in the kiorly-clinic snapshot)' }) edition!: string | null;
+  @ApiProperty({ type: [FlagGateDto], description: 'Every gate evidence row recorded for this flag' }) gates!: FlagGateDto[];
+  @ApiProperty({ type: [String], description: 'Launch-locked flags: gate ids still without evidence (ANY when no gate id is listed and none recorded)' }) missingGates!: string[];
   @ApiProperty({ type: FlagLastChangeDto, nullable: true }) lastChange!: FlagLastChangeDto | null;
 }
 export class SetFlagResultDto {
@@ -151,3 +155,19 @@ export class ProductRegistrationDto {
 }
 export class SweepResultDto { expired!: number; started!: number }
 export class RequestDecisionDto { @ApiProperty({ enum: ['APPROVED', 'REJECTED', 'REVIEWED'] }) status!: string; @ApiProperty({ required: false }) version?: number }
+
+export class GateFlagDto {
+  key!: string;
+  @ApiProperty({ type: [String] }) requiredGates!: string[];
+  @ApiProperty({ type: 'object', nullable: true, additionalProperties: true, description: 'Evidence recorded by a human for this flag + gate; null until then' }) evidence!: Record<string, unknown> | null;
+}
+export class GateEntryDto {
+  gateId!: string;
+  @ApiProperty({ type: [GateFlagDto] }) flags!: GateFlagDto[];
+}
+export class GateBoardDto { @ApiProperty({ type: [GateEntryDto] }) gates!: GateEntryDto[] }
+export class GateRecordedDto {
+  gateId!: string;
+  @ApiProperty({ type: [String] }) flags!: string[];
+  version!: number;
+}

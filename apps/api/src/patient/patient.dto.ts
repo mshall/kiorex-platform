@@ -31,7 +31,7 @@ export class DependantDto {
   @ApiProperty({ required: false, description: 'Present on list responses' }) guardianAccessExpired?: boolean;
 }
 export class ConsentStateDto {
-  @ApiProperty({ enum: ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING'] }) purpose!: string;
+  @ApiProperty({ enum: ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING', 'VISIT_STATUS_SHARING'] }) purpose!: string;
   granted!: boolean;
   @ApiProperty({ nullable: true, type: String }) version!: string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) updatedAt!: string | null;

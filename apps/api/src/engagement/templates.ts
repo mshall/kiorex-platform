@@ -3,6 +3,7 @@
  * are NEEDS_HUMAN (see Docs/NEEDS_HUMAN.md). In-app copy is a draft for AR/EN review.
  */
 export type NotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKING_CHANGED' | 'BOOKING_CANCELLED' | 'BOOKING_CANCELLED_BY_CLINIC' | 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION' | 'DEPOSIT_REFUNDED' | 'BOOKING_EXPIRED'
+  | 'HOME_VISIT_ASSIGNED' | 'HOME_VISIT_EN_ROUTE' | 'HOME_VISIT_ABORTED' | 'HOME_VISIT_FAMILY_INVITE' | 'HOME_VISIT_FAMILY_UPDATE' | 'CARE_PLAN_CONFIRMED'
   | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY';
 
 export interface Template { templateId: string; reminder: boolean; bypassQuiet?: boolean; en: string; ar: string }
@@ -26,6 +27,13 @@ export const TEMPLATES: Record<NotifyKind, Template> = {
   LAB_BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_lab_booking_confirmed', reminder: false, en: 'Your lab booking is confirmed for {time}.', ar: 'تم تأكيد حجز التحاليل في {time}.' },
   LAB_RESULT_RELEASED: { templateId: 'TODO_NEEDS_HUMAN_lab_result_released', reminder: false, en: 'Your lab report is ready in your Kiorex vault.', ar: 'تقرير التحاليل جاهز في خزنتك في كيوريكس.' },
   TELE_SESSION_READY: { templateId: 'TODO_NEEDS_HUMAN_tele_session_ready', reminder: false, en: 'Your video visit with {doctor} is ready to join.', ar: 'زيارتك بالفيديو مع {doctor} جاهزة للانضمام.' },
+  // Rev 2.3 home visits (KXMNT01 "on the way", KXMHV05/07). Copy is a draft for AR/EN review; Meta template ids are placeholders (NEEDS_HUMAN, Docs/NEEDS_HUMAN.md "Provider go-live").
+  HOME_VISIT_ASSIGNED: { templateId: 'TODO_NEEDS_HUMAN_home_visit_assigned', reminder: false, en: '{assignee} will visit you for your booking with {doctor}. Open Kiorex to see their photo and badge before they arrive.', ar: 'سيزورك {assignee} في حجزك مع {doctor}. افتح كيوريكس لترى صورته وشارته قبل وصوله.' },
+  HOME_VISIT_EN_ROUTE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_en_route', reminder: false, bypassQuiet: true, en: 'Your visit with {doctor} is on the way. {minutes} min (estimate).', ar: 'زيارتك مع {doctor} في الطريق إليك. حوالي {minutes} دقيقة (تقدير).' },
+  HOME_VISIT_ABORTED: { templateId: 'TODO_NEEDS_HUMAN_home_visit_aborted', reminder: false, bypassQuiet: true, en: 'Your home visit with {doctor} was stopped for safety reasons. This is not a no-show and you are not charged for it. Our team will contact you about any deposit.', ar: 'تم إيقاف زيارتك المنزلية مع {doctor} لأسباب تتعلق بالسلامة. لا يُحتسب ذلك عدم حضور ولن تُحاسَب عليه. سيتواصل معك فريقنا بخصوص أي عربون.' },
+  HOME_VISIT_FAMILY_INVITE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_invite', reminder: false, bypassQuiet: true, en: '{patient} shared a home-visit status with you. Follow it here: {link} (reply STOP to stop).', ar: 'شاركك {patient} حالة زيارة منزلية. تابعها من هنا: {link} (أرسل STOP للإيقاف).' },
+  HOME_VISIT_FAMILY_UPDATE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_update', reminder: false, bypassQuiet: true, en: 'Visit update for {patient}: {status}. {link}', ar: 'تحديث الزيارة لـ {patient}: {status}. {link}' },
+  CARE_PLAN_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_care_plan_confirmed', reminder: false, en: 'Your care plan with {doctor} is confirmed: {count} visits scheduled.', ar: 'تم تأكيد خطة الرعاية مع {doctor}: {count} زيارات مجدولة.' },
   DEPOSIT_REFUNDED: { templateId: 'TODO_NEEDS_HUMAN_deposit_refunded', reminder: false, en: 'Your deposit was refunded.', ar: 'تم رد العربون.' },
 };
 

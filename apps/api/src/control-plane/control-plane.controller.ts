@@ -8,7 +8,7 @@ import { FLAG_CATALOGUE } from './flag-catalogue';
 import { FlagGuard } from './flag.guard';
 import { FlagsService } from './flags.service';
 import { ProductKeyGuard } from './product-key.guard';
-import { AdminFlagDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
+import { AdminFlagDto, GateBoardDto, GateRecordedDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
 
 class SetFlagBody {
   @IsIn(['GLOBAL', 'MARKET', 'ORG']) scope!: 'GLOBAL' | 'MARKET' | 'ORG';
@@ -28,7 +28,7 @@ class GateBody {
 }
 class DefinitionBody {
   @IsString() key!: string;
-  @IsIn(['kiorly-clinic', 'kiorex', 'kiorex-account', 'kiorly-pharmacy', 'kiorly-lab', 'all']) product!: any;
+  @IsIn(['kiorly-clinic', 'kiorly-nurse', 'kiorex', 'kiorex-account', 'kiorly-pharmacy', 'kiorly-lab', 'all']) product!: any;
   @IsIn(['MODULE', 'COMMERCIAL', 'INTEGRATION', 'AI', 'LAUNCH_LOCKED']) class!: any;
   @IsString({ each: true }) scopes!: any[];
   @IsOptional() @IsString({ each: true }) dependsOn?: string[];
@@ -36,7 +36,12 @@ class DefinitionBody {
   @IsOptional() @IsString() whenOff?: string;
   @IsOptional() @IsBoolean() moneyPath?: boolean;
 }
-class ReasonBody { @IsString() reason!: string }
+class ReasonBody { @IsString() reason!: string; @IsOptional() @IsString() gateId?: string }
+class GateAllBody {
+  @IsString() approver!: string;
+  @IsDateString() approvedOn!: string;
+  @IsUrl({ require_tld: false }) documentUrl!: string;
+}
 class ProductBody {
   @IsOptional() @IsUrl({ require_tld: false }) webhookUrl?: string;
   @IsOptional() @IsBoolean() active?: boolean;
@@ -104,11 +109,27 @@ export class ControlPlaneController {
     return this.flags.recordGate(u.sub, key, { ...b, approvedOn: new Date(b.approvedOn) });
   }
 
+  @ApiOkResponse({ type: GateBoardDto })
+
+  @OpsOnly() @Get('admin/gates')
+  @ApiOperation({ summary: 'Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag' })
+  gates() {
+    return this.flags.gateBoard();
+  }
+
+  @ApiOkResponse({ type: GateRecordedDto })
+
+  @SuperAdminOnly() @Put('admin/gates/:gateId')
+  @ApiOperation({ summary: 'Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag.' })
+  gateAll(@CurrentUser() u: AuthUser, @Param('gateId') gateId: string, @Body() b: GateAllBody) {
+    return this.flags.recordGateForAll(u.sub, gateId, { ...b, approvedOn: new Date(b.approvedOn) });
+  }
+
   @ApiOkResponse({ type: VersionDto })
 
   @SuperAdminOnly() @Post('admin/flags/:key/gate/revoke') @HttpCode(200)
   revokeGate(@CurrentUser() u: AuthUser, @Param('key') key: string, @Body() b: ReasonBody) {
-    return this.flags.revokeGate(u.sub, key, b.reason);
+    return this.flags.revokeGate(u.sub, key, b.reason, b.gateId);
   }
 
   @ApiOkResponse({ type: FlagDefinitionDto })

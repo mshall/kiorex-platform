@@ -1,19 +1,32 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, Provider } from '@prisma/client';
 import { cfg } from '../common/config';
-import { notFound, unavailable } from '../common/errors';
+import { ApiError, badRequest, conflict, notFound, unavailable } from '../common/errors';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/kiorly-public';
 import { MarketService } from '../market/market-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { detectEmergency, EMERGENCY_GUIDANCE, isSpecialtyCode, mapSymptomToSpecialties, normalizeText, SPECIALTY_CODES, SPECIALTY_LABELS } from '../safety/safety-public';
-import { mapProviderDto } from './provider-mapper';
+import { CARE_TYPES, CareType, careTypeOf, mapProviderDto, normalizeDistrict, ServiceLocation } from './provider-mapper';
 
 export interface SearchParams {
   q?: string; specialty?: string; governorate?: string; area?: string; minFee?: number; maxFee?: number; gender?: string; language?: string; minRating?: number;
   acceptsDeposit?: boolean; nextAvailable?: 'today' | 'tomorrow' | 'week'; sort?: 'earliest' | 'distance' | 'rating' | 'fee'; lat?: number; lng?: number; maxDistanceKm?: number; page?: number; pageSize?: number;
+  /** Rev 2.3 (KXMDS01/02): care type category, visit location filter and the patient's district (home search). */
+  careType?: string; serviceLocation?: string; district?: string; profession?: string;
 }
-export interface Slot { startsAt: string; endsAt: string }
+export interface Slot { startsAt: string; endsAt: string; serviceLocation?: ServiceLocation; district?: string | null }
+export interface SlotQuery { serviceLocation?: ServiceLocation; district?: string; lat?: number; lng?: number; fresh?: boolean }
+/** KXMDS01: flag that gates each non-doctor care type (Doctors are always on). */
+export const CARE_TYPE_FLAG: Record<CareType, string | null> = { DOCTORS: null, PHYSIOTHERAPY: 'kiorex.category.physiotherapy', HOME_NURSING: 'kiorex.category.nursing' };
+export const CARE_TYPE_LABELS: Record<CareType, { en: string; ar: string }> = {
+  DOCTORS: { en: 'Doctors', ar: 'أطباء' }, PHYSIOTHERAPY: { en: 'Physiotherapy', ar: 'علاج طبيعي' }, HOME_NURSING: { en: 'Home nursing', ar: 'تمريض منزلي' },
+};
+/** Profession-naming badge (KXMPR01). Draft AR/EN labels: NEEDS_HUMAN review (the Arabic Nurse product name is Q12; these are generic profession words). */
+export const PROFESSION_BADGES: Record<string, { en: string; ar: string }> = {
+  PHYSICIAN: { en: 'Verified doctor', ar: 'طبيب موثّق' }, DENTIST: { en: 'Verified dentist', ar: 'طبيب أسنان موثّق' },
+  PHYSIOTHERAPIST: { en: 'Verified physiotherapist', ar: 'أخصائي علاج طبيعي موثّق' }, NURSE: { en: 'Verified nurse', ar: 'ممرض موثّق' },
+};
 const SYNC_CURSOR = 'catalog.sync.cursor';
 
 @Injectable()
@@ -84,19 +97,29 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     return {
       id: p.id, status: p.status, bookable: p.status === 'LIVE' && marketplaceOn, nameEn: p.nameEn, nameAr: p.nameAr, specialty: p.specialty, subSpecialties: p.subSpecialties, languages: p.languages, gender: p.gender,
       titleEn: prov.titleEn ?? null, titleAr: prov.titleAr ?? null, photoUrl: prov.photoUrl ?? prov.photoRelativePath ?? null, verified: p.status === 'LIVE', // only verified (LIVE) listings are bookable (ON-03)
-      fees: (prov.fees ?? []).map((f: any) => ({ typeId: f.appointmentTypeId, nameEn: f.nameEn, nameAr: f.nameAr, amountMinor: Math.round(Number(f.amount) * 100), currency: f.currency })),
+      fees: (prov.fees ?? []).map((f: any) => { const home = this.feeLocation(p, f) === 'HOME'; const sur = home ? Math.round(Number(f.homeSurcharge ?? 0) * 100) : 0; return { typeId: f.appointmentTypeId, nameEn: f.nameEn, nameAr: f.nameAr, amountMinor: Math.round(Number(f.amount) * 100), currency: f.currency, serviceLocation: home ? 'HOME' : 'IN_CLINIC', homeSurchargeMinor: sur, totalMinor: Math.round(Number(f.amount) * 100) + sur }; }),
       clinic: { id: p.clinicId, ...(raw.clinic ?? {}), phone: raw.clinic?.phone ?? null },
       rating: { average: p.ratingAvg, count: p.ratingCount },
       cancellationPolicy: prov.cancellationPolicy ?? raw.cancellationPolicy ?? null,
       acceptsDeposit: p.acceptsDeposit,
+      profession: p.profession, careType: p.careType, edition: p.edition, professionBadge: p.profession ? PROFESSION_BADGES[p.profession] ?? null : null, verificationRegister: p.verificationRegister,
+      categoryEnabled: (await this.careTypeEnabled(p.careType as CareType, p.market)).enabled,
+      serviceLocations: p.serviceLocations, assignsClinician: p.assignsClinician,
+      // coverage DISTRICTS only (KXMDS05): the provider's home address is never part of the projection
+      homeVisit: { enabled: this.isHomeEnabled(p) && (await this.flags.isEnabled('kiorex.home_visits', { market: p.market })), coverageDistricts: p.coverageDistricts, homeSurchargeMinor: this.isHomeEnabled(p) ? p.homeSurchargeMinor ?? 0 : null },
       shareUrl: `${cfg().publicBaseUrl.replace(/:\d+$/, '')}/doctors/${p.id}`,
     };
   }
 
   /** Deposit policy for a visit type. NEEDS_HUMAN (KX-12): amounts are never invented; 0 = no deposit. */
-  depositFor(p: Provider, typeId: string): { required: boolean; amountMinor: number } {
+  depositFor(p: Provider, typeId: string, o: { home?: boolean } = {}): { required: boolean; amountMinor: number; policy?: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' } {
     const f = ((p.raw as any)?.provider?.fees ?? []).find((x: any) => x.appointmentTypeId === typeId);
     if (f?.depositAmount) return { required: true, amountMinor: Math.round(Number(f.depositAmount) * 100) };
+    // BR54: a deposit is required BY DEFAULT for home visits. The amount is a business decision (KX-12, NEEDS_HUMAN) and is never invented: HOME_DEPOSIT_DEFAULT_MINOR (else DEPOSIT_DEFAULT_MINOR); 0 = unset => no deposit collected and the booking says so.
+    if (o.home) {
+      const amt = cfg().homeDepositDefaultMinor || cfg().depositDefaultMinor;
+      return amt > 0 ? { required: true, amountMinor: amt } : { required: false, amountMinor: 0, policy: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' };
+    }
     if (f?.depositRequired && cfg().depositDefaultMinor > 0) return { required: true, amountMinor: cfg().depositDefaultMinor };
     if (p.acceptsDeposit && cfg().depositDefaultMinor > 0) return { required: true, amountMinor: cfg().depositDefaultMinor };
     return { required: false, amountMinor: 0 };
@@ -107,20 +130,81 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Slots from Kiorly's engine, cached 60 s (KXM-BK-01). */
-  async slots(p: Provider, typeId: string, from: Date, to: Date, opts: { fresh?: boolean } = {}): Promise<Slot[]> {
-    const key = `${p.clinicId}|${p.clinicianId}|${typeId}|${from.toISOString().slice(0, 13)}|${to.toISOString().slice(0, 13)}`;
+  async slots(p: Provider, typeId: string, from: Date, to: Date, opts: SlotQuery = {}): Promise<Slot[]> {
+    const home = opts.serviceLocation === 'HOME';
+    const district = home ? opts.district : undefined;
+    // the cache key carries location + district (never coordinates or an address)
+    const key = `${p.clinicId}|${p.clinicianId}|${typeId}|${from.toISOString().slice(0, 13)}|${to.toISOString().slice(0, 13)}|${home ? `HOME:${district ?? ''}` : 'IN_CLINIC'}`;
     const hit = this.slotCache.get(key);
     if (!opts.fresh && hit && Date.now() - hit.at < cfg().slotCacheTtlMs) return hit.slots;
     try {
-      const { data } = await this.kiorly.slots(p.clinicId, { clinicianId: p.clinicianId, typeId, from: from.toISOString(), to: to.toISOString() });
-      const slots: Slot[] = ((data as any)?.slots ?? data ?? []).map((s: any) => ({ startsAt: s.startsAt, endsAt: s.endsAt }));
+      const { data } = await this.kiorly.slots(p.clinicId, { clinicianId: p.clinicianId, typeId, from: from.toISOString(), to: to.toISOString(), ...(home ? { serviceLocation: 'HOME', district, lat: opts.lat, lng: opts.lng } : {}) });
+      const slots: Slot[] = ((data as any)?.slots ?? data ?? []).map((s: any) => ({ startsAt: s.startsAt, endsAt: s.endsAt, serviceLocation: (s.serviceLocation === 'HOME' || home ? 'HOME' : 'IN_CLINIC') as ServiceLocation, district: s.district ?? (home ? district ?? null : null) }));
       this.slotCache.set(key, { at: Date.now(), slots });
       return slots;
     } catch (e) {
       if (e instanceof KiorlyHttpError && e.status === 404) throw notFound('LISTING_NOT_LIVE', 'Listing is not live');
+      if (e instanceof KiorlyHttpError && e.status === 422 && (e.code === 'OUT_OF_COVERAGE' || e.body?.code === 'OUT_OF_COVERAGE')) throw await this.outOfCoverage(p, district ?? e.body?.district, e.body?.alternatives);
       if (e instanceof KiorlyTransientError) throw unavailable('CLINIC_SYSTEM_BUSY', 'Clinic system busy, try again shortly');
       throw e;
     }
+  }
+
+  /** KXMHV02: 422 OUT_OF_COVERAGE with an explanation, the provider's covered districts and in-zone alternatives (never an address). */
+  async outOfCoverage(p: Provider, district?: string | null, alternatives?: unknown): Promise<ApiError> {
+    const d = normalizeDistrict(district) ?? undefined;
+    const suggested = d ? await this.prisma.provider.findMany({ where: { status: 'LIVE', careType: p.careType, id: { not: p.id }, serviceLocations: { has: 'HOME' }, coverageDistricts: { has: d } }, take: 3, select: { id: true, nameEn: true, nameAr: true, careType: true } }) : [];
+    return new ApiError(422, 'OUT_OF_COVERAGE', 'This provider does not visit your district', {
+      district: d, coverageDistricts: p.coverageDistricts, alternatives: Array.isArray(alternatives) ? alternatives : [], suggestedProviders: suggested,
+      explanation: { en: 'This provider does not visit your district yet. Pick another address or another provider.', ar: 'هذا المقدم لا يغطي منطقتك حاليًا. اختر عنوانًا آخر أو مقدمًا آخر.' },
+    });
+  }
+
+  /** Pure local coverage precheck (projection); Kiorly stays the authority and may still answer 422. */
+  coversDistrict(p: Provider, district: string): boolean {
+    return p.coverageDistricts.length === 0 ? true : p.coverageDistricts.includes(district);
+  }
+  isHomeEnabled(p: Provider): boolean { return p.serviceLocations.includes('HOME'); }
+  /** A fee entry names its visit location; entries without one belong to the provider's only location (nurses are home-only), else IN_CLINIC. */
+  feeLocation(p: Provider, f: any): ServiceLocation { return (f?.serviceLocation ?? (p.serviceLocations.length === 1 ? p.serviceLocations[0] : 'IN_CLINIC')) as ServiceLocation; }
+
+  /** Visit type to show/book for a location: home fees carry `serviceLocation: HOME`; legacy single-fee providers fall back to fees[0]. */
+  typeFor(p: Provider, location: ServiceLocation): { typeId: string | undefined; fee: any | undefined } {
+    const fees = ((p.raw as any)?.provider?.fees ?? []) as any[];
+    const want = fees.find((f) => this.feeLocation(p, f) === location);
+    const f = want ?? (location === 'HOME' && !p.serviceLocations.includes('HOME') ? undefined : fees[0]);
+    return { typeId: f?.appointmentTypeId, fee: f };
+  }
+
+  /** Is the care-type category visible? Doctors always; physiotherapy/nursing follow their flags (launch-locked => hidden until evidence). */
+  async careTypeEnabled(ct: CareType, market = 'EG') {
+    const key = CARE_TYPE_FLAG[ct];
+    if (!key) return { enabled: true, key: null as string | null, reason: 'ON', scope: undefined as string | undefined };
+    const r = await this.flags.evaluate(key, { market });
+    return { enabled: r.effective, key, reason: r.reason, scope: r.scope as string | undefined };
+  }
+  async careTypes(market = 'EG') {
+    const counts = await this.prisma.provider.groupBy({ by: ['careType'], where: { status: 'LIVE' }, _count: true });
+    return Promise.all(CARE_TYPES.map(async (code) => { const e = await this.careTypeEnabled(code, market); return { code, labelEn: CARE_TYPE_LABELS[code].en, labelAr: CARE_TYPE_LABELS[code].ar, enabled: e.enabled, flag: e.key, reason: e.reason, providerCount: e.enabled ? counts.find((c) => c.careType === code)?._count ?? 0 : 0 }; }));
+  }
+
+  /** District directory for the home-visit picker (district-level only; no addresses). */
+  async homeDistricts() {
+    const rows = await this.prisma.$queryRaw<{ district: string; governorate: string | null; providers: bigint }[]>(Prisma.sql`
+      SELECT d AS district, min(p.governorate) AS governorate, count(*)::bigint AS providers
+      FROM "Provider" p, unnest(p."coverageDistricts") AS d
+      WHERE p.status = 'LIVE' AND 'HOME' = ANY(p."serviceLocations") GROUP BY d ORDER BY d`);
+    return rows.map((r) => ({ district: r.district, governorate: r.governorate, homeEnabledProviders: Number(r.providers) }));
+  }
+
+  /** KXMOP06 + home-visit release gate: >= 50 home-enabled providers PER launch cluster (cluster = governorate). A human still records GHV1/GHV2. */
+  async homeGateMetric(min = cfg().homeGateMinProviders) {
+    const rows = await this.prisma.$queryRaw<{ cluster: string | null; providers: bigint; physios: bigint; nurses: bigint }[]>(Prisma.sql`
+      SELECT lower(coalesce(governorate, 'unknown')) AS cluster, count(*)::bigint AS providers,
+        count(*) FILTER (WHERE "careType" = 'PHYSIOTHERAPY')::bigint AS physios, count(*) FILTER (WHERE "careType" = 'HOME_NURSING')::bigint AS nurses
+      FROM "Provider" WHERE status = 'LIVE' AND 'HOME' = ANY("serviceLocations") GROUP BY 1 ORDER BY 1`);
+    const clusters = rows.map((r) => ({ cluster: r.cluster ?? 'unknown', homeEnabledProviders: Number(r.providers), byCareType: { doctors: Number(r.providers) - Number(r.physios) - Number(r.nurses), physiotherapy: Number(r.physios), homeNursing: Number(r.nurses) }, threshold: min, met: Number(r.providers) >= min }));
+    return { threshold: min, clusterBasis: 'governorate', clusters, anyMet: clusters.some((c) => c.met), allMet: clusters.length > 0 && clusters.every((c) => c.met) };
   }
 
   async search(q: SearchParams) {
@@ -135,6 +219,31 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     const live = await this.markets.liveMarkets(); // market.<cc>.live gate: non-live countries are hidden from search
     if (!live.length) return { items: [], total: 0, page, pageSize, sort: q.sort ?? 'earliest', specialties: [], marketsLive: [] as string[] };
     const where: Prisma.Sql[] = [Prisma.sql`p.status = 'LIVE'`, Prisma.sql`p.market IN (${Prisma.join(live)})`];
+    // ── Rev 2.3 (KXMDS01/02): care type, visit location, district. Disabled categories are never shown; an explicit request for one is 403 FEATURE_DISABLED.
+    let careType: CareType | undefined;
+    if (q.careType) {
+      careType = String(q.careType).toUpperCase() as CareType;
+      if (!(CARE_TYPES as readonly string[]).includes(careType)) throw badRequest('INVALID_CARE_TYPE', `careType must be ${CARE_TYPES.join('|')}`);
+      const e = await this.careTypeEnabled(careType);
+      if (!e.enabled) await this.flags.assertEnabled(e.key!, { market: 'EG' });
+      where.push(Prisma.sql`p."careType" = ${careType}`);
+    } else {
+      const on: string[] = [];
+      for (const ct of CARE_TYPES) if ((await this.careTypeEnabled(ct)).enabled) on.push(ct);
+      where.push(Prisma.sql`p."careType" IN (${Prisma.join(on)})`);
+    }
+    const location = q.serviceLocation ? (String(q.serviceLocation).toUpperCase() as ServiceLocation) : undefined;
+    if (location && !['IN_CLINIC', 'HOME'].includes(location)) throw badRequest('INVALID_SERVICE_LOCATION', 'serviceLocation must be IN_CLINIC|HOME');
+    const homeOn = await this.flags.isEnabled('kiorex.home_visits', { market: 'EG' });
+    const district = q.district === undefined || q.district === '' ? undefined : normalizeDistrict(q.district) ?? undefined;
+    if (q.district && !district) throw badRequest('INVALID_DISTRICT', 'district must be a district code such as "nasr-city" (never an address)');
+    if (location === 'HOME') {
+      if (!homeOn) await this.flags.assertEnabled('kiorex.home_visits', { market: 'EG' });
+      if (!district) throw badRequest('DISTRICT_REQUIRED', 'Home search needs the patient district');
+      where.push(Prisma.sql`'HOME' = ANY(p."serviceLocations") AND ${district} = ANY(p."coverageDistricts")`); // only in-zone providers return
+    } else if (location === 'IN_CLINIC') where.push(Prisma.sql`('IN_CLINIC' = ANY(p."serviceLocations") OR cardinality(p."serviceLocations") = 0)`);
+    else if (!homeOn) where.push(Prisma.sql`('IN_CLINIC' = ANY(p."serviceLocations") OR cardinality(p."serviceLocations") = 0)`); // home-only providers are not bookable while home visits are OFF
+    if (q.profession) where.push(Prisma.sql`p.profession = ${String(q.profession).toUpperCase()}`);
     const specialty = q.specialty && isSpecialtyCode(q.specialty) ? q.specialty : q.specialty;
     if (specialty) where.push(Prisma.sql`p.specialty = ${specialty}`);
     if (q.q?.trim()) {
@@ -178,20 +287,25 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       visible.push(r);
     }
     const items = await Promise.all(visible.map(async (r) => {
-      const fees = ((r.raw as any)?.provider?.fees ?? []) as any[];
-      const typeId = fees[0]?.appointmentTypeId;
+      const loc: ServiceLocation = location ?? (r.serviceLocations.includes('IN_CLINIC') || !r.serviceLocations.length ? 'IN_CLINIC' : 'HOME');
+      const { typeId, fee } = this.typeFor(r, loc);
       let nextSlots: Slot[] | null = null;
       let slotsUnavailable = false;
-      if (marketplaceOn && typeId) {
+      if (marketplaceOn && typeId && (loc === 'IN_CLINIC' || (district && homeOn))) {
         try {
           const from = new Date();
-          nextSlots = (await this.slots(r, typeId, from, new Date(from.getTime() + 7 * 86400_000))).slice(0, 3);
+          nextSlots = (await this.slots(r, typeId, from, new Date(from.getTime() + 7 * 86400_000), { serviceLocation: loc, district })).slice(0, 3);
         } catch { slotsUnavailable = true; }
       }
+      const base = fee ? Math.round(Number(fee.amount) * 100) : null;
+      const sur = fee?.homeSurcharge ? Math.round(Number(fee.homeSurcharge) * 100) : r.homeSurchargeMinor ?? 0;
       return {
+        profession: r.profession, careType: r.careType, edition: r.edition, serviceLocations: r.serviceLocations, coverageDistricts: r.coverageDistricts, assignsClinician: r.assignsClinician,
+        professionBadge: r.profession ? PROFESSION_BADGES[r.profession] ?? null : null,
+        homeVisit: { enabled: this.isHomeEnabled(r) && homeOn, homeSurchargeMinor: this.isHomeEnabled(r) ? sur : null, visitFeeIncludingSurchargeMinor: loc === 'HOME' && base !== null ? base + sur : null },
         id: r.id, nameEn: r.nameEn, nameAr: r.nameAr, clinicNameEn: r.clinicNameEn, clinicNameAr: r.clinicNameAr, specialty: r.specialty, governorate: r.governorate, area: r.area,
         minFeeMinor: r.minFeeMinor, maxFeeMinor: r.maxFeeMinor, currency: r.currency, rating: { average: r.ratingAvg, count: r.ratingCount }, acceptsDeposit: r.acceptsDeposit, languages: r.languages, gender: r.gender,
-        distanceKm: r.distance, verified: true, bookable: marketplaceOn && !!typeId, defaultTypeId: typeId ?? null, nextSlots, slotsUnavailable, sponsored: false,
+        distanceKm: r.distance, verified: true, bookable: marketplaceOn && !!typeId && (loc === 'IN_CLINIC' || homeOn), defaultTypeId: typeId ?? null, defaultServiceLocation: loc, nextSlots, slotsUnavailable, sponsored: false,
         ...(marketplaceOn ? {} : { clinicPhone: (r.raw as any)?.clinic?.phone ?? null }),
       };
     }));
@@ -208,7 +322,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       out.sort((a, b) => (a.nextSlots?.[0] ? new Date(a.nextSlots[0].startsAt).getTime() : Infinity) - (b.nextSlots?.[0] ? new Date(b.nextSlots[0].startsAt).getTime() : Infinity));
       out = out.slice((page - 1) * pageSize, page * pageSize);
     }
-    await this.track('results_viewed', { code: q.q ? 'keyword' : 'browse', specialtyCode: specialty ?? mapped[0] });
+    await this.track('results_viewed', { code: q.q ? 'keyword' : 'browse', specialtyCode: specialty ?? mapped[0], careType, serviceLocation: location, district });
     return { items: out, total, page, pageSize, sort, specialties: mapped.map((c) => ({ code: c, ...SPECIALTY_LABELS[c] })) };
   }
 
@@ -218,8 +332,9 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── analytics (KXM-DS-08) — never records free text ─────────────
 
-  async track(name: string, d: { specialtyCode?: string; providerId?: string; code?: string; market?: string } = {}) {
-    await this.prisma.analyticsEvent.create({ data: { name, specialtyCode: d.specialtyCode, providerId: d.providerId, code: d.code, market: d.market ?? 'EG' } }).catch(() => undefined);
+  /** RULE (Rev 2.3): no patient addresses in analytics; location is the DISTRICT code only (a slug), plus care type and visit location. */
+  async track(name: string, d: { specialtyCode?: string; providerId?: string; code?: string; market?: string; district?: string | null; careType?: string; serviceLocation?: string } = {}) {
+    await this.prisma.analyticsEvent.create({ data: { name, specialtyCode: d.specialtyCode, providerId: d.providerId, code: d.code, market: d.market ?? 'EG', district: normalizeDistrict(d.district) ?? undefined, careType: d.careType, serviceLocation: d.serviceLocation } }).catch(() => undefined);
   }
 
   async recordProfileView(providerId: string) {
@@ -260,7 +375,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   async opsList(q: { status?: string; q?: string; take?: number; page?: number }) {
     const take = Math.min(q.take ?? 50, 200);
     const where: Prisma.ProviderWhereInput = { ...(q.status ? { status: q.status } : {}), ...(q.q ? { searchText: { contains: normalizeText(q.q) } } : {}) };
-    const [total, rows] = await Promise.all([this.prisma.provider.count({ where }), this.prisma.provider.findMany({ where, orderBy: { syncedAt: 'desc' }, take, skip: ((q.page ?? 1) - 1) * take, select: { id: true, clinicId: true, clinicianId: true, status: true, nameEn: true, nameAr: true, specialty: true, governorate: true, ratingAvg: true, ratingCount: true, sourceVersion: true, syncedAt: true } })]);
+    const [total, rows] = await Promise.all([this.prisma.provider.count({ where }), this.prisma.provider.findMany({ where, orderBy: { syncedAt: 'desc' }, take, skip: ((q.page ?? 1) - 1) * take, select: { id: true, profession: true, careType: true, serviceLocations: true, coverageDistricts: true, clinicId: true, clinicianId: true, status: true, nameEn: true, nameAr: true, specialty: true, governorate: true, ratingAvg: true, ratingCount: true, sourceVersion: true, syncedAt: true } })]);
     return { total, items: rows };
   }
 

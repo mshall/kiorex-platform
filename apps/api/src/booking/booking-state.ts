@@ -34,9 +34,36 @@ export function targetForEvent(type: string): BookingStatus | 'SAME' | null {
     case 'COMPLETED': return 'COMPLETED';
     case 'NO_SHOW': return 'NO_SHOW';
     case 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT': return 'EXPIRED';
+    case 'HOME_VISIT_ABORTED_UNSAFE': return 'CANCELLED'; // unsafe abort = CANCELLED (never a no-show, BR61); the deposit is held for review (KXMPAY07)
     default: return null;
   }
 }
+
+// ───────────── Rev 2.3 home sub-states (KX-03 §05 "State machine: home sub-states") ─────────────
+
+/**
+ * Home visits keep the KX-03 §05 status machine and add a sub-state driven by Kiorly events:
+ *   HOME_VISIT_ASSIGNED -> ASSIGNED, HOME_VISIT_EN_ROUTE -> EN_ROUTE, CHECKED_IN (arrival geostamp attributed by Kiorly) -> ARRIVED,
+ *   HOME_VISIT_ABORTED_UNSAFE -> ABORTED_UNSAFE (main status CANCELLED). Finished = main status COMPLETED.
+ * Sub-states only move forward (ASSIGNED < EN_ROUTE < ARRIVED); stale / out-of-order events are ignored; ABORTED_UNSAFE is terminal.
+ */
+export type HomeState = 'ASSIGNED' | 'EN_ROUTE' | 'ARRIVED' | 'ABORTED_UNSAFE';
+export const HOME_EVENTS = ['HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE'] as const;
+export const isHomeEvent = (t: string) => (HOME_EVENTS as readonly string[]).includes(t);
+const HOME_RANK: Record<string, number> = { ASSIGNED: 1, EN_ROUTE: 2, ARRIVED: 3 };
+
+/** Next home sub-state for an event (null = no change). `status` is the main booking status. */
+export function nextHomeState(current: string | null | undefined, status: string, type: string): HomeState | null {
+  if (current === 'ABORTED_UNSAFE' || isTerminal(status)) return null;
+  const target: HomeState | null = type === 'HOME_VISIT_ASSIGNED' ? 'ASSIGNED' : type === 'HOME_VISIT_EN_ROUTE' ? 'EN_ROUTE' : type === 'CHECKED_IN' ? 'ARRIVED' : type === 'HOME_VISIT_ABORTED_UNSAFE' ? 'ABORTED_UNSAFE' : null;
+  if (!target) return null;
+  if (target === 'ABORTED_UNSAFE') return ['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN'].includes(status) ? target : null;
+  if (!['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN'].includes(status)) return null;
+  return (HOME_RANK[target] ?? 0) > (HOME_RANK[current ?? ''] ?? 0) ? target : null;
+}
+
+/** The patient-facing timeline of a home visit: Confirmed -> On the way -> Arrived -> Finished (KXMHV06). */
+export const HOME_TIMELINE_STEPS = ['CONFIRMED', 'ON_THE_WAY', 'ARRIVED', 'FINISHED'] as const;
 
 /**
  * Decide the status after applying an event. Tolerates out-of-order/missed events: forward jumps are allowed

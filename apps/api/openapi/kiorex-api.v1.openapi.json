@@ -450,6 +450,69 @@
         ]
       }
     },
+    "/api/v1/admin/gates": {
+      "get": {
+        "operationId": "ControlPlaneController_gates",
+        "summary": "Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateBoardDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
+    "/api/v1/admin/gates/{gateId}": {
+      "put": {
+        "operationId": "ControlPlaneController_gateAll",
+        "summary": "Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag.",
+        "parameters": [
+          {
+            "name": "gateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateAllBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateRecordedDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
     "/api/v1/admin/flags/{key}/gate/revoke": {
       "post": {
         "operationId": "ControlPlaneController_revokeGate",
@@ -1210,6 +1273,160 @@
         ]
       }
     },
+    "/api/v1/me/addresses": {
+      "get": {
+        "operationId": "AddressController_list",
+        "summary": "KXMHV01 address book (encrypted at rest; only the owner ever receives doorstep lines)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AddressDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "address-book"
+        ]
+      },
+      "post": {
+        "operationId": "AddressController_create",
+        "summary": "KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "address-book"
+        ]
+      }
+    },
+    "/api/v1/me/addresses/{id}": {
+      "put": {
+        "operationId": "AddressController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "address-book"
+        ]
+      },
+      "delete": {
+        "operationId": "AddressController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "address-book"
+        ]
+      }
+    },
+    "/api/v1/me/addresses/{id}/confirm": {
+      "post": {
+        "operationId": "AddressController_confirm",
+        "summary": "KXMHV01 confirm this address with the OTP-verified phone (required once before the first home booking; any edit of district/street resets it)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "address-book"
+        ]
+      }
+    },
     "/api/v1/search/providers": {
       "get": {
         "operationId": "CatalogController_search",
@@ -1350,6 +1567,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "careType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceLocation",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "district",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "profession",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1461,6 +1710,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "serviceLocation",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "district",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lng",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1470,6 +1751,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProviderSlotsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/care-types": {
+      "get": {
+        "operationId": "CatalogController_careTypes",
+        "summary": "KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*)",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CareTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/home/districts": {
+      "get": {
+        "operationId": "CatalogController_homeDistricts",
+        "summary": "KXMHV02 districts with at least one home-enabled provider (district level only)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HomeDistrictDto"
+                  }
                 }
               }
             }
@@ -1886,7 +2226,7 @@
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
-        "summary": "KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04)",
+        "summary": "KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2827,6 +3167,135 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefundDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/held-for-review": {
+      "get": {
+        "operationId": "OpsController_heldForReview",
+        "summary": "KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HeldDepositDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/review/release": {
+      "post": {
+        "operationId": "OpsController_reviewRelease",
+        "summary": "KXMPAY07 review decision: release the held deposit to the provider (reason required, audited)",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDecisionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/review/refund": {
+      "post": {
+        "operationId": "OpsController_reviewRefund",
+        "summary": "KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited)",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDecisionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/home-visits/gate-metric": {
+      "get": {
+        "operationId": "OpsController_homeGate",
+        "summary": "Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeGateMetricDto"
                 }
               }
             }
@@ -5010,6 +5479,622 @@
         ]
       }
     },
+    "/api/v1/bookings/{id}/family-shares": {
+      "post": {
+        "operationId": "HomeCareController_addShare",
+        "summary": "KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyShareCreatedDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      },
+      "get": {
+        "operationId": "HomeCareController_listShares",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyShareDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/family-shares/{shareId}": {
+      "delete": {
+        "operationId": "HomeCareController_revokeShare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shareId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/public/visit-status/{token}": {
+      "get": {
+        "operationId": "HomeCareController_publicStatus",
+        "summary": "Family link (no login): visit status only. Never address, fee, phone or reasons",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVisitStatusDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/public/visit-status/{token}/stop": {
+      "post": {
+        "operationId": "HomeCareController_stop",
+        "summary": "Family contact stops the updates (STOP)",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/safety-card": {
+      "get": {
+        "operationId": "HomeCareController_safetyCard",
+        "summary": "KXMHV09 safety card: provider photo, name and badge before arrival, emergency number, report-a-problem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyCardDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/bookings/{id}/report-problem": {
+      "post": {
+        "operationId": "HomeCareController_report",
+        "summary": "KXMHV09 report a problem during/after a home visit: routes to ops with a 1 h SLA (KXMOP05)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemReportDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/care-plans": {
+      "post": {
+        "operationId": "HomeCareController_requestPlan",
+        "summary": "KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CarePlanBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarePlanDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      },
+      "get": {
+        "operationId": "HomeCareController_listPlans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CarePlanDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/care-plans/{id}": {
+      "get": {
+        "operationId": "HomeCareController_getPlan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarePlanDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home-visits"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/alerts": {
+      "get": {
+        "operationId": "SafetyConsoleController_alerts",
+        "summary": "KXMOP12 SAFETY_ALERT_RAISED feed with the 60 s delivery SLO fields",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyAlertListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/summary": {
+      "get": {
+        "operationId": "SafetyConsoleController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetySummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/escalations": {
+      "get": {
+        "operationId": "SafetyConsoleController_escalations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EscalationLogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/unsafe-aborts": {
+      "get": {
+        "operationId": "SafetyConsoleController_unsafeAborts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnsafeAbortDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/alerts/{id}": {
+      "get": {
+        "operationId": "SafetyConsoleController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyAlertDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/alerts/{id}/acknowledge": {
+      "post": {
+        "operationId": "SafetyConsoleController_ack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyAlertDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/alerts/{id}/escalate": {
+      "post": {
+        "operationId": "SafetyConsoleController_escalate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyAlertDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/alerts/{id}/resolve": {
+      "post": {
+        "operationId": "SafetyConsoleController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyAlertDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/safety/sweep": {
+      "post": {
+        "operationId": "SafetyConsoleController_sweep",
+        "summary": "Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SweepSafetyDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -5759,12 +6844,38 @@
           },
           "gate": {
             "nullable": true,
-            "description": "Launch-gate evidence recorded by a human; null until then",
+            "description": "Launch-gate evidence recorded by a human; null until then (first row when several gates are required)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/FlagGateDto"
               }
             ]
+          },
+          "gateIds": {
+            "description": "Gate ids that must ALL have evidence (e.g. GHV1, GHV2); empty = any single evidence row",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "edition": {
+            "type": "string",
+            "nullable": true,
+            "description": "NURSE for nurse.* keys (served in the kiorly-clinic snapshot)"
+          },
+          "gates": {
+            "description": "Every gate evidence row recorded for this flag",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlagGateDto"
+            }
+          },
+          "missingGates": {
+            "description": "Launch-locked flags: gate ids still without evidence (ANY when no gate id is listed and none recorded)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "lastChange": {
             "nullable": true,
@@ -5803,6 +6914,10 @@
           "source",
           "overrides",
           "gate",
+          "gateIds",
+          "edition",
+          "gates",
+          "missingGates",
           "lastChange",
           "key",
           "product",
@@ -5913,10 +7028,111 @@
           "version"
         ]
       },
+      "GateFlagDto": {
+        "type": "object",
+        "properties": {
+          "requiredGates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Evidence recorded by a human for this flag + gate; null until then"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requiredGates",
+          "evidence",
+          "key"
+        ]
+      },
+      "GateEntryDto": {
+        "type": "object",
+        "properties": {
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GateFlagDto"
+            }
+          },
+          "gateId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "flags",
+          "gateId"
+        ]
+      },
+      "GateBoardDto": {
+        "type": "object",
+        "properties": {
+          "gates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GateEntryDto"
+            }
+          }
+        },
+        "required": [
+          "gates"
+        ]
+      },
+      "GateAllBody": {
+        "type": "object",
+        "properties": {
+          "approver": {
+            "type": "string"
+          },
+          "approvedOn": {
+            "type": "string"
+          },
+          "documentUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "approver",
+          "approvedOn",
+          "documentUrl"
+        ]
+      },
+      "GateRecordedDto": {
+        "type": "object",
+        "properties": {
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gateId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "flags",
+          "gateId",
+          "version"
+        ]
+      },
       "ReasonBody": {
         "type": "object",
         "properties": {
           "reason": {
+            "type": "string"
+          },
+          "gateId": {
             "type": "string"
           }
         },
@@ -5934,6 +7150,7 @@
             "type": "string",
             "enum": [
               "kiorly-clinic",
+              "kiorly-nurse",
               "kiorex",
               "kiorex-account",
               "kiorly-pharmacy",
@@ -6601,7 +7818,8 @@
               "MARKETPLACE_PROCESSING",
               "REMINDERS",
               "RECORD_SHARING",
-              "AI_PROCESSING"
+              "AI_PROCESSING",
+              "VISIT_STATUS_SHARING"
             ]
           },
           "version": {
@@ -6865,6 +8083,213 @@
           "deleted"
         ]
       },
+      "AddressDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Home"
+          },
+          "district": {
+            "type": "string",
+            "description": "District code, e.g. nasr-city (GET /home/districts)"
+          },
+          "street": {
+            "type": "string",
+            "nullable": true
+          },
+          "building": {
+            "type": "string",
+            "nullable": true
+          },
+          "floor": {
+            "type": "string",
+            "nullable": true
+          },
+          "flat": {
+            "type": "string",
+            "nullable": true
+          },
+          "landmark": {
+            "type": "string",
+            "nullable": true
+          },
+          "lat": {
+            "type": "number",
+            "nullable": true
+          },
+          "lng": {
+            "type": "number",
+            "nullable": true
+          },
+          "pinSource": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "USER",
+              "GEOCODED"
+            ]
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmed with the OTP-verified phone (needed once before the first home booking)"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Masked one-line summary (label · district · governorate), safe to show anywhere"
+          },
+          "id": {
+            "type": "string"
+          },
+          "governorate": {
+            "type": "string"
+          },
+          "hasPin": {
+            "type": "boolean"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "district",
+          "street",
+          "building",
+          "floor",
+          "flat",
+          "landmark",
+          "lat",
+          "lng",
+          "pinSource",
+          "confirmed",
+          "confirmedAt",
+          "createdAt",
+          "summary",
+          "id",
+          "governorate",
+          "hasPin",
+          "isDefault"
+        ]
+      },
+      "AddressBody": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "governorate": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "district": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "street": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "building": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "floor": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "flat": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "landmark": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "makeDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "governorate",
+          "district",
+          "street"
+        ]
+      },
+      "AddressPatch": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "governorate": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "district": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "street": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "building": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "floor": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "flat": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "landmark": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "makeDefault": {
+            "type": "boolean"
+          }
+        }
+      },
       "RatingDto": {
         "type": "object",
         "properties": {
@@ -6890,11 +8315,63 @@
           "endsAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "serviceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ],
+            "description": "Rev 2.3: where this slot takes place"
+          },
+          "district": {
+            "type": "string",
+            "nullable": true,
+            "description": "Rev 2.3: district code of a HOME slot"
           }
         },
         "required": [
           "startsAt",
           "endsAt"
+        ]
+      },
+      "ProfessionBadgeDto": {
+        "type": "object",
+        "properties": {
+          "en": {
+            "type": "string"
+          },
+          "ar": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "en",
+          "ar"
+        ]
+      },
+      "HomeVisitSearchDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Provider offers home visits AND kiorex.home_visits is effective"
+          },
+          "homeSurchargeMinor": {
+            "type": "number",
+            "nullable": true,
+            "description": "Home surcharge (BR56, separate invoice line, outside S and C); null when not a home provider"
+          },
+          "visitFeeIncludingSurchargeMinor": {
+            "type": "number",
+            "nullable": true,
+            "description": "Visit fee incl. home surcharge (KXMHV04) when searching at HOME"
+          }
+        },
+        "required": [
+          "enabled",
+          "homeSurchargeMinor",
+          "visitFeeIncludingSurchargeMinor"
         ]
       },
       "SearchItemDto": {
@@ -6973,6 +8450,71 @@
             "type": "string",
             "nullable": true
           },
+          "profession": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "PHYSICIAN",
+              "DENTIST",
+              "PHYSIOTHERAPIST",
+              "NURSE"
+            ]
+          },
+          "careType": {
+            "type": "string",
+            "enum": [
+              "DOCTORS",
+              "PHYSIOTHERAPY",
+              "HOME_NURSING"
+            ]
+          },
+          "edition": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "CLINIC",
+              "NURSE"
+            ]
+          },
+          "serviceLocations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "IN_CLINIC",
+                "HOME"
+              ]
+            }
+          },
+          "coverageDistricts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignsClinician": {
+            "type": "boolean",
+            "description": "Agencies: the agency assigns a clinician after booking (HOME_VISIT_ASSIGNED)"
+          },
+          "professionBadge": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfessionBadgeDto"
+              }
+            ]
+          },
+          "homeVisit": {
+            "$ref": "#/components/schemas/HomeVisitSearchDto"
+          },
+          "defaultServiceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ],
+            "description": "Location the defaultTypeId / nextSlots belong to"
+          },
           "id": {
             "type": "string"
           },
@@ -7009,6 +8551,15 @@
           "bookable",
           "defaultTypeId",
           "nextSlots",
+          "profession",
+          "careType",
+          "edition",
+          "serviceLocations",
+          "coverageDistricts",
+          "assignsClinician",
+          "professionBadge",
+          "homeVisit",
+          "defaultServiceLocation",
           "id",
           "currency",
           "acceptsDeposit",
@@ -7126,6 +8677,21 @@
       "ProviderFeeDto": {
         "type": "object",
         "properties": {
+          "serviceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ]
+          },
+          "homeSurchargeMinor": {
+            "type": "number",
+            "description": "Home surcharge included in totalMinor (BR56); 0 for in-clinic fees"
+          },
+          "totalMinor": {
+            "type": "number",
+            "description": "amountMinor + homeSurchargeMinor: the visit fee shown to the patient (KXMHV04)"
+          },
           "typeId": {
             "type": "string"
           },
@@ -7143,6 +8709,9 @@
           }
         },
         "required": [
+          "serviceLocation",
+          "homeSurchargeMinor",
+          "totalMinor",
           "typeId",
           "nameEn",
           "nameAr",
@@ -7211,6 +8780,30 @@
           }
         }
       },
+      "HomeVisitProfileDto": {
+        "type": "object",
+        "properties": {
+          "coverageDistricts": {
+            "description": "Coverage DISTRICT codes only (KXMDS05); never a home address",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "homeSurchargeMinor": {
+            "type": "number",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "coverageDistricts",
+          "homeSurchargeMinor",
+          "enabled"
+        ]
+      },
       "ProviderProfileDto": {
         "type": "object",
         "properties": {
@@ -7274,6 +8867,72 @@
               }
             ]
           },
+          "profession": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "PHYSICIAN",
+              "DENTIST",
+              "PHYSIOTHERAPIST",
+              "NURSE"
+            ]
+          },
+          "careType": {
+            "type": "string",
+            "enum": [
+              "DOCTORS",
+              "PHYSIOTHERAPY",
+              "HOME_NURSING"
+            ]
+          },
+          "edition": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "CLINIC",
+              "NURSE"
+            ]
+          },
+          "professionBadge": {
+            "nullable": true,
+            "description": "Profession-naming badge (KXMPR01)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfessionBadgeDto"
+              }
+            ]
+          },
+          "verificationRegister": {
+            "type": "string",
+            "nullable": true,
+            "description": "Register that verified the clinician, e.g. a syndicate register"
+          },
+          "categoryEnabled": {
+            "type": "boolean",
+            "description": "false when the care-type category flag is OFF/awaiting its gate: the profile stays readable, new bookings are 403"
+          },
+          "serviceLocations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "IN_CLINIC",
+                "HOME"
+              ]
+            }
+          },
+          "assignsClinician": {
+            "type": "boolean",
+            "description": "KXMPR02 agency profile: the agency assigns a clinician after booking"
+          },
+          "homeVisit": {
+            "description": "\"Visits at home in\" districts and the home surcharge (KXMPR01)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HomeVisitProfileDto"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -7307,6 +8966,15 @@
           "clinic",
           "rating",
           "cancellationPolicy",
+          "profession",
+          "careType",
+          "edition",
+          "professionBadge",
+          "verificationRegister",
+          "categoryEnabled",
+          "serviceLocations",
+          "assignsClinician",
+          "homeVisit",
           "id",
           "status",
           "bookable",
@@ -7318,6 +8986,18 @@
       "ProviderSlotsDto": {
         "type": "object",
         "properties": {
+          "serviceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ]
+          },
+          "district": {
+            "type": "string",
+            "nullable": true,
+            "description": "District code the HOME slots were searched for"
+          },
           "slots": {
             "type": "array",
             "items": {
@@ -7332,9 +9012,73 @@
           }
         },
         "required": [
+          "serviceLocation",
+          "district",
           "slots",
           "providerId",
           "typeId"
+        ]
+      },
+      "CareTypeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "DOCTORS",
+              "PHYSIOTHERAPY",
+              "HOME_NURSING"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "false while the category flag is OFF or awaiting its launch gate"
+          },
+          "flag": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelEn": {
+            "type": "string"
+          },
+          "labelAr": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "providerCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "enabled",
+          "flag",
+          "labelEn",
+          "labelAr",
+          "reason",
+          "providerCount"
+        ]
+      },
+      "HomeDistrictDto": {
+        "type": "object",
+        "properties": {
+          "governorate": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string"
+          },
+          "homeEnabledProviders": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "governorate",
+          "district",
+          "homeEnabledProviders"
         ]
       },
       "ViewResultDto": {
@@ -7624,6 +9368,16 @@
           },
           "bookingPageSlug": {
             "type": "string"
+          },
+          "serviceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ]
+          },
+          "addressId": {
+            "type": "string"
           }
         },
         "required": [
@@ -7734,6 +9488,271 @@
           "at"
         ]
       },
+      "HomeStepDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "ON_THE_WAY",
+              "ARRIVED",
+              "FINISHED"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "reached": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "at",
+          "reached"
+        ]
+      },
+      "HomeEtaDto": {
+        "type": "object",
+        "properties": {
+          "minutes": {
+            "type": "number",
+            "nullable": true,
+            "description": "Coarse arrival estimate, only when the provider shares it (KXMHV06)"
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "minutes",
+          "shared"
+        ]
+      },
+      "HomeAssigneeDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "badge": {
+            "type": "string",
+            "nullable": true,
+            "description": "Verified-professional badge text"
+          },
+          "profession": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "PHYSICIAN",
+              "DENTIST",
+              "PHYSIOTHERAPIST",
+              "NURSE"
+            ]
+          }
+        },
+        "required": [
+          "displayName",
+          "photoUrl",
+          "badge",
+          "profession"
+        ]
+      },
+      "HomeFeeDto": {
+        "type": "object",
+        "properties": {
+          "visitFeeMinor": {
+            "type": "number",
+            "nullable": true,
+            "description": "Visit fee without the home surcharge"
+          },
+          "homeSurchargeMinor": {
+            "type": "number",
+            "description": "Home surcharge (BR56): provider patient revenue on a separate invoice line; never enters S or C"
+          },
+          "totalMinor": {
+            "type": "number",
+            "description": "Visit fee incl. home surcharge (KXMHV04)"
+          },
+          "depositRequired": {
+            "type": "boolean",
+            "description": "Deposit required (BR54 default for home visits when an amount is configured)"
+          },
+          "currency": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "visitFeeMinor",
+          "homeSurchargeMinor",
+          "totalMinor",
+          "depositRequired",
+          "currency"
+        ]
+      },
+      "HomeAbortedDto": {
+        "type": "object",
+        "properties": {
+          "abortedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "noShow": {
+            "type": "boolean",
+            "description": "always false: an unsafe abort is never a no-show (BR61)"
+          },
+          "depositUnderReview": {
+            "type": "boolean",
+            "description": "The deposit is held for ops review, never auto-forfeited (KXMPAY07)"
+          }
+        },
+        "required": [
+          "abortedAt",
+          "noShow",
+          "depositUnderReview"
+        ]
+      },
+      "VisitAddressViewDto": {
+        "type": "object",
+        "properties": {
+          "governorate": {
+            "type": "string",
+            "nullable": true
+          },
+          "masked": {
+            "type": "boolean",
+            "description": "true 24 h after the visit (KXMHV10): doorstep lines are no longer returned"
+          },
+          "maskedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "address": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Doorstep lines of the booking snapshot; null once masked"
+          },
+          "district": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "governorate",
+          "masked",
+          "address",
+          "district"
+        ]
+      },
+      "HomeSafetyInfoDto": {
+        "type": "object",
+        "properties": {
+          "reportProblemSlaMinutes": {
+            "type": "number",
+            "description": "Report-a-problem SLA in minutes (KXMOP05: 60)"
+          },
+          "emergencyNumber": {
+            "type": "string",
+            "example": "123"
+          }
+        },
+        "required": [
+          "reportProblemSlaMinutes",
+          "emergencyNumber"
+        ]
+      },
+      "HomeBookingDto": {
+        "type": "object",
+        "properties": {
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "subState": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "ASSIGNED",
+              "EN_ROUTE",
+              "ARRIVED",
+              "ABORTED_UNSAFE"
+            ],
+            "description": "Home sub-state (main status stays in the KX-03 §05 machine)"
+          },
+          "steps": {
+            "description": "Confirmed → On the way → Arrived → Finished (KXMHV06)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeStepDto"
+            }
+          },
+          "trackingEnabled": {
+            "type": "boolean",
+            "description": "kiorex.visit_tracking effective: on-the-way updates and the estimate are shown"
+          },
+          "eta": {
+            "$ref": "#/components/schemas/HomeEtaDto"
+          },
+          "assignee": {
+            "nullable": true,
+            "description": "Agency bookings: assigned nurse name, photo, badge once HOME_VISIT_ASSIGNED arrives (KXMHV05). Never a phone number",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HomeAssigneeDto"
+              }
+            ]
+          },
+          "assignmentPending": {
+            "type": "boolean",
+            "description": "Agency listing: waiting for the agency to assign a clinician"
+          },
+          "fee": {
+            "$ref": "#/components/schemas/HomeFeeDto"
+          },
+          "aborted": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HomeAbortedDto"
+              }
+            ]
+          },
+          "address": {
+            "description": "Masked 24 h after the visit (KXMHV10)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VisitAddressViewDto"
+              }
+            ]
+          },
+          "safety": {
+            "$ref": "#/components/schemas/HomeSafetyInfoDto"
+          }
+        },
+        "required": [
+          "district",
+          "subState",
+          "steps",
+          "trackingEnabled",
+          "eta",
+          "assignee",
+          "assignmentPending",
+          "fee",
+          "aborted",
+          "address",
+          "safety"
+        ]
+      },
       "BookingDto": {
         "type": "object",
         "properties": {
@@ -7814,7 +9833,8 @@
               "PAID",
               "REFUNDED",
               "FORFEITED",
-              "RELEASED"
+              "RELEASED",
+              "HOLD_FOR_REVIEW"
             ]
           },
           "depositRefundable": {
@@ -7864,6 +9884,40 @@
             "type": "string",
             "format": "date-time"
           },
+          "serviceLocation": {
+            "type": "string",
+            "enum": [
+              "IN_CLINIC",
+              "HOME"
+            ]
+          },
+          "careType": {
+            "type": "string",
+            "enum": [
+              "DOCTORS",
+              "PHYSIOTHERAPY",
+              "HOME_NURSING"
+            ]
+          },
+          "visitDistrict": {
+            "type": "string",
+            "nullable": true,
+            "description": "District code only (KXMHV03: the address itself is under the patient)"
+          },
+          "feeMinor": {
+            "type": "number",
+            "nullable": true,
+            "description": "Visit fee (home surcharge is separate, see home.fee)"
+          },
+          "home": {
+            "nullable": true,
+            "description": "Present for HOME bookings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HomeBookingDto"
+              }
+            ]
+          },
           "providerId": {
             "type": "string"
           },
@@ -7901,6 +9955,11 @@
           "cancellationPolicy",
           "timeline",
           "createdAt",
+          "serviceLocation",
+          "careType",
+          "visitDistrict",
+          "feeMinor",
+          "home",
           "providerId",
           "clinicId",
           "typeId",
@@ -7976,18 +10035,12 @@
       "ReviewBody": {
         "type": "object",
         "properties": {
-          "rating": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "text": {
-            "type": "string",
-            "maxLength": 2000
+          "reason": {
+            "type": "string"
           }
         },
         "required": [
-          "rating"
+          "reason"
         ]
       },
       "ReviewDto": {
@@ -8266,6 +10319,31 @@
           "syncedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "profession": {
+            "type": "string",
+            "nullable": true,
+            "description": "KXMOP01 mirrors the profession"
+          },
+          "careType": {
+            "type": "string",
+            "enum": [
+              "DOCTORS",
+              "PHYSIOTHERAPY",
+              "HOME_NURSING"
+            ]
+          },
+          "serviceLocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverageDistricts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "id": {
             "type": "string"
@@ -9200,6 +11278,18 @@
             "items": {
               "$ref": "#/components/schemas/LedgerBalanceDto"
             }
+          },
+          "heldForReview": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "amountMinor": {
+                "type": "number"
+              }
+            },
+            "description": "KXMPAY07 deposits held for review"
           }
         },
         "required": [
@@ -9207,7 +11297,8 @@
           "refunds",
           "payouts",
           "reconciliationRuns",
-          "balances"
+          "balances",
+          "heldForReview"
         ]
       },
       "RefundBody": {
@@ -9259,6 +11350,164 @@
           "paymentId",
           "amountMinor",
           "reason"
+        ]
+      },
+      "HeldDepositDto": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "heldForReviewAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "ageHours": {
+            "type": "number",
+            "nullable": true
+          },
+          "providerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string",
+            "nullable": true,
+            "description": "District code only"
+          },
+          "abortedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bookingId",
+          "reason",
+          "heldForReviewAt",
+          "ageHours",
+          "providerId",
+          "district",
+          "abortedAt",
+          "paymentId",
+          "clinicId",
+          "amountMinor",
+          "currency"
+        ]
+      },
+      "ReviewDecisionDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "RELEASED_TO_PROVIDER",
+              "REFUNDED_TO_PATIENT"
+            ]
+          },
+          "refundId": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "outcome",
+          "paymentId",
+          "amountMinor"
+        ]
+      },
+      "HomeGateClusterDto": {
+        "type": "object",
+        "properties": {
+          "byCareType": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "cluster": {
+            "type": "string"
+          },
+          "homeEnabledProviders": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "byCareType",
+          "cluster",
+          "homeEnabledProviders",
+          "threshold",
+          "met"
+        ]
+      },
+      "HomeGateMetricDto": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "number",
+            "description": "Minimum home-enabled providers per launch cluster (50)"
+          },
+          "clusterBasis": {
+            "type": "string",
+            "example": "governorate"
+          },
+          "clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeGateClusterDto"
+            }
+          },
+          "gates": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Human-recorded evidence state per gate (GHV1, GHV2): the metric never satisfies a gate"
+          },
+          "safetyConsoleLive": {
+            "type": "boolean",
+            "description": "Safety console (KXMOP12) is deployed in this API"
+          },
+          "anyMet": {
+            "type": "boolean"
+          },
+          "allMet": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "threshold",
+          "clusterBasis",
+          "clusters",
+          "gates",
+          "safetyConsoleLive",
+          "anyMet",
+          "allMet"
         ]
       },
       "FeeStatementLineDto": {
@@ -9558,6 +11807,14 @@
             "type": "string",
             "format": "date-time"
           },
+          "homeVisit": {
+            "type": "boolean",
+            "description": "KXMOP05: home-visit complaints have a 1 h SLA"
+          },
+          "minutesToSla": {
+            "type": "number",
+            "description": "Minutes until the SLA is due (negative = overdue)"
+          },
           "id": {
             "type": "string"
           },
@@ -9569,16 +11826,22 @@
           },
           "status": {
             "type": "string"
+          },
+          "slaBreached": {
+            "type": "boolean"
           }
         },
         "required": [
           "bookingId",
           "slaDueAt",
           "createdAt",
+          "homeVisit",
+          "minutesToSla",
           "id",
           "sub",
           "category",
-          "status"
+          "status",
+          "slaBreached"
         ]
       },
       "LiquidityDto": {
@@ -9606,6 +11869,26 @@
             "type": "number",
             "nullable": true
           },
+          "byCareType": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "KXMOP06 by care type and visit location"
+          },
+          "homeEnabledByDistrict": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "KXMOP06 home-enabled providers per district"
+          },
+          "safetyAlerts": {
+            "type": "object",
+            "additionalProperties": true
+          },
           "windowDays": {
             "type": "number"
           },
@@ -9631,6 +11914,9 @@
         "required": [
           "bookingsByStatus",
           "searchToBook",
+          "byCareType",
+          "homeEnabledByDistrict",
+          "safetyAlerts",
           "windowDays",
           "listedDoctors",
           "liveDoctors",
@@ -10370,12 +12656,32 @@
       "ShareBody": {
         "type": "object",
         "properties": {
-          "granted": {
+          "contactName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "consentAttested": {
+            "type": "boolean"
+          },
+          "visitStatusSharingConsent": {
             "type": "boolean"
           }
         },
         "required": [
-          "granted"
+          "contactName",
+          "phone",
+          "consentAttested"
         ]
       },
       "PrescriptionItemDto": {
@@ -11003,34 +13309,6 @@
         "required": [
           "pharmacyId",
           "items"
-        ]
-      },
-      "AddressBody": {
-        "type": "object",
-        "properties": {
-          "line1": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "area": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "governorate": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "notes": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "phone": {
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "line1"
         ]
       },
       "DeliveryBody": {
@@ -11757,6 +14035,724 @@
         "required": [
           "session",
           "video"
+        ]
+      },
+      "FamilyShareCreatedDto": {
+        "type": "object",
+        "properties": {
+          "phoneMasked": {
+            "type": "string",
+            "description": "Masked phone (the number itself is encrypted and never returned)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "STOPPED",
+              "REVOKED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "link": {
+            "type": "string",
+            "description": "WhatsApp visit-status link; returned ONCE (only its hash is stored)"
+          },
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneMasked",
+          "status",
+          "createdAt",
+          "link",
+          "id",
+          "bookingId",
+          "contactName",
+          "locale"
+        ]
+      },
+      "FamilyShareDto": {
+        "type": "object",
+        "properties": {
+          "phoneMasked": {
+            "type": "string",
+            "description": "Masked phone (the number itself is encrypted and never returned)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "STOPPED",
+              "REVOKED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneMasked",
+          "status",
+          "createdAt",
+          "id",
+          "bookingId",
+          "contactName",
+          "locale"
+        ]
+      },
+      "PublicVisitStatusDto": {
+        "type": "object",
+        "properties": {
+          "patientFirstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subState": {
+            "type": "string",
+            "nullable": true
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "eta": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "provider": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "stopped": {
+            "type": "boolean",
+            "description": "The visit was stopped (no reason is ever shown to family)"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "patientFirstName",
+          "startsAt",
+          "subState",
+          "steps",
+          "eta",
+          "provider",
+          "stopped",
+          "status"
+        ]
+      },
+      "SafetyCardDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "emergencyNumber": {
+            "type": "string",
+            "example": "123"
+          },
+          "reportProblem": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "familyShare": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "assignmentPending": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "emergencyNumber",
+          "reportProblem",
+          "familyShare",
+          "bookingId",
+          "assignmentPending"
+        ]
+      },
+      "ProblemBody": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "SAFETY",
+              "CONDUCT",
+              "PROVIDER_NO_SHOW",
+              "BILLING",
+              "OTHER"
+            ]
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
+      "ProblemReportDto": {
+        "type": "object",
+        "properties": {
+          "slaDueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "homeVisit": {
+            "type": "boolean",
+            "description": "true for home visits: 1 h SLA (KXMOP05)"
+          },
+          "id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slaDueAt",
+          "homeVisit",
+          "id",
+          "category",
+          "status"
+        ]
+      },
+      "CarePlanBody": {
+        "type": "object",
+        "properties": {
+          "providerId": {
+            "type": "string"
+          },
+          "addressId": {
+            "type": "string"
+          },
+          "typeId": {
+            "type": "string"
+          },
+          "preferredStartDate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "providerId",
+          "addressId"
+        ]
+      },
+      "CarePlanVisitDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "homeState": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt",
+          "homeState",
+          "bookingId",
+          "status"
+        ]
+      },
+      "CarePlanDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "CONFIRMED",
+              "ENDED",
+              "REJECTED"
+            ]
+          },
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "endedReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "visits": {
+            "description": "One booking with a schedule; each visit has its own status (KXMHV08)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CarePlanVisitDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "completedVisits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "district",
+          "confirmedAt",
+          "endedAt",
+          "endedReason",
+          "createdAt",
+          "visits",
+          "id",
+          "providerId",
+          "completedVisits"
+        ]
+      },
+      "SafetySloDto": {
+        "type": "object",
+        "properties": {
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "deliveryLagSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "met": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "breached": {
+            "type": "boolean"
+          },
+          "receiveLagSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deadlineAt",
+          "deliveredAt",
+          "deliveryLagSeconds",
+          "met",
+          "seconds",
+          "breached",
+          "receiveLagSeconds"
+        ]
+      },
+      "SafetyAlertDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TIMER_EXPIRED",
+              "SOS",
+              "UNSAFE_ABORT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RAISED",
+              "ACKNOWLEDGED",
+              "ESCALATED",
+              "RESOLVED"
+            ]
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string",
+            "nullable": true,
+            "description": "District code only"
+          },
+          "raisedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "slo": {
+            "description": "60 s delivery SLO fields",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SafetySloDto"
+              }
+            ]
+          },
+          "delivery": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "acknowledgedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "acknowledgedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "ackLagSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "escalatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "needsEscalation": {
+            "type": "boolean",
+            "description": "Unacknowledged beyond SAFETY_ACK_ESCALATE_MINUTES (10)"
+          },
+          "providerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "clinicPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "alertId": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "escalationLevel": {
+            "type": "number"
+          },
+          "ageSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "bookingId",
+          "district",
+          "raisedAt",
+          "receivedAt",
+          "slo",
+          "delivery",
+          "acknowledgedAt",
+          "acknowledgedBy",
+          "ackLagSeconds",
+          "escalatedAt",
+          "resolvedAt",
+          "needsEscalation",
+          "providerName",
+          "clinicPhone",
+          "actions",
+          "id",
+          "alertId",
+          "clinicId",
+          "escalationLevel",
+          "ageSeconds"
+        ]
+      },
+      "SafetyAlertListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SafetyAlertDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SafetySummaryDto": {
+        "type": "object",
+        "properties": {
+          "medianDeliverySeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "p95DeliverySeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "byKind": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "windowDays": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "open": {
+            "type": "number"
+          },
+          "unacknowledged": {
+            "type": "number"
+          },
+          "sloBreaches": {
+            "type": "number"
+          },
+          "unsafeAborts": {
+            "type": "number"
+          },
+          "depositsHeldForReview": {
+            "type": "number"
+          },
+          "deliveryMode": {
+            "type": "string"
+          },
+          "sloSeconds": {
+            "type": "number"
+          },
+          "ackEscalateMinutes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "medianDeliverySeconds",
+          "p95DeliverySeconds",
+          "byKind",
+          "windowDays",
+          "total",
+          "open",
+          "unacknowledged",
+          "sloBreaches",
+          "unsafeAborts",
+          "depositsHeldForReview",
+          "deliveryMode",
+          "sloSeconds",
+          "ackEscalateMinutes"
+        ]
+      },
+      "EscalationLogDto": {
+        "type": "object",
+        "properties": {
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "alertId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "level": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "district",
+          "note",
+          "at",
+          "alertId",
+          "id",
+          "kind",
+          "action",
+          "actor",
+          "level"
+        ]
+      },
+      "UnsafeAbortDto": {
+        "type": "object",
+        "properties": {
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "abortedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "noShow": {
+            "type": "boolean",
+            "description": "always false (BR61)"
+          },
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewState": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookingId": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string"
+          },
+          "depositStatus": {
+            "type": "string"
+          },
+          "amountMinor": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "district",
+          "abortedAt",
+          "noShow",
+          "paymentId",
+          "reviewState",
+          "bookingId",
+          "providerId",
+          "clinicId",
+          "depositStatus",
+          "amountMinor"
+        ]
+      },
+      "NoteBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "SweepSafetyDto": {
+        "type": "object",
+        "properties": {
+          "retried": {
+            "type": "number"
+          },
+          "escalated": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "retried",
+          "escalated"
         ]
       },
       "LiveDto": {

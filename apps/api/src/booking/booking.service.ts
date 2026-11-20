@@ -13,9 +13,18 @@ import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
-import { BookingStatus, fromKiorlyStatus, isTerminal, nextStatus } from './booking-state';
+import { AddressService, VisitAddress } from '../address/address-public';
+import { addressForLog } from '../common/district';
+import { BookingStatus, fromKiorlyStatus, HomeState, isHomeEvent, isTerminal, nextHomeState, nextStatus } from './booking-state';
 
-export interface CreateIntentInput { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; channel?: 'MARKETPLACE' | 'CLINIC_LINK' | 'WHATSAPP'; bookingPageSlug?: string }
+export interface CreateIntentInput {
+  providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; channel?: 'MARKETPLACE' | 'CLINIC_LINK' | 'WHATSAPP'; bookingPageSlug?: string;
+  /** Rev 2.3 (KXMHV02/03): HOME visits carry the patient's address-book entry; the fee entry of `typeId` decides the location, this only guards mismatches. */
+  serviceLocation?: 'IN_CLINIC' | 'HOME'; addressId?: string; carePlanId?: string;
+}
+/** Home sub-state change delivered to listeners (family share, KXMHV07). Carries NO address. */
+export type HomeStatusKind = 'ASSIGNED' | 'EN_ROUTE' | 'ARRIVED' | 'FINISHED' | 'ABORTED_UNSAFE' | 'CONFIRMED';
+export type HomeListener = (b: BookingIntent, kind: HomeStatusKind) => Promise<void>;
 export interface ConfirmInput { marketplaceConsent: boolean; remindersConsent?: boolean; notes?: string }
 
 interface KiorlyEventCtx { type: string; aggregateId?: string; data: Record<string, any> }
@@ -24,13 +33,22 @@ interface KiorlyEventCtx { type: string; aggregateId?: string; data: Record<stri
 export class BookingService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('booking');
   private timer?: NodeJS.Timeout;
+  private homeListeners: HomeListener[] = [];
   constructor(
     private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly catalog: CatalogService, private readonly flags: FlagsService,
     private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService, private readonly markets: MarketService,
+    private readonly addresses: AddressService,
   ) {}
+
+  /** Other modules (family share) subscribe to home status changes without this module importing them. */
+  onHomeStatus(fn: HomeListener) { this.homeListeners.push(fn); }
+  private async emitHome(b: BookingIntent, kind: HomeStatusKind) {
+    for (const fn of this.homeListeners) await fn(b, kind).catch((e) => this.log.warn(`home listener failed for ${b.id}: ${(e as Error).message}`));
+  }
 
   onModuleInit() {
     this.outbox.register('pay.deposit_captured', (e) => this.onDepositCaptured(e.payload));
+    this.outbox.register('pay.review_resolved', (e) => this.onReviewResolved(e.payload)); // KXMPAY07 ops decision -> booking deposit status
     this.patients.registerExport('bookings', async (sub) => (await this.prisma.bookingIntent.findMany({ where: { sub } })).map((b) => ({ id: b.id, status: b.status, startsAt: b.startsAt, providerId: b.providerId, depositStatus: b.depositStatus })));
     this.patients.registerAnonymizer('bookings', async (sub) => {
       const h = createHash('sha256').update(sub).digest('hex').slice(0, 10);
@@ -62,6 +80,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const r = await this.prisma.bookingIntent.updateMany({ where: { id: b.id, status: b.status }, data: { ...patch, status: to, version: { increment: 1 }, ...(isTerminal(to) ? { terminalAt: new Date() } : {}) } });
     if (!r.count) return null;
     await this.ev(b.id, 'STATE', detail, b.status, to);
+    if (isTerminal(to) && b.serviceLocation === 'HOME') await this.addresses.scheduleMask(b.id); // KXMHV10: doorstep lines hidden 24 h after the visit
     return this.prisma.bookingIntent.findUniqueOrThrow({ where: { id: b.id } });
   }
 
@@ -86,6 +105,50 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       clinic: raw.clinic ? { nameEn: raw.clinic.nameEn, nameAr: raw.clinic.nameAr, addressEn: raw.clinic.addressEn, addressAr: raw.clinic.addressAr, phone: raw.clinic.phone, latitude: raw.clinic.latitude, longitude: raw.clinic.longitude } : null,
       cancellationPolicy: raw.provider?.cancellationPolicy ?? null,
       timeline, createdAt: b.createdAt,
+      serviceLocation: b.serviceLocation, careType: b.careType, visitDistrict: b.visitDistrict, feeMinor: b.feeMinor,
+      home: b.serviceLocation === 'HOME' ? await this.presentHome(b, p) : null,
+    };
+  }
+
+  /**
+   * Status timeline of a home visit WITHOUT any address/fee/payment data (shared by the patient view and the family share link):
+   * Confirmed → On the way → Arrived → Finished (KXMHV06), assignee (KXMHV05), estimate only if the provider shares it.
+   */
+  async homeProgress(b: BookingIntent, p?: Provider | null) {
+    p = p === undefined ? await this.provider(b) : p;
+    const evs = await this.prisma.bookingEvent.findMany({ where: { bookingId: b.id, kind: 'STATE' }, orderBy: { createdAt: 'asc' } });
+    const at = (to: string) => evs.find((e) => e.toStatus === to)?.createdAt ?? null;
+    const done = b.status === 'COMPLETED';
+    const arrived = b.homeState === 'ARRIVED' || b.status === 'CHECKED_IN' || done;
+    const trackingOn = await this.flags.isEnabled('kiorex.visit_tracking', { market: p?.market ?? 'EG' });
+    const aborted = b.homeState === 'ABORTED_UNSAFE';
+    const confirmed = ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(b.status) || evs.some((e) => e.toStatus === 'CONFIRMED');
+    const a: any = b.assignee ?? null;
+    return {
+      subState: b.homeState, trackingEnabled: trackingOn,
+      steps: [
+        { key: 'CONFIRMED', reached: confirmed, at: at('CONFIRMED') },
+        { key: 'ON_THE_WAY', reached: !aborted && (!!b.enRouteAt || arrived), at: b.enRouteAt },
+        { key: 'ARRIVED', reached: !aborted && arrived, at: b.arrivedAt ?? at('CHECKED_IN') },
+        { key: 'FINISHED', reached: !aborted && done, at: done ? b.terminalAt : null },
+      ],
+      eta: b.homeState === 'EN_ROUTE' && b.etaMinutes != null && trackingOn ? { minutes: b.etaMinutes, shared: true } : { minutes: null, shared: false },
+      assignee: a ? { displayName: a.displayName ?? null, photoUrl: a.photoUrl ?? null, badge: a.badge ?? null, profession: a.profession ?? null } : null,
+      assignmentPending: !!p?.assignsClinician && !a && !isTerminal(b.status),
+      aborted: aborted,
+    };
+  }
+
+  /** KXMHV04-06/09/10: fee, agency assignment, status timeline with home sub-states, safety info, masked address. */
+  private async presentHome(b: BookingIntent, p: Provider | null) {
+    const prog = await this.homeProgress(b, p);
+    const addr = await this.addresses.forBooking(b.id);
+    return {
+      district: b.visitDistrict, subState: prog.subState, steps: prog.steps, trackingEnabled: prog.trackingEnabled, eta: prog.eta, assignee: prog.assignee, assignmentPending: prog.assignmentPending,
+      fee: { visitFeeMinor: b.feeMinor, homeSurchargeMinor: b.homeSurchargeMinor, totalMinor: (b.feeMinor ?? 0) + b.homeSurchargeMinor, currency: b.currency, depositRequired: b.depositAmountMinor > 0 },
+      aborted: prog.aborted ? { abortedAt: b.abortedAt, noShow: false, depositUnderReview: b.depositStatus === 'HOLD_FOR_REVIEW' } : null,
+      address: addr ?? { district: b.visitDistrict, governorate: null, masked: true, maskedAt: null, address: null },
+      safety: { reportProblemSlaMinutes: Math.round(cfg().homeComplaintSlaMinutes), emergencyNumber: '123' },
     };
   }
 
@@ -98,20 +161,41 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     await this.flags.assertEnabled('kiorex.marketplace', { market: p.market });
     if (p.tenantId && (await this.flags.evaluate('clinic.kiorex_listing', { market: p.market, orgId: p.tenantId })).reason === 'OFF_ORG') throw forbidden('FEATURE_DISABLED', 'Listing paused', { key: 'clinic.kiorex_listing', scope: 'ORG' });
     if (p.status !== 'LIVE') throw conflict('LISTING_NOT_LIVE', 'Unverified or paused listings are not bookable');
+    // KXMDS01: physiotherapy / home nursing are separate launch categories (kiorex.category.*): new bookings need the category effective
+    const cat = await this.catalog.careTypeEnabled(p.careType as any, p.market);
+    if (!cat.enabled && cat.key) await this.flags.assertEnabled(cat.key, { market: p.market });
+    // The fee entry of the visit type decides where the visit happens; HOME needs kiorex.home_visits + an address from the address book (KXMHV02/03).
+    const fee = ((p.raw as any)?.provider?.fees ?? []).find((x: any) => x.appointmentTypeId === i.typeId);
+    const location = (fee ? this.catalog.feeLocation(p, fee) : i.serviceLocation ?? 'IN_CLINIC') as 'IN_CLINIC' | 'HOME';
+    if (i.serviceLocation && i.serviceLocation !== location) throw badRequest('SERVICE_LOCATION_MISMATCH', `This visit type is ${location}`, { serviceLocation: location });
+    const home = location === 'HOME';
+    let visit: VisitAddress | undefined;
+    let addressRow: Awaited<ReturnType<AddressService['resolveForBooking']>>['row'] | undefined;
+    if (home) {
+      await this.flags.assertEnabled('kiorex.home_visits', { market: p.market });
+      if (!this.catalog.isHomeEnabled(p)) throw conflict('HOME_NOT_OFFERED', 'This provider does not offer home visits');
+      if (!i.addressId) throw badRequest('ADDRESS_REQUIRED', 'Home visits need an address from your address book (addressId)');
+      const r = await this.addresses.resolveForBooking(sub, i.addressId);
+      visit = r.visit; addressRow = r.row;
+      if (!this.catalog.coversDistrict(p, r.row.district)) throw await this.catalog.outOfCoverage(p, r.row.district);
+    }
     if (i.dependantId) await this.patients.assertGuardian(sub, i.dependantId);
     if (this.kiorly.isCircuitOpen(p.clinicId)) throw unavailable('CLINIC_SYSTEM_BUSY', 'Clinic system busy; new holds are paused for this clinic', { retryable: true });
     const start = new Date(i.startsAt);
     if (Number.isNaN(start.getTime()) || start <= new Date()) throw badRequest('INVALID_START', 'startsAt must be a future time');
-    const dep = (await this.flags.isEnabled('kiorex.pay_deposits', { market: p.market })) ? this.catalog.depositFor(p, i.typeId) : { required: false, amountMinor: 0 };
+    const dep = (await this.flags.isEnabled('kiorex.pay_deposits', { market: p.market })) ? this.catalog.depositFor(p, i.typeId, { home }) : { required: false, amountMinor: 0 };
     const id = newId('kx_bk');
     const end = i.endsAt ? new Date(i.endsAt) : new Date(start.getTime() + 30 * 60_000);
+    const surcharge = home && fee?.homeSurcharge ? Math.round(Number(fee.homeSurcharge) * 100) : 0; // BR56: a separate invoice line, outside S and C
     let b = await this.prisma.bookingIntent.create({
-      data: { id, sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, startsAt: start, endsAt: end, status: 'INTENT', channel: i.channel ?? 'MARKETPLACE', currency: p.currency, feeMinor: this.catalog.feeFor(p, i.typeId), depositStatus: dep.required ? 'REQUIRED' : 'NONE', depositAmountMinor: dep.amountMinor, holdExternalRef: `${id}:hold`, patientSnapshot: i.bookingPageSlug ? ({ bookingPageSlug: i.bookingPageSlug } as any) : undefined },
+      data: { id, sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, startsAt: start, endsAt: end, status: 'INTENT', channel: i.channel ?? 'MARKETPLACE', currency: p.currency, feeMinor: this.catalog.feeFor(p, i.typeId), depositStatus: dep.required ? 'REQUIRED' : 'NONE', depositAmountMinor: dep.amountMinor, holdExternalRef: `${id}:hold`, patientSnapshot: i.bookingPageSlug ? ({ bookingPageSlug: i.bookingPageSlug } as any) : undefined,
+        serviceLocation: location, careType: p.careType, visitDistrict: addressRow?.district, homeSurchargeMinor: surcharge, carePlanId: i.carePlanId },
     });
-    await this.ev(id, 'INTENT', { providerId: p.id, typeId: i.typeId });
-    await this.catalog.track('hold_created', { providerId: p.id, specialtyCode: p.specialty ?? undefined });
+    if (home && addressRow) await this.addresses.snapshot(id, sub, addressRow); // KXMHV03: the address lives under the patient + this encrypted snapshot, never on the provider projection
+    await this.ev(id, 'INTENT', { providerId: p.id, typeId: i.typeId, serviceLocation: location, ...(home ? { address: addressForLog({ district: addressRow?.district, governorate: addressRow?.governorate }) } : {}), ...((dep as any).policy ? { depositPolicy: (dep as any).policy } : {}) });
+    await this.catalog.track('hold_created', { providerId: p.id, specialtyCode: p.specialty ?? undefined, careType: p.careType, serviceLocation: location, district: addressRow?.district });
     try {
-      const { data } = await this.kiorly.createHold({ clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, startsAt: start.toISOString(), endsAt: end.toISOString(), externalRef: b.holdExternalRef! });
+      const { data } = await this.kiorly.createHold({ clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, startsAt: start.toISOString(), endsAt: end.toISOString(), externalRef: b.holdExternalRef!, ...(visit ? { visitAddress: visit } : {}) });
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /holds', holdId: data.id });
       const exp = data.expiresAt ? new Date(data.expiresAt) : new Date(Date.now() + cfg().holdMinutes * 60_000);
       b = (await this.move(b, 'HELD', { holdId: data.id, holdExpiresAt: exp }, { holdId: data.id })) ?? b;
@@ -119,6 +203,11 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       if (e instanceof KiorlyHttpError && e.status === 409) {
         await this.move(b, 'EXPIRED', { failureCode: 'SLOT_TAKEN' }, { alternatives: e.body?.alternatives });
         throw new ApiError(409, 'SLOT_TAKEN', 'Slot taken', { bookingId: id, alternatives: e.body?.alternatives ?? e.body?.message?.alternatives ?? [] });
+      }
+      if (e instanceof KiorlyHttpError && e.status === 422 && (e.code === 'OUT_OF_COVERAGE' || e.body?.code === 'OUT_OF_COVERAGE')) {
+        await this.move(b, 'EXPIRED', { failureCode: 'OUT_OF_COVERAGE' }, { district: addressRow?.district });
+        await this.catalog.track('home_out_of_coverage', { providerId: p.id, careType: p.careType, serviceLocation: 'HOME', district: addressRow?.district });
+        throw await this.catalog.outOfCoverage(p, addressRow?.district, e.body?.alternatives);
       }
       if (e instanceof KiorlyTransientError) {
         await this.move(b, 'EXPIRED', { failureCode: 'CLINIC_SYSTEM_BUSY' }, { error: e.kind });
@@ -163,6 +252,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,
       patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn, gender: identity.gender, nationalId: identity.nationalId, email: identity.email },
       notes: c.notes, marketplaceConsentGranted: true, remindersConsentGranted: !!c.remindersConsent, attribution: { source: b.channel === 'WHATSAPP' ? 'kiorex_whatsapp' : 'kiorex' },
+      ...(b.serviceLocation === 'HOME' ? { serviceLocation: 'HOME' } : {}), // the address itself is carried from the hold (KX-09 §03/§08): not re-sent
       // KXM-BK-11: Kiorly's marketplace API accepts MARKETPLACE|CLINIC_LINK today; KIOREX_WHATSAPP is sent only once Kiorly accepts it (KIORLY_ACCEPTS_WHATSAPP_CHANNEL)
       channel: b.channel === 'CLINIC_LINK' ? 'CLINIC_LINK' : b.channel === 'WHATSAPP' && cfg().kiorlyAcceptsWhatsappChannel ? 'KIOREX_WHATSAPP' : 'MARKETPLACE', ...(b.channel === 'CLINIC_LINK' ? { bookingPageSlug: (b.patientSnapshot as any)?.bookingPageSlug } : {}),
     };
@@ -184,6 +274,14 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
         await this.move(cur, 'EXPIRED', { failureCode: 'SLOT_TAKEN' }, { alternatives: e.body?.alternatives });
         await this.catalog.track('booking_failed', { code: 'SLOT_TAKEN' });
         throw new ApiError(409, 'SLOT_TAKEN', 'Slot taken', { bookingId: b.id, alternatives: e.body?.alternatives ?? [] });
+      }
+      if (e.status === 422 && (e.code === 'OUT_OF_COVERAGE' || e.body?.code === 'OUT_OF_COVERAGE')) {
+        // zone changed after the hold (KX-09 §08): release the hold and show in-zone alternatives
+        if (cur.holdId) await this.kiorly.releaseHold(cur.clinicId, cur.holdId).catch(() => undefined);
+        await this.move(cur, 'EXPIRED', { failureCode: 'OUT_OF_COVERAGE' }, { district: cur.visitDistrict });
+        await this.catalog.track('home_out_of_coverage', { providerId: cur.providerId, careType: cur.careType, serviceLocation: 'HOME', district: cur.visitDistrict });
+        const p = await this.provider(cur);
+        throw p ? await this.catalog.outOfCoverage(p, cur.visitDistrict, e.body?.alternatives) : new ApiError(422, 'OUT_OF_COVERAGE', 'Out of coverage');
       }
       if (e.status === 409 && e.code === 'PATIENT_IDENTITY_CONFLICT') {
         await this.patients.recordIdentityConflict(b.sub, b.clinicId, 'PATIENT_IDENTITY_CONFLICT'); // never auto-merge (AC-07)
@@ -238,7 +336,8 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       if (!p) return [];
       const from = new Date();
       this.catalog.invalidateSlots(p.clinicianId);
-      return (await this.catalog.slots(p, b.typeId, from, new Date(from.getTime() + 7 * 86400_000))).slice(0, 3);
+      const home = b.serviceLocation === 'HOME';
+      return (await this.catalog.slots(p, b.typeId, from, new Date(from.getTime() + 7 * 86400_000), home ? { serviceLocation: 'HOME', district: b.visitDistrict ?? undefined } : {})).slice(0, 3);
     } catch { return []; }
   }
 
@@ -308,6 +407,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     if (!b && apptId) b = await this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: apptId } });
     if (!b) return 'UNKNOWN_BOOKING';
     const meta = { ...(ev.data.metadata ?? {}), ...ev.data };
+    if (isHomeEvent(ev.type)) return this.applyHomeEvent(b, ev.type, meta);
     if (ev.type === 'RESCHEDULED' || ev.type === 'APPOINTMENT_RESCHEDULED') {
       if (b.status !== 'CONFIRMED' && b.status !== 'PENDING_CLINIC') return 'IGNORED';
       const startsAt = meta.startsAt ? new Date(meta.startsAt) : b.startsAt;
@@ -323,6 +423,42 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     return 'APPLIED';
   }
 
+  /**
+   * Rev 2.3 home events (KX-03 §05): HOME_VISIT_ASSIGNED / _EN_ROUTE move the home sub-state, HOME_VISIT_ABORTED_UNSAFE cancels the booking as
+   * UNSAFE (never a no-show, no patient penalty) and parks the deposit for ops review (KXMPAY07). Sub-states only move forward; stale or
+   * out-of-order deliveries are ignored (the webhook layer already de-duplicates on eventId).
+   */
+  private async applyHomeEvent(b: BookingIntent, type: string, meta: Record<string, any>): Promise<'APPLIED' | 'IGNORED'> {
+    if (b.serviceLocation !== 'HOME') { await this.ev(b.id, 'WEBHOOK', { type, ignored: true, reason: 'NOT_A_HOME_BOOKING' }); return 'IGNORED'; }
+    const state = nextHomeState(b.homeState, b.status, type);
+    if (!state) { await this.ev(b.id, 'WEBHOOK', { type, ignored: true, reason: 'STALE_OR_TERMINAL' }); return 'IGNORED'; }
+    if (state === 'ABORTED_UNSAFE') {
+      await this.applyStatus(b, 'CANCELLED', type, meta);
+      return 'APPLIED';
+    }
+    const p = await this.provider(b);
+    if (state === 'EN_ROUTE' && !(await this.flags.isEnabled('kiorex.visit_tracking', { market: p?.market ?? 'EG' }))) {
+      await this.ev(b.id, 'HOME', { state, suppressed: 'kiorex.visit_tracking OFF' }); // timeline without on-the-way updates
+      return 'IGNORED';
+    }
+    let upd: BookingIntent;
+    if (state === 'ASSIGNED') {
+      const a = meta.assignee ?? {};
+      // whitelist: the contract forbids phone/email and carries no address; never persist anything else
+      const assignee = { displayName: a.displayName ?? null, photoUrl: a.photoUrl ?? null, badge: a.badge ?? null, profession: a.profession ?? null, clinicianId: a.clinicianId ?? null };
+      upd = await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { assignee: assignee as any, homeState: 'ASSIGNED', version: { increment: 1 } } });
+    } else {
+      upd = await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { homeState: 'EN_ROUTE', enRouteAt: meta.enRouteAt ? new Date(meta.enRouteAt) : new Date(), etaMinutes: typeof meta.etaMinutes === 'number' ? Math.max(0, Math.round(meta.etaMinutes)) : null, version: { increment: 1 } } });
+    }
+    await this.ev(b.id, 'HOME', { state });
+    const kind = state === 'ASSIGNED' ? 'HOME_VISIT_ASSIGNED' : 'HOME_VISIT_EN_ROUTE';
+    try {
+      await this.engagement.notify(b.sub, { kind, bookingId: b.id, params: { ...this.doctorParams(p, upd), assignee: (upd.assignee as any)?.displayName ?? '', minutes: upd.etaMinutes ?? '' }, dedupeKey: `${kind.toLowerCase()}:${b.id}` });
+    } catch (e) { this.log.warn(`home notification ${kind} for ${b.id} failed: ${(e as Error).message}`); }
+    await this.emitHome(upd, state);
+    return 'APPLIED';
+  }
+
   /** Transition + side effects (used by events and reconciliation). */
   private async applyStatus(b: BookingIntent, to: BookingStatus, via: string, meta: Record<string, any>) {
     let cur = await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id: b.id } });
@@ -331,6 +467,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     if (via === 'RECONCILE') { const n = nextStatus(cur.status as BookingStatus, eventType); if (!n) return; to = n; }
     const patch: Record<string, unknown> = {};
     if (to === 'CANCELLED') { patch.cancelledBy = meta.cancelledBy ?? (eventType === 'CANCELLED_BY_PATIENT' ? 'PATIENT' : 'CLINIC'); patch.cancellationReason = meta.cancellationReason ?? null; patch.depositRefundable = typeof meta.depositRefundable === 'boolean' ? meta.depositRefundable : null; }
+    if (eventType === 'HOME_VISIT_ABORTED_UNSAFE') { Object.assign(patch, { cancelledBy: 'SAFETY', cancellationReason: 'UNSAFE_ABORT', depositRefundable: null, homeState: 'ABORTED_UNSAFE', abortedAt: meta.abortedAt ? new Date(meta.abortedAt) : new Date() }); }
     const moved = await this.move(cur, to, patch, { via: eventType });
     if (!moved) return;
     await this.sideEffects(moved, eventType, meta);
@@ -366,15 +503,32 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
           await this.settleDepositOnCancel(b, 'CANCELLED_BY_CLINIC', {});
           await notify('BOOKING_EXPIRED', 'expired');
           break;
-        case 'CHECKED_IN': await this.catalog.track('visit_checked_in', { providerId: b.providerId }); break;
+        case 'CHECKED_IN':
+          await this.catalog.track('visit_checked_in', this.analyticsDims(b));
+          if (b.serviceLocation === 'HOME') { // home: Kiorly attributes attendance by the arrival geostamp (KX-09 §06); here it is the "Arrived" step
+            const upd = await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { homeState: 'ARRIVED', arrivedAt: new Date() } });
+            await this.ev(b.id, 'HOME', { state: 'ARRIVED' });
+            await this.emitHome(upd, 'ARRIVED');
+          }
+          break;
         case 'COMPLETED': {
-          await this.catalog.track('visit_attended', { providerId: b.providerId });
+          await this.catalog.track('visit_attended', this.analyticsDims(b));
           if (b.depositStatus === 'PAID') { await this.pay.releaseForBooking(b.id, 'COMPLETED'); await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: 'RELEASED' } }); }
-          await this.engagement.scheduleReviewInvite({ id: b.id, sub: b.sub }, params);
+          // KXMHV08: a care plan asks for a review after the FIRST completed visit and at plan end, not after every visit
+          const skipInvite = !!b.carePlanId && (await this.prisma.bookingIntent.count({ where: { carePlanId: b.carePlanId, status: 'COMPLETED' } })) > 1;
+          if (!skipInvite) await this.engagement.scheduleReviewInvite({ id: b.id, sub: b.sub }, params);
+          if (b.serviceLocation === 'HOME') await this.emitHome(b, 'FINISHED');
           break;
         }
+        case 'HOME_VISIT_ABORTED_UNSAFE': // BR61 / KXMPAY07: not a no-show (no counter, no forfeiture); the deposit waits for an ops decision
+          await this.engagement.cancelBookingMessages(b.id);
+          await this.holdDepositForReview(b);
+          await this.catalog.track('aborted_unsafe', this.analyticsDims(b));
+          await notify('HOME_VISIT_ABORTED', 'aborted-unsafe');
+          await this.emitHome(b, 'ABORTED_UNSAFE');
+          break;
         case 'NO_SHOW':
-          await this.catalog.track('no_show', { providerId: b.providerId });
+          await this.catalog.track('no_show', this.analyticsDims(b));
           await this.patients.incrementNoShow(b.sub);
           if (b.depositStatus === 'PAID') { await this.pay.releaseForBooking(b.id, 'FORFEITED'); await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: 'FORFEITED' } }); }
           break;
@@ -383,6 +537,27 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       this.log.error(`side effect ${type} for ${b.id} failed: ${(e as Error).message}`);
       await this.ev(b.id, 'WEBHOOK', { sideEffectError: (e as Error).message, type });
     }
+  }
+
+  /** Analytics dimensions (Rev 2.3): care type, visit location and DISTRICT only; never an address. */
+  private analyticsDims(b: BookingIntent) { return { providerId: b.providerId, careType: b.careType, serviceLocation: b.serviceLocation, district: b.visitDistrict }; }
+
+  /** KXMPAY07: park the captured deposit in the review hold; an unpaid deposit intent is simply cancelled. */
+  private async holdDepositForReview(b: BookingIntent) {
+    if (b.depositStatus === 'NONE') return;
+    const p = await this.pay.holdForReview(b.id, 'UNSAFE_ABORT');
+    await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: p?.reviewState === 'HELD_FOR_REVIEW' ? 'HOLD_FOR_REVIEW' : 'NONE' } });
+    await this.ev(b.id, 'PAYMENT', { holdForReview: !!p });
+  }
+
+  /** Ops decided on a held deposit (release to provider / refund to patient). */
+  private async onReviewResolved(p: { bookingId?: string; outcome: 'RELEASED' | 'REFUNDED' }) {
+    if (!p.bookingId) return;
+    const b = await this.prisma.bookingIntent.findUnique({ where: { id: p.bookingId } });
+    if (!b) return;
+    await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: p.outcome === 'REFUNDED' ? 'REFUNDED' : 'RELEASED' } });
+    await this.ev(b.id, 'PAYMENT', { reviewResolved: p.outcome });
+    if (p.outcome === 'REFUNDED') await this.engagement.notify(b.sub, { kind: 'DEPOSIT_REFUNDED', bookingId: b.id, dedupeKey: `deposit-refunded-review:${b.id}` }).catch(() => undefined);
   }
 
   /** PAY-02: refund automatically when depositRefundable=true; clinic/system cancellations always refund. Absent flag → ask Kiorly, else ops review (NEEDS_HUMAN policy). */
@@ -408,6 +583,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     if (!p.bookingId) return;
     const b = await this.prisma.bookingIntent.findUnique({ where: { id: p.bookingId } });
     if (!b) return;
+    if (b.depositStatus === 'HOLD_FOR_REVIEW') return; // already parked for ops review (KXMPAY07)
     if (['CANCELLED', 'EXPIRED', 'INTENT'].includes(b.status)) {
       await this.pay.refundForBooking(b.id, 'CAPTURED_FOR_INACTIVE_BOOKING');
       await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: 'REFUNDED' } });
@@ -468,6 +644,33 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     return { id: b.id, status: b.status, providerId: b.providerId, clinicId: b.clinicId, clinicianId: b.clinicianId, kiorlyAppointmentId: b.kiorlyAppointmentId, completedAt: b.terminalAt };
   }
   async byId(id: string) { return this.prisma.bookingIntent.findUnique({ where: { id } }); }
+  async byAppointmentId(appointmentId: string) { return this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: appointmentId } }); }
+  async ownedBooking(sub: string, id: string) { return this.owned(sub, id); }
+  async providerOf(b: BookingIntent) { return this.provider(b); }
+
+  /**
+   * KXMHV08 (P3): a visit of a care plan confirmed by Kiorly (CARE_PLAN_CONFIRMED) becomes an ordinary CONFIRMED booking carrying the plan id,
+   * so every later Kiorly event (HOME_VISIT_*, CHECKED_IN, COMPLETED ...) reaches it through the normal pipeline. Idempotent per appointment.
+   */
+  async createConfirmedVisit(i: { sub: string; planId: string; providerId: string; typeId: string; appointmentId: string; startsAt: Date; endsAt: Date; district: string | null; addressId?: string | null }): Promise<BookingIntent> {
+    const dup = await this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: i.appointmentId } });
+    if (dup) return dup;
+    const p = await this.prisma.provider.findUniqueOrThrow({ where: { id: i.providerId } });
+    const fee = ((p.raw as any)?.provider?.fees ?? []).find((x: any) => x.appointmentTypeId === i.typeId);
+    const id = newId('kx_bk');
+    const b = await this.prisma.bookingIntent.create({ data: { id, sub: i.sub, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, startsAt: i.startsAt, endsAt: i.endsAt, status: 'CONFIRMED', channel: 'MARKETPLACE', currency: p.currency, feeMinor: this.catalog.feeFor(p, i.typeId), depositStatus: 'NONE', kiorlyAppointmentId: i.appointmentId, serviceLocation: 'HOME', careType: p.careType, visitDistrict: i.district, homeSurchargeMinor: fee?.homeSurcharge ? Math.round(Number(fee.homeSurcharge) * 100) : 0, carePlanId: i.planId } });
+    await this.ev(id, 'STATE', { carePlan: i.planId }, 'INTENT', 'CONFIRMED');
+    if (i.addressId) { const a = await this.addresses.rowFor(i.sub, i.addressId); if (a) await this.addresses.snapshot(id, i.sub, a); }
+    await this.engagement.scheduleBookingReminders({ id: b.id, sub: b.sub, startsAt: b.startsAt }, this.doctorParams(p, b)).catch(() => undefined);
+    return b;
+  }
+
+  /** KXMOP12: unsafe-aborted home visits (district only) with the state of their deposit. */
+  async opsUnsafeAborts(limit = 100) {
+    const rows = await this.prisma.bookingIntent.findMany({ where: { homeState: 'ABORTED_UNSAFE' }, orderBy: { abortedAt: 'desc' }, take: limit });
+    const pays = await this.prisma.paymentIntent.findMany({ where: { bookingId: { in: rows.map((r) => r.id) } } });
+    return rows.map((b) => { const pay = pays.find((p) => p.bookingId === b.id); return { bookingId: b.id, providerId: b.providerId, clinicId: b.clinicId, district: b.visitDistrict, abortedAt: b.abortedAt, noShow: false, depositStatus: b.depositStatus, paymentId: pay?.id ?? null, reviewState: pay?.reviewState ?? null, amountMinor: pay ? pay.amountMinor - pay.refundedMinor : 0 }; });
+  }
 
   // ───────────── ops (KXM-OP-02/06) ─────────────
 
@@ -496,6 +699,11 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       this.prisma.analyticsEvent.count({ where: { name: 'visit_attended', createdAt: { gte: since } } }),
       this.prisma.analyticsEvent.count({ where: { name: 'no_show', createdAt: { gte: since } } }),
     ]);
-    return { windowDays: days, listedDoctors: listed, liveDoctors: live, bookingsByStatus: byStatus.map((s) => ({ status: s.status, count: s._count })), searchToBook: searches ? booked / searches : null, searches, confirmedBookings: booked, attended, noShow, noShowRate: attended + noShow ? noShow / (attended + noShow) : null, slotsPerDay: 'TODO: needs Kiorly slot count API (not in marketplace contract)' };
+    const ev = await this.prisma.analyticsEvent.groupBy({ by: ['name', 'careType', 'serviceLocation'], _count: true, where: { createdAt: { gte: since }, name: { in: ['results_viewed', 'booking_confirmed', 'visit_attended', 'no_show', 'aborted_unsafe', 'home_visit_safety_alert'] } } });
+    const byCareType = ev.map((e) => ({ name: e.name, careType: e.careType, serviceLocation: e.serviceLocation, count: e._count }));
+    const homeEnabledByDistrict = await this.catalog.homeDistricts();
+    const alerts = await this.prisma.safetyAlert.groupBy({ by: ['kind'], _count: true, where: { raisedAt: { gte: since } } });
+    const safetyAlerts = { total: alerts.reduce((s, a) => s + a._count, 0), byKind: Object.fromEntries(alerts.map((a) => [a.kind, a._count])), unsafeAborts: await this.prisma.bookingIntent.count({ where: { homeState: 'ABORTED_UNSAFE', abortedAt: { gte: since } } }) };
+    return { byCareType, homeEnabledByDistrict, safetyAlerts, windowDays: days, listedDoctors: listed, liveDoctors: live, bookingsByStatus: byStatus.map((s) => ({ status: s.status, count: s._count })), searchToBook: searches ? booked / searches : null, searches, confirmedBookings: booked, attended, noShow, noShowRate: attended + noShow ? noShow / (attended + noShow) : null, slotsPerDay: 'TODO: needs Kiorly slot count API (not in marketplace contract)' };
   }
 }

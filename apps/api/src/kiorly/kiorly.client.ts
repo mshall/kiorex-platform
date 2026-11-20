@@ -15,6 +15,8 @@ export class KiorlyTransientError extends Error {
   }
 }
 
+export interface VisitAddressPayload { district: string; line1?: string; building?: string; floor?: string; flat?: string; landmark?: string; lat?: number; lng?: number }
+
 interface Req { method: string; path: string; query?: Record<string, string | number | undefined>; body?: unknown; idempotencyKey?: string; clinicId?: string }
 
 const FAIL_THRESHOLD = 5;
@@ -83,10 +85,12 @@ export class KiorlyClient {
   listProviders(q: { updatedSince?: string; page?: number; pageSize?: number }) {
     return this.request<{ items: any[]; page: number; pageSize: number; total: number }>({ method: 'GET', path: '/providers', query: q });
   }
-  slots(clinicId: string, q: { clinicianId: string; typeId: string; from: string; to: string }) {
+  /** v2.3 (KX-09 §03): `serviceLocation=HOME&district=<code>[&lat&lng]` for home visits; 422 OUT_OF_COVERAGE when the district is not covered. */
+  slots(clinicId: string, q: { clinicianId: string; typeId: string; from: string; to: string; serviceLocation?: string; district?: string; lat?: number; lng?: number }) {
     return this.request<any>({ method: 'GET', path: `/clinics/${encodeURIComponent(clinicId)}/slots`, query: q, clinicId });
   }
-  createHold(body: { clinicId: string; clinicianId: string; typeId: string; startsAt: string; endsAt?: string; externalRef: string }) {
+  /** `visitAddress` is mandatory for HOME visit types (KX-09 §03). It is sent here and nowhere else; never logged. */
+  createHold(body: { clinicId: string; clinicianId: string; typeId: string; startsAt: string; endsAt?: string; externalRef: string; visitAddress?: VisitAddressPayload }) {
     return this.request<any>({ method: 'POST', path: '/holds', body, clinicId: body.clinicId });
   }
   releaseHold(clinicId: string, holdId: string) {
@@ -100,6 +104,10 @@ export class KiorlyClient {
   }
   cancelBooking(ref: string, reason: string | undefined, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/cancel`, body: { reason }, clinicId });
+  }
+  /** P3 draft (kiorex-contracts 1.5.0): POST /marketplace/v1/care-plan-requests, idempotent on requestRef. */
+  createCarePlanRequest(body: Record<string, unknown> & { clinicId: string; requestRef: string }) {
+    return this.request<any>({ method: 'POST', path: '/care-plan-requests', body, clinicId: body.clinicId });
   }
   rescheduleBooking(ref: string, body: { startsAt: string; endsAt?: string; holdId?: string }, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/reschedule`, body, clinicId });

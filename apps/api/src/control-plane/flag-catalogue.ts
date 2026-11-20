@@ -4,7 +4,8 @@
  */
 export type FlagClass = 'MODULE' | 'COMMERCIAL' | 'INTEGRATION' | 'AI' | 'LAUNCH_LOCKED';
 export type FlagScope = 'GLOBAL' | 'MARKET' | 'ORG';
-export type FlagProduct = 'kiorly-clinic' | 'kiorex' | 'kiorex-account' | 'kiorly-pharmacy' | 'kiorly-lab' | 'all';
+/** `kiorly-nurse` keys (KX-23) are catalogue entries of the NURSE edition; Nurse runs inside the Clinic runtime, so they are SERVED in the `kiorly-clinic` snapshot (kiorex-contracts 1.5.0 CHANGELOG, Assumptions). */
+export type FlagProduct = 'kiorly-clinic' | 'kiorly-nurse' | 'kiorex' | 'kiorex-account' | 'kiorly-pharmacy' | 'kiorly-lab' | 'all';
 
 export interface FlagDef {
   key: string;
@@ -18,6 +19,10 @@ export interface FlagDef {
   gateHint?: string;
   /** Money-path flags: global/market OFF needs two-person approval (KXM-OP-10). */
   moneyPath?: boolean;
+  /** Gate ids that must ALL have human-recorded evidence before a launch-locked flag is effective (e.g. GHV1 + GHV2). Labels only: no gate is ever recorded by code. */
+  gateIds?: string[];
+  /** NURSE for nurse.* keys (metadata only; the evaluator is unchanged). */
+  edition?: 'NURSE';
 }
 
 const GMO: FlagScope[] = ['GLOBAL', 'MARKET', 'ORG'];
@@ -27,6 +32,8 @@ const g = (key: string, product: FlagProduct, cls: FlagClass, scopes: FlagScope[
 });
 
 export const SPECIALTY_TEMPLATE_CODES = ['dermatology', 'paediatrics', 'obgyn', 'orthopaedics', 'ent', 'internal_medicine', 'cardiology', 'psychiatry', 'ophthalmology', 'urology', 'dentistry'];
+/** KX-05 §07: the physio template is launch-locked until GPR2 (specialty board incl. a physiotherapist reviewer). */
+export const PHYSIO_TEMPLATE_CODE = 'physio';
 
 export const FLAG_CATALOGUE: FlagDef[] = [
   // ── Kiorly Clinic
@@ -50,6 +57,12 @@ export const FLAG_CATALOGUE: FlagDef[] = [
   ...SPECIALTY_TEMPLATE_CODES.map((c) =>
     g(`clinic.specialty_templates.${c}`, 'kiorly-clinic', 'LAUNCH_LOCKED', GM, [], 'Template hidden from new encounters', { launchLocked: true, gateHint: 'Specialty board sign-off (NH010)' }),
   ),
+  g(`clinic.specialty_templates.${PHYSIO_TEMPLATE_CODE}`, 'kiorly-clinic', 'LAUNCH_LOCKED', GM, [], 'Template hidden from new encounters', { launchLocked: true, gateIds: ['GPR2'], gateHint: 'Specialty board incl. a physiotherapist reviewer (GPR2)' }),
+  // ── Rev 2.3 (KX-05 §06-08, KX-23 §09): professions and home visits, shared by the Clinic and Nurse editions
+  g('clinic.profession.physiotherapy', 'kiorly-clinic', 'MODULE', GM, [], 'No new physio sign-ups; existing physios keep working'),
+  g('clinic.home_visits', 'kiorly-clinic', 'LAUNCH_LOCKED', GMO, [], 'Home visit types hidden for new bookings; booked visits honoured', { launchLocked: true, gateIds: ['GHV1', 'GHV2'], gateHint: 'GHV1 counsel memo + GHV2 CMO home-visit safety protocol' }),
+  g('clinic.home_route_view', 'kiorly-clinic', 'MODULE', GMO, ['clinic.home_visits'], 'List view only'),
+  g('clinic.home_dispatch', 'kiorly-clinic', 'MODULE', GMO, ['clinic.home_visits'], 'Manual assignment'),
   g('clinic.referral_rewards', 'kiorly-clinic', 'COMMERCIAL', GM, [], 'No new codes; earned credits honoured'),
   g('clinic.field_rep_onboarding', 'kiorly-clinic', 'COMMERCIAL', GM, [], 'Rep codes rejected at signup; earned commissions honoured'),
   // ── Kiorex
@@ -64,6 +77,18 @@ export const FLAG_CATALOGUE: FlagDef[] = [
   g('kiorex.lab_bookings', 'kiorex', 'LAUNCH_LOCKED', GM, ['lab.kiorex_bookings'], 'Lab tab hidden; booked collections honoured', { launchLocked: true, gateHint: 'Counsel memo', moneyPath: true }),
   g('kiorex.telemedicine', 'kiorex', 'LAUNCH_LOCKED', GM, [], 'Video option hidden', { launchLocked: true, gateHint: 'Clinical governance sign-off' }),
   g('kiorex.ai_navigation', 'kiorex', 'LAUNCH_LOCKED', GM, [], 'Plain specialty search', { launchLocked: true, gateHint: 'Clinical evaluation (KX11)' }),
+  g('kiorex.home_visits', 'kiorex', 'LAUNCH_LOCKED', GM, ['clinic.home_visits'], 'Home filter hidden; booked home visits honoured', { launchLocked: true, gateIds: ['GHV1', 'GHV2'], gateHint: 'GHV1 counsel memo + GHV2 CMO safety protocol; >=50 home-enabled providers per launch cluster; safety console live', moneyPath: true }),
+  g('kiorex.category.physiotherapy', 'kiorex', 'LAUNCH_LOCKED', GM, [], 'Physio providers not shown', { launchLocked: true, gateIds: ['GPR1'], gateHint: 'GPR1 (physiotherapy category)' }),
+  g('kiorex.category.nursing', 'kiorex', 'MODULE', GM, ['kiorex.home_visits', 'nurse.edition'], 'Home nursing not shown'),
+  g('kiorex.visit_tracking', 'kiorex', 'MODULE', GM, ['kiorex.home_visits'], 'Status timeline without on-the-way updates'),
+  // ── Kiorly Nurse (edition of Kiorly Clinic, KX-23 / ADR-031): served in the kiorly-clinic snapshot
+  g('nurse.edition', 'kiorly-nurse', 'MODULE', GM, [], 'No new Nurse sign-ups; existing tenants read-only with export', { edition: 'NURSE' }),
+  g('nurse.individual_tenants', 'kiorly-nurse', 'COMMERCIAL', GM, ['nurse.edition'], 'Solo plans hidden at sign-up; existing solos keep working', { edition: 'NURSE' }),
+  g('nurse.care_plans', 'kiorly-nurse', 'LAUNCH_LOCKED', GMO, [], 'Single visits only; active plans complete', { launchLocked: true, gateIds: ['GKN1'], gateHint: 'GKN1 CMO + nursing advisor sign-off', edition: 'NURSE' }),
+  g('nurse.mar', 'kiorly-nurse', 'LAUNCH_LOCKED', GMO, [], 'Medication recorded as free text in the visit record', { launchLocked: true, gateIds: ['GKN1'], gateHint: 'GKN1 CMO + nursing advisor sign-off', edition: 'NURSE' }),
+  g('nurse.private_duty_shifts', 'kiorly-nurse', 'MODULE', GMO, ['nurse.edition'], 'Shift booking hidden', { edition: 'NURSE' }),
+  g('nurse.family_updates', 'kiorly-nurse', 'INTEGRATION', GMO, ['whatsapp_reminders'], 'No family messages', { edition: 'NURSE' }),
+  g('nurse.individual_kiorex_listing', 'kiorly-nurse', 'LAUNCH_LOCKED', GM, ['kiorex.home_visits'], 'Solo nurses not listed on Kiorex', { launchLocked: true, gateIds: ['GKN2'], gateHint: 'GKN2 counsel memo on independent home nursing (Q7)', edition: 'NURSE' }),
   // ── Kiorex Account
   g('account.passkeys', 'kiorex-account', 'MODULE', GM, [], 'OTP only'),
   g('account.provider_sso', 'kiorex-account', 'MODULE', GMO, [], 'Providers use product login'),

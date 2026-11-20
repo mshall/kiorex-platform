@@ -195,6 +195,8 @@ export class RecordsService implements OnModuleInit {
   static redactEnvelope(env: any) {
     const d = env?.data;
     if (!d) return env;
+    // Rev 2.3: addresses, coordinates and phones never reach the receipt store (the contract schemas forbid them; this is defence in depth)
+    if (/^(HOME_VISIT_|SAFETY_ALERT_|CARE_PLAN_)/.test(env.type)) return { ...env, data: Object.fromEntries(Object.entries(d).filter(([k]) => !/^(visitAddress|address|line1|lat|lng|latitude|longitude|geostamp|phone|mobile|email)$/i.test(k))) };
     if (env.type === 'VISIT_SUMMARY_SHARED') return { ...env, data: { ...d, summary: d.summary ? { encounterId: d.summary.encounterId, clinicId: d.summary.clinicId, signedAt: d.summary.signedAt, soap: '[REDACTED]' } : undefined } };
     if (env.type === 'PRESCRIPTION_SHARED') return { ...env, data: { ...d, items: d.items ? '[REDACTED]' : undefined } };
     return env;

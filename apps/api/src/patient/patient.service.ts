@@ -8,7 +8,7 @@ import { MarketService } from '../market/market-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService } from '../prisma/prisma.service';
 
-export const CONSENT_PURPOSES = ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING'] as const;
+export const CONSENT_PURPOSES = ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING', 'VISIT_STATUS_SHARING'] as const;
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
 /** NEEDS_HUMAN: consent copy/versions are legal wording; version is a placeholder until counsel signs off. */
 export const CONSENT_VERSION = 'TODO_NEEDS_HUMAN_v0';

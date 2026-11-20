@@ -22,10 +22,10 @@ describe('control plane (KXM-OP-07..11)', () => {
   it('registry is seeded from the full KX-08 §09 catalogue (all products) and matches @kiorex/contracts FLAG_KEYS', async () => {
     const keys = (await c.prisma.flagDefinition.findMany()).map((f) => f.key);
     for (const k of FLAG_KEYS) expect(keys).toContain(k);
-    expect(keys.filter((k) => k.startsWith('clinic.specialty_templates.'))).toHaveLength(11);
+    expect(keys.filter((k) => k.startsWith('clinic.specialty_templates.'))).toHaveLength(12);
     expect(keys).toContain('market.eg.live');
     const products = new Set((await c.prisma.flagDefinition.findMany()).map((f) => f.product));
-    expect([...products].sort()).toEqual(['all', 'kiorex', 'kiorex-account', 'kiorly-clinic', 'kiorly-lab', 'kiorly-pharmacy']);
+    expect([...products].sort()).toEqual(['all', 'kiorex', 'kiorex-account', 'kiorly-clinic', 'kiorly-lab', 'kiorly-nurse', 'kiorly-pharmacy']);
     expect(FLAG_CATALOGUE.length).toBe(keys.length);
     expect(await c.prisma.flagGateEvidence.count()).toBe(0); // seed never satisfies a gate
   });

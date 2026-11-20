@@ -22,6 +22,9 @@ export interface SetValueInput {
   emergency?: boolean;
 }
 
+/** Dev/test evidence for flags that list gate ids is labelled `DEV-ONLY-NOT-A-REAL-GATE:<GATE>` (counts as that gate, never accepted in production). */
+export const DEV_GATE_PREFIX = 'DEV-ONLY-NOT-A-REAL-GATE:';
+const baseGateId = (id: string) => (id.startsWith(DEV_GATE_PREFIX) ? id.slice(DEV_GATE_PREFIX.length) : id);
 const DEV_PRODUCT_SECRET = 'ff_dev_secret_change_me';
 const EMERGENCY_REVIEW_MS = 24 * 3600_000;
 
@@ -60,10 +63,11 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
       this.prisma.controlState.findUnique({ where: { id: 1 } }),
     ]);
     const now = new Date();
-    const gateSet = new Set(gates.map((g) => g.flagKey));
+    const gatesByFlag = new Map<string, Set<string>>();
+    for (const g of gates) gatesByFlag.set(g.flagKey, (gatesByFlag.get(g.flagKey) ?? new Set()).add(baseGateId(g.gateId)));
     const map = new Map<string, SnapshotFlag>();
     for (const d of defs) {
-      const f: SnapshotFlag = { key: d.key, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: d.launchLocked, gateSatisfied: !d.launchLocked || gateSet.has(d.key), values: { markets: {}, orgs: {} } };
+      const f: SnapshotFlag = { key: d.key, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: d.launchLocked, gateSatisfied: !d.launchLocked || FlagsService.gatesSatisfied(d.gateIds, gatesByFlag.get(d.key)), values: { markets: {}, orgs: {} } };
       map.set(d.key, f);
     }
     let earliest = new Map<string, Date>();
@@ -79,6 +83,12 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     for (const [k, d] of earliest) map.get(k)!.expiresAt = d.toISOString();
     this.cache = { at: Date.now(), version: state?.version ?? 1, map, defs: new Map(defs.map((d) => [d.key, d])) };
     return this.cache;
+  }
+
+  /** Launch lock (ADR-024): when the definition names gate ids ALL must have human-recorded evidence (e.g. GHV1 + GHV2); otherwise any single evidence row satisfies it. */
+  static gatesSatisfied(required: string[] | undefined, have: Set<string> | undefined): boolean {
+    if (!have?.size) return false;
+    return !required?.length || required.every((g) => have.has(g));
   }
 
   private isActive(v: FlagValue, now: Date) {
@@ -109,8 +119,8 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     if (d.class === 'LAUNCH_LOCKED' && !d.launchLocked) d = { ...d, launchLocked: true };
     const row = await this.prisma.flagDefinition.upsert({
       where: { key: d.key },
-      create: { key: d.key, product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint },
-      update: { product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint },
+      create: { key: d.key, product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint, gateIds: d.gateIds ?? [], edition: d.edition },
+      update: { product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint, gateIds: d.gateIds ?? [], edition: d.edition },
     });
     await this.bump([d.key], actor, 'definition');
     return row;
@@ -122,8 +132,8 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
       if (isSafetyControlKey(d.key)) throw new Error(`catalogue contains safety control ${d.key}`);
       await this.prisma.flagDefinition.upsert({
         where: { key: d.key },
-        create: { key: d.key, product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint },
-        update: { product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, whenOff: d.whenOff, gateHint: d.gateHint },
+        create: { key: d.key, product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, description: d.description, whenOff: d.whenOff, gateHint: d.gateHint, gateIds: d.gateIds ?? [], edition: d.edition },
+        update: { product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, launchLocked: !!d.launchLocked, moneyPath: !!d.moneyPath, whenOff: d.whenOff, gateHint: d.gateHint, gateIds: d.gateIds ?? [], edition: d.edition },
       });
     }
     await this.prisma.controlState.upsert({ where: { id: 1 }, create: { id: 1, version: 1 }, update: {} });
@@ -218,21 +228,53 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.flagChangeRequest.findMany({ where: { emergency: true, reviewedAt: null, reviewDueAt: { lt: new Date() } } });
   }
 
+  /**
+   * Record launch-gate evidence (ADR-024). STOP action: only a human super admin calls this, through the HTTP route; application code
+   * never records a gate (the dev seed may add DEV-ONLY-NOT-A-REAL-GATE rows). Flags whose definition lists gate ids (GHV1 + GHV2 ...) only
+   * accept those ids, one evidence row per (flag, gate); the flag is effective once ALL required gates have evidence.
+   */
   async recordGate(actor: string, key: string, g: { gateId: string; approver: string; approvedOn: Date; documentUrl: string }) {
     const d = await this.def(key);
     if (!d.launchLocked) throw badRequest('NOT_LAUNCH_LOCKED', `${key} is not launch-locked`);
     if (!g.gateId?.trim() || !g.approver?.trim() || !g.documentUrl?.trim() || !g.approvedOn) throw badRequest('GATE_EVIDENCE_INCOMPLETE', 'gateId, approver, approvedOn and documentUrl are required (KXM-OP-09)');
     if (!/^https?:\/\//i.test(g.documentUrl)) throw badRequest('GATE_DOCUMENT_URL_INVALID', 'documentUrl must be an http(s) link');
-    await this.prisma.flagGateEvidence.upsert({ where: { flagKey: key }, create: { flagKey: key, ...g, recordedBy: actor }, update: { ...g, recordedBy: actor } });
-    await this.auditRow({ flagKey: key, scope: 'GLOBAL', newValue: 'GATE_SATISFIED', oldValue: 'AWAITING_GATE', actor, reason: `${g.gateId} approved by ${g.approver}`, event: 'GATE' });
+    const gateId = g.gateId.trim();
+    if (gateId.startsWith(DEV_GATE_PREFIX) && cfg().isProd) throw badRequest('DEV_GATE_IN_PRODUCTION', 'DEV-ONLY gate evidence is never accepted in production');
+    if (d.gateIds.length && !d.gateIds.includes(baseGateId(gateId))) throw badRequest('GATE_ID_NOT_REQUIRED', `${key} is unlocked by gate(s) ${d.gateIds.join(' + ')}, not ${gateId}`, { required: d.gateIds });
+    await this.prisma.flagGateEvidence.upsert({ where: { flagKey_gateId: { flagKey: key, gateId } }, create: { flagKey: key, ...g, gateId, recordedBy: actor }, update: { ...g, gateId, recordedBy: actor } });
+    await this.auditRow({ flagKey: key, scope: 'GLOBAL', newValue: 'GATE_SATISFIED', oldValue: 'AWAITING_GATE', actor, reason: `${gateId} approved by ${g.approver}`, event: 'GATE' });
     return { version: await this.bump([key], actor, `${key}:gate`) };
   }
 
-  async revokeGate(actor: string, key: string, reason: string) {
+  /** One human action for a gate shared by several flags (e.g. GHV1 unlocks clinic.home_visits and kiorex.home_visits): still one audited evidence row per flag. */
+  async recordGateForAll(actor: string, gateId: string, g: { approver: string; approvedOn: Date; documentUrl: string }) {
+    const defs = await this.prisma.flagDefinition.findMany({ where: { launchLocked: true, gateIds: { has: baseGateId(gateId) } } });
+    if (!defs.length) throw notFound('GATE_NOT_FOUND', `No launch-locked flag lists gate ${gateId}`);
+    let version = 0;
+    for (const d of defs) version = (await this.recordGate(actor, d.key, { ...g, gateId })).version;
+    return { gateId, flags: defs.map((d) => d.key), version };
+  }
+
+  async revokeGate(actor: string, key: string, reason: string, gateId?: string) {
     await this.def(key);
-    await this.prisma.flagGateEvidence.deleteMany({ where: { flagKey: key } });
-    await this.auditRow({ flagKey: key, scope: 'GLOBAL', newValue: 'AWAITING_GATE', oldValue: 'GATE_SATISFIED', actor, reason, event: 'GATE' });
+    await this.prisma.flagGateEvidence.deleteMany({ where: { flagKey: key, ...(gateId ? { OR: [{ gateId }, { gateId: `${DEV_GATE_PREFIX}${gateId}` }] } : {}) } });
+    await this.auditRow({ flagKey: key, scope: 'GLOBAL', newValue: 'AWAITING_GATE', oldValue: 'GATE_SATISFIED', actor, reason: gateId ? `${gateId}: ${reason}` : reason, event: 'GATE' });
     return { version: await this.bump([key], actor, `${key}:gate-revoked`) };
+  }
+
+  /** Gate board for the super admin: every gate id, the flags it unlocks and who recorded what (no gate is ever implied). */
+  async gateBoard() {
+    const [defs, gates] = await Promise.all([this.prisma.flagDefinition.findMany({ where: { launchLocked: true }, orderBy: { key: 'asc' } }), this.prisma.flagGateEvidence.findMany()]);
+    const ids = [...new Set(defs.flatMap((d) => d.gateIds))].sort();
+    return {
+      gates: ids.map((gateId) => ({
+        gateId,
+        flags: defs.filter((d) => d.gateIds.includes(gateId)).map((d) => {
+          const ev = gates.find((x) => x.flagKey === d.key && baseGateId(x.gateId) === gateId);
+          return { key: d.key, requiredGates: d.gateIds, evidence: ev ? { approver: ev.approver, approvedOn: ev.approvedOn, documentUrl: ev.documentUrl, recordedBy: ev.recordedBy } : null };
+        }),
+      })),
+    };
   }
 
   private async auditRow(a: { flagKey: string; scope: string; scopeId?: string; oldValue?: string; newValue: string; actor: string; reason?: string; ticket?: string; expiresAt?: Date; emergency?: boolean; event: string }) {
@@ -278,7 +320,8 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     const c = await this.load();
     const reg = await this.prisma.productRegistration.findUnique({ where: { product } });
     if (!reg) throw notFound('UNKNOWN_PRODUCT', `Unknown product ${product}`);
-    const own = [...c.defs.values()].filter((d) => d.product === product || d.product === 'all').map((d) => d.key);
+    // Nurse is an edition of Kiorly Clinic (ADR-031): nurse.* keys (product kiorly-nurse) are served in the kiorly-clinic snapshot.
+    const own = [...c.defs.values()].filter((d) => d.product === product || d.product === 'all' || (product === 'kiorly-clinic' && d.product === 'kiorly-nurse')).map((d) => d.key);
     const include = new Set<string>();
     const visit = (k: string) => {
       if (include.has(k) || !c.map.has(k)) return;
@@ -359,7 +402,9 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
       const marketEval = evaluateFlag(c.map, d.key, { market });
       const src = vals.find((v) => v.scope === 'GLOBAL') ?? vals.find((v) => v.scope === 'MARKET' && v.scopeId === market);
       const last = audits.find((a) => a.flagKey === d.key);
-      const gate = gates.find((g) => g.flagKey === d.key);
+      const ev = gates.filter((g) => g.flagKey === d.key);
+      const gate = ev[0];
+      const missing = d.launchLocked ? (d.gateIds.length ? d.gateIds.filter((id) => !ev.some((e) => baseGateId(e.gateId) === id)) : ev.length ? [] : ['ANY']) : [];
       return {
         key: d.key, product: d.product, class: d.class, scopes: d.scopes, dependsOn: d.dependsOn, moneyPath: d.moneyPath, launchLocked: d.launchLocked, whenOff: d.whenOff, gateHint: d.gateHint,
         effective: { global: global.effective, market: { [market]: marketEval.effective } },
@@ -368,6 +413,9 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
         source: src ? { scope: src.scope, scopeId: src.scopeId, reason: src.reason, ticket: src.ticket, setBy: src.setBy, expiresAt: src.expiresAt, at: src.updatedAt } : marketEval.reason === 'AWAITING_GATE' ? { scope: 'GATE' } : marketEval.reason === 'DEPENDENCY_OFF' ? { scope: 'DEPENDENCY', blockedBy: marketEval.blockedBy } : { scope: 'DEFAULT' },
         overrides: vals.map((v) => ({ scope: v.scope, scopeId: v.scopeId, reason: v.reason, ticket: v.ticket, expiresAt: v.expiresAt, startsAt: v.startsAt })),
         gate: gate ? { gateId: gate.gateId, approver: gate.approver, approvedOn: gate.approvedOn, documentUrl: gate.documentUrl } : null,
+        gateIds: d.gateIds, edition: d.edition,
+        gates: ev.map((e) => ({ gateId: e.gateId, approver: e.approver, approvedOn: e.approvedOn, documentUrl: e.documentUrl })),
+        missingGates: missing,
         lastChange: last ? { at: last.createdAt, actor: last.actor, event: last.event, newValue: last.newValue, reason: last.reason } : null,
       };
     });

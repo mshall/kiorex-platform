@@ -2,6 +2,8 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/com
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { FlagsService } from '../control-plane/control-plane-public';
+import { SafetyService } from '../homecare/homecare-public';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
@@ -9,13 +11,14 @@ import { EngagementService } from '../engagement/engagement-public';
 import { OkDto } from '../common/dto';
 import { KiorlyClient } from '../kiorly/kiorly-public';
 import { MessageLogDto, MessagingHub, MessagingStatsDto, DeliveryTickDto, MessageLogItemDto } from '../messaging/messaging-public';
-import { AuditLogDto, CircuitDto, ComplaintDto, FeeStatementDto, ImportResultDto, LiquidityDto, ModerationCaseDto, OpsBookingDto, BookingTimelineOpsDto, OpsMessageDto, OpsOkDto, OpsProviderListDto, OutboxListDto, PaymentsDashboardDto, PayoutRunDto, ReconciliationRunDto, RefundDto, ReplayResultDto, SyncResultDto } from './ops.dto';
+import { HeldDepositDto, HomeGateMetricDto, ReviewDecisionDto, AuditLogDto, CircuitDto, ComplaintDto, FeeStatementDto, ImportResultDto, LiquidityDto, ModerationCaseDto, OpsBookingDto, BookingTimelineOpsDto, OpsMessageDto, OpsOkDto, OpsProviderListDto, OutboxListDto, PaymentsDashboardDto, PayoutRunDto, ReconciliationRunDto, RefundDto, ReplayResultDto, SyncResultDto } from './ops.dto';
 import { OutboxService } from '../outbox/outbox-public';
 import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
 class RefundBody { @IsString() paymentId!: string; @IsString() reason!: string; @IsOptional() @IsInt() @Min(1) amountMinor?: number }
+class ReviewBody { @IsString() reason!: string }
 class SimulateBody { @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED' }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }
 class SettlementLine {
@@ -36,7 +39,7 @@ class ImportBody {
 export class OpsController {
   constructor(
     private readonly catalog: CatalogService, private readonly bookings: BookingService, private readonly outbox: OutboxService, private readonly pay: PayService, private readonly trust: TrustService,
-    private readonly kiorly: KiorlyClient, private readonly prisma: PrismaService, private readonly engagement: EngagementService, private readonly hub: MessagingHub,
+    private readonly kiorly: KiorlyClient, private readonly prisma: PrismaService, private readonly engagement: EngagementService, private readonly hub: MessagingHub, private readonly flags: FlagsService, private readonly safety: SafetyService,
   ) {}
 
   @ApiOkResponse({ type: OpsProviderListDto })
@@ -74,6 +77,24 @@ export class OpsController {
   async refund(@CurrentUser() u: AuthUser, @Body() b: RefundBody) {
     await this.prisma.auditLog.create({ data: { actor: u.sub, action: 'pay.ops_refund', resource: 'PaymentIntent', resourceId: b.paymentId, metadata: { reason: b.reason, amountMinor: b.amountMinor } } });
     return this.pay.refund(b.paymentId, { reason: `OPS:${b.reason}`, amountMinor: b.amountMinor, idempotencyKey: `ops-refund:${b.paymentId}:${b.amountMinor ?? 'full'}:${b.reason}` });
+  }
+  @ApiOkResponse({ type: HeldDepositDto, isArray: true })
+  @Get('payments/held-for-review') @ApiOperation({ summary: 'KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited)' })
+  heldForReview() { return this.pay.heldForReview(); }
+  @ApiOkResponse({ type: ReviewDecisionDto })
+  @Post('payments/:paymentId/review/release') @HttpCode(200) @ApiOperation({ summary: 'KXMPAY07 review decision: release the held deposit to the provider (reason required, audited)' })
+  reviewRelease(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: ReviewBody) { return this.pay.reviewRelease(id, u.sub, b.reason); }
+  @ApiOkResponse({ type: ReviewDecisionDto })
+  @Post('payments/:paymentId/review/refund') @HttpCode(200) @ApiOperation({ summary: 'KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited)' })
+  reviewRefund(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: ReviewBody) { return this.pay.reviewRefund(id, u.sub, b.reason); }
+  @ApiOkResponse({ type: HomeGateMetricDto })
+  @Get('home-visits/gate-metric') @ApiOperation({ summary: 'Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate' })
+  async homeGate() {
+    const m = await this.catalog.homeGateMetric();
+    const board = await this.flags.gateBoard();
+    const gates: Record<string, unknown> = {};
+    for (const id of ['GHV1', 'GHV2']) gates[id] = { recordedFor: board.gates.find((g) => g.gateId === id)?.flags.filter((f) => f.evidence).map((f) => f.key) ?? [], requiredFor: board.gates.find((g) => g.gateId === id)?.flags.map((f) => f.key) ?? [] };
+    return { ...m, gates, safetyConsoleLive: !!this.safety };
   }
   @ApiOkResponse({ type: FeeStatementDto })
   @Get('fee-statements') @ApiOperation({ summary: 'Kiorex\'s own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line.' })

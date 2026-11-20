@@ -1,3 +1,4 @@
+import { cfg } from '../common/config';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Review } from '@prisma/client';
 import { createHash } from 'node:crypto';
@@ -135,9 +136,13 @@ export class TrustService implements OnModuleInit {
     await this.afterChange(r);
     return { ok: true, status: r.status };
   }
+  /** KXMOP05: complaints about a HOME visit carry a 1 h SLA (default 24 h); only the booking owner's home bookings count. */
   async complain(sub: string, i: { category: string; body: string; bookingId?: string }) {
-    return this.prisma.complaint.create({ data: { sub, bookingId: i.bookingId, category: i.category, body: i.body, slaDueAt: new Date(Date.now() + COMPLAINT_SLA_HOURS * 3600_000) } });
+    const hb = i.bookingId ? await this.booking.byId(i.bookingId) : null;
+    const home = !!hb && hb.sub === sub && hb.serviceLocation === 'HOME';
+    const sla = home ? cfg().homeComplaintSlaMinutes * 60_000 : COMPLAINT_SLA_HOURS * 3600_000;
+    return this.prisma.complaint.create({ data: { sub, bookingId: i.bookingId, category: i.category, body: i.body, slaDueAt: new Date(Date.now() + sla), homeVisit: home } });
   }
-  complaints(status = 'OPEN') { return this.prisma.complaint.findMany({ where: { status }, orderBy: { slaDueAt: 'asc' }, take: 200 }).then((rows) => rows.map((c) => ({ ...c, slaBreached: c.slaDueAt < new Date() }))); }
+  complaints(status = 'OPEN') { return this.prisma.complaint.findMany({ where: { status }, orderBy: { slaDueAt: 'asc' }, take: 200 }).then((rows) => rows.map((c) => ({ ...c, slaBreached: c.slaDueAt < new Date(), minutesToSla: Math.round((c.slaDueAt.getTime() - Date.now()) / 60_000) }))); }
   async resolveComplaint(id: string) { await this.prisma.complaint.update({ where: { id }, data: { status: 'RESOLVED', resolvedAt: new Date() } }); return { ok: true }; }
 }

@@ -12,6 +12,10 @@ export class OpsProviderDto {
   @ApiProperty({ nullable: true, type: String }) nameAr!: string | null;
   @ApiProperty({ nullable: true, type: String }) specialty!: string | null;
   @ApiProperty({ required: false, format: 'date-time' }) syncedAt?: string;
+  @ApiProperty({ required: false, nullable: true, type: String, description: 'KXMOP01 mirrors the profession' }) profession?: string | null;
+  @ApiProperty({ required: false, enum: ['DOCTORS', 'PHYSIOTHERAPY', 'HOME_NURSING'] }) careType?: string;
+  @ApiProperty({ required: false, type: [String] }) serviceLocations?: string[];
+  @ApiProperty({ required: false, type: [String] }) coverageDistricts?: string[];
 }
 export class OpsProviderListDto {
   total!: number;
@@ -121,6 +125,36 @@ export class PaymentsDashboardDto {
   @ApiProperty({ type: [PayoutRowDto] }) payouts!: PayoutRowDto[];
   @ApiProperty({ type: [ReconRunRowDto] }) reconciliationRuns!: ReconRunRowDto[];
   @ApiProperty({ type: [LedgerBalanceDto] }) balances!: LedgerBalanceDto[];
+  @ApiProperty({ type: 'object', properties: { count: { type: 'number' }, amountMinor: { type: 'number' } }, description: 'KXMPAY07 deposits held for review' }) heldForReview!: { count: number; amountMinor: number };
+}
+export class HeldDepositDto {
+  paymentId!: string;
+  @ApiProperty({ nullable: true, type: String }) bookingId!: string | null;
+  clinicId!: string; amountMinor!: number; currency!: string;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) heldForReviewAt!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) ageHours!: number | null;
+  @ApiProperty({ nullable: true, type: String }) providerId!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'District code only' }) district!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) abortedAt!: string | null;
+}
+export class ReviewDecisionDto {
+  paymentId!: string;
+  @ApiProperty({ enum: ['RELEASED_TO_PROVIDER', 'REFUNDED_TO_PATIENT'] }) outcome!: string;
+  amountMinor!: number;
+  @ApiProperty({ required: false }) refundId?: string;
+}
+export class HomeGateClusterDto {
+  cluster!: string; homeEnabledProviders!: number; threshold!: number; met!: boolean;
+  @ApiProperty(OBJ) byCareType!: Record<string, unknown>;
+}
+export class HomeGateMetricDto {
+  @ApiProperty({ description: 'Minimum home-enabled providers per launch cluster (50)' }) threshold!: number;
+  @ApiProperty({ example: 'governorate' }) clusterBasis!: string;
+  @ApiProperty({ type: [HomeGateClusterDto] }) clusters!: HomeGateClusterDto[];
+  anyMet!: boolean; allMet!: boolean;
+  @ApiProperty({ type: 'object', additionalProperties: true, description: 'Human-recorded evidence state per gate (GHV1, GHV2): the metric never satisfies a gate' }) gates!: Record<string, unknown>;
+  @ApiProperty({ description: 'Safety console (KXMOP12) is deployed in this API' }) safetyConsoleLive!: boolean;
 }
 export class RefundDto {
   id!: string;
@@ -177,6 +211,9 @@ export class ComplaintDto {
   status!: string;
   @ApiProperty({ format: 'date-time' }) slaDueAt!: string;
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ description: 'KXMOP05: home-visit complaints have a 1 h SLA' }) homeVisit!: boolean;
+  slaBreached!: boolean;
+  @ApiProperty({ description: 'Minutes until the SLA is due (negative = overdue)' }) minutesToSla!: number;
 }
 export class OpsOkDto { ok!: boolean; @ApiProperty({ required: false }) status?: string }
 export class LiquidityDto {
@@ -189,6 +226,9 @@ export class LiquidityDto {
   confirmedBookings!: number;
   attended!: number;
   noShow!: number;
+  @ApiProperty({ type: 'array', items: OBJ, description: 'KXMOP06 by care type and visit location' }) byCareType!: Record<string, unknown>[];
+  @ApiProperty({ type: 'array', items: OBJ, description: 'KXMOP06 home-enabled providers per district' }) homeEnabledByDistrict!: Record<string, unknown>[];
+  @ApiProperty(OBJ) safetyAlerts!: Record<string, unknown>;
 }
 export class CircuitDto {
   clinicId!: string;

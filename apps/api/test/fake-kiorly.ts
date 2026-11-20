@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
 import { verifyKiorlyRequest } from '@kiorex/contracts';
 
-type Mode = undefined | '409-identity' | '409' | 'timeout' | 'timeout-created' | '5xx' | '422-window';
+type Mode = undefined | '409-identity' | '409' | 'timeout' | 'timeout-created' | '5xx' | '422-window' | '422-coverage';
 
 /** In-process fake Kiorly marketplace API. Verifies the HMAC on every request (so client signing is under test). */
 export class FakeKiorly {
@@ -19,6 +19,12 @@ export class FakeKiorly {
   consentPushes: { patientId: string; consents: any[] }[] = [];
   bookingMode: Mode;
   holdMode: Mode;
+  /** Rev 2.3 (contracts 1.5.0): '422-coverage' answers every HOME slot query with 422 OUT_OF_COVERAGE regardless of the provider's coverage list. */
+  slotsMode: Mode;
+  carePlanMode: undefined | '422-not-offered';
+  carePlanRequests = new Map<string, any>();
+  /** appointmentId -> visitAddress carried from the hold (Kiorly stores it encrypted; the fake keeps it so tests can assert what was sent). */
+  addresses = new Map<string, any>();
   getBookingMode: Mode;
   cancelMode: Mode;
   autoConfirm = true;
@@ -36,6 +42,7 @@ export class FakeKiorly {
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
     this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = [];
+    this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear();
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
@@ -59,10 +66,29 @@ export class FakeKiorly {
       const items = this.providers.filter((p) => !since || p.updatedAt >= since);
       return send(200, { items, page: 1, pageSize: 100, total: items.length });
     }
-    if (m === 'GET' && /^\/clinics\/[^/]+\/slots$/.test(path)) return send(200, { slots: this.slots });
+    if (m === 'GET' && /^\/clinics\/[^/]+\/slots$/.test(path)) {
+      const loc = url.searchParams.get('serviceLocation') ?? 'IN_CLINIC';
+      const district = url.searchParams.get('district');
+      if (loc === 'HOME') {
+        if (!district) return send(400, { code: 'DISTRICT_REQUIRED', message: 'district required for HOME' });
+        const prov = this.providers.find((p) => p.clinicianId === url.searchParams.get('clinicianId'));
+        const covered: string[] = prov?.coverageDistricts ?? [];
+        if (this.slotsMode === '422-coverage' || (covered.length && !covered.includes(district))) return send(422, { statusCode: 422, code: 'OUT_OF_COVERAGE', message: 'District is not covered', district, alternatives: [] });
+        return send(200, { slots: this.slots.map((s) => ({ ...s, serviceLocation: 'HOME', district })) });
+      }
+      return send(200, { slots: this.slots.map((s) => ({ ...s, serviceLocation: 'IN_CLINIC', district: null })) });
+    }
     if (m === 'POST' && path === '/holds') {
       if (this.holdMode === '409') return send(409, { code: 'SLOT_TAKEN', message: 'Slot not available', alternatives: this.slots.slice(1, 4) });
       if (this.holdMode === '5xx') return send(503, { message: 'down' });
+      const prov = this.providers.find((p) => p.clinicianId === body.clinicianId);
+      const fee = prov?.provider?.fees?.find((f: any) => f.appointmentTypeId === body.typeId);
+      const homeType = (fee?.serviceLocation ?? (prov?.serviceLocations?.length === 1 ? prov.serviceLocations[0] : 'IN_CLINIC')) === 'HOME';
+      if (homeType) {
+        if (!body.visitAddress?.district) return send(422, { code: 'VISIT_ADDRESS_REQUIRED', message: 'visitAddress required for HOME visit types' });
+        const covered: string[] = prov?.coverageDistricts ?? [];
+        if (this.holdMode === '422-coverage' || (covered.length && !covered.includes(body.visitAddress.district))) return send(422, { statusCode: 422, code: 'OUT_OF_COVERAGE', message: 'District is not covered', district: body.visitAddress.district });
+      }
       const id = `hold_${this.holds.size + 1}`;
       const h = { id, ...body, expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() };
       this.holds.set(body.externalRef, h);
@@ -72,6 +98,7 @@ export class FakeKiorly {
     if (m === 'POST' && path === '/bookings') {
       const key = req.headers['idempotency-key'] as string;
       if (this.bookings.has(key)) return send(200, this.bookings.get(key));
+      if (this.bookingMode === '422-coverage') return send(422, { statusCode: 422, code: 'OUT_OF_COVERAGE', message: 'District is not covered anymore' });
       if (this.bookingMode === '409-identity') return send(409, { code: 'PATIENT_IDENTITY_CONFLICT', message: 'phone and national id match different patients' });
       if (this.bookingMode === '409') return send(409, { code: 'SLOT_TAKEN', message: 'taken', alternatives: this.slots.slice(1, 4) });
       if (this.bookingMode === '5xx') return send(502, { message: 'bad gateway' });
@@ -108,6 +135,14 @@ export class FakeKiorly {
         return send(200, this.deposits.get(body.paymentRef));
       }
     }
+    if (m === 'POST' && path === '/care-plan-requests') {
+      if (this.carePlanMode === '422-not-offered') return send(422, { code: 'CARE_PLANS_NOT_OFFERED', message: 'provider does not offer care plans' });
+      const ex = this.carePlanRequests.get(body.requestRef);
+      if (ex) return send(200, ex.ack);
+      const ack = { requestRef: body.requestRef, status: 'RECEIVED', carePlanId: null };
+      this.carePlanRequests.set(body.requestRef, { body, ack });
+      return send(200, ack);
+    }
     if (m === 'POST' && path === '/payouts') {
       const ex = this.payouts.get(body.payoutRef);
       if (!ex) this.payouts.set(body.payoutRef, body);
@@ -126,7 +161,10 @@ export class FakeKiorly {
   }
 
   makeBooking(key: string, body: any) {
+    const hold = [...this.holds.values()].find((h) => h.externalRef === body.holdExternalRef);
+    if (body.serviceLocation === 'HOME' && hold?.visitAddress) this.addresses.set(`apt_${this.bookings.size + 1}`, hold.visitAddress);
     return {
+      serviceLocation: body.serviceLocation ?? 'IN_CLINIC',
       appointmentId: `apt_${this.bookings.size + 1}`, clinicId: body.clinicId, clinicianId: body.clinicianId, patientId: `pat_${body.patient.phone}`, typeId: body.typeId, startsAt: body.startsAt, endsAt: body.endsAt,
       status: this.autoConfirm ? 'CONFIRMED' : 'SCHEDULED', externalReference: key, bookingSource: 'KIOREX_MARKETPLACE', marketplaceConfirmationDueAt: this.autoConfirm ? null : new Date(Date.now() + 3600_000).toISOString(),
       cancelledBy: null, cancellationReason: null, depositRefundable: null, rescheduleCount: 0,
@@ -138,13 +176,40 @@ export class FakeKiorly {
   }
 
   /** A Kiorly PublishedProviderDto (shape of marketplace-provider-profile.service.ts). */
-  static provider(o: { id?: string; clinicId?: string; clinicianId?: string; status?: string; specialty?: string; nameEn?: string; nameAr?: string; area?: string; governorate?: string; fee?: number; updatedAt?: string; tenantId?: string; lat?: number; lng?: number; gender?: string; languages?: string[]; depositAmount?: number; typeId?: string }) {
+  static provider(o: { profession?: string; edition?: string; serviceLocations?: string[]; coverageDistricts?: string[]; assignsClinician?: boolean; register?: string; homeSurcharge?: number; feeServiceLocation?: string; id?: string; clinicId?: string; clinicianId?: string; status?: string; specialty?: string; nameEn?: string; nameAr?: string; area?: string; governorate?: string; fee?: number; updatedAt?: string; tenantId?: string; lat?: number; lng?: number; gender?: string; languages?: string[]; depositAmount?: number; typeId?: string }) {
     const id = o.id ?? 'lst_1';
     return {
+      ...(o.profession ? { profession: o.profession } : {}), ...(o.edition ? { edition: o.edition } : {}), ...(o.serviceLocations ? { serviceLocations: o.serviceLocations } : {}), ...(o.coverageDistricts ? { coverageDistricts: o.coverageDistricts } : {}),
+      ...(o.assignsClinician !== undefined ? { assignsClinician: o.assignsClinician } : {}), ...(o.register ? { verification: { register: o.register } } : {}),
       listingId: id, tenantId: o.tenantId ?? 'tn_1', clinicId: o.clinicId ?? 'cl_1', clinicianId: o.clinicianId ?? 'dr_1', status: o.status ?? 'LIVE', completenessPercent: 90, updatedAt: o.updatedAt ?? new Date().toISOString(),
       provider: { displayNameEn: o.nameEn ?? 'Dr Sara Hassan', displayNameAr: o.nameAr ?? 'د. سارة حسن', specialty: o.specialty ?? 'dermatology', languages: o.languages ?? ['ar', 'en'], gender: o.gender ?? 'FEMALE', governorate: o.governorate ?? 'Cairo', area: o.area ?? 'Maadi', cancellationPolicy: { hoursBefore: 'NEEDS_HUMAN' },
-        fees: [{ appointmentTypeId: o.typeId ?? 'typ_1', nameEn: 'Consultation', nameAr: 'كشف', amount: o.fee ?? 300, currency: 'EGP', ...(o.depositAmount ? { depositAmount: o.depositAmount } : {}) }], payers: [] },
+        fees: [{ appointmentTypeId: o.typeId ?? 'typ_1', nameEn: 'Consultation', nameAr: 'كشف', amount: o.fee ?? 300, currency: 'EGP', ...(o.depositAmount ? { depositAmount: o.depositAmount } : {}), ...(o.feeServiceLocation ? { serviceLocation: o.feeServiceLocation } : {}), ...(o.homeSurcharge !== undefined ? { homeSurcharge: o.homeSurcharge } : {}) }], payers: [] },
       clinic: { nameEn: 'Nile Clinic', nameAr: 'عيادة النيل', addressEn: '1 Street Maadi', addressAr: 'شارع ١ المعادي', latitude: o.lat ?? 29.96, longitude: o.lng ?? 31.25, phone: '+20221234567', logoUrl: null, clinicalSpecialty: o.specialty ?? 'dermatology', parking: true, wheelchairAccess: true, amenities: [], photos: [] },
     };
   }
 }
+
+
+/** Event payloads (`data`) as the kiorex-contracts 1.5.0 schemas define them; tests pass these to `ctx.webhook(type, data)`. Never any address/phone. */
+export const homeEvents = {
+  assigned: (o: { bookingId: string; appointmentId?: string; clinicId?: string; name?: string; badge?: string; profession?: string }) => ({
+    appointmentId: o.appointmentId ?? 'apt_1', clinicId: o.clinicId ?? 'cl_1', externalReference: o.bookingId, serviceLocation: 'HOME',
+    assignee: { clinicianId: 'clin_9', displayName: o.name ?? 'Nurse Mona Adel', photoUrl: 'https://cdn.kiorly.test/p/clin_9.jpg', badge: o.badge ?? 'Verified nurse', profession: o.profession ?? 'NURSE' }, assignedAt: new Date().toISOString(),
+  }),
+  enRoute: (o: { bookingId: string; appointmentId?: string; clinicId?: string; etaMinutes?: number }) => ({
+    appointmentId: o.appointmentId ?? 'apt_1', clinicId: o.clinicId ?? 'cl_1', externalReference: o.bookingId, serviceLocation: 'HOME', enRouteAt: new Date().toISOString(), ...(o.etaMinutes !== undefined ? { etaMinutes: o.etaMinutes } : {}),
+  }),
+  abortedUnsafe: (o: { bookingId: string; appointmentId?: string; clinicId?: string; district?: string }) => ({
+    appointmentId: o.appointmentId ?? 'apt_1', clinicId: o.clinicId ?? 'cl_1', externalReference: o.bookingId, serviceLocation: 'HOME', abortedAt: new Date().toISOString(), reasonCategory: 'UNSAFE_ENVIRONMENT', noShow: false, depositAction: 'HOLD_FOR_REVIEW', ...(o.district ? { district: o.district } : {}),
+  }),
+  safetyAlert: (o: { alertId?: string; bookingId?: string; appointmentId?: string; clinicId?: string; kind?: 'TIMER_EXPIRED' | 'SOS' | 'UNSAFE_ABORT'; raisedAt?: string; district?: string; deliverTo?: string[] }) => ({
+    alertId: o.alertId ?? 'alert_1', clinicId: o.clinicId ?? 'cl_1', appointmentId: o.appointmentId ?? 'apt_1', ...(o.bookingId ? { externalReference: o.bookingId } : {}), kind: o.kind ?? 'SOS', raisedAt: o.raisedAt ?? new Date().toISOString(),
+    deliverTo: o.deliverTo ?? ['ORG_SAFETY_CONTACT', 'KIOREX_OPS'], deliverWithinSeconds: 60, ...(o.district ? { district: o.district } : {}),
+  }),
+  carePlanConfirmed: (o: { carePlanId?: string; requestRef: string; clinicId?: string; visits: { appointmentId: string; startsAt: string; endsAt: string }[] }) => ({
+    carePlanId: o.carePlanId ?? 'cp_1', clinicId: o.clinicId ?? 'cl_1', requestRef: o.requestRef, edition: 'NURSE', confirmedAt: new Date().toISOString(), visits: o.visits,
+  }),
+  carePlanEnded: (o: { carePlanId?: string; requestRef?: string; clinicId?: string; reason?: string; completed?: number; cancelledAppointmentIds?: string[] }) => ({
+    carePlanId: o.carePlanId ?? 'cp_1', clinicId: o.clinicId ?? 'cl_1', requestRef: o.requestRef ?? null, endedAt: new Date().toISOString(), reason: o.reason ?? 'COMPLETED', visitsCompleted: o.completed ?? 0, cancelledAppointmentIds: o.cancelledAppointmentIds ?? [],
+  }),
+};

@@ -14,6 +14,9 @@ class CreateBody {
   @IsOptional() @IsString() dependantId?: string;
   @IsOptional() @IsIn(['MARKETPLACE', 'CLINIC_LINK']) channel?: 'MARKETPLACE' | 'CLINIC_LINK';
   @IsOptional() @IsString() bookingPageSlug?: string;
+  /** Rev 2.3 home visits (KXMHV02/03): HOME needs an address-book entry; the visit type's fee entry decides the location. */
+  @IsOptional() @IsIn(['IN_CLINIC', 'HOME']) serviceLocation?: 'IN_CLINIC' | 'HOME';
+  @IsOptional() @IsString() addressId?: string;
 }
 class ConfirmBody {
   @IsBoolean() marketplaceConsent!: boolean;
@@ -30,7 +33,7 @@ export class BookingController {
 
   @ApiCreatedResponse({ type: BookingDto })
 
-  @Post('bookings') @ApiOperation({ summary: 'KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04)' })
+  @Post('bookings') @ApiOperation({ summary: 'KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered' })
   create(@CurrentUser() u: AuthUser, @Body() b: CreateBody) { return this.svc.createIntent(u.sub, b); }
 
   @ApiOkResponse({ type: BookingDto })

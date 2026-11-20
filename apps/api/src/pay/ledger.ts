@@ -4,6 +4,7 @@
  *
  * Accounts:  PSP_CLEARING (asset, debit-normal)  ·  HELD:<clinic> (liability: deposit awaiting the visit)
  *            PAYABLE:<clinic> (liability: released, owed to clinic)  ·  REFUND_PAYABLE (liability: owed back to patient)
+ *            REVIEW_HOLD:<clinic> (liability: deposit of an unsafe-aborted home visit held for ops review, KXMPAY07)
  *            PSP_FEES (expense, debit-normal)
  * Three ledgers are never commingled: this is the Kiorex Pay ledger only (KX-09 §06).
  */
@@ -16,6 +17,8 @@ export const A = {
   refundPayable: 'REFUND_PAYABLE',
   held: (clinic: string) => `HELD:${clinic}`,
   payable: (clinic: string) => `PAYABLE:${clinic}`,
+  /** KXMPAY07 'hold-for-review': a captured deposit parked here is neither refunded nor forfeited until an ops decision. */
+  reviewHold: (clinic: string) => `REVIEW_HOLD:${clinic}`,
   /** Kiorex's own marketplace take on vertical orders (credit-normal revenue). NEEDS_HUMAN rate; VAT only as config on fee statements. */
   marketplaceFees: 'MARKETPLACE_FEES',
 };
@@ -30,6 +33,12 @@ export const refundSettle = (n: number): Posting[] => [dr(A.refundPayable, n), c
 export const release = (clinic: string, n: number): Posting[] => [dr(A.held(clinic), n), cr(A.payable(clinic), n)];
 /** Vertical order fulfilled: held goods money -> partner payable, minus Kiorex's take (fee may be 0 while the rate is unset). */
 export const releaseOrder = (partner: string, total: number, fee: number): Posting[] => [dr(A.held(partner), total), cr(A.payable(partner), total - fee), ...(fee > 0 ? [cr(A.marketplaceFees, fee)] : [])];
+/** Unsafe-aborted home visit (BR61): HELD -> REVIEW_HOLD. Never auto-forfeit, never a no-show charge. */
+export const holdForReview = (clinic: string, n: number): Posting[] => [dr(A.held(clinic), n), cr(A.reviewHold(clinic), n)];
+/** Ops decision after review: release to the provider payable (forfeit) ... */
+export const releaseFromReview = (clinic: string, n: number): Posting[] => [dr(A.reviewHold(clinic), n), cr(A.payable(clinic), n)];
+/** ... or refund the patient (the refund then settles through REFUND_PAYABLE like any other refund). */
+export const refundFromReview = (clinic: string, n: number): Posting[] => [dr(A.reviewHold(clinic), n), cr(A.refundPayable, n)];
 export const payout = (clinic: string, n: number): Posting[] => [dr(A.payable(clinic), n), cr(A.clearing, n)];
 
 export class LedgerError extends Error {}

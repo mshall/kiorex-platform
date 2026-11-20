@@ -1,3 +1,4 @@
+import { normalizeDistrict } from '../common/district';
 import { isSpecialtyCode, normalizeText, SPECIALTY_LABELS } from '../safety/safety-public';
 
 /** Kiorly stores free-text/US spellings; fold them onto the Kiorex launch specialty codes (KXM-DS-02 filter by specialty). */
@@ -8,6 +9,23 @@ const SPECIALTY_ALIASES: Record<string, string> = {
   ear_nose_and_throat: 'ent', otolaryngology: 'ent', internal: 'internal_medicine', general_medicine: 'internal_medicine',
   dermatologist: 'dermatology', cardiologist: 'cardiology', dental: 'dentistry', dentist: 'dentistry',
 };
+export const PROFESSIONS = ['PHYSICIAN', 'DENTIST', 'PHYSIOTHERAPIST', 'NURSE'] as const;
+export type Profession = (typeof PROFESSIONS)[number];
+export const CARE_TYPES = ['DOCTORS', 'PHYSIOTHERAPY', 'HOME_NURSING'] as const;
+export type CareType = (typeof CARE_TYPES)[number];
+export const SERVICE_LOCATIONS = ['IN_CLINIC', 'HOME'] as const;
+export type ServiceLocation = (typeof SERVICE_LOCATIONS)[number];
+
+/** KX-03 Rev 2.3 care types: Doctors · Physiotherapy · Home nursing. Legacy (profession-less) listings are doctors. */
+export function careTypeOf(profession: string | null | undefined): CareType {
+  switch ((profession ?? '').toUpperCase()) {
+    case 'PHYSIOTHERAPIST': return 'PHYSIOTHERAPY';
+    case 'NURSE': return 'HOME_NURSING';
+    default: return 'DOCTORS';
+  }
+}
+export { normalizeDistrict };
+
 export function canonicalSpecialty(raw: string): string | null {
   const sp = normalizeText(raw).replace(/\s+/g, '_');
   if (!sp) return null;
@@ -26,7 +44,21 @@ export function mapProviderDto(dto: any) {
   const label = specialty && isSpecialtyCode(specialty) ? SPECIALTY_LABELS[specialty] : undefined;
   const area = p.area ?? c.area ?? null;
   const governorate = p.governorate ?? c.governorate ?? null;
+  const professionRaw = String(dto.profession ?? p.profession ?? '').toUpperCase();
+  const profession = (PROFESSIONS as readonly string[]).includes(professionRaw) ? professionRaw : null;
+  const locs: string[] = (Array.isArray(dto.serviceLocations) ? dto.serviceLocations : Array.isArray(p.serviceLocations) ? p.serviceLocations : []).map((x: unknown) => String(x).toUpperCase()).filter((x: string) => (SERVICE_LOCATIONS as readonly string[]).includes(x));
+  const serviceLocations = [...new Set(locs.length ? locs : ['IN_CLINIC'])];
+  const coverageDistricts = [...new Set((Array.isArray(dto.coverageDistricts) ? dto.coverageDistricts : Array.isArray(p.coverageDistricts) ? p.coverageDistricts : []).map(normalizeDistrict).filter((x: string | null): x is string => !!x))];
+  const surcharges = fees.map((f: any) => (f.homeSurcharge === undefined || f.homeSurcharge === null ? NaN : Math.round(Number(f.homeSurcharge) * 100))).filter((n) => Number.isFinite(n));
   const row = {
+    profession,
+    edition: ['CLINIC', 'NURSE'].includes(String(dto.edition ?? '').toUpperCase()) ? String(dto.edition).toUpperCase() : null,
+    careType: careTypeOf(profession),
+    serviceLocations,
+    coverageDistricts,
+    assignsClinician: Boolean(dto.assignsClinician ?? p.assignsClinician),
+    verificationRegister: (dto.verification?.register ?? p.verification?.register ?? null) as string | null,
+    homeSurchargeMinor: surcharges.length ? Math.min(...surcharges) : null,
     id: String(dto.listingId),
     tenantId: dto.tenantId ?? null,
     clinicId: String(dto.clinicId),
@@ -52,7 +84,8 @@ export function mapProviderDto(dto: any) {
     raw: dto,
   };
   const searchText = normalizeText(
-    [row.nameEn, row.nameAr, row.clinicNameEn, row.clinicNameAr, specialty, label?.en, label?.ar, ...row.subSpecialties, area, governorate, c.addressEn, c.addressAr].filter(Boolean).join(' '),
+    // fee/service names are searchable so "injection" or "wound care" finds the home-nursing service (KXMDS02 nursing service type)
+    [row.nameEn, row.nameAr, row.clinicNameEn, row.clinicNameAr, specialty, label?.en, label?.ar, ...row.subSpecialties, area, governorate, c.addressEn, c.addressAr, ...fees.flatMap((f: any) => [f.nameEn, f.nameAr])].filter(Boolean).join(' '),
   );
   return { ...row, searchText };
 }

@@ -4,6 +4,7 @@ import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
 import { verifyWebhook } from '../common/hmac';
 import { BookingService } from '../booking/booking-public';
+import { CarePlanService, SafetyService } from '../homecare/homecare-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { LabService } from '../lab/lab-public';
@@ -14,13 +15,13 @@ import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
-const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT']);
+const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
 
 /** Kiorly → Kiorex webhooks: HMAC-verified, de-duplicated on eventId, drive the KX-03 §05 transitions. */
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -63,6 +64,10 @@ export class WebhooksService {
         this.catalog.invalidateSlots(data.clinicianId);
         await this.catalog.syncOnce();
         return 'APPLIED';
+      case 'SAFETY_ALERT_RAISED': return this.safety.onAlertRaised(data, (env as any).eventId); // KXMOP12 (60 s SLO)
+      case 'CARE_PLAN_CONFIRMED': return this.carePlans.onConfirmed(data);
+      case 'CARE_PLAN_ENDED': return this.carePlans.onEnded(data);
+      case 'ReferralIssued': case 'MedicationOrderShared': return 'IGNORED'; // Kiorly-to-Kiorly via patient consent; Kiorex does not relay these yet
       case 'REVIEW_INVITATION_ELIGIBLE': return this.trust.onInvitationEligible(data);
       case 'REVIEW_REPLY_POSTED': return this.trust.onReply(data);
       case 'VISIT_SUMMARY_SHARED':

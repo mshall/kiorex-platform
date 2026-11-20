@@ -27,6 +27,21 @@ export const cfg = () => ({
   /** NEEDS_HUMAN (KX-12): PSP fee rate and deposit amount are never invented; 0 = unset. */
   pspFeeBps: num('PSP_FEE_BPS', 0),
   depositDefaultMinor: num('DEPOSIT_DEFAULT_MINOR', 0),
+  /** BR54: deposit required by default for home visits; amount NEEDS_HUMAN (KX-12), falls back to DEPOSIT_DEFAULT_MINOR, 0 = unset. */
+  homeDepositDefaultMinor: num('HOME_DEPOSIT_DEFAULT_MINOR', 0),
+  /** Rev 2.3 maps (Amazon Location, KX-08 C4) behind a mock-default adapter; real provider is the pre-launch pass (Docs/NEEDS_HUMAN.md). */
+  mapsMode: (env('MAPS_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
+  /** Safety-alert delivery (KX-09 §08, <= 60 s) to Kiorex ops on-call: mock adapter by default; real paging is a go-live task. */
+  safetyDeliveryMode: (env('SAFETY_DELIVERY_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
+  safetySloSeconds: num('SAFETY_SLO_SECONDS', 60),
+  /** KX-09 §08: no acknowledgement within 10 minutes escalates to the Kiorex ops on-call. */
+  safetyAckEscalateMinutes: num('SAFETY_ACK_ESCALATE_MINUTES', 10),
+  /** KXMHV10 / Kiorly HV-PRV-01: the visit address is hidden 24 h after the visit. */
+  addressMaskHours: num('ADDRESS_MASK_HOURS', 24),
+  /** KXMOP05: home-visit complaints carry a 1 h SLA. */
+  homeComplaintSlaMinutes: num('HOME_COMPLAINT_SLA_MINUTES', 60),
+  familyShareMax: num('FAMILY_SHARE_MAX', 3),
+  homeGateMinProviders: num('HOME_GATE_MIN_PROVIDERS', 50),
   /** mock | real. `log` (legacy value) means mock. Real providers are wired in the pre-launch pass (Docs/NEEDS_HUMAN.md "Provider go-live"). */
   messagingMode: (['real'].includes(env('MESSAGING_MODE', 'mock')) ? 'real' : 'mock') as 'mock' | 'real',
   videoMode: (env('VIDEO_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',

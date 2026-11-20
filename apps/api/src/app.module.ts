@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AddressModule } from './address/address-public';
+import { HomeCareModule } from './homecare/homecare-public';
 import { AiGatewayModule } from './ai-gateway/ai-gateway-public';
 import { AuthModule } from './auth/auth-public';
 import { BookingModule } from './booking/booking-public';
@@ -27,6 +29,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, HealthModule],
 })
 export class AppModule {}

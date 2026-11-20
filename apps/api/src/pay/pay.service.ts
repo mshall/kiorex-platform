@@ -7,7 +7,7 @@ import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService, Tx } from '../prisma/prisma.service';
-import { assertValid, LedgerTxInput, Posting, capture, payout as payoutPosting, pspFee, refundRequest, refundSettle, release, releaseOrder } from './ledger';
+import { assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundFromReview, refundRequest, refundSettle, release, releaseFromReview, releaseOrder } from './ledger';
 import { FakePspAdapter, pspAdapter, PspWebhookEvent } from './psp';
 
 const isoWeek = (d: Date) => {
@@ -169,7 +169,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   // ───────────── refunds (KXM-PAY-02) ─────────────
 
   /** Idempotent by key. Over-refund is impossible: remaining is checked under a row lock. */
-  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string }) {
+  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string; reviewedBy?: string }) {
     const existing = await this.prisma.refund.findUnique({ where: { idempotencyKey: o.idempotencyKey } });
     if (existing) return existing;
     return this.prisma.$transaction(async (tx) => {
@@ -182,7 +182,13 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       if (amount <= 0 || amount > remaining) throw badRequest('REFUND_EXCEEDS_CAPTURE', 'Refund exceeds remaining captured amount', { remaining });
       const refund = await tx.refund.create({ data: { id: newId('rf'), paymentId, amountMinor: amount, reason: o.reason, idempotencyKey: o.idempotencyKey } });
       await tx.paymentIntent.update({ where: { id: paymentId }, data: { refundedMinor: p.refundedMinor + amount, status: p.refundedMinor + amount === p.amountMinor ? 'REFUNDED' : 'PARTIALLY_REFUNDED' } });
-      await this.postLedger(tx, { key: `refund-req:${refund.id}`, kind: 'REFUND_REQUEST', postings: refundRequest(p.clinicId, amount), bookingId: p.bookingId, paymentId, clinicId: p.clinicId });
+      // KXMPAY07: a deposit held for review is refunded OUT OF the review hold, not out of the clinic's HELD balance
+      const heldForReview = p.reviewState === 'HELD_FOR_REVIEW';
+      await this.postLedger(tx, { key: `refund-req:${refund.id}`, kind: heldForReview ? 'REVIEW_REFUND_REQUEST' : 'REFUND_REQUEST', postings: heldForReview ? refundFromReview(p.clinicId, amount) : refundRequest(p.clinicId, amount), bookingId: p.bookingId, paymentId, clinicId: p.clinicId });
+      if (heldForReview && p.refundedMinor + amount === p.amountMinor) {
+        await tx.paymentIntent.update({ where: { id: paymentId }, data: { reviewState: 'REFUNDED_TO_PATIENT', reviewedAt: new Date(), reviewedBy: o.reviewedBy ?? 'system' } });
+        await this.outbox.enqueue(tx, { type: 'pay.review_resolved', aggregateType: 'PaymentIntent', aggregateId: paymentId, payload: { paymentId, bookingId: p.bookingId, outcome: 'REFUNDED' }, dedupeKey: `pay.review_resolved:${paymentId}` });
+      }
       await this.outbox.enqueue(tx, { type: 'pay.refund_requested', aggregateType: 'Refund', aggregateId: refund.id, payload: { refundId: refund.id }, dedupeKey: `pay.refund_requested:${refund.id}` });
       return refund;
     });
@@ -206,6 +212,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; }
     if (p.status !== 'CAPTURED' && p.status !== 'PARTIALLY_REFUNDED') return null;
     if (p.releasedAt) return null; // already released to the clinic (completed / forfeited)
+    if (p.reviewState === 'HELD_FOR_REVIEW') return null; // KXMPAY07: only an ops decision moves a held deposit
     return this.refund(p.id, { reason, idempotencyKey: `refund:${bookingId}:${reason}` });
   }
 
@@ -214,12 +221,73 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   async releaseForBooking(bookingId: string, kind: 'COMPLETED' | 'FORFEITED') {
     const p = await this.intentForBooking(bookingId);
     if (!p || p.status !== 'CAPTURED' || p.releasedAt) return null;
+    if (p.reviewState === 'HELD_FOR_REVIEW') return null; // never auto-forfeited / auto-released while under review (KXMPAY07)
     const n = p.amountMinor - p.refundedMinor;
     await this.prisma.$transaction(async (tx) => {
       const c = await tx.paymentIntent.updateMany({ where: { id: p.id, releasedAt: null }, data: { releasedAt: new Date(), releaseKind: kind } });
       if (c.count) await this.postLedger(tx, { key: `release:${p.id}`, kind: `RELEASE_${kind}`, postings: release(p.clinicId, n), bookingId, paymentId: p.id, clinicId: p.clinicId });
     });
     return kind;
+  }
+
+  // ───────────── KXMPAY07: deposit hold-for-review (unsafe-aborted home visit) ─────────────
+
+  /**
+   * HOME_VISIT_ABORTED_UNSAFE: the captured deposit moves HELD -> REVIEW_HOLD. No no-show charge, never auto-forfeited, never auto-refunded:
+   * ops decides (reviewRelease / reviewRefund). Idempotent per payment (ledger key + guarded state change).
+   */
+  async holdForReview(bookingId: string, reason: string) {
+    const p = await this.intentForBooking(bookingId);
+    if (!p) return null;
+    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; } // never paid: nothing to hold
+    if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status) || p.releasedAt) return null;
+    const n = p.amountMinor - p.refundedMinor;
+    if (n <= 0) return null;
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.paymentIntent.updateMany({ where: { id: p.id, reviewState: null, releasedAt: null }, data: { reviewState: 'HELD_FOR_REVIEW', heldForReviewAt: new Date(), reviewReason: reason } });
+      if (!claimed.count) return p;
+      await this.postLedger(tx, { key: `hold-review:${p.id}`, kind: 'HOLD_FOR_REVIEW', postings: holdForReview(p.clinicId, n), bookingId, paymentId: p.id, clinicId: p.clinicId });
+      await tx.auditLog.create({ data: { actor: 'system', action: 'pay.hold_for_review', resource: 'PaymentIntent', resourceId: p.id, metadata: { bookingId, reason, amountMinor: n } } });
+      return tx.paymentIntent.findUniqueOrThrow({ where: { id: p.id } });
+    });
+  }
+
+  /** Ops decision: the held deposit goes to the provider's payable (a reviewed forfeit). Reason required; audited. */
+  async reviewRelease(paymentId: string, actor: string, reason: string) {
+    if (!reason?.trim()) throw badRequest('REASON_REQUIRED', 'A review decision needs a reason');
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<PaymentIntent[]>(Prisma.sql`SELECT * FROM "PaymentIntent" WHERE id = ${paymentId} FOR UPDATE`);
+      const p = rows[0];
+      if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
+      if (p.reviewState !== 'HELD_FOR_REVIEW') throw conflict('NOT_HELD_FOR_REVIEW', `Payment review state is ${p.reviewState ?? 'none'}`);
+      const n = p.amountMinor - p.refundedMinor;
+      await this.postLedger(tx, { key: `review-release:${p.id}`, kind: 'REVIEW_RELEASE', postings: releaseFromReview(p.clinicId, n), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
+      await tx.paymentIntent.update({ where: { id: p.id }, data: { reviewState: 'RELEASED_TO_PROVIDER', reviewedBy: actor, reviewedAt: new Date(), reviewReason: `${p.reviewReason ?? ''} | ${reason}`.slice(0, 500), releasedAt: new Date(), releaseKind: 'REVIEW_RELEASED' } });
+      await tx.auditLog.create({ data: { actor, action: 'pay.review_release', resource: 'PaymentIntent', resourceId: p.id, metadata: { reason, amountMinor: n } } });
+      await this.outbox.enqueue(tx, { type: 'pay.review_resolved', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id, bookingId: p.bookingId, outcome: 'RELEASED' }, dedupeKey: `pay.review_resolved:${p.id}` });
+      return { paymentId: p.id, outcome: 'RELEASED_TO_PROVIDER' as const, amountMinor: n };
+    });
+  }
+
+  /** Ops decision: the held deposit is refunded to the patient (through the normal refund path, out of REVIEW_HOLD). */
+  async reviewRefund(paymentId: string, actor: string, reason: string) {
+    if (!reason?.trim()) throw badRequest('REASON_REQUIRED', 'A review decision needs a reason');
+    const p = await this.getIntent(paymentId);
+    if (p.reviewState !== 'HELD_FOR_REVIEW') throw conflict('NOT_HELD_FOR_REVIEW', `Payment review state is ${p.reviewState ?? 'none'}`);
+    await this.prisma.auditLog.create({ data: { actor, action: 'pay.review_refund', resource: 'PaymentIntent', resourceId: p.id, metadata: { reason } } });
+    await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { reviewReason: `${p.reviewReason ?? ''} | ${reason}`.slice(0, 500) } });
+    const refund = await this.refund(p.id, { reason: `REVIEW:${reason}`, idempotencyKey: `review-refund:${p.id}`, reviewedBy: actor });
+    return { paymentId: p.id, outcome: 'REFUNDED_TO_PATIENT' as const, refundId: refund.id, amountMinor: refund.amountMinor };
+  }
+
+  /** Ops queue: deposits held for review, oldest first, with their booking context (district only). */
+  async heldForReview() {
+    const rows = await this.prisma.paymentIntent.findMany({ where: { reviewState: 'HELD_FOR_REVIEW' }, orderBy: { heldForReviewAt: 'asc' }, take: 200 });
+    const books = await this.prisma.bookingIntent.findMany({ where: { id: { in: rows.map((r) => r.bookingId ?? '-') } }, select: { id: true, providerId: true, visitDistrict: true, abortedAt: true, status: true, homeState: true } });
+    return rows.map((p) => {
+      const b = books.find((x) => x.id === p.bookingId);
+      return { paymentId: p.id, bookingId: p.bookingId, clinicId: p.clinicId, amountMinor: p.amountMinor - p.refundedMinor, currency: p.currency, reason: p.reviewReason, heldForReviewAt: p.heldForReviewAt, ageHours: p.heldForReviewAt ? Math.round(((Date.now() - p.heldForReviewAt.getTime()) / 3600_000) * 10) / 10 : null, providerId: b?.providerId ?? null, district: b?.visitDistrict ?? null, abortedAt: b?.abortedAt ?? null };
+    });
   }
 
   // ───────────── payouts (KXM-PAY-04) ─────────────
@@ -338,6 +406,8 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     for (const r of stale) disc.push({ type: 'REFUND_NOT_SETTLED', ref: r.id });
     const noLedger = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p.status IN ('CAPTURED','PARTIALLY_REFUNDED','REFUNDED') AND NOT EXISTS (SELECT 1 FROM "LedgerTx" t WHERE t."idempotencyKey" = 'capture:' || p.id)`;
     for (const n of noLedger) disc.push({ type: 'CAPTURE_WITHOUT_LEDGER', ref: n.id });
+    const heldNoLedger = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p."reviewState" = 'HELD_FOR_REVIEW' AND NOT EXISTS (SELECT 1 FROM "LedgerTx" t WHERE t."idempotencyKey" = 'hold-review:' || p.id)`;
+    for (const n of heldNoLedger) disc.push({ type: 'REVIEW_HOLD_WITHOUT_LEDGER', ref: n.id });
     const run = await this.prisma.reconciliationRun.create({ data: { kind: 'PSP_DAILY', status: disc.length ? 'DISCREPANCIES' : 'OK', discrepancies: disc as any, stats: { captured: captured.length, lines: lines.length, date: day.toISOString().slice(0, 10) } } });
     return run;
   }
@@ -365,6 +435,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       this.prisma.reconciliationRun.findMany({ orderBy: { createdAt: 'desc' }, take: 10 }),
       this.balances(),
     ]);
-    return { intents, refunds, payouts, reconciliationRuns: runs, balances };
+    const held = await this.prisma.paymentIntent.aggregate({ where: { reviewState: 'HELD_FOR_REVIEW' }, _count: true, _sum: { amountMinor: true, refundedMinor: true } });
+    return { intents, refunds, payouts, reconciliationRuns: runs, balances, heldForReview: { count: held._count, amountMinor: (held._sum.amountMinor ?? 0) - (held._sum.refundedMinor ?? 0) } };
   }
 }

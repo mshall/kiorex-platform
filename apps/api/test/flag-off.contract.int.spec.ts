@@ -52,7 +52,9 @@ describe('flag-OFF contract per Kiorex flag', () => {
   };
 
   it('every Kiorex flag of the catalogue has a contract action (none forgotten)', () => {
-    expect(Object.keys(actions).sort()).toEqual([...KIOREX_OWN_FLAGS].sort());
+    // Rev 2.3 home-visit flags list gate ids (GHV1+GHV2, GPR1) and have their own contract suite: test/flag-off.home-visits.contract.int.spec.ts
+    const rev23 = ['kiorex.home_visits', 'kiorex.category.physiotherapy', 'kiorex.category.nursing', 'kiorex.visit_tracking'];
+    expect(Object.keys(actions).sort()).toEqual(KIOREX_OWN_FLAGS.filter((k) => !rev23.includes(k)).sort());
     expect(KIOREX_OWN_FLAGS.length).toBe(FLAG_CATALOGUE.filter((f) => f.product === 'kiorex').length);
   });
 
