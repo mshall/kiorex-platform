@@ -96,10 +96,10 @@ function RecordsTab({ readOnly }: { readOnly: boolean }) {
               <li key={r.id} className="kx-card flex items-center gap-3 p-4" data-testid="vault-item" data-kind={r.kind}>
                 <Icon className="h-6 w-6 shrink-0 text-ocean" aria-hidden="true" />
                 <Link to={`/records/${r.id}`} className="min-w-0 flex-1 hover:underline" onClick={() => track("vault_opened")}>
-                  <p className="truncate font-semibold">{r.title ?? t(`records.kind.${r.kind}`)}</p>
+                  <p className="truncate font-semibold">{recordTitle(r.title, t(`records.kind.${r.kind}`))}</p>
                   <p className="text-sm text-muted-foreground">{t(`records.kind.${r.kind}`)} · {t(`records.source.${r.source}`)} · {formatDate(r.signedAt ?? r.createdAt, i18n.language)}{r.sizeBytes ? ` · ${formatBytes(r.sizeBytes, i18n.language)}` : ""}</p>
                 </Link>
-                <Button variant="ghost" size="icon" aria-label={t("records.deleteItem", { title: r.title ?? t(`records.kind.${r.kind}`) })} onClick={() => setDel(r)} data-testid="delete-record"><Trash2 aria-hidden="true" /></Button>
+                <Button variant="ghost" size="icon" aria-label={t("records.deleteItem", { title: recordTitle(r.title, t(`records.kind.${r.kind}`)) })} onClick={() => setDel(r)} data-testid="delete-record"><Trash2 aria-hidden="true" /></Button>
               </li>
             );
           })}
@@ -195,6 +195,10 @@ function SharingTab() {
     </div>
   );
 }
+
+/** The API stores English system titles for records it creates itself ("Lab report", "Visit summary", "Prescription"): show the localized kind label instead. User-entered titles are untouched. */
+const SYSTEM_TITLES = new Set(["Lab report", "Visit summary", "Prescription"]);
+const recordTitle = (title: string | null | undefined, kindLabel: string) => (!title || SYSTEM_TITLES.has(title) ? kindLabel : title);
 
 export default function RecordsPage() {
   const { t } = useTranslation();
