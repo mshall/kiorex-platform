@@ -19,7 +19,7 @@ const auth: Middleware = {
   },
   async onResponse({ response }) {
     if (response.status === 401) onUnauthorized();
-    return response;
+    // Return nothing: openapi-fetch only accepts a *global* Response here, and RN's fetch returns its own Response class.
   },
 };
 
