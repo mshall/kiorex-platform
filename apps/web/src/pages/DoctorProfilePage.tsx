@@ -1,3 +1,4 @@
+import { districtLabel } from "@/lib/districts";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -127,7 +128,7 @@ export default function DoctorProfilePage() {
         {isHome && homeUnlocked && (
           <>
             {p.home.surchargeEgp > 0 && <p className="text-sm text-muted-foreground" data-testid="home-surcharge">{t("hv.surchargeNote", { amount: formatMoney(p.home.surchargeEgp, lang) })}</p>}
-            {coverage.length > 0 && <p className="text-sm text-muted-foreground">{t("hv.visitsIn", { districts: coverage.join(" · ") })}</p>}
+            {coverage.length > 0 && <p className="text-sm text-muted-foreground">{t("hv.visitsIn", { districts: coverage.map((d) => districtLabel(d, i18n.language)).join(" · ") })}</p>}
             <HomeVisitPicker coverageDistricts={coverage} value={addr?.id} onChange={setAddr} />
             {homeSlots.error instanceof ApiError && homeSlots.error.code === "OUT_OF_COVERAGE" && <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-4 text-sm" data-testid="out-of-coverage-api"><b>{t("hv.outOfCoverageTitle")}</b> {t("hv.outOfCoverageBody")}</div>}
           </>

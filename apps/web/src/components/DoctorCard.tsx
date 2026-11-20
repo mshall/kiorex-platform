@@ -10,6 +10,7 @@ import type { DoctorSummary, Slot, Specialty } from "@/api/types";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { Rating } from "./StarRating";
 import { specialtyLabel } from "@/lib/specialties";
+import { districtLabel } from "@/lib/districts";
 import { SlotButton } from "./SlotButton";
 
 export function DoctorCard({ doctor, specialties, onPickSlot }: { doctor: DoctorSummary; specialties?: Specialty[]; onPickSlot: (d: DoctorSummary, s: Slot) => void }) {
@@ -38,7 +39,7 @@ export function DoctorCard({ doctor, specialties, onPickSlot }: { doctor: Doctor
             {doctor.depositRequired && <Badge variant="warning">{t("doctor.depositRequired")}</Badge>}
             {doctor.serviceLocations?.includes("HOME") && <Badge variant="success" data-testid="home-badge">{t("hv.homeVisits")}{doctor.homeFeeEgp ? ` · ${formatMoney(doctor.homeFeeEgp, lang)}` : ""}</Badge>}
           </div>
-          {doctor.serviceLocations?.includes("HOME") && !!doctor.coverageDistricts?.length && <p className="text-xs text-muted-foreground" data-testid="coverage">{t("hv.visitsIn", { districts: doctor.coverageDistricts.join(" · ") })}</p>}
+          {doctor.serviceLocations?.includes("HOME") && !!doctor.coverageDistricts?.length && <p className="text-xs text-muted-foreground" data-testid="coverage">{t("hv.visitsIn", { districts: doctor.coverageDistricts.map((d) => districtLabel(d, lang)).join(" · ") })}</p>}
         </div>
       </div>
       <div className="mt-4">
