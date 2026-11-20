@@ -4,7 +4,6 @@
     "/api/v1/dev/messaging/inbound": {
       "post": {
         "operationId": "DevMessagingController_inbound",
-        "summary": "DEV: simulate a patient reply on a channel (drives the WhatsApp booking state machine)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -28,6 +27,7 @@
             }
           }
         },
+        "summary": "DEV: simulate a patient reply on a channel (drives the WhatsApp booking state machine)",
         "tags": [
           "dev"
         ]
@@ -36,7 +36,6 @@
     "/api/v1/dev/messaging/outbox": {
       "get": {
         "operationId": "DevMessagingController_outbox",
-        "summary": "DEV: messages the platform \"sent\" (all channels), newest first",
         "parameters": [
           {
             "name": "channel",
@@ -83,13 +82,13 @@
             }
           }
         },
+        "summary": "DEV: messages the platform \"sent\" (all channels), newest first",
         "tags": [
           "dev"
         ]
       },
       "delete": {
         "operationId": "DevMessagingController_clear",
-        "summary": "DEV: clear the dev inbox",
         "parameters": [
           {
             "name": "channel",
@@ -112,6 +111,7 @@
             }
           }
         },
+        "summary": "DEV: clear the dev inbox",
         "tags": [
           "dev"
         ]
@@ -120,7 +120,6 @@
     "/api/v1/dev/messaging/delivery-tick": {
       "post": {
         "operationId": "DevMessagingController_tick",
-        "summary": "DEV: advance SENT -> DELIVERED for all mock messages",
         "parameters": [],
         "responses": {
           "200": {
@@ -134,6 +133,7 @@
             }
           }
         },
+        "summary": "DEV: advance SENT -> DELIVERED for all mock messages",
         "tags": [
           "dev"
         ]
@@ -142,7 +142,6 @@
     "/api/v1/markets": {
       "get": {
         "operationId": "MarketController_list",
-        "summary": "Markets (countries) that are LIVE; use for the sign-up country picker. ?all=true also lists gated markets with their state",
         "parameters": [
           {
             "name": "all",
@@ -168,6 +167,7 @@
             }
           }
         },
+        "summary": "Markets (countries) that are LIVE; use for the sign-up country picker. ?all=true also lists gated markets with their state",
         "tags": [
           "market"
         ]
@@ -176,7 +176,6 @@
     "/api/v1/analytics/events": {
       "post": {
         "operationId": "AnalyticsController_ingest",
-        "summary": "KX-03 §07 client analytics (PHI-free whitelist, anonymous, all-or-nothing batch)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -200,6 +199,7 @@
             }
           }
         },
+        "summary": "KX-03 §07 client analytics (PHI-free whitelist, anonymous, all-or-nothing batch)",
         "tags": [
           "analytics"
         ]
@@ -211,7 +211,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Claims of the authenticated Kiorex Passport subject",
             "content": {
               "application/json": {
                 "schema": {
@@ -260,7 +260,6 @@
     "/api/v1/control/v1/flags/snapshot": {
       "get": {
         "operationId": "ControlPlaneController_snapshot",
-        "summary": "Signed flag snapshot per product (ETag, poll every 30 s)",
         "parameters": [
           {
             "name": "product",
@@ -299,6 +298,7 @@
             }
           }
         },
+        "summary": "Signed flag snapshot per product (ETag, poll every 30 s)",
         "tags": [
           "control-plane"
         ]
@@ -307,7 +307,6 @@
     "/api/v1/flags/effective": {
       "get": {
         "operationId": "ControlPlaneController_effective",
-        "summary": "Effective state of every Kiorex flag (for web/mobile to hide entry points)",
         "parameters": [],
         "responses": {
           "200": {
@@ -321,6 +320,7 @@
             }
           }
         },
+        "summary": "Effective state of every Kiorex flag (for web/mobile to hide entry points)",
         "tags": [
           "control-plane"
         ]
@@ -329,7 +329,6 @@
     "/api/v1/admin/flags": {
       "get": {
         "operationId": "ControlPlaneController_list",
-        "summary": "Every flag of every product with effective value, source, class, deps, last change (OP-07)",
         "parameters": [
           {
             "name": "market",
@@ -363,6 +362,7 @@
             }
           }
         },
+        "summary": "Every flag of every product with effective value, source, class, deps, last change (OP-07)",
         "tags": [
           "control-plane"
         ]
@@ -371,7 +371,6 @@
     "/api/v1/admin/flags/{key}/values": {
       "put": {
         "operationId": "ControlPlaneController_set",
-        "summary": "Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10)",
         "parameters": [
           {
             "name": "key",
@@ -404,6 +403,7 @@
             }
           }
         },
+        "summary": "Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10)",
         "tags": [
           "control-plane"
         ]
@@ -412,7 +412,6 @@
     "/api/v1/admin/flags/{key}/gate": {
       "put": {
         "operationId": "ControlPlaneController_gate",
-        "summary": "Record launch gate evidence (OP-09). STOP flag: only a human may call this.",
         "parameters": [
           {
             "name": "key",
@@ -445,6 +444,7 @@
             }
           }
         },
+        "summary": "Record launch gate evidence (OP-09). STOP flag: only a human may call this.",
         "tags": [
           "control-plane"
         ]
@@ -453,7 +453,6 @@
     "/api/v1/admin/gates": {
       "get": {
         "operationId": "ControlPlaneController_gates",
-        "summary": "Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag",
         "parameters": [],
         "responses": {
           "200": {
@@ -467,6 +466,7 @@
             }
           }
         },
+        "summary": "Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag",
         "tags": [
           "control-plane"
         ]
@@ -475,7 +475,6 @@
     "/api/v1/admin/gates/{gateId}": {
       "put": {
         "operationId": "ControlPlaneController_gateAll",
-        "summary": "Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag.",
         "parameters": [
           {
             "name": "gateId",
@@ -508,6 +507,7 @@
             }
           }
         },
+        "summary": "Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag.",
         "tags": [
           "control-plane"
         ]
@@ -556,7 +556,6 @@
     "/api/v1/admin/flags/definitions": {
       "post": {
         "operationId": "ControlPlaneController_define",
-        "summary": "Register a flag definition (e.g. market.<cc>.live). Safety controls are refused (ADR-025).",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -580,6 +579,7 @@
             }
           }
         },
+        "summary": "Register a flag definition (e.g. market.<cc>.live). Safety controls are refused (ADR-025).",
         "tags": [
           "control-plane"
         ]
@@ -735,7 +735,6 @@
     "/api/v1/admin/flags/audit": {
       "get": {
         "operationId": "ControlPlaneController_audit",
-        "summary": "Flag audit trail; ?format=csv exports (OP-11)",
         "parameters": [
           {
             "name": "flagKey",
@@ -785,6 +784,7 @@
             }
           }
         },
+        "summary": "Flag audit trail; ?format=csv exports (OP-11)",
         "tags": [
           "control-plane"
         ]
@@ -793,7 +793,6 @@
     "/api/v1/admin/flags/propagation": {
       "get": {
         "operationId": "ControlPlaneController_propagation",
-        "summary": "Snapshot version and age per product (OP-11)",
         "parameters": [],
         "responses": {
           "200": {
@@ -807,6 +806,7 @@
             }
           }
         },
+        "summary": "Snapshot version and age per product (OP-11)",
         "tags": [
           "control-plane"
         ]
@@ -876,7 +876,6 @@
     "/api/v1/me/profile": {
       "get": {
         "operationId": "PatientController_profile",
-        "summary": "KXM-AC-02 profile (national ID masked)",
         "parameters": [],
         "responses": {
           "200": {
@@ -890,13 +889,13 @@
             }
           }
         },
+        "summary": "KXM-AC-02 profile (national ID masked)",
         "tags": [
           "patient"
         ]
       },
       "put": {
         "operationId": "PatientController_update",
-        "summary": "KXM-AC-02 update profile; national ID encrypted at rest",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -920,6 +919,7 @@
             }
           }
         },
+        "summary": "KXM-AC-02 update profile; national ID encrypted at rest",
         "tags": [
           "patient"
         ]
@@ -928,7 +928,6 @@
     "/api/v1/me/dependants": {
       "get": {
         "operationId": "PatientController_deps",
-        "summary": "KXM-AC-03 list family members",
         "parameters": [],
         "responses": {
           "200": {
@@ -945,13 +944,13 @@
             }
           }
         },
+        "summary": "KXM-AC-03 list family members",
         "tags": [
           "patient"
         ]
       },
       "post": {
         "operationId": "PatientController_addDep",
-        "summary": "KXM-AC-03 add dependant (flag kiorex.family_accounts)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -975,6 +974,7 @@
             }
           }
         },
+        "summary": "KXM-AC-03 add dependant (flag kiorex.family_accounts)",
         "tags": [
           "patient"
         ]
@@ -1051,7 +1051,6 @@
     "/api/v1/me/consents": {
       "get": {
         "operationId": "PatientController_consents",
-        "summary": "KXM-AC-04 consent centre — current state",
         "parameters": [],
         "responses": {
           "200": {
@@ -1068,6 +1067,7 @@
             }
           }
         },
+        "summary": "KXM-AC-04 consent centre — current state",
         "tags": [
           "patient"
         ]
@@ -1100,7 +1100,6 @@
     "/api/v1/me/consents/{purpose}": {
       "put": {
         "operationId": "PatientController_setConsent",
-        "summary": "KXM-AC-04 grant or withdraw a consent",
         "parameters": [
           {
             "name": "purpose",
@@ -1133,6 +1132,7 @@
             }
           }
         },
+        "summary": "KXM-AC-04 grant or withdraw a consent",
         "tags": [
           "patient"
         ]
@@ -1141,7 +1141,6 @@
     "/api/v1/me/sessions": {
       "get": {
         "operationId": "PatientController_sessionsList",
-        "summary": "KXM-AC-05 device/session list",
         "parameters": [],
         "responses": {
           "200": {
@@ -1158,6 +1157,7 @@
             }
           }
         },
+        "summary": "KXM-AC-05 device/session list",
         "tags": [
           "patient"
         ]
@@ -1166,7 +1166,6 @@
     "/api/v1/me/sessions/{id}": {
       "delete": {
         "operationId": "PatientController_revoke",
-        "summary": "KXM-AC-05 remote sign-out",
         "parameters": [
           {
             "name": "id",
@@ -1189,6 +1188,7 @@
             }
           }
         },
+        "summary": "KXM-AC-05 remote sign-out",
         "tags": [
           "patient"
         ]
@@ -1197,7 +1197,6 @@
     "/api/v1/me/kiorly-links": {
       "get": {
         "operationId": "PatientController_links",
-        "summary": "KXM-AC-07 Kiorly record links (never auto-merged)",
         "parameters": [],
         "responses": {
           "200": {
@@ -1214,6 +1213,7 @@
             }
           }
         },
+        "summary": "KXM-AC-07 Kiorly record links (never auto-merged)",
         "tags": [
           "patient"
         ]
@@ -1222,7 +1222,6 @@
     "/api/v1/me/export": {
       "post": {
         "operationId": "PatientController_export",
-        "summary": "KXM-AC-06 data export",
         "parameters": [],
         "responses": {
           "200": {
@@ -1236,6 +1235,7 @@
             }
           }
         },
+        "summary": "KXM-AC-06 data export",
         "tags": [
           "patient"
         ]
@@ -1244,7 +1244,6 @@
     "/api/v1/me/deletion": {
       "post": {
         "operationId": "PatientController_deletion",
-        "summary": "KXM-AC-06 in-app account deletion with optional export",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1268,6 +1267,7 @@
             }
           }
         },
+        "summary": "KXM-AC-06 in-app account deletion with optional export",
         "tags": [
           "patient"
         ]
@@ -1276,7 +1276,6 @@
     "/api/v1/me/addresses": {
       "get": {
         "operationId": "AddressController_list",
-        "summary": "KXMHV01 address book (encrypted at rest; only the owner ever receives doorstep lines)",
         "parameters": [],
         "responses": {
           "200": {
@@ -1293,13 +1292,13 @@
             }
           }
         },
+        "summary": "KXMHV01 address book (encrypted at rest; only the owner ever receives doorstep lines)",
         "tags": [
           "address-book"
         ]
       },
       "post": {
         "operationId": "AddressController_create",
-        "summary": "KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1323,6 +1322,7 @@
             }
           }
         },
+        "summary": "KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin",
         "tags": [
           "address-book"
         ]
@@ -1399,7 +1399,6 @@
     "/api/v1/me/addresses/{id}/confirm": {
       "post": {
         "operationId": "AddressController_confirm",
-        "summary": "KXMHV01 confirm this address with the OTP-verified phone (required once before the first home booking; any edit of district/street resets it)",
         "parameters": [
           {
             "name": "id",
@@ -1422,6 +1421,7 @@
             }
           }
         },
+        "summary": "KXMHV01 confirm this address with the OTP-verified phone (required once before the first home booking; any edit of district/street resets it)",
         "tags": [
           "address-book"
         ]
@@ -1430,7 +1430,6 @@
     "/api/v1/search/providers": {
       "get": {
         "operationId": "CatalogController_search",
-        "summary": "KXM-DS-01..04/06 search; emergency keywords return 123 guidance and no results",
         "parameters": [
           {
             "name": "q",
@@ -1613,6 +1612,7 @@
             }
           }
         },
+        "summary": "KXM-DS-01..04/06 search; emergency keywords return 123 guidance and no results",
         "tags": [
           "catalog"
         ]
@@ -1621,7 +1621,6 @@
     "/api/v1/specialties": {
       "get": {
         "operationId": "CatalogController_specialties",
-        "summary": "Specialty codes with AR/EN labels",
         "parameters": [],
         "responses": {
           "200": {
@@ -1638,6 +1637,7 @@
             }
           }
         },
+        "summary": "Specialty codes with AR/EN labels",
         "tags": [
           "catalog"
         ]
@@ -1646,7 +1646,6 @@
     "/api/v1/providers/{id}": {
       "get": {
         "operationId": "CatalogController_profile",
-        "summary": "KXM-PR-01/02/04 provider profile",
         "parameters": [
           {
             "name": "id",
@@ -1669,6 +1668,7 @@
             }
           }
         },
+        "summary": "KXM-PR-01/02/04 provider profile",
         "tags": [
           "catalog"
         ]
@@ -1677,7 +1677,6 @@
     "/api/v1/providers/{id}/slots": {
       "get": {
         "operationId": "CatalogController_slots",
-        "summary": "KXM-BK-01 slots from Kiorly (60 s cache)",
         "parameters": [
           {
             "name": "id",
@@ -1756,6 +1755,7 @@
             }
           }
         },
+        "summary": "KXM-BK-01 slots from Kiorly (60 s cache)",
         "tags": [
           "catalog"
         ]
@@ -1764,7 +1764,6 @@
     "/api/v1/care-types": {
       "get": {
         "operationId": "CatalogController_careTypes",
-        "summary": "KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*)",
         "parameters": [
           {
             "name": "market",
@@ -1790,6 +1789,7 @@
             }
           }
         },
+        "summary": "KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*)",
         "tags": [
           "catalog"
         ]
@@ -1798,7 +1798,6 @@
     "/api/v1/home/districts": {
       "get": {
         "operationId": "CatalogController_homeDistricts",
-        "summary": "KXMHV02 districts with at least one home-enabled provider (district level only)",
         "parameters": [],
         "responses": {
           "200": {
@@ -1815,6 +1814,7 @@
             }
           }
         },
+        "summary": "KXMHV02 districts with at least one home-enabled provider (district level only)",
         "tags": [
           "catalog"
         ]
@@ -1823,7 +1823,6 @@
     "/api/v1/providers/{id}/view": {
       "post": {
         "operationId": "CatalogController_view",
-        "summary": "KXM-DS-08 count a profile view (pushed daily to Kiorly)",
         "parameters": [
           {
             "name": "id",
@@ -1846,6 +1845,7 @@
             }
           }
         },
+        "summary": "KXM-DS-08 count a profile view (pushed daily to Kiorly)",
         "tags": [
           "catalog"
         ]
@@ -1854,7 +1854,6 @@
     "/api/v1/search/sponsored": {
       "get": {
         "operationId": "CatalogController_sponsored",
-        "summary": "Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled",
         "parameters": [],
         "responses": {
           "200": {
@@ -1868,6 +1867,7 @@
             }
           }
         },
+        "summary": "Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled",
         "tags": [
           "catalog"
         ]
@@ -1876,7 +1876,6 @@
     "/api/v1/me/notifications": {
       "get": {
         "operationId": "EngagementController_inbox",
-        "summary": "KXM-NT-01 in-app notification inbox",
         "parameters": [],
         "responses": {
           "200": {
@@ -1893,6 +1892,7 @@
             }
           }
         },
+        "summary": "KXM-NT-01 in-app notification inbox",
         "tags": [
           "engagement"
         ]
@@ -1931,7 +1931,6 @@
     "/api/v1/me/notification-preferences": {
       "get": {
         "operationId": "EngagementController_prefs",
-        "summary": "KXM-NT-02 per-channel opt-out and quiet hours",
         "parameters": [],
         "responses": {
           "200": {
@@ -1948,6 +1947,7 @@
             }
           }
         },
+        "summary": "KXM-NT-02 per-channel opt-out and quiet hours",
         "tags": [
           "engagement"
         ]
@@ -1996,7 +1996,6 @@
     "/api/v1/me/devices": {
       "post": {
         "operationId": "EngagementController_registerDevice",
-        "summary": "KXM-NT push device registry: register or refresh this app instance's push token (idempotent on the token; never echoed back)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2020,6 +2019,7 @@
             }
           }
         },
+        "summary": "KXM-NT push device registry: register or refresh this app instance's push token (idempotent on the token; never echoed back)",
         "tags": [
           "engagement"
         ]
@@ -2080,7 +2080,6 @@
     "/api/v1/pay/intents/{id}": {
       "get": {
         "operationId": "PayController_intent",
-        "summary": "Own payment status",
         "parameters": [
           {
             "name": "id",
@@ -2103,6 +2102,7 @@
             }
           }
         },
+        "summary": "Own payment status",
         "tags": [
           "pay"
         ]
@@ -2141,7 +2141,6 @@
     "/api/v1/pay/links": {
       "post": {
         "operationId": "PayController_createLink",
-        "summary": "Kiorly registers a deposit pay link (product-key HMAC)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2165,6 +2164,7 @@
             }
           }
         },
+        "summary": "Kiorly registers a deposit pay link (product-key HMAC)",
         "tags": [
           "pay"
         ]
@@ -2173,7 +2173,6 @@
     "/api/v1/pay/links/{token}": {
       "get": {
         "operationId": "PayController_link",
-        "summary": "Hosted pay link info",
         "parameters": [
           {
             "name": "token",
@@ -2196,6 +2195,7 @@
             }
           }
         },
+        "summary": "Hosted pay link info",
         "tags": [
           "pay"
         ]
@@ -2204,7 +2204,6 @@
     "/api/v1/pay/links/{token}/checkout": {
       "post": {
         "operationId": "PayController_linkCheckout",
-        "summary": "Start hosted checkout for a pay link",
         "parameters": [
           {
             "name": "token",
@@ -2227,6 +2226,7 @@
             }
           }
         },
+        "summary": "Start hosted checkout for a pay link",
         "tags": [
           "pay"
         ]
@@ -2310,7 +2310,6 @@
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
-        "summary": "KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2334,6 +2333,7 @@
             }
           }
         },
+        "summary": "KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered",
         "tags": [
           "booking"
         ]
@@ -2373,7 +2373,6 @@
     "/api/v1/bookings/{id}/confirm": {
       "post": {
         "operationId": "BookingController_confirm",
-        "summary": "KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id)",
         "parameters": [
           {
             "name": "id",
@@ -2406,6 +2405,7 @@
             }
           }
         },
+        "summary": "KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id)",
         "tags": [
           "booking"
         ]
@@ -2444,7 +2444,6 @@
     "/api/v1/bookings/{id}/cancel": {
       "post": {
         "operationId": "BookingController_cancel",
-        "summary": "KXM-BK-07 cancel (policy enforced by Kiorly)",
         "parameters": [
           {
             "name": "id",
@@ -2477,6 +2476,7 @@
             }
           }
         },
+        "summary": "KXM-BK-07 cancel (policy enforced by Kiorly)",
         "tags": [
           "booking"
         ]
@@ -2485,7 +2485,6 @@
     "/api/v1/bookings/{id}/reschedule": {
       "post": {
         "operationId": "BookingController_reschedule",
-        "summary": "KXM-BK-07 reschedule",
         "parameters": [
           {
             "name": "id",
@@ -2518,6 +2517,7 @@
             }
           }
         },
+        "summary": "KXM-BK-07 reschedule",
         "tags": [
           "booking"
         ]
@@ -2526,7 +2526,6 @@
     "/api/v1/bookings/{id}/deposit-checkout": {
       "post": {
         "operationId": "BookingController_deposit",
-        "summary": "KXM-PAY-01 start hosted deposit checkout (flag kiorex.pay_deposits)",
         "parameters": [
           {
             "name": "id",
@@ -2549,6 +2548,7 @@
             }
           }
         },
+        "summary": "KXM-PAY-01 start hosted deposit checkout (flag kiorex.pay_deposits)",
         "tags": [
           "booking"
         ]
@@ -2587,7 +2587,6 @@
     "/api/v1/bookings/{id}/calendar.ics": {
       "get": {
         "operationId": "BookingController_ics",
-        "summary": "KXM-BK-09 add to calendar",
         "parameters": [
           {
             "name": "id",
@@ -2610,6 +2609,7 @@
             }
           }
         },
+        "summary": "KXM-BK-09 add to calendar",
         "tags": [
           "booking"
         ]
@@ -2618,7 +2618,6 @@
     "/api/v1/bookings/{id}/review": {
       "post": {
         "operationId": "TrustController_submit",
-        "summary": "KXM-RV-01 review a completed Kiorex visit (flag kiorex.reviews)",
         "parameters": [
           {
             "name": "id",
@@ -2651,6 +2650,7 @@
             }
           }
         },
+        "summary": "KXM-RV-01 review a completed Kiorex visit (flag kiorex.reviews)",
         "tags": [
           "trust"
         ]
@@ -2659,7 +2659,6 @@
     "/api/v1/reviews/{id}": {
       "put": {
         "operationId": "TrustController_edit",
-        "summary": "KXM-RV-01 edit within 7 days",
         "parameters": [
           {
             "name": "id",
@@ -2692,6 +2691,7 @@
             }
           }
         },
+        "summary": "KXM-RV-01 edit within 7 days",
         "tags": [
           "trust"
         ]
@@ -2724,7 +2724,6 @@
     "/api/v1/providers/{id}/reviews": {
       "get": {
         "operationId": "TrustController_forProvider",
-        "summary": "KXM-PR-03 latest 20 visible reviews with clinic replies",
         "parameters": [
           {
             "name": "id",
@@ -2747,6 +2746,7 @@
             }
           }
         },
+        "summary": "KXM-PR-03 latest 20 visible reviews with clinic replies",
         "tags": [
           "trust"
         ]
@@ -2786,7 +2786,6 @@
     "/api/v1/navigation/symptoms": {
       "post": {
         "operationId": "AiGatewayController_navigate",
-        "summary": "Symptom → specialty navigation (emergency check first; AI only when kiorex.ai_navigation is effective, else keyword map)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2810,6 +2809,7 @@
             }
           }
         },
+        "summary": "Symptom → specialty navigation (emergency check first; AI only when kiorex.ai_navigation is effective, else keyword map)",
         "tags": [
           "ai"
         ]
@@ -2818,7 +2818,6 @@
     "/api/v1/webhooks/kiorly": {
       "post": {
         "operationId": "WebhooksController_kiorly",
-        "summary": "Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId",
         "parameters": [
           {
             "name": "x-kiorly-signature",
@@ -2865,6 +2864,7 @@
             }
           }
         },
+        "summary": "Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId",
         "tags": [
           "webhooks"
         ]
@@ -2873,7 +2873,6 @@
     "/api/v1/webhooks/pharmacy": {
       "post": {
         "operationId": "WebhooksController_pharmacy",
-        "summary": "Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET",
         "parameters": [
           {
             "name": "x-kiorly-signature",
@@ -2920,6 +2919,7 @@
             }
           }
         },
+        "summary": "Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET",
         "tags": [
           "webhooks"
         ]
@@ -2928,7 +2928,6 @@
     "/api/v1/webhooks/lab": {
       "post": {
         "operationId": "WebhooksController_lab",
-        "summary": "Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET",
         "parameters": [
           {
             "name": "x-kiorly-signature",
@@ -2975,6 +2974,7 @@
             }
           }
         },
+        "summary": "Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET",
         "tags": [
           "webhooks"
         ]
@@ -2983,7 +2983,6 @@
     "/api/v1/admin/providers": {
       "get": {
         "operationId": "OpsController_providers",
-        "summary": "KXM-OP-01 provider directory",
         "parameters": [
           {
             "name": "status",
@@ -3022,6 +3021,7 @@
             }
           }
         },
+        "summary": "KXM-OP-01 provider directory",
         "tags": [
           "ops"
         ]
@@ -3060,7 +3060,6 @@
     "/api/v1/admin/bookings": {
       "get": {
         "operationId": "OpsController_bookingsList",
-        "summary": "KXM-OP-02 bookings",
         "parameters": [
           {
             "name": "status",
@@ -3102,6 +3101,7 @@
             }
           }
         },
+        "summary": "KXM-OP-02 bookings",
         "tags": [
           "ops"
         ]
@@ -3110,7 +3110,6 @@
     "/api/v1/admin/bookings/{id}/timeline": {
       "get": {
         "operationId": "OpsController_timeline",
-        "summary": "KXM-OP-02 booking timeline: intents, holds, Kiorly calls, events, payments",
         "parameters": [
           {
             "name": "id",
@@ -3133,6 +3132,7 @@
             }
           }
         },
+        "summary": "KXM-OP-02 booking timeline: intents, holds, Kiorly calls, events, payments",
         "tags": [
           "ops"
         ]
@@ -3141,7 +3141,6 @@
     "/api/v1/admin/outbox": {
       "get": {
         "operationId": "OpsController_outboxList",
-        "summary": "KXM-OP-03 outbox monitor",
         "parameters": [
           {
             "name": "status",
@@ -3172,6 +3171,7 @@
             }
           }
         },
+        "summary": "KXM-OP-03 outbox monitor",
         "tags": [
           "ops"
         ]
@@ -3180,7 +3180,6 @@
     "/api/v1/admin/outbox/{id}/replay": {
       "post": {
         "operationId": "OpsController_replay",
-        "summary": "KXM-OP-03 replay a DEAD/FAILED event",
         "parameters": [
           {
             "name": "id",
@@ -3203,6 +3202,7 @@
             }
           }
         },
+        "summary": "KXM-OP-03 replay a DEAD/FAILED event",
         "tags": [
           "ops"
         ]
@@ -3211,7 +3211,6 @@
     "/api/v1/admin/payments/dashboard": {
       "get": {
         "operationId": "OpsController_payments",
-        "summary": "KXM-OP-04 refunds, payouts, reconciliation dashboard",
         "parameters": [],
         "responses": {
           "200": {
@@ -3225,6 +3224,7 @@
             }
           }
         },
+        "summary": "KXM-OP-04 refunds, payouts, reconciliation dashboard",
         "tags": [
           "ops"
         ]
@@ -3264,7 +3264,6 @@
     "/api/v1/admin/payments/held-for-review": {
       "get": {
         "operationId": "OpsController_heldForReview",
-        "summary": "KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited)",
         "parameters": [],
         "responses": {
           "200": {
@@ -3281,6 +3280,7 @@
             }
           }
         },
+        "summary": "KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited)",
         "tags": [
           "ops"
         ]
@@ -3289,7 +3289,6 @@
     "/api/v1/admin/payments/{paymentId}/review/release": {
       "post": {
         "operationId": "OpsController_reviewRelease",
-        "summary": "KXMPAY07 review decision: release the held deposit to the provider (reason required, audited)",
         "parameters": [
           {
             "name": "paymentId",
@@ -3322,6 +3321,7 @@
             }
           }
         },
+        "summary": "KXMPAY07 review decision: release the held deposit to the provider (reason required, audited)",
         "tags": [
           "ops"
         ]
@@ -3330,7 +3330,6 @@
     "/api/v1/admin/payments/{paymentId}/review/refund": {
       "post": {
         "operationId": "OpsController_reviewRefund",
-        "summary": "KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited)",
         "parameters": [
           {
             "name": "paymentId",
@@ -3363,6 +3362,7 @@
             }
           }
         },
+        "summary": "KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited)",
         "tags": [
           "ops"
         ]
@@ -3371,7 +3371,6 @@
     "/api/v1/admin/home-visits/gate-metric": {
       "get": {
         "operationId": "OpsController_homeGate",
-        "summary": "Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate",
         "parameters": [],
         "responses": {
           "200": {
@@ -3385,6 +3384,7 @@
             }
           }
         },
+        "summary": "Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate",
         "tags": [
           "ops"
         ]
@@ -3393,7 +3393,6 @@
     "/api/v1/admin/fee-statements": {
       "get": {
         "operationId": "OpsController_feeStatements",
-        "summary": "Kiorex's own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line.",
         "parameters": [
           {
             "name": "from",
@@ -3424,6 +3423,7 @@
             }
           }
         },
+        "summary": "Kiorex's own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line.",
         "tags": [
           "ops"
         ]
@@ -3560,7 +3560,6 @@
     "/api/v1/admin/moderation": {
       "get": {
         "operationId": "OpsController_queue",
-        "summary": "KXM-OP-05 review moderation queue",
         "parameters": [
           {
             "name": "status",
@@ -3586,6 +3585,7 @@
             }
           }
         },
+        "summary": "KXM-OP-05 review moderation queue",
         "tags": [
           "ops"
         ]
@@ -3697,7 +3697,6 @@
     "/api/v1/admin/liquidity": {
       "get": {
         "operationId": "OpsController_liquidity",
-        "summary": "KXM-OP-06 cluster liquidity metrics",
         "parameters": [
           {
             "name": "days",
@@ -3720,6 +3719,7 @@
             }
           }
         },
+        "summary": "KXM-OP-06 cluster liquidity metrics",
         "tags": [
           "ops"
         ]
@@ -3776,7 +3776,6 @@
     "/api/v1/admin/messaging/stats": {
       "get": {
         "operationId": "OpsController_messagingStats",
-        "summary": "OP: unified messaging (email/whatsapp/sms/push) mode and counts per channel/status",
         "parameters": [],
         "responses": {
           "200": {
@@ -3790,6 +3789,7 @@
             }
           }
         },
+        "summary": "OP: unified messaging (email/whatsapp/sms/push) mode and counts per channel/status",
         "tags": [
           "ops"
         ]
@@ -3798,7 +3798,6 @@
     "/api/v1/admin/messaging/log": {
       "get": {
         "operationId": "OpsController_messagingLog",
-        "summary": "OP: unified message log (recipient masked; body only present in mock mode)",
         "parameters": [
           {
             "name": "channel",
@@ -3845,6 +3844,7 @@
             }
           }
         },
+        "summary": "OP: unified message log (recipient masked; body only present in mock mode)",
         "tags": [
           "ops"
         ]
@@ -3853,7 +3853,6 @@
     "/api/v1/admin/messaging/log/{id}/simulate": {
       "post": {
         "operationId": "OpsController_messagingSimulate",
-        "summary": "OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling",
         "parameters": [
           {
             "name": "id",
@@ -3886,6 +3885,7 @@
             }
           }
         },
+        "summary": "OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling",
         "tags": [
           "ops"
         ]
@@ -3939,7 +3939,6 @@
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",
-        "summary": "KXM-RC-01 patient vault: shared + uploaded records (always readable; readOnly=true when kiorex.record_vault is OFF)",
         "parameters": [
           {
             "name": "kind",
@@ -3962,6 +3961,7 @@
             }
           }
         },
+        "summary": "KXM-RC-01 patient vault: shared + uploaded records (always readable; readOnly=true when kiorex.record_vault is OFF)",
         "tags": [
           "records"
         ]
@@ -3970,7 +3970,6 @@
     "/api/v1/me/vault/uploads": {
       "post": {
         "operationId": "VaultController_upload",
-        "summary": "KXM-RC-01 upload a PDF/JPEG/PNG to the vault (flag kiorex.record_vault; JSON base64, stored encrypted via the storage adapter)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -3994,6 +3993,7 @@
             }
           }
         },
+        "summary": "KXM-RC-01 upload a PDF/JPEG/PNG to the vault (flag kiorex.record_vault; JSON base64, stored encrypted via the storage adapter)",
         "tags": [
           "records"
         ]
@@ -4002,7 +4002,6 @@
     "/api/v1/me/vault/{id}": {
       "get": {
         "operationId": "VaultController_detail",
-        "summary": "KXM-RC-01 view a record (owner only; prescriptions include the verification QR payload)",
         "parameters": [
           {
             "name": "id",
@@ -4025,13 +4024,13 @@
             }
           }
         },
+        "summary": "KXM-RC-01 view a record (owner only; prescriptions include the verification QR payload)",
         "tags": [
           "records"
         ]
       },
       "delete": {
         "operationId": "VaultController_remove",
-        "summary": "KXM-RC-01 revoke/delete a record from the vault (always allowed, even when the vault flag is OFF)",
         "parameters": [
           {
             "name": "id",
@@ -4054,6 +4053,7 @@
             }
           }
         },
+        "summary": "KXM-RC-01 revoke/delete a record from the vault (always allowed, even when the vault flag is OFF)",
         "tags": [
           "records"
         ]
@@ -4062,7 +4062,6 @@
     "/api/v1/me/vault/{id}/content": {
       "get": {
         "operationId": "VaultController_content",
-        "summary": "Download an uploaded file (decrypted on the fly, owner only)",
         "parameters": [
           {
             "name": "id",
@@ -4086,6 +4085,7 @@
             }
           }
         },
+        "summary": "Download an uploaded file (decrypted on the fly, owner only)",
         "tags": [
           "records"
         ]
@@ -4094,7 +4094,6 @@
     "/api/v1/me/record-sharing": {
       "get": {
         "operationId": "VaultController_sharing",
-        "summary": "KXM-RC-01 record-share consent per scope (VISIT_SUMMARY, PRESCRIPTIONS, LAB_RESULTS, SHARE_WITH_OTHER_CLINICS)",
         "parameters": [],
         "responses": {
           "200": {
@@ -4108,6 +4107,7 @@
             }
           }
         },
+        "summary": "KXM-RC-01 record-share consent per scope (VISIT_SUMMARY, PRESCRIPTIONS, LAB_RESULTS, SHARE_WITH_OTHER_CLINICS)",
         "tags": [
           "records"
         ]
@@ -4116,7 +4116,6 @@
     "/api/v1/me/record-sharing/{scope}": {
       "put": {
         "operationId": "VaultController_setSharing",
-        "summary": "Grant (needs flags kiorex.record_vault + clinic.record_share_patient_app) or revoke (always allowed; deletes Kiorex copies and tells Kiorly)",
         "parameters": [
           {
             "name": "scope",
@@ -4149,6 +4148,7 @@
             }
           }
         },
+        "summary": "Grant (needs flags kiorex.record_vault + clinic.record_share_patient_app) or revoke (always allowed; deletes Kiorex copies and tells Kiorly)",
         "tags": [
           "records"
         ]
@@ -4157,7 +4157,6 @@
     "/api/v1/me/prescriptions": {
       "get": {
         "operationId": "VaultController_prescriptions",
-        "summary": "KXM-RC-02 prescriptions with verification QR payloads",
         "parameters": [],
         "responses": {
           "200": {
@@ -4174,6 +4173,7 @@
             }
           }
         },
+        "summary": "KXM-RC-02 prescriptions with verification QR payloads",
         "tags": [
           "records"
         ]
@@ -4182,7 +4182,6 @@
     "/api/v1/rx/verify": {
       "get": {
         "operationId": "VaultController_verify",
-        "summary": "KXM-RC-02 pharmacist check of a prescription QR token: validity, issuing clinic id and signed date only (no patient data)",
         "parameters": [
           {
             "name": "t",
@@ -4205,6 +4204,7 @@
             }
           }
         },
+        "summary": "KXM-RC-02 pharmacist check of a prescription QR token: validity, issuing clinic id and signed date only (no patient data)",
         "tags": [
           "records"
         ]
@@ -4213,7 +4213,6 @@
     "/api/v1/me/follow-ups": {
       "get": {
         "operationId": "VaultController_followUps",
-        "summary": "KXM-RC-03 follow-up reminders (doctor-specified or patient-set)",
         "parameters": [],
         "responses": {
           "200": {
@@ -4230,13 +4229,13 @@
             }
           }
         },
+        "summary": "KXM-RC-03 follow-up reminders (doctor-specified or patient-set)",
         "tags": [
           "records"
         ]
       },
       "post": {
         "operationId": "VaultController_createFollowUp",
-        "summary": "KXM-RC-03 set a follow-up reminder N days from now (optionally tied to a vault record)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4260,6 +4259,7 @@
             }
           }
         },
+        "summary": "KXM-RC-03 set a follow-up reminder N days from now (optionally tied to a vault record)",
         "tags": [
           "records"
         ]
@@ -4298,7 +4298,6 @@
     "/api/v1/waitlist": {
       "post": {
         "operationId": "WaitlistController_join",
-        "summary": "KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4322,13 +4321,13 @@
             }
           }
         },
+        "summary": "KXM-BK-12 join a doctor's waitlist (idempotent per patient+doctor+visit type). 409 SLOTS_AVAILABLE when the doctor already has open slots in the window: book directly",
         "tags": [
           "waitlist"
         ]
       },
       "get": {
         "operationId": "WaitlistController_list",
-        "summary": "KXM-BK-12 my waitlist entries with their offers",
         "parameters": [],
         "responses": {
           "200": {
@@ -4345,6 +4344,7 @@
             }
           }
         },
+        "summary": "KXM-BK-12 my waitlist entries with their offers",
         "tags": [
           "waitlist"
         ]
@@ -4383,7 +4383,6 @@
     "/api/v1/waitlist/offers/{id}/accept": {
       "post": {
         "operationId": "WaitlistController_accept",
-        "summary": "KXM-BK-12 accept an offered slot: creates the normal 5-minute hold (returns the booking; then POST /bookings/{id}/confirm). 409 SLOT_TAKEN / 410 OFFER_EXPIRED",
         "parameters": [
           {
             "name": "id",
@@ -4406,6 +4405,7 @@
             }
           }
         },
+        "summary": "KXM-BK-12 accept an offered slot: creates the normal 5-minute hold (returns the booking; then POST /bookings/{id}/confirm). 409 SLOT_TAKEN / 410 OFFER_EXPIRED",
         "tags": [
           "waitlist"
         ]
@@ -4444,7 +4444,6 @@
     "/api/v1/admin/waitlist/scan": {
       "post": {
         "operationId": "WaitlistController_scan",
-        "summary": "OP: run the waitlist autofill scan now",
         "parameters": [],
         "responses": {
           "200": {
@@ -4458,6 +4457,7 @@
             }
           }
         },
+        "summary": "OP: run the waitlist autofill scan now",
         "tags": [
           "waitlist"
         ]
@@ -4466,7 +4466,6 @@
     "/api/v1/channels/whatsapp/booking-intents": {
       "post": {
         "operationId": "ChannelsController_inbound",
-        "summary": "KXM-BK-11 WhatsApp inbound (normalised, HMAC-signed). Server-to-server; the booking conversation runs from here",
         "parameters": [
           {
             "name": "x-kiorex-signature",
@@ -4499,6 +4498,7 @@
             }
           }
         },
+        "summary": "KXM-BK-11 WhatsApp inbound (normalised, HMAC-signed). Server-to-server; the booking conversation runs from here",
         "tags": [
           "channels"
         ]
@@ -4507,7 +4507,6 @@
     "/api/v1/dev/channels/whatsapp/conversation": {
       "get": {
         "operationId": "ChannelsController_conversation",
-        "summary": "DEV: current WhatsApp conversation state for a phone",
         "parameters": [
           {
             "name": "phone",
@@ -4530,6 +4529,7 @@
             }
           }
         },
+        "summary": "DEV: current WhatsApp conversation state for a phone",
         "tags": [
           "channels"
         ]
@@ -4538,7 +4538,6 @@
     "/api/v1/pharmacy/pharmacies": {
       "get": {
         "operationId": "PharmacyController_pharmacies",
-        "summary": "Pharmacies that accept Kiorex orders (from Kiorly Pharmacy)",
         "parameters": [],
         "responses": {
           "200": {
@@ -4555,6 +4554,7 @@
             }
           }
         },
+        "summary": "Pharmacies that accept Kiorex orders (from Kiorly Pharmacy)",
         "tags": [
           "pharmacy"
         ]
@@ -4563,7 +4563,6 @@
     "/api/v1/pharmacy/search": {
       "get": {
         "operationId": "PharmacyController_search",
-        "summary": "Medicine search with availability-to-promise (controlled medicines are never returned)",
         "parameters": [
           {
             "name": "q",
@@ -4594,6 +4593,7 @@
             }
           }
         },
+        "summary": "Medicine search with availability-to-promise (controlled medicines are never returned)",
         "tags": [
           "pharmacy"
         ]
@@ -4621,7 +4621,6 @@
       },
       "put": {
         "operationId": "PharmacyController_putCart",
-        "summary": "Replace the cart (one pharmacy per cart); prices come from the pharmacy quote",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4645,6 +4644,7 @@
             }
           }
         },
+        "summary": "Replace the cart (one pharmacy per cart); prices come from the pharmacy quote",
         "tags": [
           "pharmacy"
         ]
@@ -4672,7 +4672,6 @@
     "/api/v1/pharmacy/cart/delivery": {
       "put": {
         "operationId": "PharmacyController_delivery",
-        "summary": "Delivery choice: PICKUP or DELIVERY (with address)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4696,6 +4695,7 @@
             }
           }
         },
+        "summary": "Delivery choice: PICKUP or DELIVERY (with address)",
         "tags": [
           "pharmacy"
         ]
@@ -4704,7 +4704,6 @@
     "/api/v1/pharmacy/orders": {
       "post": {
         "operationId": "PharmacyController_create",
-        "summary": "Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4728,6 +4727,7 @@
             }
           }
         },
+        "summary": "Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation",
         "tags": [
           "pharmacy"
         ]
@@ -4788,7 +4788,6 @@
     "/api/v1/pharmacy/orders/{id}/cancel": {
       "post": {
         "operationId": "PharmacyController_cancel",
-        "summary": "Cancel before the pharmacy marks it ready; paid orders are refunded automatically",
         "parameters": [
           {
             "name": "id",
@@ -4811,6 +4810,7 @@
             }
           }
         },
+        "summary": "Cancel before the pharmacy marks it ready; paid orders are refunded automatically",
         "tags": [
           "pharmacy"
         ]
@@ -4819,7 +4819,6 @@
     "/api/v1/admin/pharmacy/orders": {
       "get": {
         "operationId": "PharmacyController_opsList",
-        "summary": "OP: pharmacy orders (status filter)",
         "parameters": [
           {
             "name": "status",
@@ -4863,6 +4862,7 @@
             }
           }
         },
+        "summary": "OP: pharmacy orders (status filter)",
         "tags": [
           "pharmacy"
         ]
@@ -4871,7 +4871,6 @@
     "/api/v1/admin/pharmacy/orders/{id}/resubmit": {
       "post": {
         "operationId": "PharmacyController_resubmit",
-        "summary": "OP: re-send a PAID order to Kiorly Pharmacy (idempotent)",
         "parameters": [
           {
             "name": "id",
@@ -4900,6 +4899,7 @@
             }
           }
         },
+        "summary": "OP: re-send a PAID order to Kiorly Pharmacy (idempotent)",
         "tags": [
           "pharmacy"
         ]
@@ -4908,7 +4908,6 @@
     "/api/v1/lab/tests": {
       "get": {
         "operationId": "LabController_tests",
-        "summary": "Lab test catalogue search",
         "parameters": [
           {
             "name": "q",
@@ -4939,6 +4938,7 @@
             }
           }
         },
+        "summary": "Lab test catalogue search",
         "tags": [
           "lab"
         ]
@@ -4947,7 +4947,6 @@
     "/api/v1/lab/slots": {
       "get": {
         "operationId": "LabController_slots",
-        "summary": "Collection slots (home collection or walk-in) from the lab",
         "parameters": [
           {
             "name": "labId",
@@ -4994,6 +4993,7 @@
             }
           }
         },
+        "summary": "Collection slots (home collection or walk-in) from the lab",
         "tags": [
           "lab"
         ]
@@ -5002,7 +5002,6 @@
     "/api/v1/lab/bookings": {
       "post": {
         "operationId": "LabController_book",
-        "summary": "Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -5026,6 +5025,7 @@
             }
           }
         },
+        "summary": "Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab",
         "tags": [
           "lab"
         ]
@@ -5116,7 +5116,6 @@
     "/api/v1/admin/lab/bookings": {
       "get": {
         "operationId": "LabController_opsList",
-        "summary": "OP: lab bookings (status filter)",
         "parameters": [
           {
             "name": "status",
@@ -5160,6 +5159,7 @@
             }
           }
         },
+        "summary": "OP: lab bookings (status filter)",
         "tags": [
           "lab"
         ]
@@ -5168,7 +5168,6 @@
     "/api/v1/admin/lab/bookings/{id}/resubmit": {
       "post": {
         "operationId": "LabController_resubmit",
-        "summary": "OP: re-send a PAID booking to Kiorly Lab (idempotent)",
         "parameters": [
           {
             "name": "id",
@@ -5197,6 +5196,7 @@
             }
           }
         },
+        "summary": "OP: re-send a PAID booking to Kiorly Lab (idempotent)",
         "tags": [
           "lab"
         ]
@@ -5205,7 +5205,6 @@
     "/api/v1/admin/partners": {
       "get": {
         "operationId": "PartnersController_list",
-        "summary": "OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked",
         "parameters": [],
         "responses": {
           "200": {
@@ -5222,6 +5221,7 @@
             }
           }
         },
+        "summary": "OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked",
         "tags": [
           "ops"
         ]
@@ -5230,7 +5230,6 @@
     "/api/v1/admin/partners/{kind}": {
       "post": {
         "operationId": "PartnersController_create",
-        "summary": "OP: register a partner (pharmacy|lab)",
         "parameters": [
           {
             "name": "kind",
@@ -5263,6 +5262,7 @@
             }
           }
         },
+        "summary": "OP: register a partner (pharmacy|lab)",
         "tags": [
           "ops"
         ]
@@ -5271,7 +5271,6 @@
     "/api/v1/admin/partners/{kind}/{id}": {
       "put": {
         "operationId": "PartnersController_update",
-        "summary": "OP: update base URL / keys / active of a partner registration",
         "parameters": [
           {
             "name": "kind",
@@ -5312,6 +5311,7 @@
             }
           }
         },
+        "summary": "OP: update base URL / keys / active of a partner registration",
         "tags": [
           "ops"
         ]
@@ -5320,7 +5320,6 @@
     "/api/v1/telemedicine/providers": {
       "get": {
         "operationId": "TelemedicineController_providers",
-        "summary": "Matching: video-capable doctors for a specialty/keyword (emergency language returns 123 guidance, no results)",
         "parameters": [
           {
             "name": "specialty",
@@ -5351,6 +5350,7 @@
             }
           }
         },
+        "summary": "Matching: video-capable doctors for a specialty/keyword (emergency language returns 123 guidance, no results)",
         "tags": [
           "telemedicine"
         ]
@@ -5359,7 +5359,6 @@
     "/api/v1/telemedicine/sessions": {
       "post": {
         "operationId": "TelemedicineController_create",
-        "summary": "Create the video session for your confirmed booking (idempotent per booking)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -5383,6 +5382,7 @@
             }
           }
         },
+        "summary": "Create the video session for your confirmed booking (idempotent per booking)",
         "tags": [
           "telemedicine"
         ]
@@ -5443,7 +5443,6 @@
     "/api/v1/telemedicine/sessions/{id}/join": {
       "post": {
         "operationId": "TelemedicineController_join",
-        "summary": "Join: issues a room token (MOCK video provider: fake token). Room opens 15 min before the visit",
         "parameters": [
           {
             "name": "id",
@@ -5466,6 +5465,7 @@
             }
           }
         },
+        "summary": "Join: issues a room token (MOCK video provider: fake token). Room opens 15 min before the visit",
         "tags": [
           "telemedicine"
         ]
@@ -5504,7 +5504,6 @@
     "/api/v1/telemedicine/clinician/bookings/{bookingId}/token": {
       "post": {
         "operationId": "TelemedicineController_clinicianToken",
-        "summary": "Kiorly Clinic (product-key HMAC): clinician room token for a Kiorex booking id",
         "parameters": [
           {
             "name": "bookingId",
@@ -5527,6 +5526,7 @@
             }
           }
         },
+        "summary": "Kiorly Clinic (product-key HMAC): clinician room token for a Kiorex booking id",
         "tags": [
           "telemedicine"
         ]
@@ -5535,7 +5535,6 @@
     "/api/v1/telemedicine/clinician/bookings/{bookingId}/end": {
       "post": {
         "operationId": "TelemedicineController_clinicianEnd",
-        "summary": "Kiorly Clinic (product-key HMAC): end the session",
         "parameters": [
           {
             "name": "bookingId",
@@ -5558,6 +5557,7 @@
             }
           }
         },
+        "summary": "Kiorly Clinic (product-key HMAC): end the session",
         "tags": [
           "telemedicine"
         ]
@@ -5566,7 +5566,6 @@
     "/api/v1/bookings/{id}/family-shares": {
       "post": {
         "operationId": "HomeCareController_addShare",
-        "summary": "KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent)",
         "parameters": [
           {
             "name": "id",
@@ -5599,6 +5598,7 @@
             }
           }
         },
+        "summary": "KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent)",
         "tags": [
           "home-visits"
         ]
@@ -5676,7 +5676,6 @@
     "/api/v1/public/visit-status/{token}": {
       "get": {
         "operationId": "HomeCareController_publicStatus",
-        "summary": "Family link (no login): visit status only. Never address, fee, phone or reasons",
         "parameters": [
           {
             "name": "token",
@@ -5699,6 +5698,7 @@
             }
           }
         },
+        "summary": "Family link (no login): visit status only. Never address, fee, phone or reasons",
         "tags": [
           "home-visits"
         ]
@@ -5707,7 +5707,6 @@
     "/api/v1/public/visit-status/{token}/stop": {
       "post": {
         "operationId": "HomeCareController_stop",
-        "summary": "Family contact stops the updates (STOP)",
         "parameters": [
           {
             "name": "token",
@@ -5730,6 +5729,7 @@
             }
           }
         },
+        "summary": "Family contact stops the updates (STOP)",
         "tags": [
           "home-visits"
         ]
@@ -5738,7 +5738,6 @@
     "/api/v1/bookings/{id}/safety-card": {
       "get": {
         "operationId": "HomeCareController_safetyCard",
-        "summary": "KXMHV09 safety card: provider photo, name and badge before arrival, emergency number, report-a-problem",
         "parameters": [
           {
             "name": "id",
@@ -5761,6 +5760,7 @@
             }
           }
         },
+        "summary": "KXMHV09 safety card: provider photo, name and badge before arrival, emergency number, report-a-problem",
         "tags": [
           "home-visits"
         ]
@@ -5769,7 +5769,6 @@
     "/api/v1/bookings/{id}/report-problem": {
       "post": {
         "operationId": "HomeCareController_report",
-        "summary": "KXMHV09 report a problem during/after a home visit: routes to ops with a 1 h SLA (KXMOP05)",
         "parameters": [
           {
             "name": "id",
@@ -5802,6 +5801,7 @@
             }
           }
         },
+        "summary": "KXMHV09 report a problem during/after a home visit: routes to ops with a 1 h SLA (KXMOP05)",
         "tags": [
           "home-visits"
         ]
@@ -5810,7 +5810,6 @@
     "/api/v1/care-plans": {
       "post": {
         "operationId": "HomeCareController_requestPlan",
-        "summary": "KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -5834,6 +5833,7 @@
             }
           }
         },
+        "summary": "KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective",
         "tags": [
           "home-visits"
         ]
@@ -5894,7 +5894,6 @@
     "/api/v1/admin/safety/alerts": {
       "get": {
         "operationId": "SafetyConsoleController_alerts",
-        "summary": "KXMOP12 SAFETY_ALERT_RAISED feed with the 60 s delivery SLO fields",
         "parameters": [
           {
             "name": "status",
@@ -5933,6 +5932,7 @@
             }
           }
         },
+        "summary": "KXMOP12 SAFETY_ALERT_RAISED feed with the 60 s delivery SLO fields",
         "tags": [
           "ops"
         ]
@@ -6160,7 +6160,6 @@
     "/api/v1/admin/safety/sweep": {
       "post": {
         "operationId": "SafetyConsoleController_sweep",
-        "summary": "Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes",
         "parameters": [],
         "responses": {
           "200": {
@@ -6174,6 +6173,7 @@
             }
           }
         },
+        "summary": "Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes",
         "tags": [
           "ops"
         ]
@@ -6498,10 +6498,10 @@
           },
           "props": {
             "type": "object",
-            "description": "Only these keys are accepted: specialtyCode, providerId, market, code, district, careType, serviceLocation. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400.",
             "additionalProperties": {
               "type": "string"
-            }
+            },
+            "description": "Only these keys are accepted: specialtyCode, providerId, market, code, district, careType, serviceLocation. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400."
           }
         },
         "required": [
@@ -6512,6 +6512,7 @@
         "type": "object",
         "properties": {
           "events": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClientEventBody"
@@ -6933,6 +6934,7 @@
           "gate": {
             "nullable": true,
             "description": "Launch-gate evidence recorded by a human; null until then (first row when several gates are required)",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/FlagGateDto"
@@ -6967,6 +6969,7 @@
           },
           "lastChange": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/FlagLastChangeDto"
@@ -7095,7 +7098,8 @@
             "type": "string"
           },
           "documentUrl": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           }
         },
         "required": [
@@ -7127,8 +7131,8 @@
           },
           "evidence": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": true,
+            "nullable": true,
             "description": "Evidence recorded by a human for this flag + gate; null until then"
           },
           "key": {
@@ -7183,7 +7187,8 @@
             "type": "string"
           },
           "documentUrl": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           }
         },
         "required": [
@@ -7589,7 +7594,8 @@
         "type": "object",
         "properties": {
           "webhookUrl": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           },
           "active": {
             "type": "boolean"
@@ -7746,7 +7752,8 @@
             ]
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email"
           },
           "market": {
             "type": "string",
@@ -8090,8 +8097,8 @@
           },
           "profile": {
             "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "additionalProperties": true,
+            "nullable": true
           },
           "dependants": {
             "type": "array",
@@ -8596,6 +8603,7 @@
           },
           "professionBadge": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ProfessionBadgeDto"
@@ -8959,6 +8967,7 @@
           },
           "cancellationPolicy": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/CancellationPolicyDto"
@@ -8994,6 +9003,7 @@
           "professionBadge": {
             "nullable": true,
             "description": "Profession-naming badge (KXMPR01)",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ProfessionBadgeDto"
@@ -9810,8 +9820,8 @@
           },
           "address": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": true,
+            "nullable": true,
             "description": "Doorstep lines of the booking snapshot; null once masked"
           },
           "district": {
@@ -9877,6 +9887,7 @@
           "assignee": {
             "nullable": true,
             "description": "Agency bookings: assigned nurse name, photo, badge once HOME_VISIT_ASSIGNED arrives (KXMHV05). Never a phone number",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/HomeAssigneeDto"
@@ -9892,6 +9903,7 @@
           },
           "aborted": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/HomeAbortedDto"
@@ -10014,6 +10026,7 @@
           },
           "deposit": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/BookingDepositDto"
@@ -10022,6 +10035,7 @@
           },
           "doctor": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/BookingDoctorDto"
@@ -10030,6 +10044,7 @@
           },
           "clinic": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/BookingClinicDto"
@@ -10039,6 +10054,7 @@
           "cancellationPolicy": {
             "nullable": true,
             "description": "Kiorly cancellation policy as published on the listing",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/CancellationPolicyDto"
@@ -10083,6 +10099,7 @@
           "home": {
             "nullable": true,
             "description": "Present for HOME bookings",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/HomeBookingDto"
@@ -10828,8 +10845,8 @@
           },
           "detail": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": true,
+            "nullable": true,
             "description": "Free-form diagnostic detail of the step (no PHI)"
           },
           "createdAt": {
@@ -11384,10 +11401,10 @@
           },
           "stats": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": {
               "type": "number"
-            }
+            },
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -11835,8 +11852,8 @@
           },
           "stats": {
             "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "additionalProperties": true,
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -12393,8 +12410,8 @@
           },
           "metadata": {
             "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "additionalProperties": true,
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -13134,6 +13151,7 @@
           "doctor": {
             "nullable": true,
             "description": "Doctor summary so clients need not fetch the profile per entry",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/WaitlistDoctorDto"
@@ -13465,6 +13483,8 @@
             "type": "string"
           },
           "items": {
+            "minItems": 1,
+            "maxItems": 30,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CartItemBody"
@@ -13625,6 +13645,7 @@
           },
           "payment": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/OrderPaymentDto"
@@ -13798,6 +13819,8 @@
             "type": "string"
           },
           "testCodes": {
+            "minItems": 1,
+            "maxItems": 20,
             "type": "array",
             "items": {
               "type": "string"
@@ -13927,6 +13950,7 @@
           },
           "payment": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/LabBookingPaymentDto"
@@ -14069,8 +14093,8 @@
             "nullable": true
           },
           "nextSlots": {
-            "nullable": true,
             "type": "array",
+            "nullable": true,
             "items": {
               "type": "object",
               "properties": {
@@ -14382,8 +14406,8 @@
           },
           "provider": {
             "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "additionalProperties": true,
+            "nullable": true
           },
           "stopped": {
             "type": "boolean",

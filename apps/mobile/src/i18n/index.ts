@@ -14,7 +14,7 @@ void i18n.use(initReactI18next).init({
   lng: "ar", // Arabic-first (KX-03 §03)
   fallbackLng: "en",
   interpolation: { escapeValue: false },
-  initImmediate: false,
+  initAsync: false,
 });
 
 /** Applies layout direction. Returns true when a native restart is required for the direction to flip. */
