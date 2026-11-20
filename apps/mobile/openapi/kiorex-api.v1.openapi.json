@@ -1306,7 +1306,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddressBody"
+                "$ref": "#/components/schemas/HomeAddressBody"
               }
             }
           }
@@ -2550,7 +2550,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewBody"
+                "$ref": "#/components/schemas/BookingReviewBody"
               }
             }
           }
@@ -3221,7 +3221,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewBody"
+                "$ref": "#/components/schemas/PaymentReviewBody"
               }
             }
           }
@@ -3262,7 +3262,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewBody"
+                "$ref": "#/components/schemas/PaymentReviewBody"
               }
             }
           }
@@ -4048,7 +4048,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ShareBody"
+                "$ref": "#/components/schemas/RecordShareBody"
               }
             }
           }
@@ -5498,7 +5498,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ShareBody"
+                "$ref": "#/components/schemas/FamilyShareBody"
               }
             }
           }
@@ -8185,7 +8185,7 @@
           "isDefault"
         ]
       },
-      "AddressBody": {
+      "HomeAddressBody": {
         "type": "object",
         "properties": {
           "label": {
@@ -10036,15 +10036,21 @@
           "currency"
         ]
       },
-      "ReviewBody": {
+      "BookingReviewBody": {
         "type": "object",
         "properties": {
-          "reason": {
-            "type": "string"
+          "rating": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000
           }
         },
         "required": [
-          "reason"
+          "rating"
         ]
       },
       "ReviewDto": {
@@ -11417,6 +11423,17 @@
           "currency"
         ]
       },
+      "PaymentReviewBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "ReviewDecisionDto": {
         "type": "object",
         "properties": {
@@ -12657,35 +12674,15 @@
           "canGrant"
         ]
       },
-      "ShareBody": {
+      "RecordShareBody": {
         "type": "object",
         "properties": {
-          "contactName": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "phone": {
-            "type": "string",
-            "maxLength": 20
-          },
-          "locale": {
-            "type": "string",
-            "enum": [
-              "ar",
-              "en"
-            ]
-          },
-          "consentAttested": {
-            "type": "boolean"
-          },
-          "visitStatusSharingConsent": {
+          "granted": {
             "type": "boolean"
           }
         },
         "required": [
-          "contactName",
-          "phone",
-          "consentAttested"
+          "granted"
         ]
       },
       "PrescriptionItemDto": {
@@ -13315,6 +13312,34 @@
           "items"
         ]
       },
+      "PharmacyDeliveryAddressBody": {
+        "type": "object",
+        "properties": {
+          "line1": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "area": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "governorate": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "line1"
+        ]
+      },
       "DeliveryBody": {
         "type": "object",
         "properties": {
@@ -13326,7 +13351,7 @@
             ]
           },
           "address": {
-            "$ref": "#/components/schemas/AddressBody"
+            "$ref": "#/components/schemas/PharmacyDeliveryAddressBody"
           }
         },
         "required": [
@@ -14039,6 +14064,37 @@
         "required": [
           "session",
           "video"
+        ]
+      },
+      "FamilyShareBody": {
+        "type": "object",
+        "properties": {
+          "contactName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "consentAttested": {
+            "type": "boolean"
+          },
+          "visitStatusSharingConsent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contactName",
+          "phone",
+          "consentAttested"
         ]
       },
       "FamilyShareCreatedDto": {

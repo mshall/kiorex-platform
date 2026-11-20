@@ -29,7 +29,7 @@ describe("address helpers", () => {
     expect(addressDraftValid(emptyAddressDraft())).toBe(false);
     expect(addressDraftValid({ ...emptyAddressDraft(), label: "x", governorate: "Cairo", district: "!", street: "s" })).toBe(false);
   });
-  it("round-trips an address into the pharmacy delivery body", () => { expect(addressToBody(addr())).toMatchObject({ label: "Home", district: "nasr-city", street: "12 Abbas St", building: "4", floor: "2", flat: "7" }); });
+  it("round-trips an address into the pharmacy delivery body", () => { expect(addressToBody(addr())).toMatchObject({ line1: "12 Abbas St, bldg 4, fl 2, apt 7", area: "nasr-city" }); });
   it("masked line shows label + district only, never the street", () => {
     const l = maskedAddressLine(addr(), "en");
     expect(l).toBe("Home · Nasr City");

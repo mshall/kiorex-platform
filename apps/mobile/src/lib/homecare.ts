@@ -1,6 +1,6 @@
 // Pure helpers for Rev 2.3 home visits (KXMHV01-10). No network, no React: unit-tested in __tests__/homecare.test.ts.
 import { ApiError } from "@/api/errors";
-import type { Address, AddressInput, Booking, CareType, ServiceLocation, VisitType } from "@/api/types";
+import type { Address, AddressInput, Booking, CareType, S, ServiceLocation, VisitType } from "@/api/types";
 
 export const CARE_TYPES: readonly CareType[] = ["DOCTORS", "PHYSIOTHERAPY", "HOME_NURSING"] as const;
 export const CARE_TYPE_KEY: Record<CareType, string> = { DOCTORS: "doctors", PHYSIOTHERAPY: "physio", HOME_NURSING: "nursing" };
@@ -33,8 +33,11 @@ const opt = (v: string) => (v.trim() ? v.trim() : undefined);
 export function draftToBody(d: AddressDraft): AddressInput {
   return { label: d.label.trim(), governorate: d.governorate.trim(), district: toDistrictCode(d.district), street: d.street.trim(), building: opt(d.building), floor: opt(d.floor), flat: opt(d.flat), landmark: opt(d.landmark), makeDefault: d.makeDefault || undefined };
 }
-/** Pharmacy delivery reuses the address book (the cart endpoint takes the same structured address). */
-export const addressToBody = (a: Address): AddressInput => draftToBody(draftFromAddress(a));
+/** Pharmacy delivery takes its own address shape (line1/area/governorate/notes), not the structured address-book body. */
+export const addressToBody = (a: Address): NonNullable<S["DeliveryBody"]["address"]> => ({
+  line1: [a.street, a.building && `bldg ${a.building}`, a.floor && `fl ${a.floor}`, a.flat && `apt ${a.flat}`].filter(Boolean).join(", "),
+  area: a.district || undefined, governorate: a.governorate || undefined, notes: a.landmark || undefined,
+});
 
 /** Masked display: label + district only; the doorstep lines never appear on list rows. */
 export const maskedAddressLine = (a: Pick<Address, "label" | "district">, lang: string) =>

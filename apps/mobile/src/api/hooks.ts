@@ -122,7 +122,7 @@ export const useDepositCheckout = () =>
 export const useSubmitReview = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { bookingId: string; rating: number; text?: string }) => send(api.POST("/api/v1/bookings/{id}/review", { params: { path: { id: v.bookingId } }, body: { rating: v.rating, text: v.text } as never })),
+    mutationFn: (v: { bookingId: string; rating: number; text?: string }) => send(api.POST("/api/v1/bookings/{id}/review", { params: { path: { id: v.bookingId } }, body: { rating: v.rating, text: v.text } })),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.myReviews }); void qc.invalidateQueries({ queryKey: qk.bookings }); },
   });
 };

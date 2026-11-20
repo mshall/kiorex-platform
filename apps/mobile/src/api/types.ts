@@ -44,7 +44,7 @@ export interface SearchParams {
   careType?: CareType; serviceLocation?: ServiceLocation; district?: string;
 }
 export type Address = S["AddressDto"];
-export type AddressInput = S["AddressBody"];
+export type AddressInput = S["HomeAddressBody"];
 export type CareTypeInfo = S["CareTypeDto"];
 export type HomeDistrict = S["HomeDistrictDto"];
 export type FamilyShare = S["FamilyShareDto"];

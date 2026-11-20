@@ -32,7 +32,7 @@ export const useFamilyShares = (bookingId: string, enabled = true) =>
 export const useCreateFamilyShare = (bookingId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (b: S["ShareBody"]) => send(api.POST("/api/v1/bookings/{id}/family-shares", { params: { path: { id: bookingId } }, body: b })),
+    mutationFn: (b: S["FamilyShareBody"]) => send(api.POST("/api/v1/bookings/{id}/family-shares", { params: { path: { id: bookingId } }, body: b })),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: hk.shares(bookingId) }); void qc.invalidateQueries({ queryKey: hk.safety(bookingId) }); void qc.invalidateQueries({ queryKey: qk.consents }); },
   });
 };
