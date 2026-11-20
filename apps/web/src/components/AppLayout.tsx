@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User } from "lucide-react";
 import { MarketNotLiveBanner, MarketSelector } from "@/components/MarketSelector";
@@ -37,11 +37,12 @@ export function AppLayout() {
   const { t } = useTranslation();
   const { status, login, logout } = useAuth();
   const signedIn = status === "signedIn";
+  const { pathname } = useLocation();
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground">{t("nav.skip")}</a>
       <MarketNotLiveBanner />
-      <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-3">
           <Link to="/" aria-label={t("nav.home")} className="rounded-lg"><Logo /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 md:flex">
@@ -65,7 +66,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main id="main" className="container flex-1 py-6 pb-28 md:pb-10" tabIndex={-1}>
+      <main id="main" key={pathname} className="kx-page container flex-1 py-8 pb-28 md:pb-12" tabIndex={-1}>
         <Outlet />
       </main>
 
@@ -73,7 +74,7 @@ export function AppLayout() {
         <div className="container space-y-4 py-8">
           <PulseDivider />
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-            <Logo markClassName="h-6" />
+            <Logo markClassName="h-8" />
             <p>{t("footer.tagline")}</p>
             <p>{t("footer.emergency")}</p>
           </div>

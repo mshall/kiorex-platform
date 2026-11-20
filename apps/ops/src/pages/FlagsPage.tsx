@@ -132,9 +132,9 @@ function FlagsTab({ canAct }: { canAct: boolean }) {
           { key: "m", header: t("flags.effectiveMarket", { market }), cell: (f) => <div className="space-y-1"><StateBadge state={f.state} />{f.overrides.length > 0 && <p className="text-xs text-muted-foreground">{f.overrides.map((o) => `${o.scope}${o.scopeId ? `:${o.scopeId}` : ""}`).join(", ")}</p>}</div> },
           { key: "s", header: t("flags.source"), cell: (f) => <div className="text-xs"><b>{f.source?.scope}</b>{f.source?.ticket ? ` · ${f.source?.ticket}` : ""}{f.source?.expiresAt ? <p className="text-warning">{t("flags.expires", { at: formatDateTime(f.source?.expiresAt, i18n.language) })}</p> : null}</div> },
           { key: "d", header: t("flags.dependsOn"), cell: (f) => f.dependsOn.length ? <span className="text-xs" dir="ltr">{f.dependsOn.join(", ")}</span> : "—" },
-          { key: "l", header: t("flags.lastChange"), cell: (f) => f.lastChange ? <div className="text-xs">{formatDateTime(f.lastChange.at, i18n.language)}<br />{f.lastChange.actor} · {f.lastChange.event}</div> : "—" },
-          { key: "a", header: "", cell: (f) => (
-            <div className="flex flex-wrap gap-2">
+          { key: "l", header: t("flags.lastChange"), cell: (f) => f.lastChange ? <div className="whitespace-nowrap text-xs">{formatDateTime(f.lastChange.at, i18n.language)}<br />{f.lastChange.actor} · {f.lastChange.event}</div> : "—" },
+          { key: "a", header: "", className: "sticky end-0 whitespace-nowrap bg-card/95 backdrop-blur", cell: (f) => (
+            <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setToggle(f)} data-testid={`toggle-${f.key}`}><ToggleRight aria-hidden="true" />{t("flags.toggle")}</Button>
               {f.launchLocked && <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setGate(f)} data-testid={`gate-${f.key}`}><KeyRound aria-hidden="true" />{t("flags.gate")}</Button>}
             </div>) },
@@ -181,7 +181,7 @@ function AuditTab() {
       </div>
       {r.isLoading ? <CardSkeleton rows={1} /> : r.error ? <ErrorState error={r.error} onRetry={() => void r.refetch()} /> : (
         <DataTable caption={t("flags.audit")} rows={r.data!} rowKey={(a) => a.id ?? `${a.createdAt}-${a.flagKey}-${a.event}`} empty={t("flags.noAudit")} columns={[
-          { key: "t", header: t("flags.at"), cell: (a) => formatDateTime(a.createdAt, i18n.language) }, { key: "k", header: t("flags.key"), cell: (a) => <code className="text-xs" dir="ltr">{a.flagKey}</code> },
+          { key: "t", header: t("flags.at"), className: "whitespace-nowrap", cell: (a) => formatDateTime(a.createdAt, i18n.language) }, { key: "k", header: t("flags.key"), cell: (a) => <code className="text-xs" dir="ltr">{a.flagKey}</code> },
           { key: "e", header: t("flags.event"), cell: (a) => a.event ?? "—" }, { key: "s", header: t("flags.scope"), cell: (a) => `${a.scope ?? ""}${a.scopeId ? `:${a.scopeId}` : ""}` },
           { key: "v", header: t("flags.change"), cell: (a) => `${a.oldValue ?? "—"} → ${a.newValue ?? "—"}` }, { key: "a", header: t("flags.actor"), cell: (a) => a.actor },
           { key: "r", header: t("flags.reason"), cell: (a) => <span className="text-xs">{a.reason ?? ""} {a.ticket ? `(${a.ticket})` : ""}</span> },

@@ -32,7 +32,7 @@ export function ProvidersPage() {
         <DataTable caption={t("providers.title")} rows={r.data!.items} rowKey={(p) => p.id} empty={t("common.empty")} columns={[
           { key: "n", header: t("providers.name"), cell: (p) => <span className="font-medium">{i18n.language.startsWith("ar") ? p.nameAr : p.nameEn}</span> },
           { key: "c", header: t("providers.clinic"), cell: (p) => p.clinicName }, { key: "s", header: t("providers.specialty"), cell: (p) => p.specialty ?? "—" }, { key: "a", header: t("providers.area"), cell: (p) => p.area ?? "—" },
-          { key: "l", header: t("providers.listing"), cell: (p) => <Badge variant={tone(p.listingStatus)}>{p.listingStatus}</Badge> }, { key: "u", header: t("providers.updated"), cell: (p) => formatDateTime(p.updatedAt, i18n.language) },
+          { key: "l", header: t("providers.listing"), cell: (p) => <Badge variant={tone(p.listingStatus)}>{p.listingStatus}</Badge> }, { key: "u", header: t("providers.updated"), className: "whitespace-nowrap", cell: (p) => formatDateTime(p.updatedAt, i18n.language) },
         ]} />
       )}
     </div>
@@ -75,7 +75,7 @@ export function OutboxPage() {
         <DataTable caption={t("outbox.title")} rows={r.data!.items} rowKey={(o) => o.id} empty={t("common.empty")} columns={[
           { key: "t", header: t("outbox.type"), cell: (o) => <code className="text-xs">{o.type}</code> }, { key: "a", header: t("outbox.aggregate"), cell: (o) => <code className="text-xs">{o.aggregateId}</code> },
           { key: "s", header: t("outbox.status"), cell: (o) => <Badge variant={tone(o.status)}>{o.status}</Badge> }, { key: "n", header: t("outbox.attempts"), cell: (o) => o.attempts }, { key: "e", header: t("outbox.error"), cell: (o) => o.lastError ?? "—" },
-          { key: "c", header: t("outbox.created"), cell: (o) => formatDateTime(o.createdAt, i18n.language) },
+          { key: "c", header: t("outbox.created"), className: "whitespace-nowrap", cell: (o) => formatDateTime(o.createdAt, i18n.language) },
           { key: "r", header: "", cell: (o) => o.status === "DEAD" ? <Button size="sm" variant="outline" disabled={!canReplay || replay.isPending} onClick={() => replay.mutate(o.id, { onSuccess: () => toast.success(t("outbox.replayed")), onError: () => toast.error(t("states.errorTitle")) })} data-testid="replay">{t("outbox.replay")}</Button> : null },
         ]} />
       </>)}
@@ -96,7 +96,7 @@ export function FinancePage() {
         </div>
         <DataTable caption={t("finance.title")} rows={r.data!.items} rowKey={(x) => x.id} empty={t("common.empty")} columns={[
           { key: "k", header: t("finance.kind"), cell: (x) => <Badge variant="secondary">{x.kind}</Badge> }, { key: "a", header: t("finance.amount"), cell: (x) => formatEgp(x.amountEgp, i18n.language) },
-          { key: "s", header: t("outbox.status"), cell: (x) => <Badge variant={tone(x.status)}>{x.status}</Badge> }, { key: "t", header: t("finance.at"), cell: (x) => formatDateTime(x.at, i18n.language) },
+          { key: "s", header: t("outbox.status"), cell: (x) => <Badge variant={tone(x.status)}>{x.status}</Badge> }, { key: "t", header: t("finance.at"), className: "whitespace-nowrap", cell: (x) => formatDateTime(x.at, i18n.language) },
         ]} />
       </>)}
     </div>
@@ -112,7 +112,7 @@ export function ModerationPage() {
       {r.isLoading ? <CardSkeleton rows={1} /> : r.error ? <ErrorState error={r.error} onRetry={() => void r.refetch()} /> : (
         <DataTable caption={t("moderation.title")} rows={r.data!} rowKey={(x) => x.id} empty={t("common.empty")} columns={[
           { key: "k", header: t("finance.kind"), cell: (x) => <Badge variant="secondary">{x.kind}</Badge> }, { key: "x", header: t("moderation.excerpt"), cell: (x) => x.excerpt },
-          { key: "f", header: t("moderation.flags"), cell: (x) => x.flags.map((f) => <Badge key={f} variant="warning" className="me-1">{f}</Badge>) }, { key: "s", header: t("moderation.sla"), cell: (x) => formatDateTime(x.slaDueAt, i18n.language) },
+          { key: "f", header: t("moderation.flags"), cell: (x) => x.flags.map((f) => <Badge key={f} variant="warning" className="me-1">{f}</Badge>) }, { key: "s", header: t("moderation.sla"), className: "whitespace-nowrap", cell: (x) => formatDateTime(x.slaDueAt, i18n.language) },
           { key: "d", header: "", cell: (x) => <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => m.mutate({ id: x.id, resolution: "RESTORED" })}>{t("moderation.approve")}</Button><Button size="sm" variant="outline" onClick={() => m.mutate({ id: x.id, resolution: "KEPT_HIDDEN" })}>{t("moderation.hide")}</Button></div> },
         ]} />
       )}

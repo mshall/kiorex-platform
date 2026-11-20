@@ -48,7 +48,7 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
     { key: "i", header: t("orders.items"), cell: (r) => <p className="max-w-xs truncate text-xs" title={r.summary}>{r.summary}</p> },
     { key: "t", header: t("orders.total"), cell: (r) => formatMinor(r.totalMinor, lang, r.currency) },
     { key: "f", header: t("orders.fee"), cell: (r) => <span title={formatBps(r.takeRateBps, lang)}>{formatMinor(r.platformFeeMinor, lang, r.currency)} <span className="text-xs text-muted-foreground">({formatBps(r.takeRateBps, lang)})</span></span> },
-    { key: "c", header: t("orders.created"), cell: (r) => formatDateTime(r.createdAt, lang) },
+    { key: "c", header: t("orders.created"), className: "whitespace-nowrap", cell: (r) => formatDateTime(r.createdAt, lang) },
     { key: "a", header: "", cell: (r) => r.status === "PAID" ? <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setConfirm(r)} data-testid="resubmit"><RotateCw aria-hidden="true" />{t("orders.resubmit")}</Button> : null },
   ];
   return (

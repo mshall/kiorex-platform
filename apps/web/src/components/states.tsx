@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Inbox, PauseCircle } from "lucide-react";
+import { PauseCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/api/errors";
 import { PulseLoader } from "./PulseLine";
+import { StateArt } from "./kit";
 
 /** Sandbox/mock provider notice (CLAUDE.md: mocks are surfaced honestly). Rendered only when the data proves a mock provider is behind it. */
 export function MockNotice({ kind, proven = false }: { kind: "payment" | "video" | "messaging" | "lab" | "pharmacy"; proven?: boolean }) {
@@ -35,10 +36,10 @@ export function CardSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
-export function EmptyState({ title, hint, action, icon }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode }) {
+export function EmptyState({ title, hint, action, icon, art = "empty" }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode; art?: "empty" | "search" | "offline" }) {
   return (
     <div className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="empty-state">
-      <div className="text-muted-foreground">{icon ?? <Inbox className="h-10 w-10" aria-hidden="true" />}</div>
+      {icon ? <div className="text-muted-foreground">{icon}</div> : <StateArt kind={art} />}
       <h3 className="text-lg">{title}</h3>
       {hint && <p className="max-w-md text-sm text-muted-foreground">{hint}</p>}
       {action}
@@ -63,7 +64,7 @@ export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () =
   if (error instanceof ApiError && error.isFeatureDisabled) return <UnavailableState featureKey={error.featureKey} awaiting={error.isAwaitingApproval} />;
   return (
     <div role="alert" className="kx-card flex flex-col items-center gap-3 border-destructive/40 px-6 py-10 text-center" data-testid="error-state">
-      <AlertTriangle className="h-9 w-9 text-destructive" aria-hidden="true" />
+      <StateArt kind="error" className="h-20 w-20" />
       <h3 className="text-lg">{t("states.errorTitle")}</h3>
       <p className="max-w-md text-sm text-muted-foreground">{t("states.errorBody")}</p>
       {onRetry && <Button variant="outline" onClick={onRetry}>{t("states.retry")}</Button>}

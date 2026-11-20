@@ -11,6 +11,7 @@ import { CardSkeleton, EmptyState, ErrorState, LoadingState } from "@/components
 import { asPayment, PayPanel, ProgressSteps } from "@/components/OrderBits";
 import { formatDateTime, formatMinor } from "@/lib/format";
 import { useState } from "react";
+import { PageHeader } from "@/components/kit";
 
 const STEPS = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "READY", "DISPENSED"];
 export const orderVariant = (s: string) => (s === "DISPENSED" || s === "READY" || s === "RESULT_RELEASED" ? "success" : s === "REJECTED" || s === "CANCELLED" ? "destructive" : s === "PARTIAL_REVIEW" ? "warning" : "info") as "success" | "destructive" | "warning" | "info";
@@ -20,7 +21,7 @@ export function PharmacyOrdersPage() {
   const q = usePharmacyOrders();
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">{t("pharmacy.ordersTitle")}</h1>
+      <PageHeader title={t("pharmacy.ordersTitle")} />
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data!.length === 0 ? (
         <EmptyState icon={<Pill className="h-10 w-10" aria-hidden="true" />} title={t("pharmacy.ordersEmpty")} action={<Link to="/pharmacy" className="text-ocean underline">{t("pharmacy.title")}</Link>} />
       ) : (

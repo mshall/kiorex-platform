@@ -15,6 +15,7 @@ import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } fr
 import { useFeature } from "@/hooks/useFeature";
 import { formatDateTime, pick } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 export const sessionVariant = (s: TeleSession["status"]) => (s === "IN_PROGRESS" ? "success" : s === "WAITING" ? "warning" : s === "ENDED" || s === "CANCELLED" ? "secondary" : "info") as "success" | "warning" | "secondary" | "info";
 
@@ -34,7 +35,7 @@ export default function TelemedicinePage() {
   const eligible = (bookings.data ?? []).filter((b) => b.status === "CONFIRMED" && !withSession.has(b.id));
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3"><Video className="h-7 w-7 text-ocean" aria-hidden="true" /><h1 className="text-2xl">{t("tele.title")}</h1></div>
+      <PageHeader icon={<Video />} title={t("tele.title")} />
       <p className="max-w-2xl text-muted-foreground">{t("tele.intro")}</p>
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm" role="note" data-testid="tele-emergency">{t("tele.emergency")}</div>
 

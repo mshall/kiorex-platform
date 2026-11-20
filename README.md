@@ -14,5 +14,8 @@ packages/*    shared libs
 Docs/         hub: API.md, ARCHITECTURE.md, RUNBOOK.md, NEEDS_HUMAN.md, build sequence
 ```
 
+**Brand:** Indigo `#3730A3`, Ocean `#0369A1`, Coral pulse `#E8735E`, Ground `#F4F6FC`; Jost + IBM Plex Sans Arabic. Tokens, logo components and icons are generated in `../_brand`
+and vendored into `apps/web/src/brand` and `apps/ops/src/brand` (never redraw the logo). See [Docs/DESIGN_SYSTEM.md](Docs/DESIGN_SYSTEM.md); UI review screenshots in `../_docs/ui-review/`.
+
 Quickstart: see [Docs/RUNBOOK.md](Docs/RUNBOOK.md). `npm install && npm run db:deploy -w apps/api && npm run db:seed -w apps/api && npm run dev`.
 Checks: `npm run lint && npm run typecheck && npm test`. API reference: [Docs/API.md](Docs/API.md).

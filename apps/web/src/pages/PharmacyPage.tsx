@@ -13,6 +13,7 @@ import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } fr
 import { useFeature } from "@/hooks/useFeature";
 import { formatMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 const errMsg = (e: unknown, t: (k: string) => string) => (e instanceof ApiError ? (e.isFeatureDisabled ? t("unavailable.title") : e.code === "RX_REQUIRED" || e.code === "PRESCRIPTION_REQUIRED" ? t("pharmacy.errors.rx") : e.code === "ITEM_UNAVAILABLE" || e.code === "OUT_OF_STOCK" ? t("pharmacy.errors.stock") : t("pharmacy.errors.generic")) : t("pharmacy.errors.generic"));
 
@@ -23,16 +24,16 @@ function PharmacyPicker({ value, onChange }: { value?: string; onChange: (p: Pha
   if (q.error) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data?.length) return <EmptyState icon={<Store className="h-10 w-10" aria-hidden="true" />} title={t("pharmacy.noPharmacies")} hint={t("pharmacy.noPharmaciesHint")} />;
   return (
-    <ul className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t("pharmacy.choose")} data-testid="pharmacy-list">
+    <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t("pharmacy.choose")} data-testid="pharmacy-list">
       {q.data.map((p) => (
-        <li key={p.id}>
+        <div key={p.id}>
           <button type="button" role="radio" aria-checked={value === p.id} onClick={() => onChange(p)} className={cn("kx-card w-full space-y-1 p-4 text-start transition-colors hover:border-primary", value === p.id && "border-pulse ring-2 ring-pulse/40")} data-testid="pharmacy-option">
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-muted-foreground">{[p.pickup && t("pharmacy.pickup"), p.deliveryEnabled && `${t("pharmacy.delivery")} ${formatMinor(p.deliveryFeeMinor, i18n.language)}`].filter(Boolean).join(" · ")}{p.prepMinutes ? ` · ${t("pharmacy.prep", { min: p.prepMinutes })}` : ""}</p>
           </button>
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -158,7 +159,7 @@ export default function PharmacyPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><Pill className="h-7 w-7 text-ocean" aria-hidden="true" /><h1 className="text-2xl">{t("pharmacy.title")}</h1></div>
+        <PageHeader icon={<Pill />} title={t("pharmacy.title")} />
         <Link to="/pharmacy/orders" className={cn(buttonVariants({ variant: "outline" }))} data-testid="my-orders-link">{t("pharmacy.myOrders")}</Link>
       </div>
       <p className="max-w-2xl text-muted-foreground">{t("pharmacy.intro")}</p>

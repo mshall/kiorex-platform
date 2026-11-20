@@ -10,6 +10,7 @@ import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatCountdown, formatDateTime, formatDate, pick } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 function OfferRow({ offer, entryId }: { offer: WaitlistOffer; entryId: string }) {
   const { t, i18n } = useTranslation();
@@ -79,7 +80,7 @@ export default function WaitlistPage() {
   const rest = items.filter((e) => e.status !== "OFFERED");
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3"><BellRing className="h-7 w-7 text-ocean" aria-hidden="true" /><h1 className="text-2xl">{t("waitlist.title")}</h1></div>
+      <PageHeader icon={<BellRing />} title={t("waitlist.title")} />
       <p className="max-w-2xl text-muted-foreground">{t("waitlist.intro")}</p>
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : items.length === 0 ? (
         <EmptyState icon={<BellRing className="h-10 w-10" aria-hidden="true" />} title={t("waitlist.empty")} hint={t("waitlist.emptyHint")} action={<Link to="/search" className={cn(buttonVariants())}>{t("home.findDoctor")}</Link>} />

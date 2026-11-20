@@ -89,7 +89,7 @@ export default function SafetyPage() {
           { key: "t", header: t("safety.slo"), cell: (a) => <SloTimer alert={a} now={now} /> },
           { key: "s", header: t("safety.status"), cell: (a) => <Badge variant={statusTone(a.status)} data-testid="alert-status">{t(`safety.st.${a.status}`)}{a.escalationLevel > 0 ? ` · L${a.escalationLevel}` : ""}</Badge> },
           { key: "d", header: t("safety.district"), cell: (a) => a.district ?? "—" }, { key: "p", header: t("safety.provider"), cell: (a) => <div className="text-xs">{a.providerName ?? "—"}{a.clinicPhone && <><br /><span dir="ltr">{a.clinicPhone}</span></>}</div> },
-          { key: "r", header: t("safety.raised"), cell: (a) => <div className="text-xs">{formatDateTime(a.raisedAt, i18n.language)}<br />{formatAge(a.ageSeconds)}</div> },
+          { key: "r", header: t("safety.raised"), cell: (a) => <div className="whitespace-nowrap text-xs">{formatDateTime(a.raisedAt, i18n.language)}<br />{formatAge(a.ageSeconds)}</div> },
           { key: "a", header: "", cell: (a) => (
             <div className={cn("flex flex-wrap gap-2")}>
               {a.status === "RAISED" && <Button size="sm" onClick={() => setTarget({ alert: a, action: "acknowledge" })} data-testid={`ack-${a.id}`}><CheckCheck aria-hidden="true" />{t("safety.acknowledge")}</Button>}

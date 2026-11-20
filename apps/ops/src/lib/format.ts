@@ -1,6 +1,12 @@
 const loc = (lang: string) => (lang.startsWith("ar") ? "ar-EG" : "en-GB");
-export const formatDateTime = (iso: string | null | undefined, lang: string) =>
-  iso ? new Intl.DateTimeFormat(loc(lang), { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Cairo" }).format(new Date(iso)) : "—";
+/** Date and time are formatted separately and joined with a middle dot: avoids the stray leading comma Arabic bidi produces for a combined string. */
+export const formatDateTime = (iso: string | null | undefined, lang: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const date = new Intl.DateTimeFormat(loc(lang), { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Cairo" }).format(d);
+  const time = new Intl.DateTimeFormat(loc(lang), { hour: "numeric", minute: "2-digit", timeZone: "Africa/Cairo" }).format(d);
+  return `${date} · ${time}`;
+};
 export const formatEgp = (n: number, lang: string) => new Intl.NumberFormat(loc(lang), { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(n);
 export const formatAge = (sec: number | null | undefined) => (sec == null ? "—" : sec < 60 ? `${sec}s` : sec < 3600 ? `${Math.round(sec / 60)}m` : `${Math.round(sec / 3600)}h`);
 /** `<input type=datetime-local>` value → ISO (or undefined). */

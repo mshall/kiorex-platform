@@ -21,7 +21,7 @@ export function MarketSelector() {
     <label className="inline-flex min-h-11 items-center gap-1.5 text-sm">
       <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       <span className="sr-only">{t("market.label")}</span>
-      <select value={market} data-testid="market-select" onChange={(e) => { setMarket(e.target.value); void qc.invalidateQueries(); }} className="h-9 rounded-lg border border-input bg-card px-2 text-sm">
+      <select value={market} data-testid="market-select" onChange={(e) => { setMarket(e.target.value); void qc.invalidateQueries(); }} className="h-10 rounded-xl border border-input bg-card ps-3 pe-8 text-sm">
         {options.map((m) => <option key={m.code} value={m.code} disabled={!m.live && m.code !== market}>{regionName(m.code, i18n.language)}{m.live ? "" : ` — ${t("market.soon")}`}</option>)}
       </select>
     </label>

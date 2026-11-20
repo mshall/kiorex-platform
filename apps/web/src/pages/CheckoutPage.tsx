@@ -18,6 +18,7 @@ import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { HomeFee, VisitAddressView } from "@/components/HomeVisitBits";
+import { PageHeader, Stepper } from "@/components/kit";
 
 export default function CheckoutPage() {
   const { bookingId = "" } = useParams();
@@ -57,7 +58,7 @@ export default function CheckoutPage() {
 
   const onConfirm = () =>
     confirm.mutate({ bookingId: b.id, marketplaceConsent: consentData, remindersConsent: consentReminders }, {
-      onSuccess: (res) => { nav(`/appointments/${res.id}`, { replace: true }); },
+      onSuccess: (res) => { nav(`/appointments/${res.id}`, { replace: true, state: { justBooked: true } }); },
       onError: async (e) => {
         if (e instanceof ApiError) {
           track("booking_failed", { code: e.code, providerId: b.doctor.id });
@@ -78,8 +79,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl">{t("checkout.title")}</h1>
-
+      <Stepper steps={[t("flow.choose"), t("flow.confirm"), t("flow.done")]} current={1} label={t("flow.label")} />
+      <PageHeader title={t("checkout.title")} />
       <div role="timer" aria-live="off" data-testid="hold-countdown" className={cn("flex items-center justify-between rounded-xl border p-4", lowTime ? "border-warning bg-warning-soft" : "bg-card")}>
         <span className="flex items-center gap-2 text-sm font-medium"><AlarmClock className="h-5 w-5 text-pulse" aria-hidden="true" />{t("checkout.holdLabel")}</span>
         <span className="text-2xl font-semibold kx-label-num" dir="ltr" aria-label={t("checkout.holdRemaining", { time: formatCountdown(remainingMs ?? 0) })}>{formatCountdown(remainingMs ?? 0)}</span>

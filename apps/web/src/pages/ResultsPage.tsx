@@ -20,6 +20,7 @@ import { isEmergencyQuery } from "@/lib/emergency";
 import { activeFilterCount, parseSearch, toQuery } from "@/lib/searchParams";
 import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import type { SearchParams } from "@/api/types";
+import { PageHeader } from "@/components/kit";
 
 const SORTS: SearchParams["sort"][] = ["earliest", "distance", "rating", "fee"];
 
@@ -46,7 +47,7 @@ export default function ResultsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">{t("results.title")}</h1>
+      <PageHeader title={t("results.title")} />
       <SearchBar initialQ={params.q ?? ""} key={params.q ?? ""} />
       <CareTypeTabs active={params.careType} onPick={(c) => apply({ ...params, careType: c, serviceLocation: c === "HOME_NURSING" ? "HOME" : undefined, page: 1 })} />
       <HomeFilter params={params} apply={apply} />

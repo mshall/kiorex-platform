@@ -11,6 +11,7 @@ import { asPayment, PayPanel, ProgressSteps } from "@/components/OrderBits";
 import { orderVariant } from "@/pages/PharmacyOrdersPage";
 import { formatDateTime, formatMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 const STEPS = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "RESULT_RELEASED"];
 
@@ -19,7 +20,7 @@ export function LabBookingsPage() {
   const q = useLabBookings();
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">{t("lab.bookingsTitle")}</h1>
+      <PageHeader title={t("lab.bookingsTitle")} />
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data!.length === 0 ? (
         <EmptyState icon={<FlaskConical className="h-10 w-10" aria-hidden="true" />} title={t("lab.bookingsEmpty")} action={<Link to="/lab" className={cn(buttonVariants())}>{t("lab.title")}</Link>} />
       ) : (

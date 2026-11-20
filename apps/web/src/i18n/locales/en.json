@@ -288,7 +288,9 @@
     "rescheduleBody": "Choose one of the next free times with the same doctor.",
     "rescheduled": "Appointment moved",
     "leaveReview": "Rate your visit",
-    "reviewed": "Thanks — you've reviewed this visit."
+    "reviewed": "Thanks — you've reviewed this visit.",
+    "confirmedTitle": "You're booked",
+    "confirmedBody": "Your visit is confirmed. Add it to your calendar or get directions below."
   },
   "review": {
     "title": "Rate your visit with {{name}}",
@@ -897,5 +899,11 @@
     },
     "pickDistrictTitle": "Choose your district",
     "pickDistrictHint": "Pick your district above to see providers who visit you at home."
+  },
+  "flow": {
+    "label": "Booking progress",
+    "choose": "Choose a time",
+    "confirm": "Confirm",
+    "done": "Done"
   }
 }

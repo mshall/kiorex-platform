@@ -1,5 +1,13 @@
 # Kiorex design system (patient web + ops console)
 
+> **Q11 (20 Nov 2026): brand kit.** Tokens, Tailwind preset, logo components and icon assets are generated from `kiorex-v2/_brand/tokens.json` and **vendored** into
+> `apps/web/src/brand` and `apps/ops/src/brand` (see `_brand/README.md`: tokens.css + shadcn-bridge.css + tailwind-preset.cjs + `components/{shared,web}`). `src/styles/index.css` only
+> imports them; never hand-edit colours. The logo is the founder artwork (two facing chevrons + coral ECG pulse; lockup = mark | coral rule | KIOREX in outlined Jost Medium). Do not redraw it:
+> use `<KiorexLogo variant tone product>` (`@/brand/components/web/KiorexLogo`) or `@/components/Logo`. Shared layout primitives live in `src/components/kit.tsx`
+> (`PageHeader`, `StatCard`, `StatusChip`, `FormField`, `Stepper`, `StateArt`) next to `states.tsx` (`EmptyState` / `ErrorState` carry the chevron+pulse illustration).
+> Motion: 150-250 ms eased (`--kx-dur-*`, `--kx-ease-*`), `kx-page` route enter, skeleton shimmer, pulse draw-in; all collapse under `prefers-reduced-motion`.
+> Dark theme is designed (`#0C0D1F` ground, `#161835` surface, lifted indigo/ocean/coral), not inverted. Axe gate: `e2e/ui-review/axe.spec.ts` (AR+EN x light+dark; set `AXE_CORE_PATH`).
+
 Owner: frontend/UX. Applies to `apps/web` (patient, Arabic-first) and `apps/ops` (ops console, English default). Source of truth in code:
 `apps/web/src/styles/index.css` (tokens), `apps/web/tailwind.config.ts`, `apps/web/src/components/ui/*` (shadcn), `apps/web/src/components/{Logo,PulseLine}.tsx`.
 `apps/ops` carries identical copies of the tokens and UI primitives (no shared package yet — keep them in sync).
@@ -13,8 +21,8 @@ Direction: **calm clinical trust**. Arabic-first and RTL-perfect, generous white
 | `--primary` Indigo | `#3730A3` | `#8B85F0` | primary buttons, active nav, headings accents, wordmark |
 | `--secondary` / `--ocean` Ocean | `#0369A1` | `#38BDF8` | links, secondary actions, info, final X of the wordmark |
 | `--pulse` Coral | `#E8735E` | same | **accent only**: ECG motif, active chip border/tint, rating stars, focus ring, map pin. Never for errors or body text |
-| `--background` Ground | `#F4F6FC` | `#0F1024` | page |
-| `--card` | `#FFFFFF` | `#17183A` | cards, header, sheets |
+| `--background` Ground | `#F4F6FC` | `#0C0D1F` | page |
+| `--card` | `#FFFFFF` | `#161835` | cards, header, sheets |
 | `--foreground` | `#1E1B4B` | `#E8EAFB` | text |
 | `--muted-foreground` | `#475569` | `#A5ACC8` | secondary text |
 | `--border` / `--input` | `#E2E8F0`-ish / 3:1 form border | | hairlines / form control borders |
@@ -39,7 +47,7 @@ Dark mode: `.dark` on `<html>`, set from `localStorage["kx-theme"]` or `prefers-
 
 ## 4. Logo and the pulse motif
 
-* `LogoMark`: indigo + ocean strokes crossing as an X, coral ECG pulse through the centre (`_brand/kiorex-mark.svg`), coloured by tokens so dark mode works. `Logo` = mark + wordmark. App icon (favicon): indigo-to-ocean gradient tile, white X, coral pulse.
+* `LogoMark`: indigo ">" and ocean "<" chevrons facing each other with the coral ECG pulse crossing the gap (founder artwork, `_brand/kiorex-mark.svg`); `Logo` = lockup (mark | coral rule | KIOREX), swapped to the inverse tone under `.dark`. App icon / favicon: indigo-to-ocean gradient tile, white chevrons, coral pulse.
 * The pulse line is a **sparing** brand device: `PulseDivider` (section breaks, footer), `PulseLoader` (the line draws itself while loading), the hero watermark, and the ECG in the logo. It is not used as wallpaper or on every card.
 * Reduced motion: all animation is disabled under `prefers-reduced-motion`.
 

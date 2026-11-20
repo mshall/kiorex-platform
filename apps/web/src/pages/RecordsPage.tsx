@@ -20,6 +20,7 @@ import { kindIcon, ReadOnlyBanner } from "@/components/VaultBits";
 import { PrescriptionCard } from "@/components/PrescriptionCard";
 import { track } from "@/lib/analytics";
 import { formatBytes, formatDate } from "@/lib/format";
+import { PageHeader } from "@/components/kit";
 
 const KINDS = ["ALL", "VISIT_SUMMARY", "PRESCRIPTION", "LAB_RESULT", "UPLOAD"] as const;
 
@@ -210,7 +211,7 @@ export default function RecordsPage() {
   const readOnly = !!vault.data?.readOnly;
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-ocean" aria-hidden="true" /><h1 className="text-2xl">{t("records.title")}</h1></div>
+      <PageHeader icon={<ShieldCheck />} title={t("records.title")} />
       <p className="max-w-2xl text-muted-foreground">{t("records.intro")}</p>
       {readOnly && <ReadOnlyBanner />}
       <Tabs value={tab} onValueChange={(v) => setSp(v === "records" ? {} : { tab: v })}>

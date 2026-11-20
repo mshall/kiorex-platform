@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useFeature } from "@/hooks/useFeature";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 const WA = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined)?.replace(/\D/g, "");
 
@@ -44,7 +45,7 @@ export default function ServicesPage() {
   const { t } = useTranslation();
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">{t("services.title")}</h1>
+      <PageHeader title={t("services.title")} />
       <p className="max-w-2xl text-muted-foreground">{t("services.intro")}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Card to="/pharmacy" icon={Pill} title={t("pharmacy.title")} body={t("services.pharmacy")} flag="kiorex.pharmacy_orders" testId="svc-pharmacy" />

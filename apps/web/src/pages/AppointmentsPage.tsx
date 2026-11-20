@@ -11,6 +11,7 @@ import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
 import { formatDay, formatTime, pick } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePatient } from "@/hooks/usePatient";
+import { PageHeader } from "@/components/kit";
 
 const ACTIVE = ["HELD", "PENDING_CLINIC", "CONFIRMED", "CHECKED_IN"];
 
@@ -44,7 +45,7 @@ export default function AppointmentsPage() {
   );
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">{t("appointments.title")}</h1>
+      <PageHeader title={t("appointments.title")} />
       {q.isLoading ? <CardSkeleton /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : (
         <Tabs defaultValue="upcoming">
           <TabsList className="h-auto"><TabsTrigger value="upcoming" className="min-h-11 px-5">{t("appointments.upcoming")}</TabsTrigger><TabsTrigger value="past" className="min-h-11 px-5">{t("appointments.past")}</TabsTrigger></TabsList>

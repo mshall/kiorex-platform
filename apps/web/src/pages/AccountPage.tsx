@@ -19,6 +19,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { formatDay, formatTime } from "@/lib/format";
 import { downloadJson } from "@/lib/download";
 import type { FamilyInput } from "@/api/hooks";
+import { PageHeader } from "@/components/kit";
 
 function Profile() {
   const { t, i18n } = useTranslation();
@@ -27,11 +28,11 @@ function Profile() {
   if (me.error) return <ErrorState error={me.error} onRetry={() => void me.refetch()} />;
   const m = me.data!;
   return (
-    <dl className="kx-card grid gap-4 p-5 sm:grid-cols-2">
+    <><dl className="kx-card grid gap-4 p-5 sm:grid-cols-2">
       <div><dt className="text-sm text-muted-foreground">{t("account.name")}</dt><dd className="font-medium">{(i18n.language.startsWith("ar") ? m.nameAr : m.nameEn) ?? m.nameEn ?? m.nameAr ?? "—"}</dd></div>
       <div><dt className="text-sm text-muted-foreground">{t("account.phone")}</dt><dd className="font-medium" dir="ltr">{m.phone}</dd></div>
-      <p className="text-xs text-muted-foreground sm:col-span-2">{t("account.managedBy")}</p>
     </dl>
+    <p className="text-xs text-muted-foreground">{t("account.managedBy")}</p></>
   );
 }
 
@@ -144,7 +145,7 @@ export default function AccountPage() {
   const { t } = useTranslation();
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-2xl">{t("account.title")}</h1>
+      <PageHeader title={t("account.title")} />
       <Profile />
       <nav aria-label={t("hv.homeCare")} className="flex flex-wrap gap-3">
         <Link to="/account/addresses" className={cn(buttonVariants({ variant: "outline" }))} data-testid="link-addresses"><MapPin aria-hidden="true" />{t("hv.addressBook")}</Link>

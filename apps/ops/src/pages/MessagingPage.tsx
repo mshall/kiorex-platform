@@ -52,7 +52,7 @@ export default function MessagingPage() {
       </div>
       {log.isLoading ? <CardSkeleton rows={2} /> : log.error ? <ErrorState error={log.error} onRetry={() => void log.refetch()} /> : (
         <DataTable caption={t("messaging.title")} rows={log.data!.items} rowKey={(m) => m.id} empty={t("messaging.empty")} columns={[
-          { key: "t", header: t("messaging.time"), cell: (m) => formatDateTime(m.createdAt, i18n.language) },
+          { key: "t", header: t("messaging.time"), className: "whitespace-nowrap", cell: (m) => formatDateTime(m.createdAt, i18n.language) },
           { key: "c", header: t("messaging.channelLabel"), cell: (m) => <Badge variant="secondary">{m.channel}</Badge> },
           { key: "d", header: t("messaging.directionLabel"), cell: (m) => m.direction },
           { key: "r", header: t("messaging.recipient"), cell: (m) => <code className="text-xs" dir="ltr">{m.recipientMasked}</code> },

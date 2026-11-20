@@ -14,6 +14,7 @@ import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } fr
 import { useFeature } from "@/hooks/useFeature";
 import { dayKey, formatDay, formatDayLong, formatMinor, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/kit";
 
 const errMsg = (e: unknown, t: (k: string) => string) => (e instanceof ApiError ? (e.isFeatureDisabled ? t("unavailable.title") : e.code === "SLOT_TAKEN" || e.code === "SLOT_UNAVAILABLE" ? t("lab.errors.slot") : t("lab.errors.generic")) : t("lab.errors.generic"));
 
@@ -63,7 +64,7 @@ export default function LabPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><FlaskConical className="h-7 w-7 text-ocean" aria-hidden="true" /><h1 className="text-2xl">{t("lab.title")}</h1></div>
+        <PageHeader icon={<FlaskConical />} title={t("lab.title")} />
         <Link to="/lab/bookings" className={cn(buttonVariants({ variant: "outline" }))} data-testid="my-lab-link">{t("lab.myBookings")}</Link>
       </div>
       <p className="max-w-2xl text-muted-foreground">{t("lab.intro")}</p>

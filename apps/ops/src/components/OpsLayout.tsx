@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Activity, Banknote, HandCoins, House, Siren, Building2, Flag, Languages, LogOut, MessagesSquare, Moon, PackageCheck, Receipt, Route, ScrollText, Settings2, ShieldCheck, Sun, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,15 +16,16 @@ export function OpsLayout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const { pathname } = useLocation();
   const next = i18n.language.startsWith("ar") ? "en" : "ar";
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e bg-card p-4 md:flex" aria-label={t("nav.main")}>
-        <Logo className="mb-1" markClassName="h-7" />
+        <Logo className="mb-1" markClassName="h-9" />
         <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("nav.console")}</p>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV.map(({ to, icon: Icon, key }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-accent", isActive && "bg-accent text-primary ring-1 ring-pulse/40")}>
+            <NavLink key={to} to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-accent", isActive && "bg-accent text-accent-foreground ring-1 ring-pulse/40")}>
               <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}
             </NavLink>
           ))}
@@ -42,7 +43,7 @@ export function OpsLayout() {
             <Button variant="outline" size="sm" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6" tabIndex={-1}><Outlet /></main>
+        <main key={pathname} className="kx-page flex-1 p-4 md:p-8" tabIndex={-1}><Outlet /></main>
       </div>
     </div>
   );

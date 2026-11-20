@@ -31,7 +31,7 @@ export default function HeldDepositsPage() {
           { key: "a", header: t("held.amount"), cell: (r) => <b className="kx-label-num">{formatMinor(r.amountMinor, i18n.language, r.currency)}</b> },
           { key: "d", header: t("held.district"), cell: (r) => r.district ?? "—" },
           { key: "x", header: t("held.reason"), cell: (r) => <Badge variant="warning">{r.reason ?? "UNSAFE_ABORT"}</Badge> },
-          { key: "t", header: t("held.age"), cell: (r) => <div className="text-xs">{formatDateTime(r.heldForReviewAt, i18n.language)}<br />{r.ageHours != null ? t("held.ageHours", { h: Math.round(r.ageHours) }) : ""}</div> },
+          { key: "t", header: t("held.age"), cell: (r) => <div className="whitespace-nowrap text-xs">{formatDateTime(r.heldForReviewAt, i18n.language)}<br />{r.ageHours != null ? t("held.ageHours", { h: Math.round(r.ageHours) }) : ""}</div> },
           { key: "z", header: "", cell: (r) => (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setTarget({ row: r, decision: "release" })} data-testid={`release-${r.paymentId}`}><Banknote aria-hidden="true" />{t("held.release")}</Button>

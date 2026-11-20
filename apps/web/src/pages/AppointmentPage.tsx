@@ -1,6 +1,6 @@
 import { ChannelBadge } from "@/components/ChannelBadge";
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { CalendarPlus, Hourglass, Navigation, Phone, Star, XCircle } from "lucide-react";
@@ -20,6 +20,7 @@ import { statusVariant } from "./AppointmentsPage";
 import { usePatient } from "@/hooks/usePatient";
 import { cn } from "@/lib/utils";
 import { FamilySharePanel, HomeFee, HomeProgress, SafetyCardPanel, VisitAddressView } from "@/components/HomeVisitBits";
+import { PageHeader, StateArt, Stepper } from "@/components/kit";
 
 export default function AppointmentPage() {
   const { id = "" } = useParams();
@@ -30,6 +31,7 @@ export default function AppointmentPage() {
   const reschedule = useRescheduleBooking();
   const intent = useDepositCheckout();
   const { nameOf } = usePatient();
+  const justBooked = (useLocation().state as { justBooked?: boolean } | null)?.justBooked === true;
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reschedOpen, setReschedOpen] = useState(false);
   const b = q.data;
@@ -64,9 +66,18 @@ export default function AppointmentPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl">{t("appointment.title")}</h1>
+        <PageHeader title={t("appointment.title")} />
         <div className="flex items-center gap-2"><ChannelBadge channel={b.channel} /><Badge variant={statusVariant(b.status)} data-testid="appt-status">{t(`status.${b.status}`)}</Badge></div>
       </div>
+
+      {justBooked && b.status === "CONFIRMED" && (
+        <section role="status" className="kx-card flex flex-col items-center gap-2 border-success/40 bg-success-soft/40 px-6 py-8 text-center" data-testid="booking-confirmed">
+          <StateArt kind="success" className="h-24 w-24" />
+          <h2 className="text-2xl">{t("appointment.confirmedTitle")}</h2>
+          <p className="max-w-md text-sm text-muted-foreground">{t("appointment.confirmedBody")}</p>
+        </section>
+      )}
+      {justBooked && <Stepper steps={[t("flow.choose"), t("flow.confirm"), t("flow.done")]} current={3} label={t("flow.label")} />}
 
       {b.status === "PENDING_CLINIC" && (
         <div role="status" className="flex gap-3 rounded-xl border border-warning/50 bg-warning-soft p-4" data-testid="pending-clinic">

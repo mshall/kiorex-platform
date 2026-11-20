@@ -1,93 +1,46 @@
+@import "../brand/tokens.css";
+@import "../brand/shadcn-bridge.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Kiorex design tokens — see Docs/DESIGN_SYSTEM.md. HSL triplets so Tailwind can apply alpha. */
+/* Design tokens come from the vendored brand kit (src/brand, generated from _brand/tokens.json). Do not hand-edit colours here. */
 @layer base {
-  :root {
-    --background: 225 57% 97%;        /* Ground #F4F6FC */
-    --foreground: 244 46% 21%;        /* #1E1B4B */
-    --card: 0 0% 100%;
-    --card-foreground: 244 46% 21%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 244 46% 21%;
-    --primary: 244 55% 41%;           /* Indigo #3730A3 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 201 96% 32%;         /* Ocean #0369A1 */
-    --secondary-foreground: 0 0% 100%;
-    --ocean: 201 96% 32%;
-    --muted: 228 40% 94%;
-    --muted-foreground: 215 19% 35%;  /* #475569 */
-    --accent: 244 60% 95%;
-    --accent-foreground: 244 55% 36%;
-    --pulse: 9 75% 64%;               /* Coral #E8735E — accent only, never errors */
-    --pulse-foreground: 244 46% 21%;
-    --destructive: 0 70% 40%;         /* errors are red, never coral */
-    --destructive-foreground: 0 0% 100%;
-    --success: 161 94% 24%;
-    --success-soft: 152 60% 92%;
-    --warning: 26 90% 33%;
-    --warning-soft: 40 90% 91%;
-    --info: 201 96% 28%;
-    --info-soft: 201 80% 93%;
-    --border: 214 32% 88%;
-    --input: 214 22% 62%;             /* >=3:1 against white for form borders */
-    --ring: 9 75% 64%;                /* pulse focus ring */
-    --radius: 14px;
-    color-scheme: light;
-  }
-  .dark {
-    --background: 237 41% 10%;        /* #0F1024 */
-    --foreground: 233 66% 94%;
-    --card: 237 43% 16%;              /* #17183A */
-    --card-foreground: 233 66% 94%;
-    --popover: 237 43% 16%;
-    --popover-foreground: 233 66% 94%;
-    --primary: 243 78% 73%;           /* lifted indigo #8B85F0 */
-    --primary-foreground: 237 41% 10%;
-    --secondary: 199 93% 60%;         /* #38BDF8 */
-    --secondary-foreground: 237 41% 10%;
-    --ocean: 199 93% 60%;
-    --muted: 237 33% 21%;
-    --muted-foreground: 228 24% 71%;
-    --accent: 237 33% 24%;
-    --accent-foreground: 243 78% 80%;
-    --pulse: 9 75% 64%;
-    --pulse-foreground: 237 41% 10%;
-    --destructive: 0 84% 68%;
-    --destructive-foreground: 237 41% 10%;
-    --success: 158 64% 62%;
-    --success-soft: 160 40% 16%;
-    --warning: 38 92% 62%;
-    --warning-soft: 30 40% 17%;
-    --info: 199 93% 66%;
-    --info-soft: 210 50% 18%;
-    --border: 237 33% 25%;
-    --input: 232 22% 48%;
-    --ring: 9 75% 64%;
-    color-scheme: dark;
-  }
-
   * { @apply border-border; }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Jost", "IBM Plex Sans Arabic", system-ui, sans-serif;
+    font-family: var(--kx-font);
     font-feature-settings: "ss01", "tnum" 0;
+    text-rendering: optimizeLegibility;
   }
-  html[lang="ar"] body { font-family: "IBM Plex Sans Arabic", "Jost", system-ui, sans-serif; line-height: 1.7; }
-  h1, h2, h3, h4 { @apply font-semibold tracking-tight; }
-  html[lang="en"] h1, html[lang="en"] h2 { letter-spacing: -0.01em; }
-  :focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 6px; }
+  html[lang="ar"] body { font-family: var(--kx-font-ar); line-height: 1.7; }
+  h1, h2, h3, h4 { @apply font-semibold; letter-spacing: var(--kx-tracking-xl); line-height: 1.2; }
+  html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; line-height: 1.45; }
+  h1 { letter-spacing: var(--kx-tracking-3xl); }
   ::selection { background: hsl(var(--primary) / 0.2); }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-  }
+  /* Numerals stay tabular in data surfaces */
+  table, .kx-label-num { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
-  .kx-card { @apply rounded-xl border bg-card text-card-foreground shadow-card; }
-  .kx-chip { @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-accent; }
+  .kx-card { @apply rounded-xl border bg-card text-card-foreground shadow-card; transition: box-shadow var(--kx-dur-base) var(--kx-ease-standard), border-color var(--kx-dur-base) var(--kx-ease-standard), transform var(--kx-dur-base) var(--kx-ease-standard); }
+  .kx-card-interactive:hover { box-shadow: var(--kx-shadow-3); border-color: hsl(var(--primary) / 0.35); transform: translateY(-1px); }
+  .kx-chip { @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium hover:bg-accent; transition: background-color var(--kx-dur-fast) var(--kx-ease-standard), border-color var(--kx-dur-fast) var(--kx-ease-standard); }
   .kx-chip[aria-pressed="true"], .kx-chip[data-active="true"] { @apply border-pulse bg-pulse/15; }
   .kx-label-num { font-variant-numeric: tabular-nums; }
+  .kx-page { animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both; }
+  .kx-hairline { box-shadow: inset 0 -1px 0 var(--kx-hairline); }
 }
+@keyframes kx-page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* unlayered so it wins over px-* utilities: room for the chevron */
+  select {
+    display: block;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236F7899' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem;
+    padding-inline-end: 2.25rem; text-overflow: ellipsis;
+  }
+  [dir="rtl"] select { background-position: left 0.75rem center; }
+  select:hover { border-color: hsl(var(--primary) / 0.5); }

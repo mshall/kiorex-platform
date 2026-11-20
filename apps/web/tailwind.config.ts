@@ -1,9 +1,11 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
+import kxPreset from "./src/brand/tailwind-preset.cjs";
 
 const hsl = (v: string) => `hsl(var(--${v}) / <alpha-value>)`;
 
 export default {
+  presets: [kxPreset],
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
@@ -33,7 +35,7 @@ export default {
         info: { DEFAULT: hsl("info"), soft: hsl("info-soft") },
       },
       borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 4px)", sm: "calc(var(--radius) - 8px)", xl: "var(--radius)", "2xl": "calc(var(--radius) + 6px)" },
-      boxShadow: { card: "0 1px 2px hsl(var(--foreground) / 0.04), 0 4px 16px hsl(var(--foreground) / 0.05)" },
+      boxShadow: { card: "var(--kx-shadow-1)", raised: "var(--kx-shadow-2)", float: "var(--kx-shadow-3)", overlay: "var(--kx-shadow-4)" },
       minHeight: { 11: "2.75rem", 12: "3rem" },
       minWidth: { 11: "2.75rem" },
       keyframes: { pulseline: { "0%": { strokeDashoffset: "200" }, "100%": { strokeDashoffset: "0" } } },
