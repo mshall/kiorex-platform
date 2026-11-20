@@ -48,7 +48,7 @@ function Vault() {
   return (
     <>
       <Row style={{ justifyContent: "space-between" }}>
-        <T variant="title" accessibilityRole="header" style={{ flex: 1 }}>{t("records.title")}</T>
+        <T variant="large" accessibilityRole="header" style={{ flex: 1 }}>{t("records.title")}</T>
         <Button testID="add-record" small icon="plus" title={t("records.add")} disabled={readOnly} onPress={() => { setMsg(null); setSheet(true); }} />
       </Row>
       {readOnly ? <Banner testID="vault-readonly" tone="warning" title={t("records.readOnlyTitle")} body={t("records.readOnlyBody")} /> : null}

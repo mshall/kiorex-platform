@@ -359,7 +359,16 @@
     "consentsTitle": "Consents",
     "sessionsTitle": "Devices and sessions",
     "exportReady": "Your data export is being prepared.",
-    "deleteWarn": "Type the word to enable deletion."
+    "deleteWarn": "Type the word to enable deletion.",
+    "pushTitle": "Notifications",
+    "pushToggle": "Push notifications on this device",
+    "pushHint": "Appointment confirmations, reminders and follow-ups. Never medical details on the lock screen.",
+    "pushOn": "Notifications are on",
+    "pushOff": "Notifications are off",
+    "pushDenied": "Permission was not granted. You can allow notifications in your device settings.",
+    "pushUnsupported": "This browser or device does not support notifications.",
+    "pushFailed": "We couldn't update notifications. Try again.",
+    "pushDevices": "Registered devices: {{count}}"
   },
   "consent": {
     "updated": "Updated {{date}}",

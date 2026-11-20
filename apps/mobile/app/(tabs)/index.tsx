@@ -83,11 +83,11 @@ export default function Home() {
   const name = user?.name ?? selected?.name;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 12, gap: 18, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" testID="home">
+    <ScrollView style={{ flex: 1, backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" testID="home">
       <Row style={{ justifyContent: "space-between" }}>
         <View style={{ gap: 2 }}>
-          <Wordmark size={18} />
-          <T variant="h2" accessibilityRole="header">{signedIn && name ? t("home.greeting", { name }) : t("home.greetingAnon")}</T>
+          <Wordmark size={16} />
+          <T variant="display" accessibilityRole="header">{signedIn && name ? t("home.greeting", { name }) : t("home.greetingAnon")}</T>
         </View>
       </Row>
 

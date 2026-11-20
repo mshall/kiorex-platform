@@ -1,15 +1,17 @@
+import { StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/Icon";
 import { fontFamily, useTheme } from "@/theme";
+import { haptic } from "@/lib/haptics";
 
 export default function TabsLayout() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   return (
-    <Tabs screenOptions={{
+    <Tabs screenListeners={{ tabPress: () => haptic.select() }} screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.ink, tabBarInactiveTintColor: colors.muted,
-      tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, minHeight: 60 },
+      tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, minHeight: 62, paddingTop: 4, elevation: 0 },
       tabBarLabelStyle: { fontFamily: fontFamily(i18n.language, "medium"), fontSize: 12 }, tabBarItemStyle: { minHeight: 48 },
     }}>
       <Tabs.Screen name="index" options={{ title: t("tabs.home"), tabBarButtonTestID: "tab-home", tabBarIcon: ({ color }) => <Icon name="home" color={color as string} /> }} />

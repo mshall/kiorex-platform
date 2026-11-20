@@ -7,7 +7,8 @@ import { config } from "@/lib/config";
 import { secureStore } from "@/lib/storage";
 import { configureApi } from "@/api/client";
 import { decodeClaims } from "./jwt";
-import { registerForPush } from "@/lib/push";
+import { refreshPushRegistration } from "@/lib/push";
+import i18n from "@/i18n";
 
 // Completes the popup / in-app browser session on web and native when returning to kiorex://auth/callback.
 WebBrowser.maybeCompleteAuthSession();
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [getToken, setSession]);
 
-  useEffect(() => { if (status === "signedIn") void registerForPush(); }, [status]);
+  useEffect(() => { if (status === "signedIn") void refreshPushRegistration(i18n.language?.startsWith("en") ? "en" : "ar"); }, [status]);
 
   const login = useCallback(async () => {
     setError(null); setBusy(true);

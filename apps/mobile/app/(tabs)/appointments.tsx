@@ -36,8 +36,7 @@ export default function Appointments() {
   const list = tab === "upcoming" ? upcoming : past;
 
   return (
-    <Screen style={{ paddingTop: insets.top + 12, gap: 14 }} refresh={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.ink} />} testID="appointments">
-      <T variant="title" accessibilityRole="header">{t("appointments.title")}</T>
+    <Screen title={t("appointments.title")} style={{ paddingTop: insets.top + 12, gap: 14 }} refresh={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.ink} />} testID="appointments">
       <Row gap={8} style={{ flexWrap: "wrap" }}>
         <Chip testID="waitlist-link" icon="clock" label={t("waitlist.title")} onPress={() => router.push("/waitlist")} />
         <Chip testID="tab-upcoming" label={t("appointments.upcoming")} selected={tab === "upcoming"} onPress={() => setTab("upcoming")} />

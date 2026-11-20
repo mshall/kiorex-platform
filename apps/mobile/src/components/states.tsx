@@ -5,6 +5,7 @@ import { ApiError } from "@/api/errors";
 import { useTheme } from "@/theme";
 import { Button, Spinner, T } from "./ui";
 import { Icon, type IconName } from "./Icon";
+import { BrandIllustration } from "./Pulse";
 
 export const LoadingState = () => { const { t } = useTranslation(); return <Spinner label={t("states.loading")} />; };
 
@@ -12,7 +13,8 @@ export function EmptyState({ icon = "search", title, hint, action }: { icon?: Ic
   const { colors } = useTheme();
   return (
     <View style={{ alignItems: "center", padding: 28, gap: 10 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.soft, alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={28} color={colors.ink} /></View>
+      <BrandIllustration />
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.soft, alignItems: "center", justifyContent: "center", marginTop: -8 }}><Icon name={icon} size={24} color={colors.ink} /></View>
       <T variant="h2" style={{ textAlign: "center" }}>{title}</T>
       {hint ? <T muted style={{ textAlign: "center" }}>{hint}</T> : null}
       {action}
@@ -39,6 +41,7 @@ export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () =
   if (error instanceof ApiError && error.isFeatureDisabled) return <UnavailableState featureKey={error.featureKey} scope={error.details?.scope as string | undefined} />;
   return (
     <View testID="error-state" style={{ alignItems: "center", padding: 28, gap: 10 }}>
+      <BrandIllustration tone="error" />
       <T variant="h2" style={{ textAlign: "center" }}>{t("states.errorTitle")}</T>
       <T muted style={{ textAlign: "center" }}>{t("states.errorBody")}</T>
       {onRetry ? <Button title={t("states.retry")} variant="secondary" onPress={onRetry} /> : null}

@@ -2,20 +2,29 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useColorScheme } from "react-native";
 import { prefs } from "@/lib/storage";
 
-// Kiorex design tokens (_brand/tokens.css): Indigo primary, Ocean secondary, coral Pulse as accent only.
+// Kiorex design tokens: vendored from _brand (src/brand/theme.ts, generated from tokens.json). Indigo primary, Ocean secondary, coral Pulse accent only.
+import { colorsFor, shadow as brandShadow, theme as brand } from "@/brand/theme";
+
 export interface Palette {
   ink: string; ink2: string; pulse: string; ground: string; surface: string; text: string; muted: string; border: string;
   onInk: string; onDanger: string; soft: string; danger: string; dangerSoft: string; success: string; successSoft: string; warning: string; warningSoft: string; overlay: string;
+  raised: string; subtle: string; hairline: string; borderStrong: string; subtleText: string; pulseSoft: string; info: string; infoSoft: string; inkHover: string;
 }
-export const light: Palette = {
-  ink: "#3730A3", ink2: "#0369A1", pulse: "#E8735E", ground: "#F4F6FC", surface: "#FFFFFF", text: "#1E1B4B", muted: "#475569", border: "#E2E8F0",
-  onInk: "#FFFFFF", onDanger: "#FFFFFF", soft: "#EEF0FF", danger: "#B91C1C", dangerSoft: "#FEE2E2", success: "#047857", successSoft: "#D1FAE5", warning: "#B45309", warningSoft: "#FEF3C7", overlay: "rgba(15,16,36,0.5)",
+const build = (scheme: "light" | "dark"): Palette => {
+  const c = colorsFor(scheme);
+  return {
+    ink: c.primary, ink2: c.secondary, pulse: c.accent, ground: c.bg, surface: c.surface, text: c.text, muted: c.textMuted, border: c.border,
+    onInk: c.onPrimary, onDanger: scheme === "dark" ? "#2A0A0A" : "#FFFFFF", soft: c.primarySoft, danger: c.danger, dangerSoft: c.dangerSoft,
+    success: c.success, successSoft: c.successSoft, warning: c.warning, warningSoft: c.warningSoft, overlay: c.overlay,
+    raised: c.surfaceRaised, subtle: c.bgSubtle, hairline: c.hairline, borderStrong: c.borderStrong, subtleText: c.textSubtle, pulseSoft: c.accentSoft, info: c.info, infoSoft: c.infoSoft, inkHover: c.primaryHover,
+  };
 };
-export const dark: Palette = {
-  ink: "#8B85F0", ink2: "#38BDF8", pulse: "#F08A75", ground: "#0F1024", surface: "#17183A", text: "#E8EAFB", muted: "#A5ACC8", border: "#2A2C55",
-  onInk: "#0F1024", onDanger: "#3B0A0A", soft: "#23245A", danger: "#FCA5A5", dangerSoft: "#4C1D1D", success: "#6EE7B7", successSoft: "#064E3B", warning: "#FCD34D", warningSoft: "#4A3A0A", overlay: "rgba(0,0,0,0.65)",
-};
+export const light: Palette = build("light");
+export const dark: Palette = build("dark");
+export const elevation = (level: 0 | 1 | 2 | 3 | 4, scheme: "light" | "dark" = "light") => brandShadow(level, scheme);
+export const motion = { fast: brand.motion.duration.fast, base: brand.motion.duration.base, slow: brand.motion.duration.slow, pulse: brand.motion.duration.pulse };
 export const radius = 14;
+export const radiusLg = 20;
 export const MIN_TOUCH = 44;
 
 export type ThemePref = "system" | "light" | "dark";

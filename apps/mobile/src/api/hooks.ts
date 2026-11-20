@@ -9,7 +9,7 @@ const NEXT: Record<number, string> = { 1: "today", 3: "tomorrow", 7: "week" };
 export const qk = {
   flags: ["flags"] as const, specialties: ["specialties"] as const, search: (p: SearchParams) => ["search", p] as const,
   doctor: (id: string) => ["doctor", id] as const, slots: (id: string, vt: string, loc?: string, district?: string) => ["slots", id, vt, loc, district] as const, reviews: (id: string) => ["reviews", id] as const,
-  me: ["me"] as const, family: ["family"] as const, consents: ["consents"] as const, sessions: ["sessions"] as const, myReviews: ["my-reviews"] as const,
+  me: ["me"] as const, family: ["family"] as const, consents: ["consents"] as const, sessions: ["sessions"] as const, devices: ["devices"] as const, myReviews: ["my-reviews"] as const,
   bookings: ["bookings"] as const, booking: (id: string) => ["booking", id] as const,
 };
 
@@ -73,6 +73,7 @@ export const useSetConsent = () => {
   });
 };
 export const useSessions = (enabled = true) => useQuery({ queryKey: qk.sessions, enabled, queryFn: () => send(api.GET("/api/v1/me/sessions")) });
+export const useDevices = (enabled = true) => useQuery({ queryKey: qk.devices, enabled, queryFn: () => send(api.GET("/api/v1/me/devices")) });
 export const useRevokeSession = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => send(api.DELETE("/api/v1/me/sessions/{id}", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: qk.sessions }) });

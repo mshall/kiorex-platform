@@ -5,7 +5,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth/AuthProvider";
-import { KiorexMark } from "@/components/Logo";
+import { Lockup } from "@/components/Logo";
+import { PulseLine } from "@/components/Pulse";
 import { Button, T } from "@/components/ui";
 import { useTheme } from "@/theme";
 import { config } from "@/lib/config";
@@ -17,7 +18,7 @@ export default function SignIn() {
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { login, busy, error, status } = useAuth();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   const go = async () => { await login(); };
@@ -25,17 +26,19 @@ export default function SignIn() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.ground }}>
-      <LinearGradient colors={["#3730A3", "#0369A1"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 48, paddingBottom: 48, paddingHorizontal: 24, alignItems: "center", gap: 18, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
-        <KiorexMark width={96} light />
-        <T forceLatin weight="bold" style={{ color: "#fff", fontSize: 28, letterSpacing: 6 }}>KIOREX</T>
-        <T variant="title" color="#FFFFFF" style={{ textAlign: "center" }} accessibilityRole="header">{t("signIn.title")}</T>
-        <T color="#E0E7FF" style={{ textAlign: "center" }}>{t("signIn.subtitle")}</T>
+      <LinearGradient colors={scheme === "dark" ? ["#161835", "#0B2A3D"] : ["#3730A3", "#0369A1"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 40, paddingBottom: 44, paddingHorizontal: 24, alignItems: "center", gap: 20, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 }}>
+        <Lockup height={44} light />
+        <View style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
+          <T variant="display" color="#FFFFFF" style={{ textAlign: "center" }} accessibilityRole="header">{t("signIn.title")}</T>
+          <T color="#DCDBEF" style={{ textAlign: "center", maxWidth: 340 }}>{t("signIn.subtitle")}</T>
+        </View>
+        <PulseLine width={150} loop={false} color="#F08A75" />
       </LinearGradient>
       <View style={{ padding: 24, gap: 14 }}>
         {error ? <T testID="sign-in-error" color={colors.danger} style={{ textAlign: "center" }} accessibilityRole="alert">{t(error)}</T> : null}
         <Button testID="continue-passport" title={t("signIn.cta")} icon="shield" loading={busy} onPress={go} />
         <Button testID="browse-doctors" variant="secondary" title={t("signIn.browse")} icon="search" onPress={() => router.replace("/(tabs)")} />
-        <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingTop: 4 }}>
           <Icon name="shield" size={16} color={colors.muted} />
           <T variant="caption" muted style={{ flex: 1 }}>{t("signIn.passportNote")}</T>
         </View>

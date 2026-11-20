@@ -10,6 +10,8 @@ import { IBMPlexSansArabic_400Regular, IBMPlexSansArabic_500Medium, IBMPlexSansA
 import { useTranslation } from "react-i18next";
 import { bootstrapI18n } from "@/i18n";
 import { ThemeProvider, fontFamily, useTheme } from "@/theme";
+import { ToastProvider } from "@/components/ui";
+import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { PatientProvider } from "@/hooks/usePatient";
 import { setAnalyticsSink } from "@/lib/analytics";
@@ -31,7 +33,7 @@ const queryClient = new QueryClient({
 function Shell() {
   const { t, i18n } = useTranslation();
   const { colors, scheme } = useTheme();
-  const common = { headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.ink, headerTitleStyle: { fontFamily: fontFamily(i18n.language, "semibold"), color: colors.text }, contentStyle: { backgroundColor: colors.ground }, headerBackButtonDisplayMode: "minimal" as const };
+  const common = { headerStyle: { backgroundColor: colors.surface }, headerShadowVisible: false, animation: "slide_from_right" as const, headerLargeTitleShadowVisible: false, headerTintColor: colors.ink, headerTitleStyle: { fontFamily: fontFamily(i18n.language, "semibold"), color: colors.text }, contentStyle: { backgroundColor: colors.ground }, headerBackButtonDisplayMode: "minimal" as const };
   return (
     <>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
@@ -42,27 +44,27 @@ function Shell() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="results" options={{ title: t("results.title") }} />
         <Stack.Screen name="doctor/[id]" options={{ title: "" }} />
-        <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false }} />
+        <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="appointment/[id]" options={{ title: t("appointment.title") }} />
         <Stack.Screen name="review/[id]" options={{ title: t("review.submit") }} />
-        <Stack.Screen name="settings/family" options={{ title: t("account.familyTitle") }} />
-        <Stack.Screen name="settings/consents" options={{ title: t("account.consentsTitle") }} />
-        <Stack.Screen name="settings/sessions" options={{ title: t("account.sessionsTitle") }} />
+        <Stack.Screen name="settings/family" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.familyTitle") }} />
+        <Stack.Screen name="settings/consents" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.consentsTitle") }} />
+        <Stack.Screen name="settings/sessions" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.sessionsTitle") }} />
         <Stack.Screen name="settings/delete" options={{ title: t("account.deleteTitle") }} />
-        <Stack.Screen name="settings/addresses" options={{ title: t("address.title") }} />
-        <Stack.Screen name="care-plans/index" options={{ title: t("carePlan.title") }} />
+        <Stack.Screen name="settings/addresses" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("address.title") }} />
+        <Stack.Screen name="care-plans/index" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("carePlan.title") }} />
         <Stack.Screen name="safety/[id]" options={{ title: t("safety.title") }} />
         <Stack.Screen name="family-share/[id]" options={{ title: t("share.title") }} />
-        <Stack.Screen name="waitlist" options={{ title: t("waitlist.title") }} />
+        <Stack.Screen name="waitlist" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("waitlist.title") }} />
         <Stack.Screen name="records/[id]" options={{ title: t("records.title") }} />
-        <Stack.Screen name="records/sharing" options={{ title: t("records.sharing") }} />
-        <Stack.Screen name="records/follow-ups" options={{ title: t("records.followUps") }} />
+        <Stack.Screen name="records/sharing" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("records.sharing") }} />
+        <Stack.Screen name="records/follow-ups" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("records.followUps") }} />
         <Stack.Screen name="pharmacy/index" options={{ title: t("services.pharmacy") }} />
         <Stack.Screen name="pharmacy/cart" options={{ title: t("pharmacy.cart") }} />
-        <Stack.Screen name="pharmacy/orders" options={{ title: t("pharmacy.myOrders") }} />
+        <Stack.Screen name="pharmacy/orders" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("pharmacy.myOrders") }} />
         <Stack.Screen name="pharmacy/order/[id]" options={{ title: t("pharmacy.orderTitle") }} />
         <Stack.Screen name="lab/index" options={{ title: t("services.lab") }} />
-        <Stack.Screen name="lab/bookings" options={{ title: t("lab.myBookings") }} />
+        <Stack.Screen name="lab/bookings" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("lab.myBookings") }} />
         <Stack.Screen name="lab/booking/[id]" options={{ title: t("lab.bookingTitle") }} />
         <Stack.Screen name="telemedicine/index" options={{ title: t("services.telemedicine") }} />
         <Stack.Screen name="telemedicine/room/[id]" options={{ title: t("tele.roomTitle") }} />
@@ -77,6 +79,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold, IBMPlexSansArabic_400Regular, IBMPlexSansArabic_500Medium, IBMPlexSansArabic_600SemiBold, IBMPlexSansArabic_700Bold });
   useEffect(() => { void bootstrapI18n().finally(() => setI18nReady(true)); }, []);
   const ready = i18nReady && (fontsLoaded || !!fontError);
+  const [splash, setSplash] = useState(true);
   useEffect(() => { if (ready) void SplashScreen.hideAsync(); }, [ready]);
   if (!ready) return null;
   return (
@@ -85,8 +88,11 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <PatientProvider>
-              <Shell />
+              <ToastProvider>
+                <Shell />
+              </ToastProvider>
             </PatientProvider>
+            {splash ? <AnimatedSplash onDone={() => setSplash(false)} /> : null}
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>

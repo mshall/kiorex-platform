@@ -35,6 +35,7 @@ function slotsFor(id: string): { startsAt: string; endsAt: string }[] {
 }
 
 const state = {
+  devices: [] as Any[],
   bookings: new Map<string, Any>(),
   taken: new Set<string>(),
   deps: [{ id: "m1", nameEn: "Youssef", nameAr: "يوسف", relationship: "CHILD", dateOfBirth: "2018-04-02", gender: "MALE" }] as Any[],
@@ -134,6 +135,9 @@ async function route(method: string, path: string, url: URL, body: Any): Promise
   if (method === "DELETE" && (m = path.match(/^\/me\/dependants\/([^/]+)$/))) { state.deps = state.deps.filter((d) => d.id !== m![1]); return json(200, { ok: true }); }
   if (method === "GET" && path === "/me/consents") return json(200, Object.entries(state.consents).map(([purpose, granted]) => ({ purpose, granted, version: 1, updatedAt: new Date().toISOString() })));
   if (method === "PUT" && (m = path.match(/^\/me\/consents\/([^/]+)$/))) { state.consents[m[1]] = !!body.granted; return json(200, { purpose: m[1], granted: !!body.granted }); }
+  if (method === "GET" && path === "/me/devices") return json(200, state.devices ?? []);
+  if (method === "POST" && path === "/me/devices") { const d = { id: `dev${(state.devices ??= []).length + 1}`, platform: body.platform, appVersion: body.appVersion ?? null, locale: body.locale ?? null, createdAt: new Date().toISOString(), lastSeenAt: new Date().toISOString() }; state.devices.push(d); return json(201, d); }
+  if (method === "DELETE" && (m = path.match(/^\/me\/devices\/([^/]+)$/))) { state.devices = (state.devices ?? []).filter((d: Any) => d.id !== m![1]); return json(200, { ok: true }); }
   if (method === "GET" && path === "/me/sessions") return json(200, state.sessions);
   if (method === "DELETE" && (m = path.match(/^\/me\/sessions\/([^/]+)$/))) { state.sessions = state.sessions.filter((s) => s.id !== m![1]); return json(200, { ok: true }); }
   if (method === "POST" && path === "/me/export") return json(200, { id: "exp1", generatedAt: new Date().toISOString() });
