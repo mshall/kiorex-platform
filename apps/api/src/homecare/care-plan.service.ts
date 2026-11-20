@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CarePlanBooking } from '@prisma/client';
+import { CarePlanBooking } from '../prisma/generated/client';
 import { encryptField } from '../common/crypto';
 import { badRequest, conflict, notFound, unavailable } from '../common/errors';
 import { newId } from '../common/ids';

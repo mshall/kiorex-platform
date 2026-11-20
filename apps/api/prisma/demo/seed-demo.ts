@@ -11,7 +11,7 @@
  * Gate evidence is recorded ONLY as DEV-ONLY-NOT-A-REAL-GATE in this dev DB so the verticals are visible; never in production.
  */
 import 'reflect-metadata';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../../src/prisma/client-factory';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { signKiorlyRequest, PARTNER_DEV_DEFAULTS } from '@kiorex/contracts';
@@ -23,7 +23,7 @@ import { seedNurseLab } from './seed-nurse-lab';
 import { assertDemoSeedAllowed } from '../../src/common/demo-seed-guard';
 import { capture, pspFee, refundRequest, refundSettle, release, payout, type Posting } from '../../src/pay/ledger';
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform?schema=public' });
+const prisma = createPrismaClient();
 const RESET = process.argv.includes('--reset');
 const DAY = 86_400_000;
 const today0 = new Date(); today0.setUTCHours(0, 0, 0, 0);

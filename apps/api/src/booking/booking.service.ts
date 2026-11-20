@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { BookingIntent, Provider } from '@prisma/client';
+import { BookingIntent, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';

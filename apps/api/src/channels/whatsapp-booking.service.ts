@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ChannelConversation } from '@prisma/client';
+import { ChannelConversation } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
 import { BookingService } from '../booking/booking-public';

@@ -3,14 +3,14 @@
  * Deliberately seeds NO providers (they come from the Kiorly sync) and NO gate evidence (human-only, ADR-024).
  */
 import 'reflect-metadata';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/prisma/client-factory';
 import { FlagsService } from '../src/control-plane/flags.service';
 import { OutboxService } from '../src/outbox/outbox.service';
 import { PartnerRegistry } from '../src/partners/partners.service';
 
 async function main() {
   process.env.JOBS_ENABLED = 'false';
-  const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform?schema=public' });
+  const prisma = createPrismaClient();
   const flags = new FlagsService(prisma as never, new OutboxService(prisma as never));
   await flags.seed({ devKeys: process.env.NODE_ENV !== 'production' });
   if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_GATES !== 'false') {

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PatientAddress } from '@prisma/client';
+import { PatientAddress } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { decryptField, encryptField } from '../common/crypto';
 import { addressForLog, normalizeDistrict } from '../common/district';

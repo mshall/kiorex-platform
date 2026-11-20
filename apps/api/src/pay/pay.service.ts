@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PaymentIntent, Prisma } from '@prisma/client';
+import { PaymentIntent, Prisma } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { badRequest, conflict, notFound } from '../common/errors';
 import { newId, toMajor } from '../common/ids';

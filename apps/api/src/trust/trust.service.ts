@@ -1,6 +1,6 @@
 import { cfg } from '../common/config';
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Review } from '@prisma/client';
+import { Review } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { badRequest, conflict, forbidden, notFound } from '../common/errors';
 import { BookingService } from '../booking/booking-public';

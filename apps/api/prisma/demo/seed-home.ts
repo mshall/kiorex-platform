@@ -7,7 +7,7 @@
  * Money rows follow the real ledger postings (capture, PSP fee, hold-for-review, review release / refund, refund settle). Gate evidence for the
  * home / physio / nurse flags is recorded ONLY as DEV-ONLY-NOT-A-REAL-GATE:<gate> (never a real approval). Nothing here talks to a provider.
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../src/prisma/generated/client';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';

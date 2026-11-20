@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Prisma, Provider } from '@prisma/client';
+import { Prisma, Provider } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, conflict, notFound, unavailable } from '../common/errors';
 import { FlagsService } from '../control-plane/control-plane-public';

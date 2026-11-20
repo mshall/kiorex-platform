@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PatientProfile } from '@prisma/client';
+import { PatientProfile } from '../prisma/generated/client';
 import { blindIndex, decryptField, encryptField } from '../common/crypto';
 import { badRequest, forbidden, notFound } from '../common/errors';
 import { AuthUser } from '../common/auth';

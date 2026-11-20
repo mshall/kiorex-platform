@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { SharedRecord } from '@prisma/client';
+import { SharedRecord } from '../prisma/generated/client';
 import { createHash, createHmac } from 'node:crypto';
 import { cfg } from '../common/config';
 import { decryptField, encryptField, safeEqual, sha256Hex } from '../common/crypto';

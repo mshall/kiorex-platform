@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { BookingIntent, FamilyShare } from '@prisma/client';
+import { BookingIntent, FamilyShare } from '../prisma/generated/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { cfg } from '../common/config';
 import { blindIndex, decryptField, encryptField } from '../common/crypto';

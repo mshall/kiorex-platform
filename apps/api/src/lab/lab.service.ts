@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { LabBooking, Prisma } from '@prisma/client';
+import { LabBooking, Prisma } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
 import { badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';

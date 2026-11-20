@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { SafetyAlert } from '@prisma/client';
+import { SafetyAlert } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { normalizeDistrict } from '../common/district';
 import { conflict, notFound } from '../common/errors';

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Provider, WaitlistEntry, WaitlistOffer } from '@prisma/client';
+import { Provider, WaitlistEntry, WaitlistOffer } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, conflict, notFound } from '../common/errors';
 import { newId } from '../common/ids';

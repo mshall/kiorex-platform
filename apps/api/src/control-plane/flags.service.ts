@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { signSnapshot, signWebhook as cSignWebhook } from '@kiorex/contracts';
-import { FlagDefinition, FlagValue, Prisma } from '@prisma/client';
+import { FlagDefinition, FlagValue, Prisma } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { outboundFetch } from '../common/outbound-http';
 import { decryptField, encryptField } from '../common/crypto';

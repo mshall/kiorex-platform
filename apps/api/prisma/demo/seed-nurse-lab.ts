@@ -10,7 +10,7 @@
  *      `POST /marketplace/v1/lab-orders/:orderId/status` (monotonic + idempotent, so re-runs are harmless).
  * If the Lab or the clinic is not reachable (e.g. AWS isolated subnets without an egress path, HB07) the relay rows are still written and the push is skipped with a warning.
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../src/prisma/generated/client';
 import { PARTNER_DEV_DEFAULTS, signKiorlyRequest } from '@kiorex/contracts';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

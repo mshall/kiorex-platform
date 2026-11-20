@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Provider, TeleSession } from '@prisma/client';
+import { Provider, TeleSession } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { conflict, notFound, unavailable } from '../common/errors';
 import { newId } from '../common/ids';
