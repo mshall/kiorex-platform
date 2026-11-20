@@ -22,3 +22,13 @@ Phone OTP `000000` (see Passport). Patients `+201000001001 … +201000001012` (H
 Patient web: Search, My bookings, Vault, Family, Waitlist, Pharmacy/Lab orders, Telemedicine. Ops: Providers, Bookings, Payments/Ledger/Payouts, Reviews, Messages, Outbox, Partners, Flags.
 ## Notes
 `kiorex.sponsored_listings` OFF at market EG may stay pending (money-path flag, two-person rule). Held bookings may be expired by the background job over time.
+
+## Rev 2.3 additions (home visits) — `prisma/demo/seed-home.ts`, spec `prisma/demo/demo-home-visits.json`
+Needs the Kiorly demo seed and a provider sync (scripts/seed-all.sh does both). Patients: Hoda `+201000001001` (home + mother's flat addresses, family share, home bookings incl. a cancelled refunded one), Samir `…1002`, Nourhan `…1004`, Mahmoud `…1005`, Dalia `…1008`, Rana `…1012`, Karim `…1003` (physio), new **Nabila Hamdy `+201000001013`** (agency care-plan client). OTP `000000`.
+- **Providers (synced)**: Nurse Mona Adel (solo), Demo Care Agency (`assignsClinician`), Dr Mai Hassan and Dr Hany Sobhy (physiotherapy, home), Dr Nadia Fouad (paediatrician, home).
+- **Address book** (`PatientAddress`, encrypted): confirmed defaults, an unconfirmed and a soft-deleted address for Hoda; booking address snapshots masked 24 h after the visit.
+- **32 home bookings**: assigned (assignee shown), unassigned agency queue (`assignmentPending`), en route (ETA), arrived, completed, aborted-unsafe (not a no-show), cancelled (refund), no-show (forfeit); care plan `kx_cp_demo_1` (10 visits, 4 done) + request `kx_cp_demo_2`.
+- **Deposits**: paid / released / forfeited / refunded, **hold-for-review** (2 held, 35 min and 46 h old), reviewed->released, reviewed->refunded; ledger entries follow the real postings (HOLD_FOR_REVIEW, REVIEW_RELEASE, REVIEW_REFUND_REQUEST).
+- **Ops console -> Safety console**: 6 alerts (SOS resolved, timer-expired acknowledged, unsafe-abort raised / escalated with a 95 s SLO breach / resolved x2) with action history; family shares (2 active, 1 stopped).
+- **Gate evidence**: DEV-ONLY-NOT-A-REAL-GATE:GHV1/GHV2/GPR1/GPR2/GKN1/GKN2 for the home, physio, care-plan/MAR and solo-nurse flags (dev DB only, never a real approval; the base seed intentionally leaves GKN1/GKN2 unrecorded).
+- `DEMO_SEED_NOW` (set by seed-all.sh) anchors the live visits to the same instant as the Kiorly seed.

@@ -18,6 +18,7 @@ import { signKiorlyRequest, PARTNER_DEV_DEFAULTS } from '@kiorex/contracts';
 import { FlagsService } from '../../src/control-plane/flags.service';
 import { OutboxService } from '../../src/outbox/outbox.service';
 import { encryptField } from '../../src/common/crypto';
+import { seedHome } from './seed-home';
 import { capture, pspFee, refundRequest, refundSettle, release, payout, type Posting } from '../../src/pay/ledger';
 
 if (process.env.NODE_ENV === 'production') throw new Error('refusing to seed demo data in production');
@@ -36,7 +37,7 @@ const PERSONAS: [number, string, string, 'F' | 'M', string, 'ar' | 'en'][] = [
   [1005, 'Mahmoud El-Sayed', 'محمود السيد', 'M', '1972-05-09', 'ar'], [1006, 'Mariam Adel', 'مريم عادل', 'F', '1993-09-17', 'en'],
   [1007, 'Omar Hegazy', 'عمر حجازي', 'M', '1997-12-03', 'en'], [1008, 'Dalia Ibrahim', 'داليا إبراهيم', 'F', '1988-04-25', 'ar'],
   [1009, 'Tarek Zaki', 'طارق زكي', 'M', '1990-08-11', 'en'], [1010, 'Heba Salah', 'هبة صلاح', 'F', '1991-02-19', 'ar'],
-  [1011, 'Youssef Ramadan', 'يوسف رمضان', 'M', '2000-06-06', 'en'], [1012, 'Rana Khaled', 'رنا خالد', 'F', '1985-10-28', 'ar'],
+  [1011, 'Youssef Ramadan', 'يوسف رمضان', 'M', '2000-06-06', 'en'], [1012, 'Rana Khaled', 'رنا خالد', 'F', '1985-10-28', 'ar'], [1013, 'Nabila Hamdy', 'نبيلة حمدي', 'F', '1958-06-02', 'ar'], // 1013: agency home-care client (Rev 2.3), a Kiorly patient of "Demo Care Agency" only
 ];
 
 async function partnerGet(kind: 'pharmacy' | 'lab', path: string): Promise<any | null> {
@@ -63,6 +64,8 @@ async function resetDemo() {
     `DELETE FROM "BookingIntent" WHERE id LIKE 'demo_bk_%'`,
     `DELETE FROM "SharedRecord" WHERE id LIKE 'demo_rec_%'`, `DELETE FROM "RecordShareConsent" WHERE ${subs}`, `DELETE FROM "FollowUpReminder" WHERE id LIKE 'demo_fu_%'`,
     `DELETE FROM "PharmacyOrder" WHERE id LIKE 'kx_ph_demo_%'`, `DELETE FROM "LabBooking" WHERE id LIKE 'kx_lb_demo_%'`,
+    `DELETE FROM "SafetyAlert" WHERE id LIKE 'kx_sa_demo_%'`, `DELETE FROM "FamilyShare" WHERE id LIKE 'kx_fs_demo_%'`, `DELETE FROM "CarePlanBooking" WHERE id LIKE 'kx_cp_demo_%'`,
+    `DELETE FROM "BookingVisitAddress" WHERE "bookingId" LIKE 'demo_bk_%'`, `DELETE FROM "PatientAddress" WHERE id LIKE 'kx_ad_demo_%'`,
     `DELETE FROM "KiorlyPatientLink" WHERE ${subs}`, `DELETE FROM "Dependant" WHERE id LIKE 'demo_dep_%'`, `DELETE FROM "ConsentRecord" WHERE ${subs}`,
     `DELETE FROM "PatientProfile" WHERE ${subs}`,
   ];
@@ -99,7 +102,7 @@ async function main() {
     const s = sub(n);
     await prisma.patientProfile.upsert({ where: { sub: s }, create: { sub: s, phone: phone(n), nameEn: en, nameAr: ar, gender: g, dateOfBirth: new Date(dob), preferredLocale: loc, market: 'EG', email: `patient${n}@demo.kiorex.test` }, update: { nameEn: en, nameAr: ar } });
     await prisma.consentRecord.createMany({ data: [{ id: `demo_cr_${n}_1`, sub: s, purpose: 'MARKETPLACE', granted: true, version: 'v1', source: 'WEB' }, { id: `demo_cr_${n}_2`, sub: s, purpose: 'REMINDERS', granted: n % 5 !== 0, version: 'v1', source: 'WEB' }], skipDuplicates: true }).catch(() => {});
-    await prisma.kiorlyPatientLink.createMany({ data: [{ id: `demo_kl_${n}`, sub: s, clinicId: 'demo_c_na_maadi', kiorlyPatientId: `demo_p_na_${n - 1000}`, evidence: 'PHONE_MATCH', status: 'LINKED' }], skipDuplicates: true }).catch(() => {});
+    if (n <= 1012) await prisma.kiorlyPatientLink.createMany({ data: [{ id: `demo_kl_${n}`, sub: s, clinicId: 'demo_c_na_maadi', kiorlyPatientId: `demo_p_na_${n - 1000}`, evidence: 'PHONE_MATCH', status: 'LINKED' }], skipDuplicates: true }).catch(() => {});
   }
   const deps: [string, number, string, string, number, string][] = [['demo_dep_1', 1001, 'Yassin Samir Ali', 'ياسين سمير علي', 8, 'son'], ['demo_dep_2', 1001, 'Laila Samir Ali', 'ليلى سمير علي', 4, 'daughter'], ['demo_dep_3', 1003, 'Salma Karim Mostafa', 'سلمى كريم مصطفى', 15, 'daughter'], ['demo_dep_4', 1005, 'Adam Mahmoud El-Sayed', 'آدم محمود السيد', 2, 'son']];
   await many('dependant', deps.map(([id, g, en, ar, age, rel]) => ({ id, guardianSub: sub(g), nameEn: en, nameAr: ar, dateOfBirth: new Date(Date.UTC(2026 - age, 5, 1)), relationship: rel, evidence: 'self_declared', gender: rel === 'son' ? 'M' : 'F' })));
@@ -218,6 +221,9 @@ async function main() {
     }
   } else console.warn('lab partner not reachable / empty catalogue: skipped lab bookings');
 
+  // Rev 2.3: home bookings, address book, hold-for-review deposits, safety console feed (DEV-ONLY gates), see seed-home.ts
+  const home = await seedHome(prisma, { at, sub, flags });
+  console.log(`Kiorex home seed: ${home}`);
   console.log(`Kiorex demo seed OK — ${PERSONAS.length} patient profiles, ${deps.length} dependants, ${bookingsSpec.length} bookings (${Object.entries(statusCounts).map(([k, v]) => `${k}:${v}`).join(' ')}), ${postN} ledger txs, ${completed.length} completed visits, ${recs.length} vault records, ${ph} pharmacy orders, ${lb} lab bookings`);
   await prisma.$disconnect();
 }
