@@ -8,7 +8,7 @@ type S = components["schemas"];
 export type CareTypeInfo = S["CareTypeDto"];
 export type HomeDistrict = S["HomeDistrictDto"];
 export type Address = S["AddressDto"];
-export type AddressInput = S["AddressBody"];
+export type AddressInput = S["HomeAddressBody"];
 export type FamilyShare = S["FamilyShareDto"];
 export type FamilyShareCreated = S["FamilyShareCreatedDto"];
 export type SafetyCard = S["SafetyCardDto"];
@@ -38,7 +38,7 @@ export const useConfirmAddress = () => { const inv = useInvAddr(); return useMut
 export const useFamilyShares = (bookingId: string, enabled = true) => useQuery({ queryKey: hk.shares(bookingId), enabled, retry: 0, queryFn: () => unwrap(api.GET("/api/v1/bookings/{id}/family-shares", { params: { path: { id: bookingId } } })) });
 export const useCreateFamilyShare = (bookingId: string) => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (body: S["ShareBody"]) => unwrap(api.POST("/api/v1/bookings/{id}/family-shares", { params: { path: { id: bookingId } }, body })), onSuccess: () => qc.invalidateQueries({ queryKey: hk.shares(bookingId) }) });
+  return useMutation({ mutationFn: (body: S["FamilyShareBody"]) => unwrap(api.POST("/api/v1/bookings/{id}/family-shares", { params: { path: { id: bookingId } }, body })), onSuccess: () => qc.invalidateQueries({ queryKey: hk.shares(bookingId) }) });
 };
 export const useRevokeFamilyShare = (bookingId: string) => {
   const qc = useQueryClient();

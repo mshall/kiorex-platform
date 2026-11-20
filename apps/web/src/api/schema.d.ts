@@ -3354,7 +3354,7 @@ export interface components {
             hasPin: boolean;
             isDefault: boolean;
         };
-        AddressBody: {
+        HomeAddressBody: {
             label: string;
             governorate: string;
             district: string;
@@ -3838,8 +3838,9 @@ export interface components {
             amountMinor: number;
             currency: string;
         };
-        ReviewBody: {
-            reason: string;
+        BookingReviewBody: {
+            rating: number;
+            text?: string;
         };
         ReviewDto: {
             rating: number;
@@ -4208,6 +4209,9 @@ export interface components {
             amountMinor: number;
             currency: string;
         };
+        PaymentReviewBody: {
+            reason: string;
+        };
         ReviewDecisionDto: {
             /** @enum {string} */
             outcome: "RELEASED_TO_PROVIDER" | "REFUNDED_TO_PATIENT";
@@ -4561,13 +4565,8 @@ export interface components {
             /** @description false when clinic.record_share_patient_app is OFF: no NEW sharing can be granted; revoking always works */
             canGrant: boolean;
         };
-        ShareBody: {
-            contactName: string;
-            phone: string;
-            /** @enum {string} */
-            locale?: "ar" | "en";
-            consentAttested: boolean;
-            visitStatusSharingConsent?: boolean;
+        RecordShareBody: {
+            granted: boolean;
         };
         PrescriptionItemDto: {
             id: string;
@@ -4735,10 +4734,17 @@ export interface components {
             items: components["schemas"]["CartItemBody"][];
             prescriptionRecordId?: string;
         };
+        PharmacyDeliveryAddressBody: {
+            line1: string;
+            area?: string;
+            governorate?: string;
+            notes?: string;
+            phone?: string;
+        };
         DeliveryBody: {
             /** @enum {string} */
             method: "PICKUP" | "DELIVERY";
-            address?: components["schemas"]["AddressBody"];
+            address?: components["schemas"]["PharmacyDeliveryAddressBody"];
         };
         CreateOrderBody: {
             prescriptionRecordId?: string;
@@ -4929,6 +4935,14 @@ export interface components {
         JoinResultDto: {
             session: components["schemas"]["TeleSessionDto"];
             video: components["schemas"]["VideoTokenDto"];
+        };
+        FamilyShareBody: {
+            contactName: string;
+            phone: string;
+            /** @enum {string} */
+            locale?: "ar" | "en";
+            consentAttested: boolean;
+            visitStatusSharingConsent?: boolean;
         };
         FamilyShareCreatedDto: {
             /** @description Masked phone (the number itself is encrypted and never returned) */
@@ -6049,7 +6063,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddressBody"];
+                "application/json": components["schemas"]["HomeAddressBody"];
             };
         };
         responses: {
@@ -6774,7 +6788,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReviewBody"];
+                "application/json": components["schemas"]["BookingReviewBody"];
             };
         };
         responses: {
@@ -7174,7 +7188,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReviewBody"];
+                "application/json": components["schemas"]["PaymentReviewBody"];
             };
         };
         responses: {
@@ -7199,7 +7213,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReviewBody"];
+                "application/json": components["schemas"]["PaymentReviewBody"];
             };
         };
         responses: {
@@ -7749,7 +7763,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ShareBody"];
+                "application/json": components["schemas"]["RecordShareBody"];
             };
         };
         responses: {
@@ -8744,7 +8758,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ShareBody"];
+                "application/json": components["schemas"]["FamilyShareBody"];
             };
         };
         responses: {
