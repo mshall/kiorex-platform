@@ -121,6 +121,9 @@
 | POST | `/api/v1/me/notifications/{id}/read` |  |
 | GET | `/api/v1/me/notification-preferences` | KXM-NT-02 per-channel opt-out and quiet hours |
 | PUT | `/api/v1/me/notification-preferences/{channel}` |  |
+| POST | `/api/v1/me/devices` | KXM-NT push device registry: register or refresh this app instance's push token (idempotent on the token; never echoed back) |
+| GET | `/api/v1/me/devices` |  |
+| DELETE | `/api/v1/me/devices/{id}` |  |
 
 ## health
 

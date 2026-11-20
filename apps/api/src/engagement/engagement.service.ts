@@ -1,9 +1,13 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { notFound } from '../common/errors';
 import { MessagingAdapter, MessagingHub, MsgChannel } from '../messaging/messaging-public';
 import { PatientService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
+import { newId } from '../common/ids';
 import { NotifyKind, render, TEMPLATES } from './templates';
+
+export const DEVICE_PLATFORMS = ['IOS', 'ANDROID', 'WEB'] as const;
 
 export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 
@@ -72,11 +76,19 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
       }
     }
     const profile = await this.patients.profileBySub(m.sub);
-    const to = m.channel === 'EMAIL' ? profile?.email : m.channel === 'PUSH' ? `device:${m.sub}` : profile?.phone; // PUSH: device-token registry is part of the FCM/APNs go-live pass
-    if (!to) return finish('FAILED', 'NO_RECIPIENT');
+    // PUSH goes to every active registered device (token registry); in MOCK mode an account without a device still gets the dev-inbox push so flows stay testable
+    const devices = m.channel === 'PUSH' ? await this.activeDevices(m.sub) : [];
+    const targets: string[] = m.channel === 'PUSH'
+      ? (devices.length ? devices.map((d) => d.token) : this.hub.mode() === 'mock' ? [`device:${m.sub}`] : [])
+      : [(m.channel === 'EMAIL' ? profile?.email : profile?.phone) ?? ''].filter((x): x is string => !!x);
+    if (!targets.length) return finish('FAILED', m.channel === 'PUSH' ? 'NO_DEVICE' : 'NO_RECIPIENT');
     try {
-      const r = await this.hub.send({ messageId: m.id, channel: m.channel as MsgChannel, sub: m.sub, to, templateId: m.templateId, locale: m.locale, body });
-      return r.ok ? finish('SENT') : finish('FAILED', (r.error ?? 'SEND_FAILED').slice(0, 200));
+      let okCount = 0; let lastError: string | undefined;
+      for (const to of targets) {
+        const r = await this.hub.send({ messageId: m.id, channel: m.channel as MsgChannel, sub: m.sub, to, templateId: m.templateId, locale: m.locale, body });
+        if (r.ok) okCount++; else lastError = r.error ?? undefined;
+      }
+      return okCount ? finish('SENT') : finish('FAILED', (lastError ?? 'SEND_FAILED').slice(0, 200));
     } catch (e) {
       return finish('FAILED', String(e).slice(0, 200));
     }
@@ -103,6 +115,30 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
   /** KXM-NT-03: review invitation at T+2h after completion. */
   async scheduleReviewInvite(b: { id: string; sub: string }, params: Record<string, unknown>, completedAt = new Date()) {
     return this.notify(b.sub, { kind: 'REVIEW_INVITATION', bookingId: b.id, params, scheduledFor: new Date(completedAt.getTime() + 2 * 3600_000), dedupeKey: `REVIEW_INVITATION:${b.id}` });
+  }
+
+  // ── push device registry ──
+  activeDevices(sub: string) { return this.prisma.deviceToken.findMany({ where: { sub, revokedAt: null }, orderBy: { lastSeenAt: 'desc' }, take: 10 }); }
+  private presentDevice(d: { id: string; platform: string; appVersion: string | null; locale: string | null; createdAt: Date; lastSeenAt: Date }) {
+    return { id: d.id, platform: d.platform, appVersion: d.appVersion, locale: d.locale, createdAt: d.createdAt.toISOString(), lastSeenAt: d.lastSeenAt.toISOString() }; // the token itself is never echoed
+  }
+  /** Idempotent on the token: a token that moves to another account (re-login on the same phone) is re-owned, never duplicated. */
+  async registerDevice(sub: string, i: { platform: string; token: string; appVersion?: string; locale?: string }) {
+    const row = await this.prisma.deviceToken.upsert({
+      where: { token: i.token },
+      create: { id: newId('kx_dev'), sub, platform: i.platform, token: i.token, appVersion: i.appVersion, locale: i.locale },
+      update: { sub, platform: i.platform, appVersion: i.appVersion, locale: i.locale, revokedAt: null, lastSeenAt: new Date() },
+    });
+    // keep the registry small: at most 10 active devices per account, oldest revoked
+    const active = await this.prisma.deviceToken.findMany({ where: { sub, revokedAt: null }, orderBy: { lastSeenAt: 'desc' } });
+    if (active.length > 10) await this.prisma.deviceToken.updateMany({ where: { id: { in: active.slice(10).map((d) => d.id) } }, data: { revokedAt: new Date() } });
+    return this.presentDevice(row);
+  }
+  async listDevices(sub: string) { return (await this.activeDevices(sub)).map((d) => this.presentDevice(d)); }
+  async removeDevice(sub: string, id: string) {
+    const r = await this.prisma.deviceToken.updateMany({ where: { id, sub, revokedAt: null }, data: { revokedAt: new Date() } });
+    if (!r.count) throw notFound('DEVICE_NOT_FOUND', 'Device not found');
+    return { ok: true };
   }
 
   // ── inbox & preferences ──

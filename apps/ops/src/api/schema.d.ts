@@ -860,6 +860,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["EngagementController_listDevices"];
+        put?: never;
+        /** KXM-NT push device registry: register or refresh this app instance's push token (idempotent on the token; never echoed back) */
+        post: operations["EngagementController_registerDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["EngagementController_removeDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pay/intents/{id}": {
         parameters: {
             query?: never;
@@ -3615,6 +3648,25 @@ export interface components {
             quietStart?: number;
             quietEnd?: number;
         };
+        DeviceBody: {
+            /** @enum {string} */
+            platform: "IOS" | "ANDROID" | "WEB";
+            token: string;
+            appVersion?: string;
+            /** @enum {string} */
+            locale?: "ar" | "en";
+        };
+        DeviceDto: {
+            /** @enum {string} */
+            platform: "IOS" | "ANDROID" | "WEB";
+            appVersion: string | null;
+            locale: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            id: string;
+        };
         PayIntentDto: {
             bookingId: string | null;
             /** @enum {string} */
@@ -4857,7 +4909,7 @@ export interface components {
         PartnerDto: {
             id: string;
             /** @enum {string} */
-            kind: "pharmacy" | "lab";
+            kind: "pharmacy" | "lab" | "lab_nurse";
             name: string;
             /** @description Host only, e.g. http://localhost:3100 */
             baseUrl: string;
@@ -6414,6 +6466,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationPreferenceDto"];
+                };
+            };
+        };
+    };
+    EngagementController_listDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"][];
+                };
+            };
+        };
+    };
+    EngagementController_registerDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+        };
+    };
+    EngagementController_removeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };

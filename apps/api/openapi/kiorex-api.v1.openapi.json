@@ -1993,6 +1993,90 @@
         ]
       }
     },
+    "/api/v1/me/devices": {
+      "post": {
+        "operationId": "EngagementController_registerDevice",
+        "summary": "KXM-NT push device registry: register or refresh this app instance's push token (idempotent on the token; never echoed back)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      },
+      "get": {
+        "operationId": "EngagementController_listDevices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}": {
+      "delete": {
+        "operationId": "EngagementController_removeDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "engagement"
+        ]
+      }
+    },
     "/api/v1/pay/intents/{id}": {
       "get": {
         "operationId": "PayController_intent",
@@ -9205,6 +9289,79 @@
             "maximum": 23
           }
         }
+      },
+      "DeviceBody": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "IOS",
+              "ANDROID",
+              "WEB"
+            ]
+          },
+          "token": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 4096
+          },
+          "appVersion": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "platform",
+          "token"
+        ]
+      },
+      "DeviceDto": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "IOS",
+              "ANDROID",
+              "WEB"
+            ]
+          },
+          "appVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "locale": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "appVersion",
+          "locale",
+          "createdAt",
+          "lastSeenAt",
+          "id"
+        ]
       },
       "PayIntentDto": {
         "type": "object",

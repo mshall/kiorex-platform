@@ -444,6 +444,21 @@ model Message {
   @@index([status, scheduledFor])
 }
 
+/// KXM-NT push device registry: one row per installed app instance (FCM/APNs/web-push token). Tokens are secrets: never logged (masked as push:****).
+model DeviceToken {
+  id         String    @id // kx_dev_<id>
+  sub        String
+  platform   String // IOS | ANDROID | WEB
+  token      String    @unique
+  appVersion String?
+  locale     String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([sub, revokedAt])
+}
+
 model NotificationPreference {
   sub        String
   channel    String

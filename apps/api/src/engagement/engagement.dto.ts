@@ -15,3 +15,12 @@ export class NotificationPreferenceDto {
   @ApiProperty({ nullable: true, type: Number, description: 'Local quiet-hours start (0-23)' }) quietStart!: number | null;
   @ApiProperty({ nullable: true, type: Number }) quietEnd!: number | null;
 }
+
+export class DeviceDto {
+  id!: string;
+  @ApiProperty({ enum: ['IOS', 'ANDROID', 'WEB'] }) platform!: string;
+  @ApiProperty({ nullable: true, type: String }) appVersion!: string | null;
+  @ApiProperty({ nullable: true, type: String }) locale!: string | null;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ format: 'date-time' }) lastSeenAt!: string;
+}

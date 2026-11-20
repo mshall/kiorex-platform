@@ -84,4 +84,27 @@ describe('engagement (KXM-NT-01..03)', () => {
     expect(w.body.status).toBe('APPLIED');
     expect(await c.prisma.message.count({ where: { bookingId: h.body.id, channel: 'INAPP', params: { path: ['kind'], equals: 'REVIEW_INVITATION' } } })).toBe(1);
   });
+
+  it('NT push device registry: register is idempotent on the token and never echoes it; PUSH is delivered to every active device; a removed device is not sent to', async () => {
+    await c.http().put('/api/v1/me/consents/MARKETPLACE_PROCESSING').set(auth).send({ granted: true });
+    const tok1 = 'fcm_token_android_0123456789abcdef'; const tok2 = 'apns_token_ios_0123456789abcdef';
+    const d1 = await c.http().post('/api/v1/me/devices').set(auth).send({ platform: 'ANDROID', token: tok1, appVersion: '1.0.0', locale: 'ar' }).expect(201);
+    expect(JSON.stringify(d1.body)).not.toContain(tok1);
+    const again = await c.http().post('/api/v1/me/devices').set(auth).send({ platform: 'ANDROID', token: tok1 }).expect(201);
+    expect(again.body.id).toBe(d1.body.id);
+    const d2 = await c.http().post('/api/v1/me/devices').set(auth).send({ platform: 'IOS', token: tok2 }).expect(201);
+    await c.http().post('/api/v1/me/devices').set(auth).send({ platform: 'PLAYSTATION', token: tok2 }).expect(400);
+    expect((await c.http().get('/api/v1/me/devices').set(auth)).body).toHaveLength(2);
+    await send('BOOKING_CONFIRMED', 'dev1');
+    const sentTo = async (key: string) => (await c.prisma.messageLog.findMany({ where: { messageId: (await c.prisma.message.findFirstOrThrow({ where: { dedupeKey: key } })).id }, select: { recipient: true } })).map((r) => r.recipient);
+    expect((await sentTo('dev1:PUSH')).sort()).toEqual([tok2, tok1].sort());
+    await c.http().delete(`/api/v1/me/devices/${d2.body.id}`).set(auth).expect(200);
+    await c.http().delete(`/api/v1/me/devices/${d2.body.id}`).set(auth).expect(404);
+    await send('BOOKING_CONFIRMED', 'dev2');
+    expect(await sentTo('dev2:PUSH')).toEqual([tok1]);
+    // another account cannot remove my device
+    const other = await c.as('sub_other');
+    await c.http().delete(`/api/v1/me/devices/${d1.body.id}`).set(other).expect(404);
+  });
 });
+
