@@ -7,9 +7,9 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
 
   api:
@@ -24,12 +24,12 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform_test?schema=public
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { path: kiorex-platform }
       # @kiorex/contracts comes from the vendored tarball committed in vendor/ (file: dependency). No cross-repo checkout, no
       # CONTRACTS_READ_TOKEN and no GitHub Packages token (the token that built it has no write:packages). Refresh: scripts/vendor-contracts.sh
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
       - run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -c 'CREATE DATABASE kiorex_platform_test'
       - run: npm ci
         working-directory: kiorex-platform
@@ -58,10 +58,10 @@ jobs:
   workspaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { path: kiorex-platform }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
       - run: npm ci
         working-directory: kiorex-platform
       - run: npm run lint --workspaces --if-present && npm run typecheck --workspaces --if-present
