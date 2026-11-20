@@ -16,7 +16,7 @@ export const fk = {
 };
 
 // ---- markets (launch gate) ----
-export const useMarkets = () => useQuery({ queryKey: fk.markets, staleTime: 300_000, retry: 0, queryFn: () => send(api.GET("/api/v1/markets", { params: { query: { all: true } as never } })) });
+export const useMarkets = () => useQuery({ queryKey: fk.markets, staleTime: 300_000, retry: 0, queryFn: () => send(api.GET("/api/v1/markets", { params: { query: { all: "true" } } })) });
 
 // ---- waitlist (KXM-BK-12) ----
 export const useWaitlist = (enabled = true) => useQuery({ queryKey: fk.waitlist, enabled, refetchInterval: 30_000, queryFn: () => send(api.GET("/api/v1/waitlist")) });

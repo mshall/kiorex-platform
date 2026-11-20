@@ -27,17 +27,17 @@ const useInvalidateFlags = () => { const qc = useQueryClient(); return () => qc.
 export const useSetFlag = () => {
   const inv = useInvalidateFlags();
   return useMutation({
-    mutationFn: (v: { key: string; body: SetFlagBody }) => unwrap(api.PUT("/api/v1/admin/flags/{key}/values", { params: { path: { key: v.key } }, body: v.body as never })),
+    mutationFn: (v: { key: string; body: SetFlagBody }) => unwrap(api.PUT("/api/v1/admin/flags/{key}/values", { params: { path: { key: v.key } }, body: v.body })),
     onSuccess: inv,
   });
 };
 export const useRecordGate = () => {
   const inv = useInvalidateFlags();
-  return useMutation({ mutationFn: (v: { key: string; body: GateBody }) => unwrap(api.PUT("/api/v1/admin/flags/{key}/gate", { params: { path: { key: v.key } }, body: v.body as never })), onSuccess: inv });
+  return useMutation({ mutationFn: (v: { key: string; body: GateBody }) => unwrap(api.PUT("/api/v1/admin/flags/{key}/gate", { params: { path: { key: v.key } }, body: v.body })), onSuccess: inv });
 };
 export const useRevokeGate = () => {
   const inv = useInvalidateFlags();
-  return useMutation({ mutationFn: (v: { key: string; reason: string }) => unwrap(api.POST("/api/v1/admin/flags/{key}/gate/revoke", { params: { path: { key: v.key } }, body: { reason: v.reason } as never })), onSuccess: inv });
+  return useMutation({ mutationFn: (v: { key: string; reason: string }) => unwrap(api.POST("/api/v1/admin/flags/{key}/gate/revoke", { params: { path: { key: v.key } }, body: { reason: v.reason } })), onSuccess: inv });
 };
 export const useDecideRequest = () => {
   const inv = useInvalidateFlags();
@@ -76,6 +76,6 @@ export const useFinance = () => useQuery({ queryKey: ["ops", "finance"], queryFn
 export const useModeration = () => useQuery({ queryKey: ["ops", "moderation"], queryFn: async () => mapModeration(await unwrap(api.GET("/api/v1/admin/moderation", { params: { query: { status: "OPEN" } } }))) });
 export const useModerate = () => {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (v: { id: string; resolution: "RESTORED" | "KEPT_HIDDEN" }) => unwrap(api.POST("/api/v1/admin/moderation/{id}/resolve", { params: { path: { id: v.id } }, body: { resolution: v.resolution } as never })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "moderation"] }) });
+  return useMutation({ mutationFn: (v: { id: string; resolution: "RESTORED" | "KEPT_HIDDEN" }) => unwrap(api.POST("/api/v1/admin/moderation/{id}/resolve", { params: { path: { id: v.id } }, body: { resolution: v.resolution } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "moderation"] }) });
 };
 export const useLiquidity = () => useQuery({ queryKey: ["ops", "liquidity"], queryFn: async () => mapLiquidity(await unwrap(api.GET("/api/v1/admin/liquidity"))) });

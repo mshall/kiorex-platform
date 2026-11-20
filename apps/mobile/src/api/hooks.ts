@@ -26,7 +26,7 @@ export const useSearchDoctors = (p: SearchParams, enabled = true) =>
       const query: Record<string, string> = {};
       for (const [k, v] of Object.entries(rest)) if (v !== undefined && v !== "" && v !== false) query[k] = String(v);
       if (availableWithinDays) query.nextAvailable = NEXT[availableWithinDays] ?? "week";
-      return mapSearch(await send(api.GET("/api/v1/search/providers", { params: { query } as never })));
+      return mapSearch(await send(api.GET("/api/v1/search/providers", { params: { query } })));
     },
   });
 
@@ -56,7 +56,7 @@ export const useFamily = (enabled = true) => useQuery({ queryKey: qk.family, ena
 export const useAddFamily = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (b: { nameEn: string; dateOfBirth: string; relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER"; gender?: "MALE" | "FEMALE" }) => send(api.POST("/api/v1/me/dependants", { body: b as never })),
+    mutationFn: (b: { nameEn: string; dateOfBirth: string; relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER"; gender?: "MALE" | "FEMALE" }) => send(api.POST("/api/v1/me/dependants", { body: b })),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.family }),
   });
 };
@@ -68,7 +68,7 @@ export const useConsents = (enabled = true) => useQuery({ queryKey: qk.consents,
 export const useSetConsent = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { purpose: ConsentPurpose; granted: boolean }) => send(api.PUT("/api/v1/me/consents/{purpose}", { params: { path: { purpose: v.purpose } }, body: { granted: v.granted } as never })),
+    mutationFn: (v: { purpose: ConsentPurpose; granted: boolean }) => send(api.PUT("/api/v1/me/consents/{purpose}", { params: { path: { purpose: v.purpose } }, body: { granted: v.granted } })),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.consents }),
   });
 };
@@ -84,7 +84,7 @@ export const useDeleteAccount = () =>
 
 // ---- bookings ----
 export const useBookings = (enabled = true) =>
-  useQuery({ queryKey: qk.bookings, enabled, queryFn: () => send(api.GET("/api/v1/bookings", { params: { query: {} as never } })) });
+  useQuery({ queryKey: qk.bookings, enabled, queryFn: () => send(api.GET("/api/v1/bookings", { params: { query: {} } })) });
 
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({
@@ -105,16 +105,16 @@ const useBookingWrite = <V,>(fn: (v: V) => Promise<Booking>) => {
 
 /** Slot pick → intent + 5-minute hold (KXMBK02). On 409 SLOT_TAKEN the error carries `alternatives` (KXMBK04). */
 export const useCreateHold = () =>
-  useBookingWrite((v: { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; serviceLocation?: ServiceLocation; addressId?: string }) => send(api.POST("/api/v1/bookings", { body: v as never })));
+  useBookingWrite((v: { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; serviceLocation?: ServiceLocation; addressId?: string }) => send(api.POST("/api/v1/bookings", { body: v })));
 
 /** Confirm. The server uses the booking id as Kiorly's Idempotency-Key, so a retry can never create a second booking (KXMBK03/05). */
 export const useConfirmBooking = () =>
   useBookingWrite((v: { id: string; marketplaceConsent: boolean; remindersConsent: boolean }) =>
-    send(api.POST("/api/v1/bookings/{id}/confirm", { params: { path: { id: v.id } }, body: { marketplaceConsent: v.marketplaceConsent, remindersConsent: v.remindersConsent } as never })));
+    send(api.POST("/api/v1/bookings/{id}/confirm", { params: { path: { id: v.id } }, body: { marketplaceConsent: v.marketplaceConsent, remindersConsent: v.remindersConsent } })));
 export const useReleaseHold = () => useBookingWrite((id: string) => send(api.POST("/api/v1/bookings/{id}/release", { params: { path: { id } } })));
-export const useCancelBooking = () => useBookingWrite((v: { id: string; reason?: string }) => send(api.POST("/api/v1/bookings/{id}/cancel", { params: { path: { id: v.id } }, body: { reason: v.reason } as never })));
+export const useCancelBooking = () => useBookingWrite((v: { id: string; reason?: string }) => send(api.POST("/api/v1/bookings/{id}/cancel", { params: { path: { id: v.id } }, body: { reason: v.reason } })));
 export const useRescheduleBooking = () =>
-  useBookingWrite((v: { id: string; startsAt: string; endsAt?: string }) => send(api.POST("/api/v1/bookings/{id}/reschedule", { params: { path: { id: v.id } }, body: { startsAt: v.startsAt, endsAt: v.endsAt } as never })));
+  useBookingWrite((v: { id: string; startsAt: string; endsAt?: string }) => send(api.POST("/api/v1/bookings/{id}/reschedule", { params: { path: { id: v.id } }, body: { startsAt: v.startsAt, endsAt: v.endsAt } })));
 
 export const useDepositCheckout = () =>
   useMutation({ mutationFn: (id: string) => send(api.POST("/api/v1/bookings/{id}/deposit-checkout", { params: { path: { id } } })) });
