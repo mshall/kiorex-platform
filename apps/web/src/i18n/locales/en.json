@@ -123,7 +123,16 @@
       "child": "Child",
       "spouse": "Spouse",
       "parent": "Parent",
-      "other": "Other"
+      "other": "Other",
+      "son": "Son",
+      "daughter": "Daughter",
+      "brother": "Brother",
+      "sister": "Sister",
+      "mother": "Mother",
+      "father": "Father",
+      "husband": "Husband",
+      "wife": "Wife",
+      "self": "You"
     }
   },
   "results": {
@@ -811,7 +820,11 @@
     "errors": {
       "generic": "We could not complete that. Please try again.",
       "notOpen": "The room is not open yet. You can join 15 minutes before the visit."
-    }
+    },
+    "prepTitle": "Before you join",
+    "prep1": "Check your connection; Wi-Fi works best.",
+    "prep2": "Sit somewhere quiet and well lit.",
+    "prep3": "Allow camera and microphone when your browser asks."
   },
   "hv": {
     "careTypes": "Type of care",
@@ -963,5 +976,31 @@
     "choose": "Choose a time",
     "confirm": "Confirm",
     "done": "Done"
+  },
+  "p3": {
+    "free": "Free",
+    "cartEmptyHint": "Search for a medicine and add it to start an order.",
+    "viewCart": "View cart",
+    "cartCount": "{{count}} items",
+    "inCart": "{{count}} in cart",
+    "showMore": "Show {{count}} more tests",
+    "testsCount": "{{count}} tests",
+    "yourAccount": "Your account",
+    "signedInWith": "Signed in with Kiorex Passport",
+    "shortcuts": "Shortcuts",
+    "addressesHint": "Where we visit you, kept private",
+    "plansHint": "Recurring nurse visits",
+    "consentOn": "On",
+    "consentOff": "Off",
+    "offlineTitle": "You are offline",
+    "offlineBody": "Check your connection. What you already opened is still here, and we will refresh it when you are back online.",
+    "offlineBanner": "No connection. Showing what was saved on this device.",
+    "backOnline": "Back online",
+    "goHome": "Back to home",
+    "errorId": "If this keeps happening, tell support what you were doing.",
+    "notFoundCode": "404",
+    "retryNow": "Try again",
+    "lastSeen": "Last active",
+    "earlierOffers": "Earlier offers ({{count}})"
   }
 }

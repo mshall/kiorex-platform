@@ -11,6 +11,7 @@ import { Rating } from "./StarRating";
 import { DoctorAvatar } from "./DoctorAvatar";
 import { StatusChip } from "./kit";
 import { specialtyLabel } from "@/lib/specialties";
+import { SpecialtyIcon } from "@/components/SpecialtyIcon";
 import { districtLabel } from "@/lib/districts";
 import { SlotButton } from "./SlotButton";
 
@@ -30,7 +31,7 @@ export function DoctorCard({ doctor, specialties, onPickSlot }: { doctor: Doctor
             {doctor.sponsored && <SponsoredLabel />}
             {doctor.badge && <Badge variant="info" data-testid="profession-badge">{lang.startsWith("ar") ? doctor.badge.ar : doctor.badge.en}</Badge>}
           </div>
-          <p className="text-sm text-muted-foreground">{specialtyLabel(doctor.specialtyCode, lang, specialties)} · {pick(doctor, "clinicName", lang)}</p>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><SpecialtyIcon code={doctor.specialtyCode} className="h-[18px] w-[18px] text-primary" /><span>{specialtyLabel(doctor.specialtyCode, lang, specialties)} · {pick(doctor, "clinicName", lang)}</span></p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
             <Rating avg={doctor.ratingAvg} count={doctor.ratingCount} />
             <span className="inline-flex items-center gap-1.5"><Wallet className="h-4 w-4 text-muted-foreground" aria-hidden="true" /><span className="kx-label-num font-semibold">{t("doctor.feeFrom", { fee: formatMoney(doctor.feeFromEgp, lang) })}</span></span>

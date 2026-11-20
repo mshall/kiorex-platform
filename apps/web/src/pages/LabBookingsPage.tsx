@@ -1,17 +1,16 @@
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, ChevronRight, FlaskConical } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, ChevronRight, FileText, FlaskConical, Home, RotateCcw, XCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/api/errors";
 import { useCancelLab, useLabBooking, useLabBookings } from "@/api/services";
 import { CardSkeleton, EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { asPayment, PayPanel, ProgressSteps } from "@/components/OrderBits";
-import { orderVariant } from "@/pages/PharmacyOrdersPage";
+import { orderTone } from "@/pages/PharmacyOrdersPage";
 import { formatDateTime, formatMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/kit";
+import { IconTile, PageHeader, Row, StatusBanner, StatusChip } from "@/components/kit";
 
 const STEPS = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "RESULT_RELEASED"];
 
@@ -26,9 +25,10 @@ export function LabBookingsPage() {
       ) : (
         <ul className="space-y-3" data-testid="lab-booking-list">
           {q.data!.map((b) => (
-            <li key={b.id}><Link to={`/lab/bookings/${b.id}`} className="kx-card kx-card-interactive flex items-center justify-between gap-3 p-4" data-testid="lab-booking-row">
-              <div className="space-y-1"><p className="font-semibold">{b.tests.map((x) => x.name).join("، ")}</p><p className="text-sm text-muted-foreground">{formatDateTime(b.slotStartsAt, i18n.language)} · {formatMinor(b.totalMinor, i18n.language)}</p></div>
-              <div className="flex items-center gap-2"><Badge variant={orderVariant(b.status)}>{t(`lab.status.${b.status}`)}</Badge><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></div>
+            <li key={b.id}><Link to={`/lab/bookings/${b.id}`} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid="lab-booking-row">
+              <IconTile tone={orderTone(b.status)}>{b.collectionType === "HOME" ? <Home /> : <FlaskConical />}</IconTile>
+              <div className="min-w-0 flex-1 space-y-0.5"><p className="truncate font-semibold">{b.tests.map((x) => x.name).join("، ")}</p><p className="text-sm text-muted-foreground">{formatDateTime(b.slotStartsAt, i18n.language)} · <span className="kx-label-num">{formatMinor(b.totalMinor, i18n.language)}</span></p></div>
+              <StatusChip tone={orderTone(b.status)}>{t(`lab.status.${b.status}`)}</StatusChip><ChevronRight className="h-4 w-4 shrink-0 rtl-flip text-muted-foreground" aria-hidden="true" />
             </Link></li>
           ))}
         </ul>
@@ -52,22 +52,26 @@ export default function LabBookingPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <Link to="/lab/bookings" className="inline-flex min-h-11 items-center gap-1 text-sm text-ocean"><Back className="h-4 w-4" aria-hidden="true" />{t("lab.bookingsTitle")}</Link>
-      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl">{t("lab.bookingTitle")}</h1><Badge variant={orderVariant(b.status)} data-testid="lab-status">{t(`lab.status.${b.status}`)}</Badge></div>
-      {b.status === "REJECTED" && <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm" data-testid="lab-rejected"><p className="font-semibold">{t("lab.rejectedTitle")}</p><p>{b.rejectionReason ?? t("lab.rejectedBody")}</p><p className="mt-1 text-muted-foreground">{t("pharmacy.autoRefund")}</p></div>}
+      <header className="kx-card flex items-center gap-4 p-5">
+        <IconTile tone={orderTone(b.status)} className="h-14 w-14 rounded-2xl [&_svg]:h-7 [&_svg]:w-7">{failed ? <XCircle /> : b.status === "RESULT_RELEASED" ? <BadgeCheck /> : <FlaskConical />}</IconTile>
+        <div className="min-w-0 flex-1"><h1 className="text-xl md:text-2xl">{t("lab.bookingTitle")}</h1><p className="flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarClock className="h-4 w-4" aria-hidden="true" />{formatDateTime(b.slotStartsAt, i18n.language)}</p></div>
+        <StatusChip tone={orderTone(b.status)} data-testid="lab-status">{t(`lab.status.${b.status}`)}</StatusChip>
+      </header>
+      {b.status === "REJECTED" && <StatusBanner tone="danger" icon={<XCircle />} title={t("lab.rejectedTitle")} data-testid="lab-rejected"><p>{b.rejectionReason ?? t("lab.rejectedBody")}</p><p className="flex items-center gap-1.5 font-medium text-foreground"><RotateCcw className="h-4 w-4 text-info" aria-hidden="true" />{t("pharmacy.autoRefund")}</p></StatusBanner>}
       {b.status === "RESULT_RELEASED" && (
-        <div role="status" className="rounded-xl border border-success/40 bg-success-soft p-4 text-sm" data-testid="lab-result-ready"><p className="font-semibold text-success">{t("lab.resultReady")}</p><p>{t("lab.resultReadyBody")}</p>
-          {b.resultRecordId && <Link to={`/records/${b.resultRecordId}`} className={cn(buttonVariants({ size: "sm" }), "mt-3")} data-testid="lab-result-link">{t("lab.openResult")}</Link>}</div>
+        <StatusBanner tone="success" icon={<FileText />} title={t("lab.resultReady")} data-testid="lab-result-ready"><p>{t("lab.resultReadyBody")}</p>
+          {b.resultRecordId && <Link to={`/records/${b.resultRecordId}`} className={cn(buttonVariants({ size: "sm" }), "mt-2")} data-testid="lab-result-link">{t("lab.openResult")}</Link>}</StatusBanner>
       )}
-      <div className="kx-card p-5"><ProgressSteps steps={STEPS} current={b.status} failed={failed} i18nPrefix="lab.status" /></div>
+      <div className="kx-card p-5 sm:px-6"><ProgressSteps steps={STEPS} current={b.status} failed={failed} i18nPrefix="lab.status" /></div>
       {b.status === "PENDING_PAYMENT" && <PayPanel payment={pay} label={t("pharmacy.pay", { total: formatMinor(b.totalMinor, i18n.language) })} />}
-      <section className="kx-card space-y-3 p-5">
+      <section className="kx-card space-y-2 p-5">
         <h2 className="text-lg">{t("lab.testsInBooking")}</h2>
-        <ul className="divide-y">{b.tests.map((x) => <li key={x.code} className="flex justify-between py-2 text-sm"><span>{x.name}</span><span className="kx-label-num">{formatMinor(x.priceMinor, i18n.language)}</span></li>)}</ul>
-        <dl className="space-y-1 border-t pt-3 text-sm">
-          <div className="flex justify-between"><dt>{t("lab.collection")}</dt><dd>{t(`lab.collectionType.${b.collectionType}`)}</dd></div>
-          <div className="flex justify-between"><dt>{t("lab.when")}</dt><dd>{formatDateTime(b.slotStartsAt, i18n.language)}</dd></div>
-          {b.collectionFeeMinor > 0 && <div className="flex justify-between"><dt>{t("lab.collectionFee")}</dt><dd className="kx-label-num">{formatMinor(b.collectionFeeMinor, i18n.language)}</dd></div>}
-          <div className="flex justify-between text-base font-semibold"><dt>{t("pharmacy.total")}</dt><dd className="kx-label-num">{formatMinor(b.totalMinor, i18n.language)}</dd></div>
+        <ul className="divide-y">{b.tests.map((x) => <li key={x.code} className="flex justify-between gap-3 py-2.5 text-sm"><span className="font-medium" >{x.name}</span><span className="kx-label-num">{formatMinor(x.priceMinor, i18n.language)}</span></li>)}</ul>
+        <dl className="border-t pt-2">
+          <Row label={t("lab.collection")}><span className="font-sans">{t(`lab.collectionType.${b.collectionType}`)}</span></Row>
+          <Row label={t("lab.when")}><span className="font-sans">{formatDateTime(b.slotStartsAt, i18n.language)}</span></Row>
+          {b.collectionFeeMinor > 0 && <Row label={t("lab.collectionFee")}>{formatMinor(b.collectionFeeMinor, i18n.language)}</Row>}
+          <Row label={t("pharmacy.total")} strong>{formatMinor(b.totalMinor, i18n.language)}</Row>
         </dl>
       </section>
       {cancellable && <Button variant="outline" disabled={cancel.isPending} data-testid="cancel-lab" onClick={() => cancel.mutate(b.id, { onSuccess: () => toast.success(t("lab.cancelled")), onError: () => toast.error(t("lab.errors.generic")) })}>{t("lab.cancel")}</Button>}

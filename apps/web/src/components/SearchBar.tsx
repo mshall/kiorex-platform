@@ -9,6 +9,7 @@ import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import { useSpecialties } from "@/api/hooks";
 import { pick } from "@/lib/format";
 import { EmergencyBanner } from "./EmergencyBanner";
+import { SpecialtyIcon } from "./SpecialtyIcon";
 
 export function SearchBar({ initialQ = "", autoFocus }: { initialQ?: string; autoFocus?: boolean }) {
   const { t } = useTranslation();
@@ -46,7 +47,7 @@ export function SpecialtyChips({ active, onPick }: { active?: string; onPick: (c
       <div className="flex gap-2 rounded-2xl border bg-card p-1.5 shadow-card focus-within:border-primary/60 focus-within:ring-[3px] focus-within:ring-ring/40">
         {(data ?? []).map((s) => (
           <button key={s.code} type="button" className="kx-chip shrink-0" aria-pressed={active === s.code} onClick={() => onPick(active === s.code ? undefined : s.code)} data-testid={`chip-${s.code}`}>
-            {pick(s, "name", i18n.language)}
+            <SpecialtyIcon code={s.code} className="h-[18px] w-[18px] text-primary" />{pick(s, "name", i18n.language)}
           </button>
         ))}
       </div>

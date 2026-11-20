@@ -107,7 +107,7 @@ export default function App() {
               <BrowserRouter>
                 <AppRoutes />
               </BrowserRouter>
-              <Toaster position="top-center" dir="auto" />
+              <Toaster position="top-center" offset={76} dir="auto" />
             </TooltipProvider>
           </PatientProvider>
         </AuthProvider>

@@ -2,9 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { ClipboardList, Laptop, MapPin, Trash2, UserPlus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Bell, ChevronRight, ClipboardList, Laptop, MapPin, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { formatDay, formatTime } from "@/lib/format";
 import { downloadJson } from "@/lib/download";
 import type { FamilyInput } from "@/api/hooks";
-import { PageHeader } from "@/components/kit";
+import { IconTile, PageHeader, StatusChip } from "@/components/kit";
 
 function Profile() {
   const { t, i18n } = useTranslation();
@@ -27,12 +26,17 @@ function Profile() {
   if (me.isLoading) return <CardSkeleton rows={1} />;
   if (me.error) return <ErrorState error={me.error} onRetry={() => void me.refetch()} />;
   const m = me.data!;
+  const name = (i18n.language.startsWith("ar") ? m.nameAr : m.nameEn) ?? m.nameEn ?? m.nameAr ?? "—";
   return (
-    <><dl className="kx-card grid gap-4 p-5 sm:grid-cols-2">
-      <div><dt className="text-sm text-muted-foreground">{t("account.name")}</dt><dd className="font-medium">{(i18n.language.startsWith("ar") ? m.nameAr : m.nameEn) ?? m.nameEn ?? m.nameAr ?? "—"}</dd></div>
-      <div><dt className="text-sm text-muted-foreground">{t("account.phone")}</dt><dd className="font-medium" dir="ltr">{m.phone}</dd></div>
-    </dl>
-    <p className="text-xs text-muted-foreground">{t("account.managedBy")}</p></>
+    <>
+    <section className="kx-card flex items-center gap-4 p-5 sm:p-6" aria-label={t("p3.yourAccount")}>
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-ocean text-2xl font-semibold text-white shadow-raised" aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
+      <dl className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0"><dt className="text-sm text-muted-foreground">{t("account.name")}</dt><dd className="truncate text-lg font-semibold">{name}</dd></div>
+        <div><dt className="text-sm text-muted-foreground">{t("account.phone")}</dt><dd className="kx-label-num text-lg font-semibold"><bdi dir="ltr">{m.phone}</bdi></dd></div>
+      </dl>
+    </section>
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden="true" />{t("account.managedBy")}</p></>
   );
 }
 
@@ -56,8 +60,9 @@ function Family() {
     <div className="space-y-4">
       {fam.isLoading ? <CardSkeleton rows={1} /> : fam.error ? <ErrorState error={fam.error} onRetry={() => void fam.refetch()} /> : fam.data!.length === 0 ? <EmptyState title={t("family.empty")} hint={t("family.emptyHint")} /> : (
         <ul className="space-y-2">{fam.data!.map((m) => (
-          <li key={m.id} className="kx-card flex items-center justify-between p-4" data-testid="family-member">
-            <div><p className="font-medium">{m.name}</p><p className="text-sm text-muted-foreground">{t(`family.rel.${m.relationship}`, { defaultValue: m.relationship })}</p></div>
+          <li key={m.id} className="kx-card flex items-center gap-3 p-4" data-testid="family-member">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent font-semibold text-primary" aria-hidden="true">{m.name.trim().charAt(0).toUpperCase()}</span>
+            <div className="min-w-0 flex-1"><p className="font-medium">{m.name}</p><p className="text-sm text-muted-foreground">{t(`family.rel.${m.relationship.toLowerCase()}`, { defaultValue: m.relationship })}</p></div>
             <Button variant="ghost" size="icon" aria-label={t("family.remove", { name: m.name })} onClick={() => remove.mutate(m.id)}><Trash2 className="text-destructive" aria-hidden="true" /></Button>
           </li>))}
         </ul>
@@ -86,9 +91,10 @@ function Consents() {
   return (
     <ul className="space-y-3">
       {q.data!.map((c) => (
-        <li key={c.type} className="kx-card flex items-start justify-between gap-4 p-4">
-          <div><Label htmlFor={`c-${c.type}`} className="text-base">{t(`consent.${c.type}.title`)}</Label><p className="text-sm text-muted-foreground">{t(`consent.${c.type}.body`)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{c.updatedAt ? t("consent.updated", { date: formatDay(c.updatedAt, i18n.language) }) : t("consent.never")}</p></div>
+        <li key={c.type} className="kx-card flex items-start gap-3 p-4">
+          <IconTile tone={c.granted ? "brand" : "neutral"}><Bell /></IconTile>
+          <div className="min-w-0 flex-1"><Label htmlFor={`c-${c.type}`} className="text-base">{t(`consent.${c.type}.title`)}</Label><p className="text-sm text-muted-foreground">{t(`consent.${c.type}.body`)}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><StatusChip tone={c.granted ? "success" : "neutral"}>{c.granted ? t("p3.consentOn") : t("p3.consentOff")}</StatusChip>{c.updatedAt ? t("consent.updated", { date: formatDay(c.updatedAt, i18n.language) }) : t("consent.never")}</p></div>
           <Switch id={`c-${c.type}`} checked={c.granted} onCheckedChange={(granted) => set.mutate({ type: c.type, granted }, { onError: () => toast.error(t("states.errorTitle")) })} />
         </li>
       ))}
@@ -106,7 +112,7 @@ function Sessions() {
     <ul className="space-y-3">
       {q.data!.map((s) => (
         <li key={s.id} className="kx-card flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-3"><Laptop className="h-5 w-5 text-ocean" aria-hidden="true" /><div><p className="font-medium">{s.device}{s.current && <span className="ms-2 rounded-full bg-success-soft px-2 py-0.5 text-xs text-success">{t("sessions.current")}</span>}</p>
+          <div className="flex items-center gap-3"><IconTile tone={s.current ? "success" : "neutral"}>{/mobile|android|iphone|ios/i.test(s.device) ? <Smartphone /> : <Laptop />}</IconTile><div><p className="flex flex-wrap items-center gap-2 font-medium">{s.device}{s.current && <StatusChip tone="success">{t("sessions.current")}</StatusChip>}</p>
             <p className="text-xs text-muted-foreground">{formatDay(s.lastSeenAt, i18n.language)} · {formatTime(s.lastSeenAt, i18n.language)}</p></div></div>
           {!s.current && <Button variant="outline" size="sm" onClick={() => revoke.mutate(s.id)}>{t("sessions.signOut")}</Button>}
         </li>
@@ -147,12 +153,13 @@ export default function AccountPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader title={t("account.title")} />
       <Profile />
-      <nav aria-label={t("hv.homeCare")} className="flex flex-wrap gap-3">
-        <Link to="/account/addresses" className={cn(buttonVariants({ variant: "outline" }))} data-testid="link-addresses"><MapPin aria-hidden="true" />{t("hv.addressBook")}</Link>
-        <Link to="/care-plans" className={cn(buttonVariants({ variant: "outline" }))} data-testid="link-care-plans"><ClipboardList aria-hidden="true" />{t("hv.carePlans")}</Link>
+      <nav aria-label={t("hv.homeCare")} className="grid gap-3 sm:grid-cols-2">
+        {([["/account/addresses", MapPin, t("hv.addressBook"), t("p3.addressesHint"), "link-addresses"], ["/care-plans", ClipboardList, t("hv.carePlans"), t("p3.plansHint"), "link-care-plans"]] as const).map(([to, Icon, title, hint, id]) => (
+          <Link key={to} to={to} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid={id}><IconTile><Icon /></IconTile><span className="min-w-0 flex-1"><span className="block font-semibold">{title}</span><span className="block text-sm text-muted-foreground">{hint}</span></span><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></Link>
+        ))}
       </nav>
       <Tabs defaultValue="family">
-        <TabsList className="h-auto flex-wrap justify-start">
+        <TabsList className="h-auto w-full flex-wrap justify-start sm:w-auto">
           {(["family", "consents", "sessions"] as const).map((k) => <TabsTrigger key={k} value={k} className="min-h-11 px-5">{t(`account.tabs.${k}`)}</TabsTrigger>)}
         </TabsList>
         <TabsContent value="family" className="mt-4"><Family /></TabsContent>

@@ -99,3 +99,70 @@ export function StateArt({ kind = "empty", className }: { kind?: "empty" | "erro
     </svg>
   );
 }
+
+/** Tinted callout with an icon tile. Danger/warning banners are announced (role alert); the rest use role status. */
+export function StatusBanner({ tone = "info", icon, title, children, className, ...rest }: { tone?: Exclude<Tone, "brand" | "neutral"> | "neutral"; icon?: ReactNode; title?: ReactNode; children?: ReactNode; className?: string } & Omit<React.HTMLAttributes<HTMLDivElement>, "title">) {
+  const box = { success: "border-success/30 bg-success-soft", warning: "border-warning/40 bg-warning-soft", danger: "border-destructive/30 bg-destructive/5", info: "border-info/30 bg-info-soft", neutral: "border-border bg-muted/60" }[tone];
+  const ink = { success: "text-success", warning: "text-warning", danger: "text-destructive", info: "text-info", neutral: "text-muted-foreground" }[tone];
+  return (
+    <div role={tone === "danger" ? "alert" : "status"} {...rest} className={cn("flex gap-3 rounded-2xl border p-4 text-sm", box, className)}>
+      {icon && <span className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card/70 [&_svg]:h-5 [&_svg]:w-5", ink)} aria-hidden="true">{icon}</span>}
+      <div className="min-w-0 space-y-1">{title && <p className={cn("text-base font-semibold", ink)}>{title}</p>}<div className="space-y-1 text-foreground/90">{children}</div></div>
+    </div>
+  );
+}
+
+/** Choice between 2-4 mutually exclusive options (pickup / delivery, home / walk-in). Large touch targets, roving state via aria-checked. */
+export function SegmentedControl<T extends string>({ value, onChange, options, label, className }: { value: T | undefined; onChange: (v: T) => void; label: string; className?: string; options: { value: T; label: ReactNode; icon?: ReactNode; hint?: ReactNode; disabled?: boolean; testId?: string }[] }) {
+  return (
+    <div role="radiogroup" aria-label={label} className={cn("grid gap-2", options.length > 2 ? "sm:grid-cols-3" : "grid-cols-2", className)}>
+      {options.map((o) => {
+        const on = value === o.value;
+        return (
+          <button key={o.value} type="button" role="radio" aria-checked={on} disabled={o.disabled} data-active={on} data-testid={o.testId} onClick={() => onChange(o.value)}
+            className={cn("flex min-h-14 items-center gap-3 rounded-xl border bg-card px-3.5 py-2 text-start transition-[border-color,background-color,box-shadow] duration-150 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50", on && "border-primary bg-accent shadow-card ring-1 ring-primary")}>
+            {o.icon && <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg [&_svg]:h-[18px] [&_svg]:w-[18px]", on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")} aria-hidden="true">{o.icon}</span>}
+            <span className="min-w-0"><span className="block text-sm font-semibold">{o.label}</span>{o.hint && <span className="block truncate text-xs text-muted-foreground">{o.hint}</span>}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Key / value row for receipts (dl). Use inside <dl>. */
+export function Row({ label, children, strong, className, testId }: { label: ReactNode; children: ReactNode; strong?: boolean; className?: string; testId?: string }) {
+  return (
+    <div className={cn("flex items-baseline justify-between gap-4 py-1.5 text-sm", strong && "border-t pt-3 text-base font-semibold", className)}>
+      <dt className={cn(!strong && "text-muted-foreground")}>{label}</dt><dd className="kx-label-num text-end" data-testid={testId}>{children}</dd>
+    </div>
+  );
+}
+
+/** Square icon tile used on list rows (medicine, test, session). */
+export function IconTile({ children, tone = "brand", className }: { children: ReactNode; tone?: Tone; className?: string }) {
+  return <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl [&_svg]:h-5 [&_svg]:w-5", TONE[tone], className)} aria-hidden="true">{children}</span>;
+}
+
+/** Vertical tracker for live statuses (home visit). The last reached step is the current one and pulses unless every step is reached. */
+export function Timeline({ steps, label, className, testId }: { steps: { key: string; label: ReactNode; reached: boolean; time?: ReactNode }[]; label: string; className?: string; testId?: string }) {
+  const lastReached = steps.reduce((n, s, i) => (s.reached ? i : n), -1);
+  const complete = lastReached === steps.length - 1;
+  return (
+    <ol className={cn("space-y-0", className)} aria-label={label} data-testid={testId}>
+      {steps.map((s, i) => {
+        const current = i === lastReached && !complete;
+        const last = i === steps.length - 1;
+        return (
+          <li key={s.key} data-reached={s.reached} aria-current={current ? "step" : undefined} className={cn("relative flex items-start gap-3 ps-0", !last && "pb-5")}>
+            {!last && <span className={cn("absolute start-[13px] top-8 h-[calc(100%-2rem)] w-0.5", i < lastReached ? "bg-primary" : "bg-border")} aria-hidden="true" />}
+            <span className={cn("relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 bg-card", s.reached ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground", current && "border-pulse bg-card text-pulse shadow-[0_0_0_5px_hsl(var(--pulse)/0.2)]")} aria-hidden="true">
+              {s.reached && !current ? <Check className="h-4 w-4" /> : current ? <span className="h-2.5 w-2.5 rounded-full bg-pulse motion-safe:animate-pulse" /> : <span className="h-1.5 w-1.5 rounded-full bg-border" />}
+            </span>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-3 pt-0.5"><span className={cn("font-medium", !s.reached && "text-muted-foreground", current && "font-semibold")}>{s.label}</span>{s.time}</div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}

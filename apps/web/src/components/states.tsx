@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/api/errors";
 import { PulseLoader } from "./PulseLine";
 import { StateArt } from "./kit";
+import { useOnline } from "@/hooks/useOnline";
 
 /** Sandbox/mock provider notice (CLAUDE.md: mocks are surfaced honestly). Rendered only when the data proves a mock provider is behind it. */
 export function MockNotice({ kind, proven = false }: { kind: "payment" | "video" | "messaging" | "lab" | "pharmacy"; proven?: boolean }) {
@@ -42,7 +43,7 @@ export function CardSkeleton({ rows = 3 }: { rows?: number }) {
 export function EmptyState({ title, hint, action, icon, art = "empty" }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode; art?: "empty" | "search" | "offline" }) {
   return (
     <div className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="empty-state">
-      {icon ? <div className="text-muted-foreground">{icon}</div> : <StateArt kind={art} />}
+      {icon ? <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary [&_svg]:h-8 [&_svg]:w-8">{icon}</div> : <StateArt kind={art} />}
       <h3 className="text-lg">{title}</h3>
       {hint && <p className="max-w-md text-sm text-muted-foreground">{hint}</p>}
       {action}
@@ -64,12 +65,28 @@ export function UnavailableState({ featureKey, awaiting }: { featureKey?: string
 
 export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () => void }) {
   const { t } = useTranslation();
+  const online = useOnline();
   if (error instanceof ApiError && error.isFeatureDisabled) return <UnavailableState featureKey={error.featureKey} awaiting={error.isAwaitingApproval} />;
+  if (!online) return <OfflineState onRetry={onRetry} />;
   return (
     <div role="alert" className="kx-card flex flex-col items-center gap-3 border-destructive/40 px-6 py-10 text-center" data-testid="error-state">
-      <StateArt kind="error" className="h-20 w-20" />
+      <StateArt kind="error" className="h-24 w-24" />
       <h3 className="text-lg">{t("states.errorTitle")}</h3>
       <p className="max-w-md text-sm text-muted-foreground">{t("states.errorBody")}</p>
+      {onRetry && <Button variant="outline" onClick={onRetry}>{t("states.retry")}</Button>}
+      <p className="text-xs text-muted-foreground">{t("p3.errorId")}</p>
+    </div>
+  );
+}
+
+/** Shown instead of the generic error when the browser reports no connection. */
+export function OfflineState({ onRetry }: { onRetry?: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div role="status" className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="offline-state">
+      <StateArt kind="offline" className="h-28 w-28" />
+      <h3 className="text-lg">{t("p3.offlineTitle")}</h3>
+      <p className="max-w-md text-sm text-muted-foreground">{t("p3.offlineBody")}</p>
       {onRetry && <Button variant="outline" onClick={onRetry}>{t("states.retry")}</Button>}
     </div>
   );

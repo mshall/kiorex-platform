@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MapPin, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { IconTile, PageHeader, StatusChip } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -63,8 +63,9 @@ function Row({ a, onEdit }: { a: Address; onEdit: () => void }) {
   return (
     <li className="kx-card space-y-3 p-4" data-testid="address-row">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="flex flex-wrap items-center gap-2 font-semibold"><MapPin className="h-4 w-4 text-ocean" aria-hidden="true" />{a.label}{a.isDefault && <Badge variant="info">{t("hv.default")}</Badge>}{a.confirmed ? <Badge variant="success">{t("hv.confirmedBadge")}</Badge> : <Badge variant="warning">{t("hv.unconfirmedBadge")}</Badge>}</p>
+        <IconTile tone="info"><MapPin /></IconTile>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">{a.label}{a.isDefault && <StatusChip tone="info" dot={false}>{t("hv.default")}</StatusChip>}{a.confirmed ? <StatusChip tone="success">{t("hv.confirmedBadge")}</StatusChip> : <StatusChip tone="warning">{t("hv.unconfirmedBadge")}</StatusChip>}</p>
           <p className="text-sm text-muted-foreground" data-testid="address-summary">{a.summary}</p>
           {/* Masked by default: doorstep lines are only revealed on request, never in lists, logs or analytics. */}
           <p className="text-sm" data-testid="address-lines" aria-live="polite">{reveal ? (lines || "—") : "••••••••"}</p>
@@ -95,9 +96,7 @@ export default function AddressesPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link to="/account" className="inline-flex min-h-11 items-center gap-2 text-sm text-ocean underline underline-offset-4"><ArrowLeft className="h-4 w-4 rtl-flip" aria-hidden="true" />{t("nav.account")}</Link>
-      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl">{t("hv.addressBook")}</h1>
-        <Button onClick={() => setForm({ open: true })} data-testid="add-address"><Plus aria-hidden="true" />{t("hv.addAddress")}</Button></div>
-      <p className="text-sm text-muted-foreground">{t("hv.addressPrivacy")}</p>
+      <PageHeader icon={<MapPin />} title={t("hv.addressBook")} hint={t("hv.addressPrivacy")} actions={<Button onClick={() => setForm({ open: true })} data-testid="add-address"><Plus aria-hidden="true" />{t("hv.addAddress")}</Button>} />
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data!.length === 0 ? (
         <EmptyState icon={<MapPin className="h-10 w-10" aria-hidden="true" />} title={t("hv.noAddressTitle")} hint={t("hv.noAddressHint")} />
       ) : <ul className="space-y-3">{q.data!.map((a) => <Row key={a.id} a={a} onEdit={() => setForm({ open: true, editing: a })} />)}</ul>}

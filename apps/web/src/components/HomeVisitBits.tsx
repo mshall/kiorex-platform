@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { AlertTriangle, Check, CircleDot, Copy, Eye, EyeOff, HeartHandshake, Home, MapPin, MessageCircle, Phone, ShieldAlert, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { AlertTriangle, Copy, Navigation, Eye, EyeOff, HeartHandshake, Home, MapPin, MessageCircle, Phone, ShieldAlert, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,7 +14,7 @@ import { ApiError } from "@/api/errors";
 import type { HomeBooking } from "@/api/types";
 import { CardSkeleton, ErrorState, MockNotice } from "@/components/states";
 import { formatDateTime, formatMinor, formatTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { IconTile, Row, StatusBanner, StatusChip, Timeline } from "@/components/kit";
 
 const ADDR_KEYS = ["street", "line1", "building", "floor", "flat", "landmark"] as const;
 
@@ -26,8 +25,10 @@ export function VisitAddressView({ home }: { home: HomeBooking }) {
   const a = home.address;
   const lines = a.address ? ADDR_KEYS.map((k) => (a.address as Record<string, unknown>)[k]).filter((x): x is string => typeof x === "string" && !!x) : [];
   return (
-    <section className="kx-card space-y-2 p-5" aria-labelledby="visit-addr" data-testid="visit-address">
-      <h2 id="visit-addr" className="flex items-center gap-2 text-lg"><MapPin className="h-5 w-5 text-ocean" aria-hidden="true" />{t("hv.visitAddress")}</h2>
+    <section className="kx-card flex items-start gap-4 p-5" aria-labelledby="visit-addr" data-testid="visit-address">
+      <IconTile tone="info"><MapPin /></IconTile>
+      <div className="min-w-0 flex-1 space-y-1">
+      <h2 id="visit-addr" className="text-lg">{t("hv.visitAddress")}</h2>
       <p className="text-sm" data-testid="visit-district">{[a.district, a.governorate].filter(Boolean).join(" · ")}</p>
       {a.masked ? <p className="text-sm text-muted-foreground" data-testid="address-masked">{t("hv.addressMasked")}</p> : (
         <div className="flex flex-wrap items-center gap-3">
@@ -35,6 +36,7 @@ export function VisitAddressView({ home }: { home: HomeBooking }) {
           <Button variant="ghost" size="sm" onClick={() => setReveal((r) => !r)} aria-pressed={reveal}>{reveal ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}{reveal ? t("hv.hide") : t("hv.reveal")}</Button>
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -43,15 +45,14 @@ export function HomeFee({ home }: { home: HomeBooking }) {
   const { t, i18n } = useTranslation();
   const f = home.fee; const cur = f.currency || "EGP"; const m = (v: number | null) => v == null ? "—" : formatMinor(v, i18n.language, cur);
   return (
-    <dl className="space-y-1 border-t pt-3 text-sm" data-testid="home-fee">
-      <div className="flex justify-between"><dt>{t("hv.visitFee")}</dt><dd className="kx-label-num">{m(f.visitFeeMinor)}</dd></div>
-      {f.homeSurchargeMinor > 0 && <div className="flex justify-between"><dt>{t("hv.homeSurcharge")}</dt><dd className="kx-label-num" data-testid="fee-surcharge">{m(f.homeSurchargeMinor)}</dd></div>}
-      <div className="flex justify-between font-semibold"><dt>{t("hv.total")}</dt><dd className="kx-label-num" data-testid="fee-total">{m(f.totalMinor)}</dd></div>
+    <dl className="border-t pt-2" data-testid="home-fee">
+      <Row label={t("hv.visitFee")}>{m(f.visitFeeMinor)}</Row>
+      {f.homeSurchargeMinor > 0 && <Row label={t("hv.homeSurcharge")} testId="fee-surcharge">{m(f.homeSurchargeMinor)}</Row>}
+      <Row label={t("hv.total")} strong testId="fee-total">{m(f.totalMinor)}</Row>
     </dl>
   );
 }
 
-const STEP_KEYS = ["CONFIRMED", "ON_THE_WAY", "ARRIVED", "FINISHED"] as const;
 
 /** Home timeline sub-states (KXMHV05/06): assigned, en route (+coarse ETA when the provider shares it), arrived, aborted-unsafe. */
 export function HomeProgress({ home }: { home: HomeBooking }) {
@@ -60,37 +61,28 @@ export function HomeProgress({ home }: { home: HomeBooking }) {
   const sub = home.subState;
   return (
     <section className="kx-card space-y-4 p-5" aria-labelledby="home-prog" data-testid="home-progress" data-substate={sub ?? "NONE"}>
-      <h2 id="home-prog" className="flex items-center gap-2 text-lg"><Home className="h-5 w-5 text-ocean" aria-hidden="true" />{t("hv.progressTitle")}</h2>
-      {home.assignmentPending && <div role="status" className="rounded-xl border border-warning/50 bg-warning-soft p-3 text-sm" data-testid="assignment-pending">{t("hv.assignmentPending")}</div>}
+      <h2 id="home-prog" className="flex items-center gap-2 text-lg"><Home className="h-5 w-5 text-primary" aria-hidden="true" />{t("hv.progressTitle")}</h2>
+      {home.assignmentPending && <StatusBanner tone="warning" icon={<UserRound />} data-testid="assignment-pending">{t("hv.assignmentPending")}</StatusBanner>}
       {home.assignee && !home.aborted && (
-        <div className="flex items-center gap-3 rounded-xl bg-accent p-3" data-testid="assignee">
-          <Avatar className="h-12 w-12">{home.assignee.photoUrl && <AvatarImage src={home.assignee.photoUrl} alt="" />}<AvatarFallback><UserRound aria-hidden="true" /></AvatarFallback></Avatar>
-          <div><p className="font-semibold">{t("hv.assignedTo", { name: home.assignee.displayName })}</p>{home.assignee.badge && <Badge variant="info">{home.assignee.badge}</Badge>}</div>
+        <div className="flex items-center gap-3 rounded-2xl bg-accent p-3.5" data-testid="assignee">
+          <Avatar className="h-12 w-12 ring-2 ring-card">{home.assignee.photoUrl && <AvatarImage src={home.assignee.photoUrl} alt="" />}<AvatarFallback><UserRound aria-hidden="true" /></AvatarFallback></Avatar>
+          <div className="min-w-0 space-y-1"><p className="font-semibold leading-snug">{t("hv.assignedTo", { name: home.assignee.displayName })}</p>{home.assignee.badge && <StatusChip tone="info" dot={false}><ShieldCheck className="h-3 w-3" aria-hidden="true" />{home.assignee.badge}</StatusChip>}</div>
         </div>
       )}
       {sub === "EN_ROUTE" && !home.aborted && (
-        <div role="status" className="rounded-xl border border-ocean/30 bg-info-soft p-3 text-sm" data-testid="en-route">
-          <b>{t("hv.enRoute")}</b>{home.trackingEnabled && home.eta.shared && home.eta.minutes != null && <span data-testid="eta"> · {t("hv.eta", { count: home.eta.minutes })}</span>}
-        </div>
+        <StatusBanner tone="info" icon={<Navigation />} title={t("hv.enRoute")} data-testid="en-route">
+          {home.trackingEnabled && home.eta.shared && home.eta.minutes != null && <p className="kx-label-num text-lg font-semibold" data-testid="eta">{t("hv.eta", { count: home.eta.minutes })}</p>}
+        </StatusBanner>
       )}
-      {sub === "ARRIVED" && !home.aborted && <div role="status" className="rounded-xl border border-success/40 bg-success-soft p-3 text-sm" data-testid="arrived"><b>{t("hv.arrived")}</b></div>}
+      {sub === "ARRIVED" && !home.aborted && <StatusBanner tone="success" icon={<MapPin />} title={t("hv.arrived")} data-testid="arrived" />}
       {home.aborted ? (
-        <div role="alert" className="space-y-1 rounded-xl border border-destructive/40 bg-card p-4" data-testid="aborted-unsafe">
-          <p className="flex items-center gap-2 font-semibold"><ShieldAlert className="h-5 w-5 text-destructive" aria-hidden="true" />{t("hv.abortedTitle")}</p>
-          <p className="text-sm">{t("hv.abortedBody")}</p>
-          {home.aborted.depositUnderReview && <p className="text-sm font-medium" data-testid="deposit-review">{t("hv.depositUnderReview")}</p>}
+        <StatusBanner tone="danger" icon={<ShieldAlert />} title={t("hv.abortedTitle")} data-testid="aborted-unsafe">
+          <p>{t("hv.abortedBody")}</p>
+          {home.aborted.depositUnderReview && <p className="font-medium" data-testid="deposit-review">{t("hv.depositUnderReview")}</p>}
           <p className="text-xs text-muted-foreground">{home.aborted.abortedAt ? formatDateTime(home.aborted.abortedAt, lang) : ""}</p>
-        </div>
+        </StatusBanner>
       ) : (
-        <ol className="space-y-3" aria-label={t("hv.progressTitle")} data-testid="home-steps">
-          {home.steps.map((s) => (
-            <li key={s.key} className="flex items-center gap-3" aria-current={sub && s.reached && !home.steps.find((x) => x.reached && x.key !== s.key && STEP_KEYS.indexOf(x.key) > STEP_KEYS.indexOf(s.key)) ? "step" : undefined} data-reached={s.reached}>
-              <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2", s.reached ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40")}>{s.reached ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <CircleDot className="h-3 w-3 text-muted-foreground" aria-hidden="true" />}</span>
-              <span className={cn("font-medium", !s.reached && "text-muted-foreground")}>{t(`hv.step.${s.key}`)}</span>
-              {s.at && <time className="ms-auto text-xs text-muted-foreground" dateTime={s.at} dir="ltr">{formatTime(s.at, lang)}</time>}
-            </li>
-          ))}
-        </ol>
+        <Timeline label={t("hv.progressTitle")} testId="home-steps" steps={home.steps.map((s) => ({ key: s.key, label: t(`hv.step.${s.key}`), reached: s.reached, time: s.at ? <time className="text-xs text-muted-foreground kx-label-num" dateTime={s.at} dir="ltr">{formatTime(s.at, lang)}</time> : undefined }))} />
       )}
     </section>
   );
@@ -132,16 +124,18 @@ export function SafetyCardPanel({ bookingId }: { bookingId: string }) {
   const name = (i18n.language.startsWith("ar") ? p.displayNameAr ?? p.displayName : p.displayName ?? p.displayNameAr) ?? "";
   const sla = Number((c.reportProblem as { slaMinutes?: number }).slaMinutes ?? 60);
   return (
-    <section className="kx-card space-y-4 p-5" aria-labelledby="safety-title" data-testid="safety-card">
-      <h2 id="safety-title" className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-ocean" aria-hidden="true" />{t("hv.safetyTitle")}</h2>
-      {c.assignmentPending ? <p className="text-sm text-muted-foreground" data-testid="safety-pending">{t("hv.assignmentPending")}</p> : (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14">{p.photoUrl && <AvatarImage src={p.photoUrl} alt="" />}<AvatarFallback><UserRound aria-hidden="true" /></AvatarFallback></Avatar>
-          <div><p className="font-semibold" data-testid="safety-name">{name}</p>{p.badge && <Badge variant="info">{p.badge}</Badge>}<p className="text-xs text-muted-foreground">{t("hv.safetyVerify")}</p></div>
-        </div>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <a href={`tel:${c.emergencyNumber}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 text-sm font-medium text-destructive-foreground" data-testid="emergency-call"><Phone className="h-4 w-4" aria-hidden="true" />{t("hv.emergencyCall", { number: c.emergencyNumber })}</a>
+    <section className="kx-card space-y-4 overflow-hidden p-0" aria-labelledby="safety-title" data-testid="safety-card">
+      <div className="space-y-4 p-5">
+        <h2 id="safety-title" className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-success" aria-hidden="true" />{t("hv.safetyTitle")}</h2>
+        {c.assignmentPending ? <p className="text-sm text-muted-foreground" data-testid="safety-pending">{t("hv.assignmentPending")}</p> : (
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16 ring-4 ring-success-soft">{p.photoUrl && <AvatarImage src={p.photoUrl} alt="" />}<AvatarFallback><UserRound aria-hidden="true" /></AvatarFallback></Avatar>
+            <div className="min-w-0 space-y-1"><p className="text-lg font-semibold leading-snug" data-testid="safety-name">{name}</p>{p.badge && <StatusChip tone="info" dot={false}>{p.badge}</StatusChip>}<p className="text-xs text-muted-foreground">{t("hv.safetyVerify")}</p></div>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2 border-t bg-muted/40 p-4">
+        <a href={`tel:${c.emergencyNumber}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 text-sm font-semibold text-destructive-foreground shadow-sm transition-transform active:scale-[0.98]" data-testid="emergency-call"><Phone className="h-4 w-4" aria-hidden="true" />{t("hv.emergencyCall", { number: c.emergencyNumber })}</a>
         <ReportProblem bookingId={bookingId} slaMinutes={sla} />
       </div>
     </section>
@@ -176,22 +170,22 @@ export function FamilySharePanel({ bookingId, max = 3 }: { bookingId: string; ma
   };
   return (
     <section className="kx-card space-y-4 p-5" aria-labelledby="share-title" data-testid="family-share">
-      <h2 id="share-title" className="flex items-center gap-2 text-lg"><HeartHandshake className="h-5 w-5 text-ocean" aria-hidden="true" />{t("hv.shareTitle")}</h2>
+      <h2 id="share-title" className="flex items-center gap-2 text-lg"><HeartHandshake className="h-5 w-5 text-primary" aria-hidden="true" />{t("hv.shareTitle")}</h2>
       <p className="text-sm text-muted-foreground">{t("hv.shareBody", { max })}</p>
       <MockNotice kind="messaging" />
       {list.isLoading ? <CardSkeleton rows={1} /> : list.error ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : active.length > 0 && (
         <ul className="space-y-2" data-testid="share-list">{active.map((s) => (
-          <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border p-3" data-testid="share-row">
-            <div><p className="font-medium">{s.contactName}</p><p className="text-sm text-muted-foreground" dir="ltr">{s.phoneMasked}</p></div>
+          <li key={s.id} className="flex items-center gap-3 rounded-xl border bg-card p-3" data-testid="share-row">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-primary" aria-hidden="true">{s.contactName.trim().charAt(0).toUpperCase()}</span>
+            <div className="min-w-0 flex-1"><p className="font-medium">{s.contactName}</p><p className="text-sm text-muted-foreground" dir="ltr">{s.phoneMasked}</p></div>
             <Button variant="ghost" size="icon" aria-label={t("hv.shareStop", { name: s.contactName })} disabled={revoke.isPending} onClick={() => revoke.mutate(s.id, { onSuccess: () => toast.success(t("hv.shareStopped")) })}><Trash2 className="text-destructive" aria-hidden="true" /></Button>
           </li>))}</ul>
       )}
       {created && (
-        <div role="status" className="space-y-2 rounded-xl border border-success/40 bg-success-soft p-3 text-sm" data-testid="share-link">
-          <p className="flex items-center gap-2 font-medium"><MessageCircle className="h-4 w-4" aria-hidden="true" />{t("hv.shareLinkTitle", { name: created.contactName })}</p>
+        <StatusBanner tone="success" icon={<MessageCircle />} title={t("hv.shareLinkTitle", { name: created.contactName })} data-testid="share-link">
           <p className="break-all text-xs" dir="ltr">{created.link}</p>
           <Button size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(created.link).then(() => toast.success(t("doctor.linkCopied")))}><Copy aria-hidden="true" />{t("hv.copyLink")}</Button>
-        </div>
+        </StatusBanner>
       )}
       {active.length >= max ? <p className="text-sm text-muted-foreground" data-testid="share-full">{t("hv.shareLimit")}</p> : (
         <form onSubmit={submit} className="space-y-3" aria-label={t("hv.shareAdd")}>
@@ -199,8 +193,8 @@ export function FamilySharePanel({ bookingId, max = 3 }: { bookingId: string; ma
             <div className="space-y-1"><Label htmlFor="fs-name">{t("hv.shareName")}</Label><Input id="fs-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} data-testid="share-name" /></div>
             <div className="space-y-1"><Label htmlFor="fs-phone">{t("hv.sharePhone")}</Label><Input id="fs-phone" dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} data-testid="share-phone" /></div>
           </div>
-          <label className="flex min-h-11 items-start gap-3"><Checkbox checked={attest} onCheckedChange={(c) => setAttest(c === true)} className="mt-0.5" data-testid="share-attest" /><span className="text-sm">{t("hv.shareAttest")}</span></label>
-          <label className="flex min-h-11 items-start gap-3"><Checkbox checked={consent} onCheckedChange={(c) => setConsent(c === true)} className="mt-0.5" data-testid="share-consent" /><span className="text-sm">{t("hv.shareConsent")}</span></label>
+          <label className="flex min-h-11 items-start gap-3 rounded-xl border bg-muted/30 p-3"><Checkbox checked={attest} onCheckedChange={(c) => setAttest(c === true)} className="mt-0.5" data-testid="share-attest" /><span className="text-sm">{t("hv.shareAttest")}</span></label>
+          <label className="flex min-h-11 items-start gap-3 rounded-xl border bg-muted/30 p-3"><Checkbox checked={consent} onCheckedChange={(c) => setConsent(c === true)} className="mt-0.5" data-testid="share-consent" /><span className="text-sm">{t("hv.shareConsent")}</span></label>
           <Button type="submit" disabled={!name.trim() || phone.trim().length < 9 || !attest || !consent || create.isPending} data-testid="share-submit">{t("hv.shareSend")}</Button>
         </form>
       )}

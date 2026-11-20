@@ -47,8 +47,9 @@ async function uiLogin(page: Page, phone: string, home: RegExp) {
 
 /** Signs the patient in through the real Kiorex Passport (dev IdP :4400). The first call in a run drives the real OIDC + OTP UI;
  *  later tests reuse the resulting session (sessionStorage is not part of Playwright storageState, so it is re-injected). */
-export async function signIn(page: Page, to = "/") {
-  const c = readCache("patient");
+export async function signIn(page: Page, to = "/", phone: string = PATIENT_PHONE) {
+  const cacheName = phone === PATIENT_PHONE ? "patient" : `patient${phone.replace(/\D/g, "")}`; // other demo personas (TEST_DATA.md) get their own cached session
+  const c = readCache(cacheName);
   if (c) {
     await page.addInitScript(([k, v]) => { if (!sessionStorage.getItem(k)) sessionStorage.setItem(k, v); }, [c.key, c.value]);
     await page.goto(to);
@@ -59,9 +60,9 @@ export async function signIn(page: Page, to = "/") {
   await page.goto("/");
   await page.getByTestId("sign-in").click();
   await page.waitForURL(/localhost:4400/);
-  await uiLogin(page, PATIENT_PHONE, /localhost:5180/);
+  await uiLogin(page, phone, /localhost:5180/);
   const fresh = await readOidc(page);
-  if (fresh) writeCache("patient", fresh);
+  if (fresh) writeCache(cacheName, fresh);
   if (to !== "/") await page.goto(to);
 }
 

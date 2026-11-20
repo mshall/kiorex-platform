@@ -3,8 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, ClipboardList } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, CalendarCheck, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +14,9 @@ import { ApiError } from "@/api/errors";
 import { CardSkeleton, EmptyState, ErrorState, UnavailableState } from "@/components/states";
 import { useFeature } from "@/hooks/useFeature";
 import { formatDay, pick } from "@/lib/format";
+import { FormField, PageHeader, StatusChip, type Tone } from "@/components/kit";
 
-const STATUS_VARIANT = { REQUESTED: "warning", CONFIRMED: "success", ENDED: "secondary", REJECTED: "secondary" } as const;
+const STATUS_TONE: Record<string, Tone> = { REQUESTED: "warning", CONFIRMED: "success", ENDED: "neutral", REJECTED: "danger" };
 
 /** KXMHV08 (P3, draft): request a recurring nurse care plan. Locked until nurse.care_plans (GKN1) AND kiorex.home_visits are effective: the API answers 403 FEATURE_DISABLED and we show "awaiting approval". */
 export default function CarePlansPage() {
@@ -43,10 +43,9 @@ export default function CarePlansPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link to="/account" className="inline-flex min-h-11 items-center gap-2 text-sm text-ocean underline underline-offset-4"><ArrowLeft className="h-4 w-4 rtl-flip" aria-hidden="true" />{t("nav.account")}</Link>
-      <div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl">{t("hv.carePlans")}</h1><Badge variant="info">{t("hv.draftBadge")}</Badge></div>
-      <p className="text-sm text-muted-foreground">{t("hv.carePlansIntro")}</p>
+      <PageHeader icon={<ClipboardList />} title={t("hv.carePlans")} badge={<StatusChip tone="info" dot={false}>{t("hv.draftBadge")}</StatusChip>} hint={t("hv.carePlansIntro")} />
       {lock ? <UnavailableState featureKey="nurse.care_plans" awaiting={lock.awaiting} /> : (
-        <form onSubmit={submit} className="kx-card space-y-3 p-5" aria-label={t("hv.planRequest")} data-testid="plan-form">
+        <form onSubmit={submit} className="kx-card space-y-4 p-5 sm:p-6" aria-label={t("hv.planRequest")} data-testid="plan-form">
           <h2 className="text-lg">{t("hv.planRequest")}</h2>
           <div className="space-y-1"><Label htmlFor="cp-prov">{t("hv.planProvider")}</Label>
             <select id="cp-prov" value={providerId} onChange={(e) => setProviderId(e.target.value)} className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm" data-testid="plan-provider">
@@ -56,8 +55,8 @@ export default function CarePlansPage() {
             <select id="cp-addr" value={addressId} onChange={(e) => setAddressId(e.target.value)} className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm" data-testid="plan-address">
               <option value="">{t("hv.choose")}</option>{(addrs.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.label} · {a.summary}</option>)}</select>
             {addrs.data && addrs.data.length === 0 && <Link to="/account/addresses" className="text-xs text-ocean underline underline-offset-4">{t("hv.addAddress")}</Link>}</div>
-          <div className="space-y-1"><Label htmlFor="cp-start">{t("hv.planStart")}</Label><Input id="cp-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-          <div className="space-y-1"><Label htmlFor="cp-notes">{t("hv.planNotes")}</Label><Textarea id="cp-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} /></div>
+          <FormField label={t("hv.planStart")}><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></FormField>
+          <FormField label={t("hv.planNotes")}><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} /></FormField>
           <Button type="submit" disabled={!providerId || !addressId || create.isPending} data-testid="plan-submit">{t("hv.planSubmit")}</Button>
         </form>
       )}
@@ -66,7 +65,8 @@ export default function CarePlansPage() {
         <EmptyState icon={<ClipboardList className="h-10 w-10" aria-hidden="true" />} title={t("hv.noPlans")} />
       ) : (
         <ul className="space-y-3">{plans.data!.map((p) => (
-          <li key={p.id} className="kx-card space-y-1 p-4" data-testid="plan-row"><div className="flex items-center justify-between"><p className="font-medium">{districtLabel(p.district, i18n.language)}</p><Badge variant={STATUS_VARIANT[p.status]}>{t(`hv.planStatus.${p.status}`)}</Badge></div>
+          <li key={p.id} className="kx-card space-y-3 p-4" data-testid="plan-row"><div className="flex items-center justify-between gap-3"><p className="flex items-center gap-2 font-semibold"><CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />{districtLabel(p.district, i18n.language)}</p><StatusChip tone={STATUS_TONE[p.status] ?? "neutral"}>{t(`hv.planStatus.${p.status}`)}</StatusChip></div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation" aria-hidden="true"><div className="h-full rounded-full bg-gradient-to-r from-primary to-ocean" style={{ width: `${p.visits.length ? Math.round((p.completedVisits / p.visits.length) * 100) : 0}%` }} /></div>
             <p className="text-sm text-muted-foreground">{t("hv.planVisits", { done: p.completedVisits, total: p.visits.length })}{p.visits[0] && ` · ${formatDay(p.visits[0].startsAt, lang)}`}</p></li>
         ))}</ul>
       )}

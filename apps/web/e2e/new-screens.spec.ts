@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { signIn } from "./helpers";
+import { mockAwaitingGate } from "./fixtures";
 
 const shots = "e2e/screenshots";
 mkdirSync(shots, { recursive: true });
@@ -10,9 +11,10 @@ const PAGES = ["/services", "/waitlist", "/records", "/records?tab=sharing", "/r
 
 /** Launch-locked verticals (pharmacy, lab, telemedicine) are AWAITING_GATE on the real stack until a human records gate evidence. */
 test("launch-locked verticals show 'awaiting approval' (Arabic), never a crash, and existing history stays reachable", async ({ page }) => {
+  await mockAwaitingGate(page); // DEV fixture: independent of whether gate evidence is currently recorded in the seed
   await signIn(page, "/pharmacy");
   const locked = page.getByTestId("feature-unavailable").first();
-  test.skip(!(await locked.isVisible({ timeout: 8000 }).catch(() => false)), "Pharmacy is effective on this stack (gate evidence recorded)");
+  await expect(locked).toBeVisible();
   await expect(locked).toHaveAttribute("data-awaiting", "true");
   await expect(locked).toContainText("بانتظار الاعتماد");
   await expect(page.getByTestId("my-orders-link")).toBeVisible();
@@ -25,6 +27,7 @@ test("launch-locked verticals show 'awaiting approval' (Arabic), never a crash, 
 });
 
 test("services hub, market selector, WhatsApp entry point and booking channel badges", async ({ page }) => {
+  await mockAwaitingGate(page);
   await signIn(page, "/services");
   await expect(page.getByTestId("svc-pharmacy")).toBeVisible();
   await expect(page.getByTestId("svc-locked").first()).toBeVisible();

@@ -8,6 +8,7 @@ import { SpecialtyChips } from "@/components/SearchBar";
 import { CareTypeTabs } from "@/components/CareTypeTabs";
 import { PulseDivider } from "@/components/PulseLine";
 import { useAuth } from "@/auth/AuthProvider";
+import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [{ icon: BadgeCheck, k: "verified" }, { icon: CalendarClock, k: "slots" }, { icon: MessageSquareText, k: "reviews" }, { icon: Wallet, k: "fees" }] as const;
@@ -18,6 +19,7 @@ export default function LandingPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const nav = useNavigate();
+  const [howRef, howSeen] = useInView<HTMLDivElement>(0.3);
 
   return (
     <div className="space-y-16 md:space-y-24">
@@ -52,15 +54,19 @@ export default function LandingPage() {
 
       <section aria-labelledby="how-title" className="space-y-8">
         <div className="max-w-2xl space-y-2"><p className="kx-eyebrow">{t("landing.howEyebrow")}</p><h2 id="how-title" className="text-2xl md:text-3xl">{t("landing.howTitle")}</h2></div>
-        <div className="relative">
-          <svg className="kx-rise pointer-events-none absolute inset-x-0 top-[12px] hidden h-6 w-full md:block" viewBox="0 0 900 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <path d="M60 12 H300 l6 -8 l7 16 l8 -22 l8 20 l4 -6 H840" fill="none" className="stroke-pulse" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <div className="relative" ref={howRef} data-testid="how-it-works" data-drawn={howSeen}>
+          {/* The coral pulse line draws itself between the steps once the section scrolls into view (reduced motion: shown instantly). */}
+          <svg className="pointer-events-none absolute inset-x-0 top-[12px] hidden h-6 w-full md:block rtl:-scale-x-100" viewBox="0 0 900 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <path d="M60 12 H300 l6 -8 l7 16 l8 -22 l8 20 l4 -6 H840" pathLength={1} fill="none" className={cn("stroke-pulse", howSeen ? "kx-draw" : "opacity-0")} style={{ ["--kx-draw-ms" as string]: "1600ms" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <svg className="pointer-events-none absolute inset-y-6 start-3 w-6 md:hidden" viewBox="0 0 24 300" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M12 0 V118 l-7 8 l12 14 l-9 -30 l4 8 V300" pathLength={1} fill="none" className={cn("stroke-pulse", howSeen ? "kx-draw" : "opacity-0")} style={{ ["--kx-draw-ms" as string]: "1600ms" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <ol className="relative grid gap-6 md:grid-cols-3">
             {STEPS.map(({ icon: Icon, k }, i) => (
-              <li key={k} className="kx-rise space-y-4 md:text-center" style={{ ["--i" as string]: i + 1 }}>
-                <span className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised ring-8 ring-background kx-label-num text-lg font-semibold">{i + 1}</span>
-                <div className="kx-card space-y-2 p-5 md:text-start">
+              <li key={k} className="kx-rise flex items-start gap-4 md:block md:space-y-4 md:text-center" style={{ ["--i" as string]: i + 1 }}>
+                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised ring-8 ring-background kx-label-num text-lg font-semibold md:mx-auto">{i + 1}</span>
+                <div className="kx-card min-w-0 flex-1 space-y-2 p-5 md:text-start">
                   <h3 className="flex items-center gap-2 text-lg"><Icon className="h-5 w-5 text-ocean" aria-hidden="true" />{t(`landing.steps.${k}.title`)}</h3>
                   <p className="text-sm text-muted-foreground">{t(`landing.steps.${k}.body`)}</p>
                 </div>

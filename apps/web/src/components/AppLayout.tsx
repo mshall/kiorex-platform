@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User } from "lucide-react";
+import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User, WifiOff } from "lucide-react";
+import { useOnline } from "@/hooks/useOnline";
 import { MarketNotLiveBanner, MarketSelector } from "@/components/MarketSelector";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -34,6 +35,14 @@ function ThemeToggle() {
 const navCls = ({ isActive }: { isActive: boolean }) =>
   cn("inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors hover:bg-accent", isActive && "text-primary underline decoration-pulse decoration-2 underline-offset-8");
 
+/** Slim, announced banner while the browser has no connection (the pages keep showing cached data). */
+function OfflineBanner() {
+  const { t } = useTranslation();
+  const online = useOnline();
+  if (online) return null;
+  return <div role="status" className="flex items-center justify-center gap-2 bg-warning-soft px-4 py-2 text-center text-sm font-medium text-warning" data-testid="offline-banner"><WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />{t("p3.offlineBanner")}</div>;
+}
+
 export function AppLayout() {
   const { t } = useTranslation();
   const { status, login, logout } = useAuth();
@@ -44,6 +53,7 @@ export function AppLayout() {
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground">{t("nav.skip")}</a>
       <MarketNotLiveBanner />
+      <OfflineBanner />
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-3">
           <Link to="/" aria-label={t("nav.home")} className="shrink-0 rounded-lg"><Logo className="hidden sm:inline-flex" /><Logo wordmark={false} markClassName="h-9" className="sm:hidden" /></Link>

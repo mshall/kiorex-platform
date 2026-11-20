@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { CalendarCheck, Video } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CalendarCheck, ChevronRight, PhoneCall, Search, Video } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +14,11 @@ import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } fr
 import { useFeature } from "@/hooks/useFeature";
 import { formatDateTime, pick } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/kit";
+import { PageHeader, StatusBanner, StatusChip, type Tone } from "@/components/kit";
+import { DateBlock } from "@/components/AppointmentTicket";
+import { SpecialtyTile } from "@/components/SpecialtyIcon";
 
+export const sessionTone = (s: TeleSession["status"]): Tone => (s === "IN_PROGRESS" ? "success" : s === "WAITING" ? "warning" : s === "ENDED" || s === "CANCELLED" ? "neutral" : "info");
 export const sessionVariant = (s: TeleSession["status"]) => (s === "IN_PROGRESS" ? "success" : s === "WAITING" ? "warning" : s === "ENDED" || s === "CANCELLED" ? "secondary" : "info") as "success" | "warning" | "secondary" | "info";
 
 export default function TelemedicinePage() {
@@ -35,24 +37,24 @@ export default function TelemedicinePage() {
   const eligible = (bookings.data ?? []).filter((b) => b.status === "CONFIRMED" && !withSession.has(b.id));
   return (
     <div className="space-y-6">
-      <PageHeader icon={<Video />} title={t("tele.title")} />
-      <p className="max-w-2xl text-muted-foreground">{t("tele.intro")}</p>
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm" role="note" data-testid="tele-emergency">{t("tele.emergency")}</div>
+      <PageHeader icon={<Video />} title={t("tele.title")} hint={t("tele.intro")} />
+      <StatusBanner tone="danger" role="note" icon={<PhoneCall />} data-testid="tele-emergency" className="items-center">{t("tele.emergency")}</StatusBanner>
 
       <section className="space-y-3" aria-labelledby="sess-h">
         <h2 id="sess-h" className="text-xl">{t("tele.mySessions")}</h2>
         {sessions.isLoading ? <CardSkeleton rows={1} /> : sessions.error ? <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} /> : sessions.data!.length === 0 ? <EmptyState icon={<Video className="h-10 w-10" aria-hidden="true" />} title={t("tele.noSessions")} hint={t("tele.noSessionsHint")} /> : (
           <ul className="space-y-3" data-testid="tele-sessions">
             {sessions.data!.map((s) => (
-              <li key={s.id}><Link to={`/telemedicine/${s.id}`} className="kx-card kx-card-interactive flex items-center justify-between gap-3 p-4" data-testid="tele-session-row">
-                <div><p className="font-semibold">{formatDateTime(s.scheduledStartsAt, lang)}</p><p className="text-sm text-muted-foreground">{t("tele.joinOpens", { time: formatDateTime(s.joinOpensAt, lang) })}</p></div>
-                <Badge variant={sessionVariant(s.status)}>{t(`tele.status.${s.status}`)}</Badge>
+              <li key={s.id}><Link to={`/telemedicine/${s.id}`} className="kx-card kx-card-interactive flex items-center gap-4 p-4" data-testid="tele-session-row">
+                <DateBlock iso={s.scheduledStartsAt} />
+                <div className="min-w-0 flex-1 space-y-1"><p className="font-semibold">{formatDateTime(s.scheduledStartsAt, lang)}</p><p className="text-sm text-muted-foreground">{t("tele.joinOpens", { time: formatDateTime(s.joinOpensAt, lang) })}</p></div>
+                <StatusChip tone={sessionTone(s.status)}>{t(`tele.status.${s.status}`)}</StatusChip><ChevronRight className="h-4 w-4 shrink-0 rtl-flip text-muted-foreground" aria-hidden="true" />
               </Link></li>
             ))}
           </ul>
         )}
         {eligible.length > 0 && (
-          <div className="kx-card space-y-3 p-5" data-testid="tele-eligible">
+          <div className="kx-card space-y-3 border-dashed p-5" data-testid="tele-eligible">
             <h3 className="text-lg">{t("tele.eligibleTitle")}</h3><p className="text-sm text-muted-foreground">{t("tele.eligibleHint")}</p>
             <ul className="space-y-2">{eligible.map((b) => (
               <li key={b.id} className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm"><CalendarCheck className="me-1 inline h-4 w-4" aria-hidden="true" />{pick(b.doctor, "name", lang)} · {formatDateTime(b.startsAt, lang)}</span>
@@ -73,14 +75,17 @@ export default function TelemedicinePage() {
                   {specialties.data?.map((s) => <option key={s.code} value={s.code}>{pick(s, "name", lang)}</option>)}
                 </select></div>
               <div className="min-w-48 flex-1"><Label htmlFor="tele-q" className="sr-only">{t("search.label")}</Label><Input id="tele-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search.placeholder")} /></div>
-              <Button type="submit">{t("search.submit")}</Button>
+              <Button type="submit"><Search aria-hidden="true" />{t("search.submit")}</Button>
             </form>
             {providers.isLoading ? <CardSkeleton rows={2} /> : providers.error ? <ErrorState error={providers.error} onRetry={() => void providers.refetch()} /> : !providers.data!.items.length ? <EmptyState title={t("tele.noProviders")} hint={t("tele.noProvidersHint")} /> : (
-              <ul className="space-y-3" data-testid="tele-providers">
+              <ul className="grid gap-3 md:grid-cols-2" data-testid="tele-providers">
                 {providers.data!.items.map((p) => (
-                  <li key={p.id} className="kx-card flex flex-wrap items-center justify-between gap-3 p-4" data-testid="tele-provider">
-                    <div><p className="font-semibold">{pick(p, "name", lang)}</p><p className="text-sm text-muted-foreground">{specialtyLabel(p.specialty, lang, specialties.data)}{p.nextSlots?.[0]?.startsAt ? ` · ${t("results.nextSlots")}: ${formatDateTime(p.nextSlots[0].startsAt, lang)}` : ""}</p></div>
-                    <Link to={`/doctors/${p.id}${p.defaultTypeId ? `?vt=${encodeURIComponent(p.defaultTypeId)}` : ""}`} className={cn(buttonVariants({ size: "sm" }))}>{t("tele.book")}</Link>
+                  <li key={p.id} className="kx-card kx-card-interactive flex flex-col gap-4 p-4" data-testid="tele-provider">
+                    <div className="flex items-center gap-3"><SpecialtyTile code={p.specialty} size="lg" /><div className="min-w-0"><p className="font-semibold leading-snug">{pick(p, "name", lang)}</p><p className="text-sm text-muted-foreground">{specialtyLabel(p.specialty, lang, specialties.data)}</p></div></div>
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+                      {p.nextSlots?.[0]?.startsAt ? <StatusChip tone="success" dot={false}><Video className="h-3 w-3" aria-hidden="true" />{t("results.nextSlots")}: {formatDateTime(p.nextSlots[0].startsAt, lang)}</StatusChip> : <span />}
+                      <Link to={`/doctors/${p.id}${p.defaultTypeId ? `?vt=${encodeURIComponent(p.defaultTypeId)}` : ""}`} className={cn(buttonVariants({ size: "sm" }))}>{t("tele.book")}</Link>
+                    </div>
                   </li>
                 ))}
               </ul>
