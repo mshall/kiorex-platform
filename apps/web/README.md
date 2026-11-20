@@ -1,6 +1,6 @@
 # @kiorex/web — Kiorex patient web (port 5180)
 
-React 18 + Vite + TypeScript + Tailwind + shadcn/ui + TanStack Query + i18next (AR default, EN) + react-router. Auth: OIDC code + PKCE against Kiorex Account (`oidc-client-ts`, client `kiorex-web`, redirect `/auth/callback`).
+React 18 + Vite + TypeScript + Tailwind + shadcn/ui + TanStack Query + i18next (AR default, EN) + react-router. Auth: OIDC code + PKCE against Kiorex Passport (`oidc-client-ts`, client `kiorex-web`, redirect `/auth/callback`).
 
 ```bash
 npm run dev -w apps/web          # http://localhost:5180, proxies /api -> http://localhost:4000

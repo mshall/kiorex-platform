@@ -13,4 +13,4 @@ Reference documents KX-00…KX-22 live in the workspace folder `_docs/` (read `C
 | `../apps/api/openapi/kiorex-api.v1.openapi.json` | Machine-readable OpenAPI (web/ops/mobile code against this) |
 
 Contracts: `@kiorex/contracts` (OpenAPI, event schemas, HMAC helpers, flag catalogue + evaluator) is consumed from `../kiorex-contracts/dist-pack`.
-Identity is called **Kiorex Passport** in user-facing text; technically the OIDC issuer is Kiorex Account.
+Identity is called **Kiorex Passport** everywhere (the repo and the product key keep the technical name `kiorex-account`).

@@ -89,7 +89,7 @@ export const FLAG_CATALOGUE: FlagDef[] = [
   g('nurse.private_duty_shifts', 'kiorly-nurse', 'MODULE', GMO, ['nurse.edition'], 'Shift booking hidden', { edition: 'NURSE' }),
   g('nurse.family_updates', 'kiorly-nurse', 'INTEGRATION', GMO, ['whatsapp_reminders'], 'No family messages', { edition: 'NURSE' }),
   g('nurse.individual_kiorex_listing', 'kiorly-nurse', 'LAUNCH_LOCKED', GM, ['kiorex.home_visits'], 'Solo nurses not listed on Kiorex', { launchLocked: true, gateIds: ['GKN2'], gateHint: 'GKN2 counsel memo on independent home nursing (Q7)', edition: 'NURSE' }),
-  // ── Kiorex Account
+  // ── Kiorex Passport
   g('account.passkeys', 'kiorex-account', 'MODULE', GM, [], 'OTP only'),
   g('account.provider_sso', 'kiorex-account', 'MODULE', GMO, [], 'Providers use product login'),
   // ── Kiorly Pharmacy

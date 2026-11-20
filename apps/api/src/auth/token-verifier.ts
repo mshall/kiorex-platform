@@ -8,7 +8,7 @@ export interface TokenVerifier {
   verifyLogout(token: string): Promise<JWTPayload>;
 }
 
-/** Verifies Kiorex Account JWTs (RS256) against the issuer JWKS (KX-04, KA04). */
+/** Verifies Kiorex Passport JWTs (RS256) against the issuer JWKS (KX-04, KA04). */
 export class JoseTokenVerifier implements TokenVerifier {
   private jwks?: JWTVerifyGetKey;
   constructor(private readonly keyResolver?: JWTVerifyGetKey) {}

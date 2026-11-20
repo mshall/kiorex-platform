@@ -28,7 +28,7 @@ export class AuthController {
   @ApiOkResponse({ type: MeDto })
 
   @Get('me')
-  @ApiOkResponse({ description: 'Claims of the authenticated Kiorex Account subject' })
+  @ApiOkResponse({ description: 'Claims of the authenticated Kiorex Passport subject' })
   me(@CurrentUser() u: AuthUser) {
     return { sub: u.sub, roles: u.roles, phone: u.phone, name: u.name, locale: u.locale };
   }

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Real local stack only (no mocks): Kiorex API :4000, Kiorex Account (dev IdP) :4400, Postgres :5433, Kiorly :3000.
+ * Real local stack only (no mocks): Kiorex API :4000, Kiorex Passport (dev IdP) :4400, Postgres :5433, Kiorly :3000.
  * See README.md in this folder for prerequisites.
  */
 
