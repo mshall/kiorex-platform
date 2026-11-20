@@ -12,7 +12,7 @@ import { SafetyService } from './safety.service';
 import { CarePlanDto, EscalationLogDto, FamilyShareCreatedDto, FamilyShareDto, ProblemReportDto, PublicVisitStatusDto, SafetyAlertDto, SafetyAlertListDto, SafetyCardDto, SafetySummaryDto, SweepSafetyDto, UnsafeAbortDto } from './homecare.dto';
 import { cfg } from '../common/config';
 
-class ShareBody {
+class FamilyShareBody {
   @IsString() @MaxLength(80) contactName!: string;
   @IsString() @MaxLength(20) phone!: string;
   @IsOptional() @IsIn(['ar', 'en']) locale?: 'ar' | 'en';
@@ -40,7 +40,7 @@ export class HomeCareController {
 
   @ApiCreatedResponse({ type: FamilyShareCreatedDto })
   @Post('bookings/:id/family-shares') @ApiOperation({ summary: 'KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent)' })
-  addShare(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ShareBody) { return this.shares.create(u.sub, id, b); }
+  addShare(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FamilyShareBody) { return this.shares.create(u.sub, id, b); }
   @ApiOkResponse({ type: FamilyShareDto, isArray: true })
   @Get('bookings/:id/family-shares') listShares(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.shares.list(u.sub, id); }
   @ApiOkResponse({ type: OkDto })

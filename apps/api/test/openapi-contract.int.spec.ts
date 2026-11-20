@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readdirSync, statSync } from 'node:fs';
 import { createCtx, futureSlot, seedProvider, TestCtx } from './harness';
 import { OutboxService } from '../src/outbox/outbox-public';
 
@@ -175,5 +176,18 @@ describe('OpenAPI response schemas (committed spec) match real responses', () =>
       await verify('get', '/dev/messaging/outbox', {});
       await verify('post', '/dev/messaging/delivery-tick', {});
     });
+  });
+});
+
+describe('OpenAPI DTO naming', () => {
+  /** @nestjs/swagger keys schemas by class name, so two different classes with one name silently merge (wrong fields for one of them). */
+  it('no two DTO/body classes in apps/api/src share a class name', () => {
+    const files: string[] = [];
+    const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.ts') && !p.endsWith('.spec.ts')) files.push(p); } };
+    walk(join(__dirname, '..', 'src'));
+    const seen = new Map<string, string[]>();
+    for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(/^\s*(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([A-Za-z0-9_]+)/gm)) seen.set(m[1], [...(seen.get(m[1]) ?? []), f.slice(f.indexOf('src/'))]);
+    const dups = [...seen.entries()].filter(([, v]) => v.length > 1).map(([k, v]) => `${k}: ${v.join(', ')}`);
+    expect(dups).toEqual([]);
   });
 });

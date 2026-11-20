@@ -14,7 +14,7 @@ export class UploadBody {
   @IsString() contentBase64!: string;
   @IsOptional() @IsString() @MaxLength(120) title?: string;
 }
-export class ShareBody { @IsBoolean() granted!: boolean }
+export class RecordShareBody { @IsBoolean() granted!: boolean }
 export class FollowUpBody { @IsInt() @Min(1) @Max(730) afterDays!: number }
 export class FollowUpCreateBody {
   @IsInt() @Min(1) @Max(730) afterDays!: number;
@@ -57,7 +57,7 @@ export class VaultController {
 
   @Put('me/record-sharing/:scope') @ApiOperation({ summary: 'Grant (needs flags kiorex.record_vault + clinic.record_share_patient_app) or revoke (always allowed; deletes Kiorex copies and tells Kiorly)' })
   @ApiOkResponse({ type: RecordSharingDto })
-  setSharing(@CurrentUser() u: AuthUser, @Param('scope') scope: string, @Body() b: ShareBody) { return this.svc.setSharing(u.sub, scope, b.granted); }
+  setSharing(@CurrentUser() u: AuthUser, @Param('scope') scope: string, @Body() b: RecordShareBody) { return this.svc.setSharing(u.sub, scope, b.granted); }
 
   @Get('me/prescriptions') @ApiOperation({ summary: 'KXM-RC-02 prescriptions with verification QR payloads' })
   @ApiOkResponse({ type: PrescriptionItemDto, isArray: true })

@@ -14,7 +14,7 @@ export class CartBody {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(30) @ValidateNested({ each: true }) @Type(() => CartItemBody) items!: CartItemBody[];
   @IsOptional() @IsString() prescriptionRecordId?: string;
 }
-export class AddressBody {
+export class PharmacyDeliveryAddressBody {
   @IsString() @MaxLength(200) line1!: string;
   @IsOptional() @IsString() @MaxLength(80) area?: string;
   @IsOptional() @IsString() @MaxLength(80) governorate?: string;
@@ -23,7 +23,7 @@ export class AddressBody {
 }
 export class DeliveryBody {
   @IsIn(['PICKUP', 'DELIVERY']) method!: 'PICKUP' | 'DELIVERY';
-  @IsOptional() @ValidateNested() @Type(() => AddressBody) address?: AddressBody;
+  @IsOptional() @ValidateNested() @Type(() => PharmacyDeliveryAddressBody) address?: PharmacyDeliveryAddressBody;
 }
 export class CreateOrderBody { @IsOptional() @IsString() prescriptionRecordId?: string }
 

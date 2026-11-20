@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
 class RefundBody { @IsString() paymentId!: string; @IsString() reason!: string; @IsOptional() @IsInt() @Min(1) amountMinor?: number }
-class ReviewBody { @IsString() reason!: string }
+class PaymentReviewBody { @IsString() reason!: string }
 class SimulateBody { @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED' }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }
 class SettlementLine {
@@ -83,10 +83,10 @@ export class OpsController {
   heldForReview() { return this.pay.heldForReview(); }
   @ApiOkResponse({ type: ReviewDecisionDto })
   @Post('payments/:paymentId/review/release') @HttpCode(200) @ApiOperation({ summary: 'KXMPAY07 review decision: release the held deposit to the provider (reason required, audited)' })
-  reviewRelease(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: ReviewBody) { return this.pay.reviewRelease(id, u.sub, b.reason); }
+  reviewRelease(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: PaymentReviewBody) { return this.pay.reviewRelease(id, u.sub, b.reason); }
   @ApiOkResponse({ type: ReviewDecisionDto })
   @Post('payments/:paymentId/review/refund') @HttpCode(200) @ApiOperation({ summary: 'KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited)' })
-  reviewRefund(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: ReviewBody) { return this.pay.reviewRefund(id, u.sub, b.reason); }
+  reviewRefund(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: PaymentReviewBody) { return this.pay.reviewRefund(id, u.sub, b.reason); }
   @ApiOkResponse({ type: HomeGateMetricDto })
   @Get('home-visits/gate-metric') @ApiOperation({ summary: 'Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate' })
   async homeGate() {

@@ -6,7 +6,7 @@ import { OkDto } from '../common/dto';
 import { AddressDto } from './address.dto';
 import { AddressService } from './address.service';
 
-class AddressBody {
+class HomeAddressBody {
   @IsString() @MinLength(1) @MaxLength(40) label!: string;
   @IsString() @MinLength(2) @MaxLength(60) governorate!: string;
   @IsString() @MaxLength(40) district!: string;
@@ -44,7 +44,7 @@ export class AddressController {
 
   @ApiCreatedResponse({ type: AddressDto })
   @Post() @ApiOperation({ summary: 'KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin' })
-  create(@CurrentUser() u: AuthUser, @Body() b: AddressBody) { return this.svc.create(u, b); }
+  create(@CurrentUser() u: AuthUser, @Body() b: HomeAddressBody) { return this.svc.create(u, b); }
 
   @ApiOkResponse({ type: AddressDto })
   @Put(':id') update(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: AddressPatch) { return this.svc.update(u, id, b); }

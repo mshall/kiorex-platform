@@ -5,7 +5,7 @@ import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { TrustService } from './trust.service';
 import { ComplaintCreatedDto, ProviderReviewsDto, ReviewDto } from './trust.dto';
 
-class ReviewBody { @IsInt() @Min(1) @Max(5) rating!: number; @IsOptional() @IsString() @MaxLength(2000) text?: string }
+class BookingReviewBody { @IsInt() @Min(1) @Max(5) rating!: number; @IsOptional() @IsString() @MaxLength(2000) text?: string }
 class ReviewEdit { @IsOptional() @IsInt() @Min(1) @Max(5) rating?: number; @IsOptional() @IsString() @MaxLength(2000) text?: string }
 class ComplaintBody { @IsString() category!: string; @IsString() @MaxLength(2000) body!: string; @IsOptional() @IsString() bookingId?: string }
 
@@ -15,7 +15,7 @@ export class TrustController {
   constructor(private readonly svc: TrustService) {}
   @ApiCreatedResponse({ type: ReviewDto })
   @Post('bookings/:id/review') @ApiOperation({ summary: 'KXM-RV-01 review a completed Kiorex visit (flag kiorex.reviews)' })
-  submit(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ReviewBody) { return this.svc.submit(u.sub, id, b); }
+  submit(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: BookingReviewBody) { return this.svc.submit(u.sub, id, b); }
   @ApiOkResponse({ type: ReviewDto })
   @Put('reviews/:id') @ApiOperation({ summary: 'KXM-RV-01 edit within 7 days' })
   edit(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ReviewEdit) { return this.svc.edit(u.sub, id, b); }
