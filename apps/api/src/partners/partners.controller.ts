@@ -5,7 +5,7 @@ import { OpsOnly } from '../common/auth';
 import { PartnerRegistry } from './partners.service';
 
 export class PartnerDto {
-  @ApiProperty() id!: string; @ApiProperty({ enum: ['pharmacy', 'lab'] }) kind!: string; @ApiProperty() name!: string;
+  @ApiProperty() id!: string; @ApiProperty({ enum: ['pharmacy', 'lab', 'lab_nurse'] }) kind!: string; @ApiProperty() name!: string;
   @ApiProperty({ description: 'Host only, e.g. http://localhost:3100' }) baseUrl!: string; @ApiProperty() clientKey!: string;
   @ApiProperty({ description: 'Always masked' }) clientSecret!: string; @ApiProperty({ description: 'Always masked' }) webhookSecret!: string;
   @ApiProperty() active!: boolean; @ApiProperty({ description: 'Contract path appended to baseUrl' }) apiPath!: string;

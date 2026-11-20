@@ -31,6 +31,7 @@ async function main() {
     const partners = new PartnerRegistry(prisma as never);
     await partners.seedDev('pharmacy');
     await partners.seedDev('lab');
+    await partners.seedDev('lab_nurse'); // KNLAB01: second Lab registration with the KIORLY_NURSE client source
   }
   console.log(`seeded ${await prisma.flagDefinition.count()} flag definitions, ${await prisma.productRegistration.count()} products`);
   await prisma.$disconnect();

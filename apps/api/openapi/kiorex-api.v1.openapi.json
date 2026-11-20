@@ -13799,7 +13799,8 @@
             "type": "string",
             "enum": [
               "pharmacy",
-              "lab"
+              "lab",
+              "lab_nurse"
             ]
           },
           "name": {

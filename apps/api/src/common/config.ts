@@ -75,6 +75,9 @@ export const cfg = () => ({
   labClientKey: env('KIORLY_LAB_CLIENT_KEY', PARTNER_DEV_DEFAULTS.lab.clientKey),
   labClientSecret: env('KIORLY_LAB_CLIENT_SECRET', PARTNER_DEV_DEFAULTS.lab.clientSecret),
   labWebhookSecret: env('KIORLY_LAB_WEBHOOK_SECRET', PARTNER_DEV_DEFAULTS.lab.webhookSecret),
+  /** KNLAB01: Kiorex's registration at the Lab with the KIORLY_NURSE client source (same host as the lab by default). */
+  labNurseClientKey: env('KIORLY_LAB_NURSE_CLIENT_KEY', PARTNER_DEV_DEFAULTS.labNurse.clientKey),
+  labNurseClientSecret: env('KIORLY_LAB_NURSE_CLIENT_SECRET', PARTNER_DEV_DEFAULTS.labNurse.clientSecret),
   partnerTimeoutMs: num('PARTNER_TIMEOUT_MS', 8000),
   /** NEEDS_HUMAN (KX-12): marketplace take rates in basis points. 0 = unset. KX-03 §08 lists 4% / 8% only as "test points" — never final. */
   pharmacyTakeRateBps: num('PHARMACY_TAKE_RATE_BPS', 0),

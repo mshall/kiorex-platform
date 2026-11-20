@@ -7,7 +7,7 @@ import { BookingService } from '../booking/booking-public';
 import { CarePlanService, SafetyService } from '../homecare/homecare-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { EngagementService } from '../engagement/engagement-public';
-import { LabService } from '../lab/lab-public';
+import { LabService, NurseLabRelayService } from '../lab/lab-public';
 import { PharmacyService } from '../pharmacy/pharmacy-public';
 import { PartnerRegistry } from '../partners/partners-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
@@ -21,7 +21,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -76,11 +76,19 @@ export class WebhooksService {
         const o = await this.records.onKiorlyEvent({ type, aggregateId: env.aggregateId, eventId: (env as any).eventId, data });
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
+      case 'LabOrderPlaced': { // KNLAB01: Kiorly Nurse (edition of Kiorly Clinic) hands a collected sample to a lab; Kiorex relays it (Clinic-edition hand-offs are acknowledged and ignored)
+        const o = await this.nurseLab.onOrderPlaced({ ...(data as any), orderId: data.orderId ?? (env as any).aggregateId });
+        return o === 'APPLIED' || o === 'REFUSED' ? 'APPLIED' : 'IGNORED';
+      }
       case 'LabResultReleased': {
-        const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels });
+        const nurse = await this.nurseLab.onResultReleased({ orderId: data.orderId, reportId: data.reportId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink });
+        const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels }); // vault link for a linked Kiorex patient (consented channel only)
+        if (nurse === 'APPLIED') return 'APPLIED';
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'LabOrderStatusChanged': {
+        const nurse = await this.nurseLab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
+        if (nurse !== 'UNKNOWN_ORDER') return nurse; // a Nurse hand-off: never also a Kiorex booking
         const o = await this.lab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }

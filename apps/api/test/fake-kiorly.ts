@@ -23,6 +23,9 @@ export class FakeKiorly {
   slotsMode: Mode;
   carePlanMode: undefined | '422-not-offered';
   carePlanRequests = new Map<string, any>();
+  /** KNLAB01 (contracts 1.6.0): lab status pushes received at POST /lab-orders/:orderId/status, in order. `labStatusMode` makes the clinic answer 5xx (retry) or 404 (permanent). */
+  labStatusPushes: { orderId: string; body: any }[] = [];
+  labStatusMode: undefined | '5xx' | '404';
   /** appointmentId -> visitAddress carried from the hold (Kiorly stores it encrypted; the fake keeps it so tests can assert what was sent). */
   addresses = new Map<string, any>();
   getBookingMode: Mode;
@@ -42,7 +45,7 @@ export class FakeKiorly {
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
     this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = [];
-    this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear();
+    this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined;
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
@@ -134,6 +137,12 @@ export class FakeKiorly {
         if (!ex) this.deposits.set(body.paymentRef, { ref, ...body });
         return send(200, this.deposits.get(body.paymentRef));
       }
+    }
+    if (m === 'POST' && /^\/lab-orders\/[^/]+\/status$/.test(path)) {
+      if (this.labStatusMode === '5xx') return send(503, {});
+      if (this.labStatusMode === '404') return send(404, { code: 'LAB_HANDOFF_NOT_FOUND' });
+      this.labStatusPushes.push({ orderId: decodeURIComponent(path.split('/')[2]), body });
+      return send(200, { applied: true, status: body.status });
     }
     if (m === 'POST' && path === '/care-plan-requests') {
       if (this.carePlanMode === '422-not-offered') return send(422, { code: 'CARE_PLANS_NOT_OFFERED', message: 'provider does not offer care plans' });

@@ -127,6 +127,10 @@ export class KiorlyClient {
   syncProfileViews(body: { clinicId: string; items: { clinicianId: string; date: string; views: number }[] }) {
     return this.request<any>({ method: 'POST', path: '/analytics/profile-views', body });
   }
+  /** KNLAB01 (contracts 1.6.0): relay the lab status + sanitized custody (+ secure link on release) of a Nurse-edition hand-off. Idempotent, monotonic on the clinic side. */
+  pushLabOrderStatus(orderId: string, body: Record<string, unknown>, clinicId?: string) {
+    return this.request<{ applied: boolean; status: string }>({ method: 'POST', path: `/lab-orders/${encodeURIComponent(orderId)}/status`, body, clinicId });
+  }
   /** KX-11: mirror the patient's record-share scope consents to Kiorly (clinic patient id from the KiorlyPatientLink). */
   upsertRecordShareConsents(kiorlyPatientId: string, consents: { scope: string; granted: boolean }[], clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/patients/${encodeURIComponent(kiorlyPatientId)}/consents`, body: { consents }, clinicId });

@@ -865,7 +865,7 @@ model TeleSession {
 /// secret (kiorex-contracts 1.4.0). Secrets are AES-GCM encrypted (FIELD_ENCRYPTION_KEY). Dev defaults are seeded; env is the fallback.
 model PartnerRegistration {
   id               String   @id // e.g. pr_pharmacy_dev
-  kind             String // PHARMACY | LAB
+  kind             String // PHARMACY | LAB | LAB_NURSE (second Lab registration with the KIORLY_NURSE client source, KNLAB01)
   name             String
   baseUrl          String // host only; the contract path prefix is appended (PARTNER_API_PATH)
   clientKey        String   @unique
@@ -1002,4 +1002,24 @@ model CarePlanBooking {
   updatedAt          DateTime  @updatedAt
 
   @@index([sub, status])
+}
+
+/// KNLAB01 / KLORD05: relay of a Nurse-edition `LabOrderPlaced` (Kiorly Clinic) to Kiorly Lab and of the lab's status/result back to the clinic.
+/// `id` is the Kiorly ClinicalOrder id (LabOrderPlaced.orderId = the lab's sourceRef). Demographics, identifiers and tube labels are relayed, never stored here.
+model NurseLabRelay {
+  id             String   @id
+  clinicId       String
+  patientRef     String
+  partnerOrderId String?
+  labOrderNumber String?
+  /// SUBMITTED | REFUSED | CANCELLED | RESULT_RELEASED
+  status         String
+  lastLabStatus  String?
+  refusalCode    String?
+  reportId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([partnerOrderId])
+  @@index([clinicId])
 }

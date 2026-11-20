@@ -6,11 +6,11 @@ import { badRequest, notFound } from '../common/errors';
 import { PartnerConn } from '../common/partner-http';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type PartnerKind = 'PHARMACY' | 'LAB';
+export type PartnerKind = 'PHARMACY' | 'LAB' | 'LAB_NURSE';
 export interface PartnerInput { name?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; active?: boolean }
 
-const PATH: Record<PartnerKind, string> = { PHARMACY: PARTNER_API_PATH.pharmacy, LAB: PARTNER_API_PATH.lab };
-const KIND = (k: string): PartnerKind => { const u = k.toUpperCase(); if (u !== 'PHARMACY' && u !== 'LAB') throw badRequest('INVALID_PARTNER_KIND', 'kind must be pharmacy or lab'); return u; };
+const PATH: Record<PartnerKind, string> = { PHARMACY: PARTNER_API_PATH.pharmacy, LAB: PARTNER_API_PATH.lab, LAB_NURSE: PARTNER_API_PATH.lab };
+const KIND = (k: string): PartnerKind => { const u = k.toUpperCase().replace('-', '_'); if (u !== 'PHARMACY' && u !== 'LAB' && u !== 'LAB_NURSE') throw badRequest('INVALID_PARTNER_KIND', 'kind must be pharmacy, lab or lab_nurse'); return u; };
 
 /**
  * Partner registry (kiorex-contracts 1.4.0): base URL host + HMAC client credentials + webhook secret PER PARTNER RECORD, ops-editable.
@@ -23,9 +23,10 @@ export class PartnerRegistry {
 
   private envConn(kind: PartnerKind) {
     const c = cfg();
-    return kind === 'PHARMACY'
-      ? { baseUrl: c.pharmacyBaseUrl, clientKey: c.pharmacyClientKey, clientSecret: c.pharmacyClientSecret, webhookSecret: c.pharmacyWebhookSecret }
-      : { baseUrl: c.labBaseUrl, clientKey: c.labClientKey, clientSecret: c.labClientSecret, webhookSecret: c.labWebhookSecret };
+    if (kind === 'PHARMACY') return { baseUrl: c.pharmacyBaseUrl, clientKey: c.pharmacyClientKey, clientSecret: c.pharmacyClientSecret, webhookSecret: c.pharmacyWebhookSecret };
+    // LAB_NURSE: outbound only. The lab signs every webhook with its KIOREX_BOOKING client, so no separate webhook secret exists.
+    if (kind === 'LAB_NURSE') return { baseUrl: c.labBaseUrl, clientKey: c.labNurseClientKey, clientSecret: c.labNurseClientSecret, webhookSecret: '' };
+    return { baseUrl: c.labBaseUrl, clientKey: c.labClientKey, clientSecret: c.labClientSecret, webhookSecret: c.labWebhookSecret };
   }
 
   /** Connection for outbound calls (path prefix included). */
@@ -63,8 +64,8 @@ export class PartnerRegistry {
       if (!cur || cur.kind !== kind) throw notFound('PARTNER_NOT_FOUND', 'Partner registration not found');
       return this.present(await this.prisma.partnerRegistration.update({ where: { id }, data: { name: i.name, baseUrl: i.baseUrl?.replace(/\/+$/, ''), clientKey: i.clientKey, ...(i.clientSecret ? { clientSecretEnc: encryptField(i.clientSecret) } : {}), ...(i.webhookSecret ? { webhookSecretEnc: encryptField(i.webhookSecret) } : {}), active: i.active } }));
     }
-    if (!i.name || !i.baseUrl || !i.clientKey || !i.clientSecret || !i.webhookSecret) throw badRequest('PARTNER_INCOMPLETE', 'name, baseUrl, clientKey, clientSecret and webhookSecret are required');
-    const r = await this.prisma.partnerRegistration.create({ data: { id: `pr_${kind.toLowerCase()}_${Math.random().toString(36).slice(2, 10)}`, kind, name: i.name, baseUrl: i.baseUrl.replace(/\/+$/, ''), clientKey: i.clientKey, clientSecretEnc: encryptField(i.clientSecret), webhookSecretEnc: encryptField(i.webhookSecret), active: i.active ?? true } });
+    if (!i.name || !i.baseUrl || !i.clientKey || !i.clientSecret || (!i.webhookSecret && kind !== 'LAB_NURSE')) throw badRequest('PARTNER_INCOMPLETE', 'name, baseUrl, clientKey, clientSecret and webhookSecret are required (LAB_NURSE: webhookSecret is not used)');
+    const r = await this.prisma.partnerRegistration.create({ data: { id: `pr_${kind.toLowerCase()}_${Math.random().toString(36).slice(2, 10)}`, kind, name: i.name, baseUrl: i.baseUrl.replace(/\/+$/, ''), clientKey: i.clientKey, clientSecretEnc: encryptField(i.clientSecret), webhookSecretEnc: encryptField(i.webhookSecret ?? ''), active: i.active ?? true } });
     return this.present(r);
   }
 
@@ -74,7 +75,7 @@ export class PartnerRegistry {
     const kind = KIND(kindRaw);
     const e = this.envConn(kind);
     const id = `pr_${kind.toLowerCase()}_dev`;
-    const data = { kind, name: `Kiorly ${kind === 'PHARMACY' ? 'Pharmacy' : 'Lab'} (dev)`, baseUrl: e.baseUrl.replace(/\/+$/, ''), clientKey: e.clientKey, clientSecretEnc: encryptField(e.clientSecret), webhookSecretEnc: encryptField(e.webhookSecret), active: true };
+    const data = { kind, name: `Kiorly ${kind === 'PHARMACY' ? 'Pharmacy' : kind === 'LAB_NURSE' ? 'Lab (nurse source)' : 'Lab'} (dev)`, baseUrl: e.baseUrl.replace(/\/+$/, ''), clientKey: e.clientKey, clientSecretEnc: encryptField(e.clientSecret), webhookSecretEnc: encryptField(e.webhookSecret), active: true };
     await this.prisma.partnerRegistration.upsert({ where: { id }, create: { id, ...data }, update: data });
   }
 }
