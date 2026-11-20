@@ -75,3 +75,5 @@ safety_alerts = {
   alarm_emails         = [] # NEEDS_HUMAN: safety on-call rota
   alarm_webhook_urls   = []
 }
+
+enable_demo_seed = true # Q10: staging demo data (non-production only; seeded by hand via scripts/seed-staging.sh)

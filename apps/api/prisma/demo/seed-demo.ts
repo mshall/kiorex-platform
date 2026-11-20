@@ -19,15 +19,18 @@ import { FlagsService } from '../../src/control-plane/flags.service';
 import { OutboxService } from '../../src/outbox/outbox.service';
 import { encryptField } from '../../src/common/crypto';
 import { seedHome } from './seed-home';
+import { seedNurseLab } from './seed-nurse-lab';
+import { assertDemoSeedAllowed } from '../../src/common/demo-seed-guard';
 import { capture, pspFee, refundRequest, refundSettle, release, payout, type Posting } from '../../src/pay/ledger';
 
-if (process.env.NODE_ENV === 'production') throw new Error('refusing to seed demo data in production');
 const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform?schema=public' });
 const RESET = process.argv.includes('--reset');
 const DAY = 86_400_000;
 const today0 = new Date(); today0.setUTCHours(0, 0, 0, 0);
 const at = (off: number, hour = 9, min = 0) => new Date(today0.getTime() + off * DAY + hour * 3_600_000 + min * 60_000);
-const sub = (n: number) => `01HZKXD${String(n).padStart(19, '0')}`;
+/** AWS staging (Cognito generates the subs): DEMO_SUB_MAP_JSON = { '+201000001001': '<cognito sub>' } from scripts/seed-cognito-demo.mjs; locally the dev IdP subs below. */
+const SUB_MAP: Record<string, string> = (() => { try { return JSON.parse(process.env.DEMO_SUB_MAP_JSON || '{}'); } catch { return {}; } })();
+const sub = (n: number) => SUB_MAP[`+20100000${String(n).padStart(4, '0')}`] ?? `01HZKXD${String(n).padStart(19, '0')}`;
 const phone = (n: number) => `+20100000${String(n).padStart(4, '0')}`;
 async function many(model: string, rows: any[]) { if (rows.length) await (prisma as any)[model].createMany({ data: rows, skipDuplicates: true }); }
 
@@ -52,7 +55,7 @@ async function partnerGet(kind: 'pharmacy' | 'lab', path: string): Promise<any |
 async function resetDemo() {
   const bk = `(SELECT id FROM "BookingIntent" WHERE id LIKE 'demo_bk_%')`;
   const pay = `(SELECT id FROM "PaymentIntent" WHERE id LIKE 'demo_pay_%' OR id LIKE 'demo_vpay_%')`;
-  const subs = `sub LIKE '01HZKXD%'`;
+  const subs = `(sub LIKE '01HZKXD%'${Object.values(SUB_MAP).length ? ` OR sub IN (${Object.values(SUB_MAP).map((v) => `'${v.replace(/'/g, '')}'`).join(',')})` : ''})`;
   const sql = [
     `DELETE FROM "LedgerEntry" WHERE "txId" IN (SELECT id FROM "LedgerTx" WHERE "idempotencyKey" LIKE 'demo:%')`,
     `DELETE FROM "LedgerTx" WHERE "idempotencyKey" LIKE 'demo:%'`,
@@ -64,7 +67,7 @@ async function resetDemo() {
     `DELETE FROM "BookingIntent" WHERE id LIKE 'demo_bk_%'`,
     `DELETE FROM "SharedRecord" WHERE id LIKE 'demo_rec_%'`, `DELETE FROM "RecordShareConsent" WHERE ${subs}`, `DELETE FROM "FollowUpReminder" WHERE id LIKE 'demo_fu_%'`,
     `DELETE FROM "PharmacyOrder" WHERE id LIKE 'kx_ph_demo_%'`, `DELETE FROM "LabBooking" WHERE id LIKE 'kx_lb_demo_%'`,
-    `DELETE FROM "SafetyAlert" WHERE id LIKE 'kx_sa_demo_%'`, `DELETE FROM "FamilyShare" WHERE id LIKE 'kx_fs_demo_%'`, `DELETE FROM "CarePlanBooking" WHERE id LIKE 'kx_cp_demo_%'`,
+    `DELETE FROM "NurseLabRelay" WHERE id LIKE 'demo_lo_%'`, `DELETE FROM "SafetyAlert" WHERE id LIKE 'kx_sa_demo_%'`, `DELETE FROM "FamilyShare" WHERE id LIKE 'kx_fs_demo_%'`, `DELETE FROM "CarePlanBooking" WHERE id LIKE 'kx_cp_demo_%'`,
     `DELETE FROM "BookingVisitAddress" WHERE "bookingId" LIKE 'demo_bk_%'`, `DELETE FROM "PatientAddress" WHERE id LIKE 'kx_ad_demo_%'`,
     `DELETE FROM "KiorlyPatientLink" WHERE ${subs}`, `DELETE FROM "Dependant" WHERE id LIKE 'demo_dep_%'`, `DELETE FROM "ConsentRecord" WHERE ${subs}`,
     `DELETE FROM "PatientProfile" WHERE ${subs}`,
@@ -74,6 +77,7 @@ async function resetDemo() {
 }
 
 async function main() {
+  assertDemoSeedAllowed('Kiorex platform (patients, bookings, ledger, home visits, nurse-lab relay)');
   process.env.JOBS_ENABLED = 'false';
   if (RESET) await resetDemo();
 
@@ -224,6 +228,7 @@ async function main() {
   // Rev 2.3: home bookings, address book, hold-for-review deposits, safety console feed (DEV-ONLY gates), see seed-home.ts
   const home = await seedHome(prisma, { at, sub, flags });
   console.log(`Kiorex home seed: ${home}`);
+  console.log(`Kiorex nurse-lab (KNLAB01) seed: ${await seedNurseLab(prisma)}`);
   console.log(`Kiorex demo seed OK — ${PERSONAS.length} patient profiles, ${deps.length} dependants, ${bookingsSpec.length} bookings (${Object.entries(statusCounts).map(([k, v]) => `${k}:${v}`).join(' ')}), ${postN} ledger txs, ${completed.length} completed visits, ${recs.length} vault records, ${ph} pharmacy orders, ${lb} lab bookings`);
   await prisma.$disconnect();
 }

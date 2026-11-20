@@ -18,9 +18,14 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "ts-node --transpile-only prisma/seed.ts",
-    "db:seed:demo": "ts-node --transpile-only prisma/demo/seed-demo.ts",
+    "db:seed:demo": "DEMO_SEED_ALLOWED=true ts-node --transpile-only prisma/demo/seed-demo.ts",
     "db:test:prepare": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform_test?schema=public prisma migrate deploy",
-    "openapi:export": "nest build && node dist/openapi-export.js"
+    "openapi:export": "nest build && node dist/openapi-export.js",
+    "build:seed": "tsc -p tsconfig.seed.json && node scripts/copy-seed-assets.mjs",
+    "db:seed:demo:dist": "node dist-seed/prisma/demo/seed-demo.js",
+    "db:seed:dist": "node dist-seed/prisma/seed.js",
+    "db:sync:providers": "DEMO_SEED_ALLOWED=true ts-node --transpile-only prisma/demo/provider-sync.ts",
+    "db:sync:providers:dist": "node dist-seed/prisma/demo/provider-sync.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

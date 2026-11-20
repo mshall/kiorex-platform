@@ -77,3 +77,13 @@ output "safety_alerts_topic_arn" {
   description = "Safety on-call SNS topic (null when disabled)."
   value       = module.kiorex_platform.safety_alerts_topic_arn
 }
+
+output "demo_seed_function_name" {
+  description = "Demo seed Lambda (staging only; null unless enable_demo_seed)."
+  value       = module.kiorex_platform.demo_seed_function_name
+}
+
+output "demo_seed_invoke" {
+  description = "How to run the demo seed after the staging deploy (a human runs it; see scripts/seed-staging.sh)."
+  value       = module.kiorex_platform.demo_seed_invoke
+}

@@ -78,3 +78,5 @@ safety_alerts = {
   alarm_emails         = [] # NEEDS_HUMAN: safety on-call rota
   alarm_webhook_urls   = []
 }
+
+enable_demo_seed = false # Q10: never seed demo data in prod (the plan fails if this is true)
