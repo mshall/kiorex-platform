@@ -121,7 +121,7 @@ export default function DoctorProfile() {
                 {d.coverageDistricts.length ? <T variant="caption" muted>{t("hv.coverage")}: {d.coverageDistricts.map((c) => districtLabel(c, lang)).join(", ")}</T> : null}
                 {address && !covered ? <OutOfCoverage error={new ApiError(422, "OUT_OF_COVERAGE", "", { district: address.district, coverageDistricts: d.coverageDistricts })} /> : null}
                 {slotsError?.kind === "out_of_coverage" ? <OutOfCoverage error={slots.error} onPickProvider={(pid) => router.push(`/doctor/${pid}?loc=HOME`)} /> : null}
-                {address && !address.confirmed ? <Banner tone="warning" testID="address-unconfirmed" body={t("hv.confirmFirst")}><ConfirmAddressButton address={address} onDone={() => void addresses.refetch().then((r) => { const u = r.data?.find((x) => x.id === address.id); if (u) setAddress(u); })} /></Banner> : null}
+                {address && covered && !address.confirmed ? <Banner tone="warning" testID="address-unconfirmed" body={t("hv.confirmFirst")}><ConfirmAddressButton address={address} onDone={() => void addresses.refetch().then((r) => { const u = r.data?.find((x) => x.id === address.id); if (u) setAddress(u); })} /></Banner> : null}
               </View>
             ) : null}
             <T variant="label">{t("doctor.visitType")}</T>

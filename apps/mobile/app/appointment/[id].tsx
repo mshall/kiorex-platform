@@ -18,9 +18,10 @@ import { directionsUrl, googleCalendarUrl, telUrl } from "@/lib/calendar";
 import { formatDay, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { HomeTimeline } from "@/components/homecare";
 import { depositUnderReview, districtLabel, homeOf, isHome, safetyCardVisible, shareable } from "@/lib/homecare";
+import { RequireAuth } from "@/components/feature";
 import { useTheme } from "@/theme";
 
-export default function AppointmentDetail() {
+function AppointmentDetailBody() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -114,7 +115,7 @@ export default function AppointmentDetail() {
           </Row>
         ) : null}
 
-        {b.status === "CONFIRMED" && teleOn.enabled ? <Button testID="video-visit" icon="video" variant="secondary" loading={tele.isPending} title={t("tele.startVideo")} onPress={() => tele.mutate(b.id, { onSuccess: (s) => router.push(`/telemedicine/room/${s.id}`), onError: () => setMsg(t("tele.notVideoVisit")) })} /> : null}
+        {b.status === "CONFIRMED" && teleOn.enabled && !home ? <Button testID="video-visit" icon="video" variant="secondary" loading={tele.isPending} title={t("tele.startVideo")} onPress={() => tele.mutate(b.id, { onSuccess: (s) => router.push(`/telemedicine/room/${s.id}`), onError: () => setMsg(t("tele.notVideoVisit")) })} /> : null}
         {b.status === "CONFIRMED" ? <Button testID="reschedule" variant="secondary" title={t("appointment.reschedule")} onPress={() => { setPick1(undefined); setSheet("reschedule"); }} /> : null}
         {active ? <Button testID="cancel-booking" variant="danger" title={t("appointment.cancel")} onPress={() => setSheet("cancel")} /> : null}
         {canReview(b, reviewedIds) && reviewsOn.enabled ? <Button testID="leave-review" icon="star" title={t("appointment.leaveReview")} onPress={() => router.push(`/review/${b.id}`)} /> : null}
@@ -139,3 +140,6 @@ export default function AppointmentDetail() {
     </>
   );
 }
+
+/** Deep links open before the session is restored: wait for sign-in so the first request carries the token. */
+export default function AppointmentDetail() { return <RequireAuth><AppointmentDetailBody /></RequireAuth>; }

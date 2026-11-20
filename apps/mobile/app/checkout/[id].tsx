@@ -17,9 +17,10 @@ import { track } from "@/lib/analytics";
 import { bookingLanded, classifyBookingError } from "@/lib/booking-state";
 import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { homeOf, districtLabel, isHome } from "@/lib/homecare";
+import { RequireAuth } from "@/components/feature";
 import { useTheme } from "@/theme";
 
-export default function Checkout() {
+function CheckoutBody() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -158,3 +159,6 @@ export default function Checkout() {
     </>
   );
 }
+
+/** Deep links open before the session is restored: wait for sign-in so the first request carries the token. */
+export default function Checkout() { return <RequireAuth><CheckoutBody /></RequireAuth>; }

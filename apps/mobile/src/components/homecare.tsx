@@ -24,9 +24,9 @@ export function CareTypeTiles({ items, selected, onSelect, testIDPrefix = "care"
         return (
           <Pressable key={c.code} testID={`${testIDPrefix}-${c.code}`} accessibilityRole="button" accessibilityState={{ selected: on, disabled: false }}
             accessibilityLabel={c.enabled ? t(`careType.${CARE_TYPE_KEY[c.code]}`) : `${t(`careType.${CARE_TYPE_KEY[c.code]}`)}. ${t("careType.awaitingShort")}`} onPress={() => onSelect(c)}
-            style={{ flexBasis: "30%", flexGrow: 1, minHeight: 84, padding: 10, gap: 6, borderRadius: 14, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.border, opacity: c.enabled ? 1 : 0.75 }}>
+            style={{ flexBasis: 0, flexGrow: 1, minWidth: 96, minHeight: 84, padding: 8, gap: 6, borderRadius: 14, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.border, opacity: c.enabled ? 1 : 0.75 }}>
             <Icon name={CARE_ICON[c.code]} color={on ? colors.onInk : c.enabled ? colors.ink : colors.muted} />
-            <T variant="small" weight="semibold" color={on ? colors.onInk : colors.text}>{t(`careType.${CARE_TYPE_KEY[c.code]}`)}</T>
+            <T variant="small" weight="semibold" style={{ fontSize: 12 }} color={on ? colors.onInk : colors.text}>{t(`careType.${CARE_TYPE_KEY[c.code]}`)}</T>
             {!c.enabled ? <T variant="caption" color={on ? colors.onInk : colors.warning}>{t("careType.awaitingShort")}</T> : <T variant="caption" color={on ? colors.onInk : colors.muted}>{i18n.language ? t("careType.providers", { count: c.providerCount }) : ""}</T>}
           </Pressable>
         );
@@ -67,7 +67,7 @@ export function AddressSheet({ visible, address, onClose, onSaved }: { visible: 
           <Chip key={x.district} testID={`district-${x.district}`} label={districtLabel(x.district, i18n.language)} selected={d.district === x.district} onPress={() => setD((v) => ({ ...v, district: x.district, governorate: v.governorate || x.governorate || "" }))} />
         ))}</Row>
       ) : null}
-      <Field testID="addr-district" value={d.district} onChangeText={set("district")} placeholder="nasr-city" autoCapitalize="none" style={{ writingDirection: "ltr" }} maxLength={40} />
+      <Field testID="addr-district" accessibilityLabel={t("address.district")} value={d.district} onChangeText={set("district")} placeholder="nasr-city" autoCapitalize="none" style={{ writingDirection: "ltr" }} maxLength={40} />
       <T variant="caption" muted>{t("address.districtHint")}</T>
       <Field testID="addr-street" label={t("address.street")} value={d.street} onChangeText={set("street")} maxLength={200} />
       <Row gap={8}>
