@@ -9,7 +9,7 @@ const NOW = () => new Date().toISOString();
 /** A Nurse-edition `LabOrderPlaced` exactly as Kiorly Clinic emits it (kiorex-contracts 1.6.0, fixtures/nurse-lab-handoff-v1.6.json shape). */
 const placed = (o: Record<string, unknown> = {}) => ({
   orderId: 'ord_n1', encounterId: undefined, clinicId: 'cl_n1', patientRef: 'pat_n1', orderingClinicianId: 'usr_nurse', consentToken: 'rsc_0123456789abcdef0123456789abcdef', orderedAt: NOW(),
-  items: [{ code: 'CBC', nameEn: 'Complete blood count' }], originEdition: 'NURSE', prescriberName: 'Dr Hesham Nabil', identifiersChecked: ['FULL_NAME', 'DATE_OF_BIRTH'],
+  items: [{ code: 'CBC', nameEn: 'Complete blood count' }], originEdition: 'NURSE', prescriberName: 'Dr Hesham Nabil', identifiersChecked: ['fullName', 'dateOfBirth'],
   patient: { fullName: 'Amira Samy', dateOfBirth: '1990-04-12', sex: 'F', phone: '+201000000001' },
   nurseCollection: { visitRef: 'apt_n1', collectorRef: 'usr_nurse', collectorName: 'Nurse Mona', collectedAt: new Date(Date.now() - 1_200_000).toISOString(), handedOverAt: new Date(Date.now() - 300_000).toISOString(), temperatureC: 5, samples: [{ label: 'NRS-0001-A', specimenType: 'BLOOD', container: 'EDTA' }] },
   ...o,
@@ -33,7 +33,7 @@ describe('KNLAB01 Nurse -> Kiorex -> Lab relay (fake clinic + fake lab that enfo
     expect(call.headers['x-kiorly-client-key']).toBe('kl_dev_nurse'); // the second registration, not the booking client
     expect(call.headers['idempotency-key']).toBe('ord_n1');
     expect(call.body).toMatchObject({
-      sourceRef: 'ord_n1', testCodes: ['CBC'], priority: 'ROUTINE', identifiersChecked: ['FULL_NAME', 'DATE_OF_BIRTH'], consentChannels: ['KIORLY_NURSE_IMPORT'],
+      sourceRef: 'ord_n1', testCodes: ['CBC'], priority: 'ROUTINE', identifiersChecked: ['fullName', 'dateOfBirth'], consentChannels: ['KIORLY_NURSE_IMPORT'],
       patient: { fullName: 'Amira Samy', externalId: 'pat_n1', dateOfBirth: '1990-04-12', sex: 'F' }, referringDoctor: { name: 'Dr Hesham Nabil', ref: 'usr_nurse' },
       nurseCollection: { visitRef: 'apt_n1', collectorRef: 'usr_nurse', temperatureC: 5, consentToken: 'rsc_0123456789abcdef0123456789abcdef', samples: [{ label: 'NRS-0001-A', specimenType: 'BLOOD', container: 'EDTA' }] },
     });
@@ -66,7 +66,7 @@ describe('KNLAB01 Nurse -> Kiorex -> Lab relay (fake clinic + fake lab that enfo
     expect(lab.callsTo('POST', '/orders')).toHaveLength(0);
     expect(await c.prisma.nurseLabRelay.count()).toBe(0);
     for (const [patch, code] of [
-      [{ consentToken: '' }, 'CONSENT_REQUIRED'], [{ identifiersChecked: ['FULL_NAME'] }, 'TWO_IDENTIFIERS_REQUIRED'], [{ nurseCollection: undefined }, 'NURSE_COLLECTION_REQUIRED'],
+      [{ consentToken: '' }, 'CONSENT_REQUIRED'], [{ identifiersChecked: ['fullName'] }, 'TWO_IDENTIFIERS_REQUIRED'], [{ nurseCollection: undefined }, 'NURSE_COLLECTION_REQUIRED'],
       [{ items: [{ nameEn: 'No code' }] }, 'ITEM_CODE_REQUIRED'], [{ patient: undefined }, 'PATIENT_DEMOGRAPHICS_REQUIRED'],
     ] as const) {
       c.kiorly.labStatusPushes = [];
