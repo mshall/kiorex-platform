@@ -1,18 +1,16 @@
 import { useTranslation } from "react-i18next";
+import { formatDay, formatTime, relativeDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { formatDay, formatTime } from "@/lib/format";
 import type { Slot } from "@/api/types";
 
-export function SlotButton({ slot, onPick, selected, showDay = true, disabled }: { slot: Slot; onPick: (s: Slot) => void; selected?: boolean; showDay?: boolean; disabled?: boolean }) {
-  const { i18n } = useTranslation();
+/** Tappable time chip. With `showDay` it is labelled "Today / Tomorrow / Sat 21 Nov" above the time (search cards, reschedule). */
+export function SlotButton({ slot, onPick, selected, showDay = true, disabled, className }: { slot: Slot; onPick: (s: Slot) => void; selected?: boolean; showDay?: boolean; disabled?: boolean; className?: string }) {
+  const { t, i18n } = useTranslation();
+  const rel = showDay ? relativeDay(slot.startsAt) : null;
   return (
-    <button
-      type="button" disabled={disabled} aria-pressed={selected} onClick={() => onPick(slot)} data-testid="slot-button"
-      className={cn("flex min-h-11 min-w-[5.5rem] flex-col items-center justify-center rounded-xl border bg-card px-3 py-1 text-sm font-medium transition-colors hover:border-primary hover:bg-accent disabled:opacity-50",
-        selected && "border-pulse bg-pulse/15")}
-    >
-      {showDay && <span className="text-xs text-muted-foreground">{formatDay(slot.startsAt, i18n.language)}</span>}
-      <span className="kx-label-num" dir="ltr">{formatTime(slot.startsAt, i18n.language)}</span>
+    <button type="button" disabled={disabled} aria-pressed={selected} onClick={() => onPick(slot)} data-testid="slot-button" className={cn("kx-slot", className)}>
+      {showDay && <span className={cn("text-[11px] font-medium leading-4", selected ? "text-primary-foreground/80" : "text-muted-foreground")}>{rel ? t(`results.${rel}`) : formatDay(slot.startsAt, i18n.language)}</span>}
+      <span className="kx-label-num leading-5" dir="ltr">{formatTime(slot.startsAt, i18n.language)}</span>
     </button>
   );
 }

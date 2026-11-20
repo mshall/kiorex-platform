@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User } from "lucide-react";
@@ -15,7 +16,7 @@ export function LanguageSwitcher() {
   return (
     <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} aria-label={t("nav.switchLanguage")} data-testid="lang-toggle">
       <Languages aria-hidden="true" />
-      <span lang={next}>{next === "ar" ? "العربية" : "English"}</span>
+      <span lang={next} className="hidden sm:inline">{next === "ar" ? "العربية" : "English"}</span>
     </Button>
   );
 }
@@ -38,13 +39,14 @@ export function AppLayout() {
   const { status, login, logout } = useAuth();
   const signedIn = status === "signedIn";
   const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior }); }, [pathname]); // new screen starts at the top (booking flow lands on the confirmation moment)
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground">{t("nav.skip")}</a>
       <MarketNotLiveBanner />
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-3">
-          <Link to="/" aria-label={t("nav.home")} className="rounded-lg"><Logo /></Link>
+          <Link to="/" aria-label={t("nav.home")} className="shrink-0 rounded-lg"><Logo className="hidden sm:inline-flex" /><Logo wordmark={false} markClassName="h-9" className="sm:hidden" /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 md:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>
@@ -53,7 +55,7 @@ export function AppLayout() {
             {signedIn && <NavLink to="/records" className={navCls}>{t("nav.records")}</NavLink>}
             {signedIn && <NavLink to="/account" className={navCls}>{t("nav.account")}</NavLink>}
           </nav>
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
             <MarketSelector />
             <LanguageSwitcher />
             <ThemeToggle />

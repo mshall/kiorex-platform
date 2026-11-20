@@ -5,7 +5,7 @@ import { cleanup } from "@testing-library/react";
 afterEach(() => cleanup());
 
 if (!window.matchMedia) {
-  window.matchMedia = ((q: string) => ({ matches: false, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false })) as typeof window.matchMedia;
+  window.matchMedia = ((q: string) => ({ matches: /min-width/.test(q), media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false })) as typeof window.matchMedia;
 }
 
 import { afterAll, beforeAll } from "vitest";

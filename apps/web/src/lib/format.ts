@@ -42,3 +42,21 @@ export const formatDate = (iso: string, lang: string) =>
   new Intl.DateTimeFormat(loc(lang), { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Cairo" }).format(new Date(iso));
 
 export const formatBytes = (n: number, lang: string) => (n >= 1_048_576 ? `${formatNumber(n / 1_048_576, lang)} MB` : `${formatNumber(Math.max(1, n / 1024), lang, 0)} KB`);
+
+const cairoDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(d);
+/** "today" | "tomorrow" | null for a slot start, judged on Cairo calendar days. */
+export const relativeDay = (iso: string): "today" | "tomorrow" | null => {
+  const now = new Date();
+  const k = dayKey(iso);
+  if (k === cairoDay(now)) return "today";
+  if (k === cairoDay(new Date(now.getTime() + 86_400_000))) return "tomorrow";
+  return null;
+};
+export const formatWeekdayShort = (iso: string, lang: string) => new Intl.DateTimeFormat(loc(lang), { weekday: "short", timeZone: "Africa/Cairo" }).format(new Date(iso));
+export const formatDayNum = (iso: string, lang: string) => new Intl.DateTimeFormat(loc(lang), { day: "numeric", timeZone: "Africa/Cairo" }).format(new Date(iso));
+export const formatMonthShort = (iso: string, lang: string) => new Intl.DateTimeFormat(loc(lang), { month: "short", timeZone: "Africa/Cairo" }).format(new Date(iso));
+/** "GMT+2" style offset of Africa/Cairo at the given instant (Egypt observes DST again, so it is read, not hard-coded). */
+export const cairoOffsetLabel = (iso: string, lang: string) => {
+  const part = new Intl.DateTimeFormat(lang.startsWith("ar") ? "ar-EG" : "en-GB", { timeZone: "Africa/Cairo", timeZoneName: "shortOffset" }).formatToParts(new Date(iso)).find((p) => p.type === "timeZoneName");
+  return part?.value ?? "GMT+2";
+};

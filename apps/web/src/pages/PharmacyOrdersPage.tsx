@@ -27,7 +27,7 @@ export function PharmacyOrdersPage() {
       ) : (
         <ul className="space-y-3" data-testid="order-list">
           {q.data!.map((o) => (
-            <li key={o.id}><Link to={`/pharmacy/orders/${o.id}`} className="kx-card flex items-center justify-between gap-3 p-4 hover:border-primary" data-testid="order-row">
+            <li key={o.id}><Link to={`/pharmacy/orders/${o.id}`} className="kx-card kx-card-interactive flex items-center justify-between gap-3 p-4" data-testid="order-row">
               <div className="space-y-1"><p className="font-semibold">{o.items.map((i) => i.name).slice(0, 2).join("، ")}{o.items.length > 2 ? ` +${o.items.length - 2}` : ""}</p><p className="text-sm text-muted-foreground">{formatDateTime(o.createdAt, i18n.language)} · {formatMinor(o.totalMinor, i18n.language)}</p></div>
               <div className="flex items-center gap-2"><Badge variant={orderVariant(o.status)}>{t(`pharmacy.status.${o.status}`)}</Badge><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></div>
             </Link></li>

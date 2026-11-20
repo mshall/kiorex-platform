@@ -50,7 +50,7 @@ describe("StatusTimeline", () => {
   it("marks the latest state as current", () => {
     const b = { timeline: [{ status: "INTENT", at: "2026-12-01T10:00:00Z", note: null }, { status: "HELD", at: "2026-12-01T10:00:01Z", note: null }, { status: "CONFIRMED", at: "2026-12-01T10:01:00Z", note: null }] } as unknown as Booking;
     renderApp(<StatusTimeline booking={b} />);
-    const items = screen.getAllByRole("listitem");
+    const items = screen.getAllByRole("listitem").filter((li) => !li.hasAttribute("data-upcoming")); // ghost "still to come" steps are extra
     expect(items).toHaveLength(2); expect(items[1]).toHaveAttribute("aria-current", "step");
   });
 });

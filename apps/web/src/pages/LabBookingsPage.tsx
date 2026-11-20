@@ -26,7 +26,7 @@ export function LabBookingsPage() {
       ) : (
         <ul className="space-y-3" data-testid="lab-booking-list">
           {q.data!.map((b) => (
-            <li key={b.id}><Link to={`/lab/bookings/${b.id}`} className="kx-card flex items-center justify-between gap-3 p-4 hover:border-primary" data-testid="lab-booking-row">
+            <li key={b.id}><Link to={`/lab/bookings/${b.id}`} className="kx-card kx-card-interactive flex items-center justify-between gap-3 p-4" data-testid="lab-booking-row">
               <div className="space-y-1"><p className="font-semibold">{b.tests.map((x) => x.name).join("، ")}</p><p className="text-sm text-muted-foreground">{formatDateTime(b.slotStartsAt, i18n.language)} · {formatMinor(b.totalMinor, i18n.language)}</p></div>
               <div className="flex items-center gap-2"><Badge variant={orderVariant(b.status)}>{t(`lab.status.${b.status}`)}</Badge><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></div>
             </Link></li>

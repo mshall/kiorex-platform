@@ -19,7 +19,7 @@ export function MarketSelector() {
   const options = markets.some((m) => m.code === market) ? markets : [...markets, { code: market, live: false, flag: `market.${market.toLowerCase()}.live`, state: "AWAITING_GATE" }];
   return (
     <label className="inline-flex min-h-11 items-center gap-1.5 text-sm">
-      <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      <Globe className="hidden h-4 w-4 text-muted-foreground sm:block" aria-hidden="true" />
       <span className="sr-only">{t("market.label")}</span>
       <select value={market} data-testid="market-select" onChange={(e) => { setMarket(e.target.value); void qc.invalidateQueries(); }} className="h-10 rounded-xl border border-input bg-card ps-3 pe-8 text-sm">
         {options.map((m) => <option key={m.code} value={m.code} disabled={!m.live && m.code !== market}>{regionName(m.code, i18n.language)}{m.live ? "" : ` — ${t("market.soon")}`}</option>)}

@@ -18,8 +18,8 @@ function Status({ flag }: { flag: string }) {
 
 function Card({ to, icon: Icon, title, body, flag, testId }: { to: string; icon: LucideIcon; title: string; body: string; flag?: string; testId: string }) {
   return (
-    <Link to={to} className="kx-card flex flex-col gap-2 p-5 transition-colors hover:border-primary" data-testid={testId}>
-      <div className="flex items-center justify-between"><Icon className="h-6 w-6 text-ocean" aria-hidden="true" />{flag && <Status flag={flag} />}</div>
+    <Link to={to} className="kx-card kx-card-interactive flex flex-col gap-2 p-5 transition-colors" data-testid={testId}>
+      <div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary"><Icon className="h-5 w-5" aria-hidden="true" /></span>{flag && <Status flag={flag} />}</div>
       <h2 className="text-lg">{title}</h2><p className="text-sm text-muted-foreground">{body}</p>
     </Link>
   );

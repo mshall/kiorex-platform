@@ -27,7 +27,7 @@ function PharmacyPicker({ value, onChange }: { value?: string; onChange: (p: Pha
     <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t("pharmacy.choose")} data-testid="pharmacy-list">
       {q.data.map((p) => (
         <div key={p.id}>
-          <button type="button" role="radio" aria-checked={value === p.id} onClick={() => onChange(p)} className={cn("kx-card w-full space-y-1 p-4 text-start transition-colors hover:border-primary", value === p.id && "border-pulse ring-2 ring-pulse/40")} data-testid="pharmacy-option">
+          <button type="button" role="radio" aria-checked={value === p.id} onClick={() => onChange(p)} className={cn("kx-card kx-card-interactive w-full space-y-1 p-4 text-start", value === p.id && "border-primary bg-accent ring-1 ring-primary")} data-testid="pharmacy-option">
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-muted-foreground">{[p.pickup && t("pharmacy.pickup"), p.deliveryEnabled && `${t("pharmacy.delivery")} ${formatMinor(p.deliveryFeeMinor, i18n.language)}`].filter(Boolean).join(" · ")}{p.prepMinutes ? ` · ${t("pharmacy.prep", { min: p.prepMinutes })}` : ""}</p>
           </button>

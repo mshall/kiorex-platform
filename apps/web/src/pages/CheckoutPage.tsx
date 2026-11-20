@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { AlarmClock, CreditCard, UserRound } from "lucide-react";
+import { AlarmClock, CalendarClock, CreditCard, Lock, MapPin, ShieldCheck, UserRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useBooking, useConfirmBooking, useVisitType } from "@/api/hooks";
@@ -14,11 +14,14 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { altSlots, useStartBooking } from "@/hooks/useStartBooking";
 import { usePatient } from "@/hooks/usePatient";
 import { useFeature } from "@/hooks/useFeature";
-import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
+import { formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { HomeFee, VisitAddressView } from "@/components/HomeVisitBits";
 import { PageHeader, Stepper } from "@/components/kit";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { HoldRing } from "@/components/HoldRing";
+import { DoctorAvatar } from "@/components/DoctorAvatar";
 
 export default function CheckoutPage() {
   const { bookingId = "" } = useParams();
@@ -33,12 +36,13 @@ export default function CheckoutPage() {
   const [consentData, setConsentData] = useState(false);
   const [consentReminders, setConsentReminders] = useState(true);
   const [alternatives, setAlternatives] = useState<Slot[] | null>(null);
+  const desktop = useMediaQuery("(min-width: 1024px)");
   const b = booking.data;
   const vt = useVisitType(b);
   const { remainingMs, expired } = useCountdown(b?.status === "HELD" ? b.holdExpiresAt : null);
 
   // Revisiting a booking that already progressed goes to its appointment page.
-  useEffect(() => { if (b && b.status !== "HELD" && b.status !== "EXPIRED") nav(`/appointments/${b.id}`, { replace: true }); }, [b, nav]);
+  useEffect(() => { if (b && b.status !== "HELD" && b.status !== "EXPIRED") nav(`/appointments/${b.id}`, { replace: true, state: confirm.isPending || confirm.isSuccess ? { justBooked: true } : undefined }); }, [b, nav, confirm.isPending, confirm.isSuccess]);
 
   if (booking.isLoading) return <LoadingState />;
   if (booking.error) return <ErrorState error={booking.error} onRetry={() => void booking.refetch()} />;
@@ -53,7 +57,6 @@ export default function CheckoutPage() {
   }
 
   const hasDeposit = b.deposit.status === "REQUIRED";
-  const lowTime = remainingMs != null && remainingMs < 60_000;
   const canConfirm = consentData && !confirm.isPending;
 
   const onConfirm = () =>
@@ -77,51 +80,78 @@ export default function CheckoutPage() {
       },
     });
 
+  const feeEgp = vt?.feeEgp;
+  const dueNow = hasDeposit ? b.deposit.requiredEgp : 0;
+  const confirmBtn = (
+    <Button size="lg" className="w-full" disabled={!canConfirm} onClick={onConfirm} data-testid="confirm-booking">
+      {confirm.isPending ? t("states.loading") : t("checkout.confirm")}
+    </Button>
+  );
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <Stepper steps={[t("flow.choose"), t("flow.confirm"), t("flow.done")]} current={1} label={t("flow.label")} />
-      <PageHeader title={t("checkout.title")} />
-      <div role="timer" aria-live="off" data-testid="hold-countdown" className={cn("flex items-center justify-between rounded-xl border p-4", lowTime ? "border-warning bg-warning-soft" : "bg-card")}>
-        <span className="flex items-center gap-2 text-sm font-medium"><AlarmClock className="h-5 w-5 text-pulse" aria-hidden="true" />{t("checkout.holdLabel")}</span>
-        <span className="text-2xl font-semibold kx-label-num" dir="ltr" aria-label={t("checkout.holdRemaining", { time: formatCountdown(remainingMs ?? 0) })}>{formatCountdown(remainingMs ?? 0)}</span>
+    <div className="mx-auto max-w-5xl space-y-6 pb-24 lg:pb-0">
+      <Stepper steps={[t("flow.choose"), t("flow.confirm"), t("flow.done")]} current={1} label={t("flow.label")} className="mx-auto max-w-xl" />
+      <PageHeader title={t("checkout.title")} hint={t("checkout.subtitle")} className="mb-0" />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="space-y-5">
+          <HoldRing remainingMs={remainingMs ?? 0} />
+
+          <section className="kx-card space-y-4 p-5" aria-label={t("checkout.summary")}>
+            <div className="flex items-center gap-4">
+              <DoctorAvatar name={pick(b.doctor, "name", lang)} verified={b.doctor.verified} size="lg" />
+              <div className="min-w-0"><p className="text-lg font-semibold">{pick(b.doctor, "name", lang)}</p><p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", lang) : "…"}{vt && ` · ${t("doctor.minutes", { count: vt.durationMin })}`}</p></div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-xl bg-muted/60 p-3"><CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-ocean" aria-hidden="true" /><div><p className="text-sm font-medium">{formatDayLong(b.startsAt, lang)}</p><p className="kx-label-num text-sm text-muted-foreground" dir="ltr">{formatTime(b.startsAt, lang)}</p></div></div>
+              <div className="flex items-start gap-3 rounded-xl bg-muted/60 p-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-ocean" aria-hidden="true" />
+                {b.home ? <p className="text-sm font-medium" data-testid="checkout-home">{t("hv.homeVisitAt")}</p> : <div><p className="text-sm font-medium">{pick(b.clinic, "name", lang)}</p><p className="text-sm text-muted-foreground">{pick(b.clinic, "address", lang)}</p></div>}</div>
+            </div>
+          </section>
+
+          <section className="kx-card flex items-center gap-4 p-5" aria-labelledby="patient-title">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-semibold text-primary" aria-hidden="true">{nameOf(b.patient.id).slice(0, 1)}</span>
+            <div className="min-w-0 flex-1"><h2 id="patient-title" className="text-xs font-medium text-muted-foreground">{t("checkout.patient")}</h2><p className="truncate font-semibold" data-testid="checkout-patient">{nameOf(b.patient.id)}</p></div>
+            <Link to={`/doctors/${b.doctor.id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-ocean hover:underline"><UserRound className="h-4 w-4" aria-hidden="true" />{t("checkout.changePatient")}</Link>
+          </section>
+          {b.home && <VisitAddressView home={b.home} />}
+
+          <section className="kx-card space-y-1 p-5" aria-labelledby="consent-title">
+            <h2 id="consent-title" className="mb-1 flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-ocean" aria-hidden="true" />{t("checkout.consents")}</h2>
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-accent/60">
+              <Checkbox checked={consentData} onCheckedChange={(c) => setConsentData(c === true)} data-testid="consent-data" className="mt-0.5" />
+              <span className="text-sm">{t("checkout.consentData")} <span className="text-xs font-medium text-destructive">{t("checkout.requiredTag")}</span></span>
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-accent/60">
+              <Checkbox checked={consentReminders} onCheckedChange={(c) => setConsentReminders(c === true)} data-testid="consent-reminders" className="mt-0.5" />
+              <span className="text-sm">{t("checkout.consentReminders")}</span>
+            </label>
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24" aria-label={t("checkout.payment")}>
+          <section className="kx-card space-y-4 p-5 shadow-float">
+            <h2 className="text-lg">{t("checkout.payment")}</h2>
+            {b.home ? <HomeFee home={b.home} /> : (
+              <dl className="space-y-2 text-sm">
+                <div className="flex items-baseline justify-between gap-3"><dt>{t("checkout.visitFee")}<span className="block text-xs text-muted-foreground">{t("checkout.payAtClinic")}</span></dt><dd className="kx-label-num font-semibold">{feeEgp != null ? formatMoney(feeEgp, lang) : "…"}</dd></div>
+              </dl>
+            )}
+            {hasDeposit && (
+              <div className="space-y-1 rounded-xl border border-warning/50 bg-warning-soft p-3" data-testid="deposit-panel">
+                <p className="flex items-center gap-2 text-sm font-semibold text-warning"><CreditCard className="h-4 w-4" aria-hidden="true" />{t("checkout.depositTitle")}<span className="kx-label-num ms-auto">{formatMoney(b.deposit.requiredEgp, lang)}</span></p>
+                <p className="text-xs text-foreground">{t("checkout.depositBody", { amount: formatMoney(b.deposit.requiredEgp, lang) })}</p>
+                <p className="text-xs font-medium">{t("checkout.depositAfter")}</p>
+                {!deposits.enabled && <p className="text-xs text-warning">{t("unavailable.body")}</p>}
+              </div>
+            )}
+            <div className="flex items-baseline justify-between border-t pt-3"><span className="text-sm font-medium">{t("checkout.dueNow")}</span><span className={cn("kx-label-num font-semibold", dueNow > 0 ? "text-2xl" : "text-base text-success")} data-testid="due-now">{dueNow > 0 ? formatMoney(dueNow, lang) : t("checkout.nothingNow")}</span></div>
+            {desktop && confirmBtn}
+            {!consentData && <p className="text-center text-xs text-muted-foreground">{t("checkout.consentRequired")}</p>}
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden="true" />{t("checkout.secure")}</p>
+          </section>
+        </aside>
       </div>
-
-      <section className="kx-card space-y-3 p-5" aria-label={t("checkout.summary")}>
-        <p className="text-lg font-semibold">{pick(b.doctor, "name", lang)}</p>
-        {b.home ? <p className="text-sm text-muted-foreground" data-testid="checkout-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
-        <p>{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
-        <p className="flex items-center gap-2 text-sm"><UserRound className="h-4 w-4 text-ocean" aria-hidden="true" />{t("checkout.patient")}: <b data-testid="checkout-patient">{nameOf(b.patient.id)}</b></p>
-        {b.home ? <><p className="border-t pt-3 text-sm">{vt ? pick(vt, "name", lang) : "…"}</p><HomeFee home={b.home} /></> : (
-          <div className="flex items-center justify-between border-t pt-3"><span>{vt ? pick(vt, "name", lang) : "…"}</span><b className="kx-label-num">{vt ? formatMoney(vt.feeEgp, lang) : ""}</b></div>
-        )}
-      </section>
-      {b.home && <VisitAddressView home={b.home} />}
-
-      {hasDeposit && (
-        <section className="kx-card space-y-2 border-warning/50 p-5" aria-labelledby="dep-title" data-testid="deposit-panel">
-          <h2 id="dep-title" className="flex items-center gap-2 text-lg"><CreditCard className="h-5 w-5 text-ocean" aria-hidden="true" />{t("checkout.depositTitle")}</h2>
-          <p className="text-sm text-muted-foreground">{t("checkout.depositBody", { amount: formatMoney(b.deposit.requiredEgp, lang) })}</p>
-          <p className="text-sm font-medium">{t("checkout.depositAfter")}</p>
-          {!deposits.enabled && <p className="text-sm text-warning">{t("unavailable.body")}</p>}
-        </section>
-      )}
-
-      <section className="kx-card space-y-1 p-5" aria-labelledby="consent-title">
-        <h2 id="consent-title" className="mb-2 text-lg">{t("checkout.consents")}</h2>
-        <label className="flex min-h-11 items-start gap-3 py-1">
-          <Checkbox checked={consentData} onCheckedChange={(c) => setConsentData(c === true)} data-testid="consent-data" className="mt-0.5" />
-          <span className="text-sm">{t("checkout.consentData")}</span>
-        </label>
-        <label className="flex min-h-11 items-start gap-3 py-1">
-          <Checkbox checked={consentReminders} onCheckedChange={(c) => setConsentReminders(c === true)} data-testid="consent-reminders" className="mt-0.5" />
-          <span className="text-sm">{t("checkout.consentReminders")}</span>
-        </label>
-      </section>
-
-      <Button size="lg" className="w-full" disabled={!canConfirm} onClick={onConfirm} data-testid="confirm-booking">
-        {confirm.isPending ? t("states.loading") : t("checkout.confirm")}
-      </Button>
-      {!consentData && <p className="text-center text-xs text-muted-foreground">{t("checkout.consentRequired")}</p>}
+      {!desktop && <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 p-3 backdrop-blur-md"><div className="container px-0">{confirmBtn}</div></div>}
 
       <SlotTakenDialog alternatives={alternatives} onClose={() => setAlternatives(null)} onPick={(s) => { setAlternatives(null); restart.start(b.doctor.id, s); }} />
     </div>

@@ -32,9 +32,14 @@ test("Arabic layout is RTL on landing, results, profile; English flips to LTR", 
   await page.keyboard.press("Escape");
 
   await page.getByTestId("doctor-card").first().getByRole("link").first().click();
-  await expect(page.getByTestId("slot-calendar")).toBeVisible();
-  await page.screenshot({ path: `${shots}/${tag}-4-profile-ar.png`, fullPage: true });
+  await expect(page.getByTestId("doctor-name")).toBeVisible();
   await noOverflow(page);
+  await page.screenshot({ path: `${shots}/${tag}-4-profile-ar.png`, fullPage: true });
+  const openBooking = page.getByTestId("open-booking"); // phones: the slot picker lives in a bottom sheet
+  if (await openBooking.isVisible()) { await openBooking.click(); await expect(page.getByTestId("booking-sheet")).toBeVisible(); }
+  await expect(page.getByTestId("slot-calendar")).toBeVisible();
+  await page.screenshot({ path: `${shots}/${tag}-4b-booking-ar.png` });
+  if (await openBooking.isVisible()) await page.keyboard.press("Escape");
 
   await page.getByTestId("lang-toggle").click();
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");

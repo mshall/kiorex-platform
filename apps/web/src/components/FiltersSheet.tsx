@@ -7,9 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { SearchParams } from "@/api/types";
-
-const AREAS = ["Nasr City", "Mohandessin", "Fifth Settlement", "Maadi", "Heliopolis", "Dokki"];
-const areaAr: Record<string, string> = { "Nasr City": "مدينة نصر", Mohandessin: "المهندسين", "Fifth Settlement": "التجمع الخامس", Maadi: "المعادي", Heliopolis: "مصر الجديدة", Dokki: "الدقي" };
+import { AREAS, areaAr } from "@/lib/areas";
 
 function Seg<T extends string | number | boolean | undefined>({ value, options, onChange, label }: { value: T; options: { v: T; label: string }[]; onChange: (v: T) => void; label: string }) {
   return (

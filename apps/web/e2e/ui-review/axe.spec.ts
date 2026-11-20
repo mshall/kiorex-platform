@@ -28,7 +28,9 @@ test.describe("axe", () => {
       await page.addInitScript(([l, t]) => { try { localStorage.setItem("kx-lang", l); localStorage.setItem("kx-theme", t); } catch { /* storage unavailable */ } }, [lang, theme]);
       await signIn(page, PAGES[0]);
       const bad: string[] = [];
-      for (const u of PAGES) {
+      await page.goto("/search"); await page.getByTestId("doctor-card").first().waitFor();
+      const doctorHref = await page.getByTestId("doctor-card").first().getByRole("link").first().getAttribute("href");
+      for (const u of [...PAGES, ...(doctorHref ? [doctorHref] : [])]) { // + the first doctor profile (editorial header, slot picker, review summary)
         await page.goto(u); await page.waitForTimeout(900);
         const v = await scan(page);
         for (const x of v.filter((y: { impact: string }) => y.impact === "serious" || y.impact === "critical")) bad.push(`${u} ${x.id} (${x.impact}) ${x.nodes.join(" | ")}`);

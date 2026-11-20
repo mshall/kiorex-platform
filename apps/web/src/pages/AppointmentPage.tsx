@@ -20,7 +20,10 @@ import { statusVariant } from "./AppointmentsPage";
 import { usePatient } from "@/hooks/usePatient";
 import { cn } from "@/lib/utils";
 import { FamilySharePanel, HomeFee, HomeProgress, SafetyCardPanel, VisitAddressView } from "@/components/HomeVisitBits";
-import { PageHeader, StateArt, Stepper } from "@/components/kit";
+import { PageHeader, Stepper } from "@/components/kit";
+import { ConfirmedMoment } from "@/components/ConfirmedMoment";
+import { DateBlock } from "@/components/AppointmentTicket";
+import { DoctorAvatar } from "@/components/DoctorAvatar";
 
 export default function AppointmentPage() {
   const { id = "" } = useParams();
@@ -70,13 +73,7 @@ export default function AppointmentPage() {
         <div className="flex items-center gap-2"><ChannelBadge channel={b.channel} /><Badge variant={statusVariant(b.status)} data-testid="appt-status">{t(`status.${b.status}`)}</Badge></div>
       </div>
 
-      {justBooked && b.status === "CONFIRMED" && (
-        <section role="status" className="kx-card flex flex-col items-center gap-2 border-success/40 bg-success-soft/40 px-6 py-8 text-center" data-testid="booking-confirmed">
-          <StateArt kind="success" className="h-24 w-24" />
-          <h2 className="text-2xl">{t("appointment.confirmedTitle")}</h2>
-          <p className="max-w-md text-sm text-muted-foreground">{t("appointment.confirmedBody")}</p>
-        </section>
-      )}
+      {justBooked && b.status === "CONFIRMED" && <ConfirmedMoment booking={b} />}
       {justBooked && <Stepper steps={[t("flow.choose"), t("flow.confirm"), t("flow.done")]} current={3} label={t("flow.label")} />}
 
       {b.status === "PENDING_CLINIC" && (
@@ -93,11 +90,16 @@ export default function AppointmentPage() {
         </div>
       )}
 
-      <section className="kx-card space-y-2 p-5">
-        <p className="text-lg font-semibold">{pick(b.doctor, "name", lang)}</p>
-        <p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", lang) : ""} · {nameOf(b.patient.id)}</p>
-        <p data-testid="appt-time">{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
-        {isHome ? <p className="text-sm text-muted-foreground" data-testid="appt-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
+      <section className="kx-card space-y-3 p-5">
+        <div className="flex items-start gap-4">
+          <DateBlock iso={b.startsAt} />
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="flex items-center gap-2 text-lg font-semibold"><DoctorAvatar name={pick(b.doctor, "name", lang)} size="sm" className="[&>span]:h-8 [&>span]:w-8 [&>span]:text-sm" />{pick(b.doctor, "name", lang)}</p>
+            <p className="text-sm text-muted-foreground">{vt ? pick(vt, "name", lang) : ""} · {nameOf(b.patient.id)}</p>
+            <p data-testid="appt-time">{formatDayLong(b.startsAt, lang)} · <b dir="ltr">{formatTime(b.startsAt, lang)}</b></p>
+            {isHome ? <p className="text-sm text-muted-foreground" data-testid="appt-home">{t("hv.homeVisitAt")}</p> : <p className="text-sm text-muted-foreground">{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</p>}
+          </div>
+        </div>
         {b.home && <HomeFee home={b.home} />}
         <div className="flex flex-wrap gap-2 pt-2">
           {!isHome && <a href={directionsUrl(b.clinic)} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "outline" }))}><Navigation className="rtl-flip" aria-hidden="true" />{t("appointment.directions")}</a>}
@@ -120,7 +122,7 @@ export default function AppointmentPage() {
       {homeLive && <SafetyCardPanel bookingId={b.id} />}
       {isHome && active && <FamilySharePanel bookingId={b.id} />}
 
-      <section className="kx-card p-5"><h2 className="mb-4 text-lg">{t("appointment.timeline")}</h2><StatusTimeline booking={b} /></section>
+      <section className="kx-card p-5"><h2 className="mb-5 text-lg">{t("appointment.timeline")}</h2><StatusTimeline booking={b} /></section>
 
       {active && (
         <section className="flex flex-wrap gap-3">

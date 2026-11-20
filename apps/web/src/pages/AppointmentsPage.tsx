@@ -12,6 +12,7 @@ import { formatDay, formatTime, pick } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePatient } from "@/hooks/usePatient";
 import { PageHeader } from "@/components/kit";
+import { DateBlock } from "@/components/AppointmentTicket";
 
 const ACTIVE = ["HELD", "PENDING_CLINIC", "CONFIRMED", "CHECKED_IN"];
 
@@ -23,8 +24,9 @@ function Row({ b }: { b: Booking }) {
   const { nameOf } = usePatient();
   return (
     <li>
-      <Link to={b.status === "HELD" ? `/checkout/${b.id}` : `/appointments/${b.id}`} className="kx-card flex items-center justify-between gap-3 p-4 hover:border-primary" data-testid="appointment-row">
-        <div className="space-y-1">
+      <Link to={b.status === "HELD" ? `/checkout/${b.id}` : `/appointments/${b.id}`} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid="appointment-row">
+        <DateBlock iso={b.startsAt} />
+        <div className="min-w-0 flex-1 space-y-1">
           <p className="font-semibold">{pick(b.doctor, "name", i18n.language)}</p>
           <p className="text-sm text-muted-foreground">{nameOf(b.patient.id)} · {formatDay(b.startsAt, i18n.language)} · <span dir="ltr">{formatTime(b.startsAt, i18n.language)}</span></p>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -79,6 +79,12 @@ function RecordsTab({ readOnly }: { readOnly: boolean }) {
   const q = useVault(kind === "ALL" ? undefined : kind);
   const [del, setDel] = useState<VaultItem | null>(null);
   const [uploading, setUploading] = useState(false);
+  const groups = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(i18n.language.startsWith("ar") ? "ar-EG" : "en-GB", { month: "long", year: "numeric", timeZone: "Africa/Cairo" });
+    const m = new Map<string, VaultItem[]>();
+    for (const r of q.data?.items ?? []) { const k = fmt.format(new Date(r.signedAt ?? r.createdAt)); m.set(k, [...(m.get(k) ?? []), r]); }
+    return [...m.entries()];
+  }, [q.data, i18n.language]);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -90,21 +96,30 @@ function RecordsTab({ readOnly }: { readOnly: boolean }) {
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data!.items.length === 0 ? (
         <EmptyState icon={<Files className="h-10 w-10" aria-hidden="true" />} title={t("records.empty")} hint={t("records.emptyHint")} />
       ) : (
-        <ul className="space-y-3" data-testid="vault-list">
-          {q.data!.items.map((r) => {
-            const Icon = kindIcon(r.kind);
-            return (
-              <li key={r.id} className="kx-card flex items-center gap-3 p-4" data-testid="vault-item" data-kind={r.kind}>
-                <Icon className="h-6 w-6 shrink-0 text-ocean" aria-hidden="true" />
-                <Link to={`/records/${r.id}`} className="min-w-0 flex-1 hover:underline" onClick={() => track("vault_opened")}>
-                  <p className="truncate font-semibold">{recordTitle(r.title, t(`records.kind.${r.kind}`))}</p>
-                  <p className="text-sm text-muted-foreground">{t(`records.kind.${r.kind}`)} · {t(`records.source.${r.source}`)} · {formatDate(r.signedAt ?? r.createdAt, i18n.language)}{r.sizeBytes ? ` · ${formatBytes(r.sizeBytes, i18n.language)}` : ""}</p>
-                </Link>
-                <Button variant="ghost" size="icon" aria-label={t("records.deleteItem", { title: recordTitle(r.title, t(`records.kind.${r.kind}`)) })} onClick={() => setDel(r)} data-testid="delete-record"><Trash2 aria-hidden="true" /></Button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="space-y-5" data-testid="vault-list">
+          {groups.map(([month, items]) => (
+            <section key={month} aria-label={month} className="space-y-2.5">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{month}</h3>
+              <ul className="space-y-2.5">
+                {items.map((r) => {
+                  const Icon = kindIcon(r.kind);
+                  const when = r.signedAt ?? r.createdAt;
+                  const tone = r.kind === "LAB_RESULT" ? "bg-success-soft text-success" : r.kind === "PRESCRIPTION" ? "bg-info-soft text-info" : r.kind === "UPLOAD" ? "bg-muted text-muted-foreground" : "bg-accent text-primary";
+                  return (
+                    <li key={r.id} className="kx-card kx-card-interactive flex items-center gap-3 p-3.5" data-testid="vault-item" data-kind={r.kind}>
+                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                      <Link to={`/records/${r.id}`} className="min-w-0 flex-1 hover:underline" onClick={() => track("vault_opened")}>
+                        <p className="truncate font-semibold">{recordTitle(r.title, t(`records.kind.${r.kind}`))}</p>
+                        <p className="truncate text-sm text-muted-foreground">{t(`records.kind.${r.kind}`)} · {t(`records.source.${r.source}`)} · {formatDate(when, i18n.language)}{r.sizeBytes ? ` · ${formatBytes(r.sizeBytes, i18n.language)}` : ""}</p>
+                      </Link>
+                      <Button variant="ghost" size="icon" aria-label={t("records.deleteItem", { title: recordTitle(r.title, t(`records.kind.${r.kind}`)) })} onClick={() => setDel(r)} data-testid="delete-record"><Trash2 aria-hidden="true" /></Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
       <DeleteDialog item={del} onClose={() => setDel(null)} />
       <UploadDialog open={uploading} onClose={() => setUploading(false)} />

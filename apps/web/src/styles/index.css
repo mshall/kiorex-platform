@@ -31,6 +31,44 @@
   .kx-label-num { font-variant-numeric: tabular-nums; }
   .kx-page { animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both; }
   .kx-hairline { box-shadow: inset 0 -1px 0 var(--kx-hairline); }
+
+  /* ── Q11 P2 premium surfaces ── */
+  .kx-hero { background:
+      radial-gradient(60% 80% at 100% 0%, hsl(var(--ocean) / 0.16), transparent 70%),
+      radial-gradient(55% 70% at 0% 100%, hsl(var(--primary) / 0.14), transparent 70%),
+      linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92)); }
+  [dir="rtl"] .kx-hero { background:
+      radial-gradient(60% 80% at 0% 0%, hsl(var(--ocean) / 0.16), transparent 70%),
+      radial-gradient(55% 70% at 100% 100%, hsl(var(--primary) / 0.14), transparent 70%),
+      linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92)); }
+  .kx-glass { background: hsl(var(--card) / 0.72); backdrop-filter: blur(var(--kx-blur-md)); -webkit-backdrop-filter: blur(var(--kx-blur-md)); border: 1px solid hsl(var(--border)); }
+  .kx-gradient-brand { background: var(--kx-gradient); }
+  .kx-eyebrow { @apply text-xs font-semibold uppercase text-ocean; letter-spacing: 0.14em; }
+  html[lang="ar"] .kx-eyebrow { letter-spacing: 0; text-transform: none; @apply text-sm; }
+  .kx-section-title { @apply text-xl md:text-2xl; }
+  .kx-field { @apply flex min-h-12 w-full items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm transition-colors hover:border-primary/50; }
+  .kx-field:focus-within { border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35); }
+  .kx-field input, .kx-field select { @apply w-full min-w-0 border-0 bg-transparent py-2 text-base outline-none placeholder:text-muted-foreground; box-shadow: none; }
+  .kx-field :where(input, select):focus-visible { outline: none; }
+  .kx-slot { @apply inline-flex min-h-11 min-w-[4.75rem] flex-col items-center justify-center rounded-xl border bg-card px-3 py-1 text-sm font-semibold; transition: background-color var(--kx-dur-fast) var(--kx-ease-standard), border-color var(--kx-dur-fast) var(--kx-ease-standard), transform var(--kx-dur-fast) var(--kx-ease-standard), color var(--kx-dur-fast) var(--kx-ease-standard); }
+  .kx-slot:hover:not(:disabled) { @apply border-primary bg-accent; transform: translateY(-1px); }
+  .kx-slot[aria-pressed="true"] { @apply border-primary bg-primary text-primary-foreground; box-shadow: var(--kx-shadow-2); }
+  .kx-slot:disabled { @apply opacity-50; }
+  .kx-rise { animation: kx-rise 520ms var(--kx-ease-decelerate) both; animation-delay: calc(var(--i, 0) * 70ms); }
+  .kx-divider-v { @apply w-px self-stretch bg-border; }
+}
+@keyframes kx-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes kx-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes kx-pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes kx-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes kx-sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.kx-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: kx-draw 900ms var(--kx-ease-standard) both; animation-delay: var(--kx-delay, 0ms); }
+.kx-pop { animation: kx-pop 520ms var(--kx-ease-spring) both; animation-delay: var(--kx-delay, 0ms); }
+.kx-float { animation: kx-float 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kx-rise, .kx-pop, .kx-float { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .kx-draw { animation: none !important; stroke-dashoffset: 0 !important; }
+  .kx-slot:hover:not(:disabled) { transform: none; }
 }
 @keyframes kx-page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

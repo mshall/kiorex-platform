@@ -44,7 +44,7 @@ export default function TelemedicinePage() {
         {sessions.isLoading ? <CardSkeleton rows={1} /> : sessions.error ? <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} /> : sessions.data!.length === 0 ? <EmptyState icon={<Video className="h-10 w-10" aria-hidden="true" />} title={t("tele.noSessions")} hint={t("tele.noSessionsHint")} /> : (
           <ul className="space-y-3" data-testid="tele-sessions">
             {sessions.data!.map((s) => (
-              <li key={s.id}><Link to={`/telemedicine/${s.id}`} className="kx-card flex items-center justify-between gap-3 p-4 hover:border-primary" data-testid="tele-session-row">
+              <li key={s.id}><Link to={`/telemedicine/${s.id}`} className="kx-card kx-card-interactive flex items-center justify-between gap-3 p-4" data-testid="tele-session-row">
                 <div><p className="font-semibold">{formatDateTime(s.scheduledStartsAt, lang)}</p><p className="text-sm text-muted-foreground">{t("tele.joinOpens", { time: formatDateTime(s.joinOpensAt, lang) })}</p></div>
                 <Badge variant={sessionVariant(s.status)}>{t(`tele.status.${s.status}`)}</Badge>
               </Link></li>

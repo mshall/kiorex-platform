@@ -79,13 +79,19 @@
     "ctaBody": "Sign in with your phone number — no password to remember.",
     "ctaPrimary": "Continue with Kiorex Passport",
     "ctaSecondary": "Browse doctors",
-    "forClinics": "Are you a clinic or doctor? Learn about Kiorly at"
+    "forClinics": "Are you a clinic or doctor? Learn about Kiorly at",
+    "whyEyebrow": "Built on proof",
+    "howEyebrow": "Simple by design"
   },
   "search": {
     "label": "Search for a doctor, specialty or clinic",
     "placeholder": "Specialty, doctor or clinic name",
     "submit": "Search",
-    "specialties": "Specialties"
+    "specialties": "Specialties",
+    "specialty": "Specialty",
+    "anySpecialty": "All specialties",
+    "anyArea": "Anywhere in Cairo",
+    "anyDate": "Any date"
   },
   "home": {
     "greeting": "Hello, {{name}}",
@@ -95,7 +101,9 @@
     "noUpcomingHint": "When you book, your next visit will appear here.",
     "findDoctor": "Find a doctor",
     "recent": "Recently viewed",
-    "recentEmpty": "Doctors you view will be listed here on this device."
+    "recentEmpty": "Doctors you view will be listed here on this device.",
+    "eyebrow": "Your care, in one place",
+    "quick": "Quick access"
   },
   "family": {
     "switcher": "Who is this visit for?",
@@ -138,7 +146,19 @@
     "next": "Next",
     "pageOf": "Page {{page}} of {{pages}}",
     "sponsored": "Sponsored",
-    "callClinic": "Online booking is paused. Call the clinic:"
+    "callClinic": "Online booking is paused. Call the clinic:",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "viewProfile": "Profile",
+    "subtitle": "Verified doctors with real, bookable times.",
+    "view": "Result view",
+    "viewList": "List",
+    "viewMap": "Map",
+    "mapTitle": "Map view",
+    "mapSoonTitle": "Interactive map is coming soon",
+    "mapSoonBody": "Until then, results are listed with their area and distance where known.",
+    "byArea": "Results on this page, by area",
+    "byAreaEmpty": "No results to group yet."
   },
   "sort": {
     "earliest": "Earliest slot",
@@ -198,7 +218,30 @@
     "reviews": "Reviews from verified visits",
     "clinicReply": "Clinic reply",
     "clinic": "Clinic",
-    "mapPlaceholder": "Map of the clinic location (interactive map coming soon)"
+    "mapPlaceholder": "Map of the clinic location (interactive map coming soon)",
+    "about": "About",
+    "credentials": "Credentials and verification",
+    "credVerified": "Verified by Kiorex",
+    "credPending": "Verification in progress",
+    "credBody": "Syndicate number and licence are checked before a doctor can take bookings.",
+    "subSpecialties": "Areas of focus",
+    "languagesSpoken": "Languages",
+    "hoursUnknown": "Opening hours not listed",
+    "nextAvailable": "Next available",
+    "timezone": "Times are shown in Cairo time ({{offset}}).",
+    "period": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "minutes": "{{count}} min",
+    "reviewsCount_one": "{{count}} review",
+    "reviewsCount_other": "{{count}} reviews",
+    "distribution": "Rating distribution",
+    "policyFree": "Free cancellation up to {{hours}} hours before your visit.",
+    "policyClinic": "Cancellation terms are set by the clinic. Call the clinic to change or cancel.",
+    "policyDeposit": "A deposit is refunded when you cancel within the free window.",
+    "sheetHint": "Choose a visit type and a time, then continue to confirm."
   },
   "booking": {
     "holdFailed": "Couldn't hold this slot. Please try again.",
@@ -228,7 +271,16 @@
     "timeout": "The connection dropped. Nothing was charged twice — please try again.",
     "expiredTitle": "Your hold expired",
     "expiredBody": "The time was released so others can book it. Pick a new time to continue.",
-    "pickAnother": "Pick another time"
+    "pickAnother": "Pick another time",
+    "subtitle": "Review the details, accept the consent, and confirm.",
+    "changePatient": "Booking for someone else?",
+    "requiredTag": "Required",
+    "payment": "Payment summary",
+    "visitFee": "Visit fee",
+    "payAtClinic": "Paid at the clinic",
+    "dueNow": "Due now",
+    "nothingNow": "Nothing to pay now",
+    "secure": "Your details are shared with the clinic only to arrange this visit."
   },
   "status": {
     "INTENT": "Started",
@@ -290,7 +342,13 @@
     "leaveReview": "Rate your visit",
     "reviewed": "Thanks — you've reviewed this visit.",
     "confirmedTitle": "You're booked",
-    "confirmedBody": "Your visit is confirmed. Add it to your calendar or get directions below."
+    "confirmedBody": "Your visit is confirmed. Add it to your calendar or get directions below.",
+    "upcomingStep": "Still to come",
+    "bringTitle": "What to bring",
+    "bring1": "Photo ID",
+    "bring2": "Previous reports, prescriptions or scans",
+    "bring3": "A list of your current medicines",
+    "bring4": "Your insurance card, if you have one"
   },
   "review": {
     "title": "Rate your visit with {{name}}",
