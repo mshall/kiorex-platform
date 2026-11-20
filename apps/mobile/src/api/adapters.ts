@@ -1,14 +1,15 @@
 // Adapters from the REAL Kiorex API wire shapes (catalog / booking / patient / trust controllers) to UI view-models.
 // Money on the wire is minor units (piastres); the UI works in whole EGP.
-import type { DoctorProfile, DoctorSummary, Review, ReviewList, S, SearchResponse, Slot, Specialty, VisitType, CancellationPolicy } from "./types";
+import type { CareType, DoctorProfile, DoctorSummary, Review, ReviewList, S, SearchResponse, Slot, Specialty, VisitType, CancellationPolicy } from "./types";
 
 type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- free-form policy/clinic objects (spec: additionalProperties)
 const egp = (minor: number | null | undefined) => Math.round((minor ?? 0) / 100);
 
-export const mapSlot = (s: S["SlotDto"], typeId: string): Slot => ({ slotId: s.startsAt, startsAt: s.startsAt, endsAt: s.endsAt, visitTypeId: typeId });
+export const mapSlot = (s: S["SlotDto"], typeId: string): Slot => ({ slotId: s.startsAt, startsAt: s.startsAt, endsAt: s.endsAt, visitTypeId: typeId, serviceLocation: s.serviceLocation, district: s.district });
 export const mapSpecialty = (s: S["SpecialtyDto"]): Specialty => ({ code: s.code, nameAr: s.ar ?? s.code, nameEn: s.en ?? s.code });
 
-export function mapSearchItem(i: Partial<S["SearchItemDto"]> & { id: string; photoUrl?: string | null }): DoctorSummary {
+type ItemIn = Partial<S["SearchItemDto"]> & { id: string; photoUrl?: string | null };
+export function mapSearchItem(i: ItemIn): DoctorSummary {
   const typeId = i.defaultTypeId ?? "";
   return {
     id: i.id, nameAr: i.nameAr ?? i.nameEn ?? "", nameEn: i.nameEn ?? i.nameAr ?? "", specialtyCode: i.specialty ?? "other", photoUrl: i.photoUrl ?? null,
@@ -16,6 +17,10 @@ export function mapSearchItem(i: Partial<S["SearchItemDto"]> & { id: string; pho
     clinicNameAr: i.clinicNameAr ?? i.clinicNameEn ?? "", clinicNameEn: i.clinicNameEn ?? i.clinicNameAr ?? "", areaAr: i.area ?? "", areaEn: i.area ?? "",
     distanceKm: i.distanceKm ?? null, languages: i.languages ?? [], gender: String(i.gender ?? "").toUpperCase().startsWith("M") ? "M" : "F",
     nextSlots: (i.nextSlots ?? []).map((s) => mapSlot(s, typeId)), defaultTypeId: i.defaultTypeId ?? null, bookable: i.bookable !== false && !!i.defaultTypeId, clinicPhone: i.clinicPhone ?? null,
+    careType: (i.careType ?? "DOCTORS") as CareType, serviceLocations: i.serviceLocations ?? ["IN_CLINIC"], coverageDistricts: i.coverageDistricts ?? [], assignsClinician: !!i.assignsClinician,
+    homeEnabled: !!i.homeVisit?.enabled, homeSurchargeEgp: i.homeVisit?.homeSurchargeMinor != null ? egp(i.homeVisit.homeSurchargeMinor) : null,
+    homeFeeEgp: i.homeVisit?.visitFeeIncludingSurchargeMinor != null ? egp(i.homeVisit.visitFeeIncludingSurchargeMinor) : null,
+    professionBadge: (i.professionBadge as { en: string; ar: string } | null | undefined) ?? null,
   };
 }
 
@@ -36,16 +41,19 @@ export function mapPolicy(pol: object | null | undefined): CancellationPolicy {
 
 export function mapProfile(p: S["ProviderProfileDto"]): DoctorProfile {
   const clinic = (p.clinic ?? {}) as Any;
-  const visitTypes: VisitType[] = p.fees.map((f) => ({ id: f.typeId, nameAr: f.nameAr ?? f.nameEn ?? "", nameEn: f.nameEn ?? f.nameAr ?? "", feeEgp: egp(f.amountMinor) }));
-  const mins = p.fees.map((f) => f.amountMinor).filter((n) => typeof n === "number");
+  const visitTypes: VisitType[] = p.fees.map((f) => ({ id: f.typeId, nameAr: f.nameAr ?? f.nameEn ?? "", nameEn: f.nameEn ?? f.nameAr ?? "", feeEgp: egp(f.totalMinor ?? f.amountMinor), serviceLocation: f.serviceLocation, surchargeEgp: egp(f.homeSurchargeMinor) }));
+  const hv = (p.homeVisit ?? {}) as Any;
+  const mins = p.fees.map((f) => f.totalMinor ?? f.amountMinor).filter((n) => typeof n === "number");
   const summary = mapSearchItem({
     id: p.id, nameAr: p.nameAr, nameEn: p.nameEn, specialty: p.specialty, photoUrl: p.photoUrl, verified: p.verified, rating: p.rating, minFeeMinor: mins.length ? Math.min(...mins) : 0,
     acceptsDeposit: p.acceptsDeposit, clinicNameAr: clinic.nameAr, clinicNameEn: clinic.nameEn, area: clinic.area, languages: p.languages, gender: p.gender, nextSlots: [], defaultTypeId: visitTypes[0]?.id,
-    bookable: p.bookable, clinicPhone: clinic.phone,
+    bookable: p.bookable, clinicPhone: clinic.phone, careType: p.careType, serviceLocations: p.serviceLocations, coverageDistricts: hv.coverageDistricts ?? [], assignsClinician: p.assignsClinician,
+    homeVisit: { enabled: !!hv.enabled, homeSurchargeMinor: hv.homeSurchargeMinor ?? null, visitFeeIncludingSurchargeMinor: null }, professionBadge: p.professionBadge,
   });
   summary.bookable = !!p.bookable && visitTypes.length > 0;
   return {
-    summary, visitTypes, bookable: summary.bookable, titleAr: p.titleAr ?? null, titleEn: p.titleEn ?? null,
+    summary, visitTypes, bookable: summary.bookable, careType: (p.careType ?? "DOCTORS") as CareType, categoryEnabled: p.categoryEnabled !== false, homeEnabled: !!hv.enabled,
+    coverageDistricts: hv.coverageDistricts ?? [], homeSurchargeEgp: hv.homeSurchargeMinor != null ? egp(hv.homeSurchargeMinor) : null, assignsClinician: !!p.assignsClinician, registerName: p.verificationRegister ?? null, titleAr: p.titleAr ?? null, titleEn: p.titleEn ?? null,
     clinic: {
       id: clinic.id ?? "", nameAr: clinic.nameAr ?? clinic.nameEn ?? "", nameEn: clinic.nameEn ?? clinic.nameAr ?? "", addressAr: clinic.addressAr ?? clinic.addressEn ?? "", addressEn: clinic.addressEn ?? clinic.addressAr ?? "",
       phone: clinic.phone ?? "", lat: clinic.latitude ?? null, lng: clinic.longitude ?? null,

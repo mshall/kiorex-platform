@@ -57,7 +57,7 @@ export const useRecordSharing = (enabled = true) => useQuery({ queryKey: fk.shar
 export const useSetRecordSharing = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { scope: S["RecordShareScopeDto"]["scope"]; granted: boolean }) => send(api.PUT("/api/v1/me/record-sharing/{scope}", { params: { path: { scope: v.scope } }, body: { granted: v.granted } })),
+    mutationFn: (v: { scope: S["RecordShareScopeDto"]["scope"]; granted: boolean }) => send(api.PUT("/api/v1/me/record-sharing/{scope}", { params: { path: { scope: v.scope } }, body: { granted: v.granted } as never })), // spec collision: the API names two DTOs ShareBody; the wire body is { granted }
     onSuccess: (d) => { qc.setQueryData(fk.sharing, d); void qc.invalidateQueries({ queryKey: ["vault"] }); },
   });
 };

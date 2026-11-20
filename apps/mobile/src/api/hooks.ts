@@ -1,14 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, send } from "./client";
 import { mapProfile, mapReviews, mapSearch, mapSlot, mapSpecialty } from "./adapters";
-import type { Booking, ConsentPurpose, FlagsEffective, SearchParams } from "./types";
+import type { Booking, ConsentPurpose, FlagsEffective, SearchParams, ServiceLocation } from "./types";
 import { pollIntervalFor } from "@/lib/booking-state";
 
 const NEXT: Record<number, string> = { 1: "today", 3: "tomorrow", 7: "week" };
 
 export const qk = {
   flags: ["flags"] as const, specialties: ["specialties"] as const, search: (p: SearchParams) => ["search", p] as const,
-  doctor: (id: string) => ["doctor", id] as const, slots: (id: string, vt: string, from?: string) => ["slots", id, vt, from] as const, reviews: (id: string) => ["reviews", id] as const,
+  doctor: (id: string) => ["doctor", id] as const, slots: (id: string, vt: string, loc?: string, district?: string) => ["slots", id, vt, loc, district] as const, reviews: (id: string) => ["reviews", id] as const,
   me: ["me"] as const, family: ["family"] as const, consents: ["consents"] as const, sessions: ["sessions"] as const, myReviews: ["my-reviews"] as const,
   bookings: ["bookings"] as const, booking: (id: string) => ["booking", id] as const,
 };
@@ -34,15 +34,18 @@ export const useDoctor = (id: string) =>
   useQuery({ queryKey: qk.doctor(id), enabled: !!id, queryFn: async () => mapProfile(await send(api.GET("/api/v1/providers/{id}", { params: { path: { id } } }))) });
 
 /** Slots for a visit type over the next 7 days (the API default window). Refetched every 60 s (cache TTL). */
-export const useSlots = (id: string, visitTypeId: string | undefined) =>
-  useQuery({
-    queryKey: qk.slots(id, visitTypeId ?? ""), enabled: !!visitTypeId, refetchInterval: 60_000,
+export const useSlots = (id: string, visitTypeId: string | undefined, where?: { serviceLocation?: ServiceLocation; district?: string | null }) => {
+  const home = where?.serviceLocation === "HOME";
+  const district = home ? where?.district ?? undefined : undefined;
+  return useQuery({
+    queryKey: qk.slots(id, visitTypeId ?? "", home ? "HOME" : "IN_CLINIC", district), enabled: !!visitTypeId && (!home || !!district), refetchInterval: 60_000,
     queryFn: async () => {
       const from = new Date(); const to = new Date(from.getTime() + 14 * 86_400_000);
-      const r = await send(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: { typeId: visitTypeId!, from: from.toISOString(), to: to.toISOString() } } }));
+      const r = await send(api.GET("/api/v1/providers/{id}/slots", { params: { path: { id }, query: { typeId: visitTypeId!, from: from.toISOString(), to: to.toISOString(), ...(home ? { serviceLocation: "HOME", district } : {}) } } }));
       return r.slots.map((s) => mapSlot(s, visitTypeId!));
     },
   });
+};
 
 export const useDoctorReviews = (id: string) =>
   useQuery({ queryKey: qk.reviews(id), enabled: !!id, queryFn: async () => mapReviews(await send(api.GET("/api/v1/providers/{id}/reviews", { params: { path: { id } } }))) });
@@ -86,7 +89,7 @@ export const useBookings = (enabled = true) =>
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({
     queryKey: qk.booking(id), enabled: !!id,
-    refetchInterval: (q) => (opts?.poll ? pollIntervalFor(q.state.data?.status) : false),
+    refetchInterval: (q) => (opts?.poll ? pollIntervalFor(q.state.data?.status, q.state.data?.serviceLocation === "HOME") : false),
     queryFn: () => send(api.GET("/api/v1/bookings/{id}", { params: { path: { id } } })),
   });
 
@@ -102,7 +105,7 @@ const useBookingWrite = <V,>(fn: (v: V) => Promise<Booking>) => {
 
 /** Slot pick → intent + 5-minute hold (KXMBK02). On 409 SLOT_TAKEN the error carries `alternatives` (KXMBK04). */
 export const useCreateHold = () =>
-  useBookingWrite((v: { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string }) => send(api.POST("/api/v1/bookings", { body: v as never })));
+  useBookingWrite((v: { providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; serviceLocation?: ServiceLocation; addressId?: string }) => send(api.POST("/api/v1/bookings", { body: v as never })));
 
 /** Confirm. The server uses the booking id as Kiorly's Idempotency-Key, so a retry can never create a second booking (KXMBK03/05). */
 export const useConfirmBooking = () =>

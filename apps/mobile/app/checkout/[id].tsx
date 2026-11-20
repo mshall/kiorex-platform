@@ -7,7 +7,7 @@ import type { Slot } from "@/api/types";
 import { Icon } from "@/components/Icon";
 import { SlotTakenSheet } from "@/components/Sheets";
 import { EmptyState, ErrorState, LoadingState, UnavailableState } from "@/components/states";
-import { Banner, Button, Card, Checkbox, Row, Screen, T } from "@/components/ui";
+import { Badge, Banner, Button, Card, Checkbox, Row, Screen, T } from "@/components/ui";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useDepositPay } from "@/hooks/useDepositPay";
 import { useFeature } from "@/hooks/useFeature";
@@ -16,6 +16,7 @@ import { useStartBooking } from "@/hooks/useStartBooking";
 import { track } from "@/lib/analytics";
 import { bookingLanded, classifyBookingError } from "@/lib/booking-state";
 import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
+import { homeOf, districtLabel, isHome } from "@/lib/homecare";
 import { useTheme } from "@/theme";
 
 export default function Checkout() {
@@ -65,6 +66,8 @@ export default function Checkout() {
     );
   }
 
+  const home = isHome(b) ? homeOf(b) : null;
+  const addrLines = home?.address?.address ? [home.address.address.street, [home.address.address.building && `${t("address.building")} ${home.address.address.building}`, home.address.address.floor && `${t("address.floor")} ${home.address.address.floor}`, home.address.address.flat && `${t("address.flat")} ${home.address.address.flat}`].filter(Boolean).join(" · "), home.address.address.landmark].filter(Boolean) : [];
   const depositDue = b.depositStatus === "REQUIRED";
   const lowTime = remainingMs != null && remainingMs < 60_000;
   const canConfirm = consentData && !confirm.isPending && !payBusy;
@@ -110,16 +113,34 @@ export default function Checkout() {
 
         <Card style={{ gap: 8 }} testID="summary">
           <T variant="h2">{b.doctor ? pick(b.doctor, "name", lang) : ""}</T>
-          {b.clinic ? <T variant="small" muted>{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</T> : null}
+          {home ? <Badge tone="success" icon="home" label={t("hv.homeVisit")} /> : null}
+          {!home && b.clinic ? <T variant="small" muted>{pick(b.clinic, "name", lang)} · {pick(b.clinic, "address", lang)}</T> : null}
           <T>{formatDayLong(b.startsAt, lang)} · <T weight="bold">{formatTime(b.startsAt, lang)}</T></T>
           <Row gap={6}><Icon name="user" size={16} color={colors.ink2} /><T variant="small">{t("checkout.patient")}: </T><T variant="small" weight="bold" testID="checkout-patient">{patientName ?? "—"}</T></Row>
-          {vt ? <Row style={{ justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}><T>{pick(vt, "name", lang)}</T><T weight="bold">{formatMoney(vt.feeEgp, lang)}</T></Row> : null}
+          {home?.fee ? (
+            <View testID="home-fee" style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, gap: 4 }}>
+              {vt ? <T variant="small" weight="medium">{pick(vt, "name", lang)}</T> : null}
+              <Row style={{ justifyContent: "space-between" }}><T variant="small" muted>{t("hv.visitFee")}</T><T variant="small">{formatMoney((home.fee.visitFeeMinor ?? 0) / 100, lang)}</T></Row>
+              <Row style={{ justifyContent: "space-between" }}><T variant="small" muted>{t("hv.homeSurcharge")}</T><T variant="small">{formatMoney(home.fee.homeSurchargeMinor / 100, lang)}</T></Row>
+              <Row style={{ justifyContent: "space-between" }}><T weight="bold">{t("hv.total")}</T><T weight="bold" testID="home-total">{formatMoney(home.fee.totalMinor / 100, lang)}</T></Row>
+            </View>
+          ) : vt ? <Row style={{ justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}><T>{pick(vt, "name", lang)}</T><T weight="bold">{formatMoney(vt.feeEgp, lang)}</T></Row> : null}
         </Card>
+
+        {home ? (
+          <Card testID="home-address" style={{ gap: 6 }}>
+            <Row gap={8}><Icon name="pin" color={colors.ink2} /><T variant="h2">{t("hv.visitAddress")}</T></Row>
+            <T weight="medium">{districtLabel(home.address?.district ?? home.district, lang)}</T>
+            {addrLines.map((l, i) => <T key={i} variant="small" muted>{String(l)}</T>)}
+            <T variant="caption" muted>{t("hv.addressMaskedAfter")}</T>
+            {home.assignmentPending ? <T variant="small" color={colors.ink}>{t("hv.agencyAssigns")}</T> : null}
+          </Card>
+        ) : null}
 
         {depositDue ? (
           <Card testID="deposit-panel" style={{ gap: 8, borderColor: colors.warning }}>
             <Row gap={8}><Icon name="card" color={colors.ink2} /><T variant="h2">{t("checkout.depositTitle")}</T></Row>
-            <T variant="small" muted>{t("checkout.depositBody", { amount: formatMoney(b.depositAmountMinor / 100, lang) })}</T>
+            <T variant="small" muted>{t(home ? "hv.depositBody" : "checkout.depositBody", { amount: formatMoney(b.depositAmountMinor / 100, lang) })}</T>
             {!deposits.enabled ? <UnavailableState featureKey="kiorex.pay_deposits" /> : <T variant="small" color={colors.ink}>{t("checkout.depositAfterConfirm")}</T>}
           </Card>
         ) : null}

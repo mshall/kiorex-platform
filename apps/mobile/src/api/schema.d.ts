@@ -207,6 +207,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/gates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag */
+        get: operations["ControlPlaneController_gates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gates/{gateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag. */
+        put: operations["ControlPlaneController_gateAll"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/flags/{key}/gate/revoke": {
         parameters: {
             query?: never;
@@ -573,6 +607,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMHV01 address book (encrypted at rest; only the owner ever receives doorstep lines) */
+        get: operations["AddressController_list"];
+        put?: never;
+        /** KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin */
+        post: operations["AddressController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["AddressController_update"];
+        post?: never;
+        delete: operations["AddressController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/addresses/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KXMHV01 confirm this address with the OTP-verified phone (required once before the first home booking; any edit of district/street resets it) */
+        post: operations["AddressController_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search/providers": {
         parameters: {
             query?: never;
@@ -633,6 +718,40 @@ export interface paths {
         };
         /** KXM-BK-01 slots from Kiorly (60 s cache) */
         get: operations["CatalogController_slots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/care-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*) */
+        get: operations["CatalogController_careTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/home/districts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMHV02 districts with at least one home-enabled provider (district level only) */
+        get: operations["CatalogController_homeDistricts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -866,7 +985,7 @@ export interface paths {
         };
         get: operations["BookingController_list"];
         put?: never;
-        /** KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04) */
+        /** KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered */
         post: operations["BookingController_create"];
         delete?: never;
         options?: never;
@@ -1270,6 +1389,74 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["OpsController_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payments/held-for-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited) */
+        get: operations["OpsController_heldForReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payments/{paymentId}/review/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KXMPAY07 review decision: release the held deposit to the provider (reason required, audited) */
+        post: operations["OpsController_reviewRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payments/{paymentId}/review/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited) */
+        post: operations["OpsController_reviewRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/home-visits/gate-metric": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate */
+        get: operations["OpsController_homeGate"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2296,6 +2483,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bookings/{id}/family-shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HomeCareController_listShares"];
+        put?: never;
+        /** KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent) */
+        post: operations["HomeCareController_addShare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bookings/{id}/family-shares/{shareId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["HomeCareController_revokeShare"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/visit-status/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Family link (no login): visit status only. Never address, fee, phone or reasons */
+        get: operations["HomeCareController_publicStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/visit-status/{token}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Family contact stops the updates (STOP) */
+        post: operations["HomeCareController_stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bookings/{id}/safety-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMHV09 safety card: provider photo, name and badge before arrival, emergency number, report-a-problem */
+        get: operations["HomeCareController_safetyCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bookings/{id}/report-problem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KXMHV09 report a problem during/after a home visit: routes to ops with a 1 h SLA (KXMOP05) */
+        post: operations["HomeCareController_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/care-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HomeCareController_listPlans"];
+        put?: never;
+        /** KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective */
+        post: operations["HomeCareController_requestPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/care-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HomeCareController_getPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KXMOP12 SAFETY_ALERT_RAISED feed with the 60 s delivery SLO fields */
+        get: operations["SafetyConsoleController_alerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SafetyConsoleController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/escalations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SafetyConsoleController_escalations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/unsafe-aborts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SafetyConsoleController_unsafeAborts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/alerts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SafetyConsoleController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SafetyConsoleController_ack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/alerts/{id}/escalate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SafetyConsoleController_escalate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/alerts/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SafetyConsoleController_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/safety/sweep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes */
+        post: operations["SafetyConsoleController_sweep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -2397,8 +2864,8 @@ export interface components {
         };
         ClientEventBody: {
             /** @enum {string} */
-            name: "search_started" | "results_viewed" | "slot_viewed" | "booking_started" | "booking_failed" | "review_submitted" | "waitlist_joined" | "vault_opened" | "whatsapp_link_clicked";
-            /** @description Only these keys are accepted: specialtyCode, providerId, market, code. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400. */
+            name: "search_started" | "results_viewed" | "slot_viewed" | "booking_started" | "booking_failed" | "review_submitted" | "waitlist_joined" | "vault_opened" | "whatsapp_link_clicked" | "home_search_started" | "home_out_of_coverage" | "safety_card_viewed" | "family_share_started";
+            /** @description Only these keys are accepted: specialtyCode, providerId, market, code, district, careType, serviceLocation. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400. */
             props?: {
                 [key: string]: string;
             };
@@ -2524,8 +2991,16 @@ export interface components {
             state: "ON" | "ON_AWAITING_GATE" | "OFF";
             source: components["schemas"]["FlagSourceDto"];
             overrides: components["schemas"]["FlagOverrideDto"][];
-            /** @description Launch-gate evidence recorded by a human; null until then */
+            /** @description Launch-gate evidence recorded by a human; null until then (first row when several gates are required) */
             gate: components["schemas"]["FlagGateDto"] | null;
+            /** @description Gate ids that must ALL have evidence (e.g. GHV1, GHV2); empty = any single evidence row */
+            gateIds: string[];
+            /** @description NURSE for nurse.* keys (served in the kiorly-clinic snapshot) */
+            edition: string | null;
+            /** @description Every gate evidence row recorded for this flag */
+            gates: components["schemas"]["FlagGateDto"][];
+            /** @description Launch-locked flags: gate ids still without evidence (ANY when no gate id is listed and none recorded) */
+            missingGates: string[];
             lastChange: components["schemas"]["FlagLastChangeDto"] | null;
             key: string;
             product: string;
@@ -2561,13 +3036,39 @@ export interface components {
         VersionDto: {
             version: number;
         };
+        GateFlagDto: {
+            requiredGates: string[];
+            /** @description Evidence recorded by a human for this flag + gate; null until then */
+            evidence: {
+                [key: string]: unknown;
+            } | null;
+            key: string;
+        };
+        GateEntryDto: {
+            flags: components["schemas"]["GateFlagDto"][];
+            gateId: string;
+        };
+        GateBoardDto: {
+            gates: components["schemas"]["GateEntryDto"][];
+        };
+        GateAllBody: {
+            approver: string;
+            approvedOn: string;
+            documentUrl: string;
+        };
+        GateRecordedDto: {
+            flags: string[];
+            gateId: string;
+            version: number;
+        };
         ReasonBody: {
             reason: string;
+            gateId?: string;
         };
         DefinitionBody: {
             key: string;
             /** @enum {string} */
-            product: "kiorly-clinic" | "kiorex" | "kiorex-account" | "kiorly-pharmacy" | "kiorly-lab" | "all";
+            product: "kiorly-clinic" | "kiorly-nurse" | "kiorex" | "kiorex-account" | "kiorly-pharmacy" | "kiorly-lab" | "all";
             /** @enum {string} */
             class: "MODULE" | "COMMERCIAL" | "INTEGRATION" | "AI" | "LAUNCH_LOCKED";
             scopes: Record<string, never>[];
@@ -2745,7 +3246,7 @@ export interface components {
         };
         ConsentStateDto: {
             /** @enum {string} */
-            purpose: "MARKETPLACE_PROCESSING" | "REMINDERS" | "RECORD_SHARING" | "AI_PROCESSING";
+            purpose: "MARKETPLACE_PROCESSING" | "REMINDERS" | "RECORD_SHARING" | "AI_PROCESSING" | "VISIT_STATUS_SHARING";
             version: string | null;
             /** Format: date-time */
             updatedAt: string | null;
@@ -2826,6 +3327,59 @@ export interface components {
             ok: boolean;
             deleted: boolean;
         };
+        AddressDto: {
+            /** @example Home */
+            label: string;
+            /** @description District code, e.g. nasr-city (GET /home/districts) */
+            district: string;
+            street: string | null;
+            building: string | null;
+            floor: string | null;
+            flat: string | null;
+            landmark: string | null;
+            lat: number | null;
+            lng: number | null;
+            /** @enum {string|null} */
+            pinSource: "USER" | "GEOCODED" | null;
+            /** @description Confirmed with the OTP-verified phone (needed once before the first home booking) */
+            confirmed: boolean;
+            /** Format: date-time */
+            confirmedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Masked one-line summary (label · district · governorate), safe to show anywhere */
+            summary: string;
+            id: string;
+            governorate: string;
+            hasPin: boolean;
+            isDefault: boolean;
+        };
+        AddressBody: {
+            label: string;
+            governorate: string;
+            district: string;
+            street: string;
+            building?: string;
+            floor?: string;
+            flat?: string;
+            landmark?: string;
+            lat?: number;
+            lng?: number;
+            makeDefault?: boolean;
+        };
+        AddressPatch: {
+            label?: string;
+            governorate?: string;
+            district?: string;
+            street?: string;
+            building?: string;
+            floor?: string;
+            flat?: string;
+            landmark?: string;
+            lat?: number;
+            lng?: number;
+            makeDefault?: boolean;
+        };
         RatingDto: {
             average: number;
             count: number;
@@ -2835,6 +3389,25 @@ export interface components {
             startsAt: string;
             /** Format: date-time */
             endsAt: string;
+            /**
+             * @description Rev 2.3: where this slot takes place
+             * @enum {string}
+             */
+            serviceLocation?: "IN_CLINIC" | "HOME";
+            /** @description Rev 2.3: district code of a HOME slot */
+            district?: string | null;
+        };
+        ProfessionBadgeDto: {
+            en: string;
+            ar: string;
+        };
+        HomeVisitSearchDto: {
+            /** @description Provider offers home visits AND kiorex.home_visits is effective */
+            enabled: boolean;
+            /** @description Home surcharge (BR56, separate invoice line, outside S and C); null when not a home provider */
+            homeSurchargeMinor: number | null;
+            /** @description Visit fee incl. home surcharge (KXMHV04) when searching at HOME */
+            visitFeeIncludingSurchargeMinor: number | null;
         };
         SearchItemDto: {
             nameEn: string | null;
@@ -2856,6 +3429,23 @@ export interface components {
             defaultTypeId: string | null;
             nextSlots: components["schemas"]["SlotDto"][] | null;
             clinicPhone?: string | null;
+            /** @enum {string|null} */
+            profession: "PHYSICIAN" | "DENTIST" | "PHYSIOTHERAPIST" | "NURSE" | null;
+            /** @enum {string} */
+            careType: "DOCTORS" | "PHYSIOTHERAPY" | "HOME_NURSING";
+            /** @enum {string|null} */
+            edition: "CLINIC" | "NURSE" | null;
+            serviceLocations: ("IN_CLINIC" | "HOME")[];
+            coverageDistricts: string[];
+            /** @description Agencies: the agency assigns a clinician after booking (HOME_VISIT_ASSIGNED) */
+            assignsClinician: boolean;
+            professionBadge: components["schemas"]["ProfessionBadgeDto"] | null;
+            homeVisit: components["schemas"]["HomeVisitSearchDto"];
+            /**
+             * @description Location the defaultTypeId / nextSlots belong to
+             * @enum {string}
+             */
+            defaultServiceLocation: "IN_CLINIC" | "HOME";
             id: string;
             currency: string;
             acceptsDeposit: boolean;
@@ -2891,6 +3481,12 @@ export interface components {
             pageSize: number;
         };
         ProviderFeeDto: {
+            /** @enum {string} */
+            serviceLocation: "IN_CLINIC" | "HOME";
+            /** @description Home surcharge included in totalMinor (BR56); 0 for in-clinic fees */
+            homeSurchargeMinor: number;
+            /** @description amountMinor + homeSurchargeMinor: the visit fee shown to the patient (KXMHV04) */
+            totalMinor: number;
             typeId: string;
             nameEn: string;
             nameAr: string;
@@ -2916,6 +3512,12 @@ export interface components {
             depositRefundMinHours?: number;
             maxPatientReschedules?: number;
         };
+        HomeVisitProfileDto: {
+            /** @description Coverage DISTRICT codes only (KXMDS05); never a home address */
+            coverageDistricts: string[];
+            homeSurchargeMinor: number | null;
+            enabled: boolean;
+        };
         ProviderProfileDto: {
             nameEn: string | null;
             nameAr: string | null;
@@ -2930,6 +3532,23 @@ export interface components {
             clinic: components["schemas"]["ClinicDto"];
             rating: components["schemas"]["RatingDto"];
             cancellationPolicy: components["schemas"]["CancellationPolicyDto"] | null;
+            /** @enum {string|null} */
+            profession: "PHYSICIAN" | "DENTIST" | "PHYSIOTHERAPIST" | "NURSE" | null;
+            /** @enum {string} */
+            careType: "DOCTORS" | "PHYSIOTHERAPY" | "HOME_NURSING";
+            /** @enum {string|null} */
+            edition: "CLINIC" | "NURSE" | null;
+            /** @description Profession-naming badge (KXMPR01) */
+            professionBadge: components["schemas"]["ProfessionBadgeDto"] | null;
+            /** @description Register that verified the clinician, e.g. a syndicate register */
+            verificationRegister: string | null;
+            /** @description false when the care-type category flag is OFF/awaiting its gate: the profile stays readable, new bookings are 403 */
+            categoryEnabled: boolean;
+            serviceLocations: ("IN_CLINIC" | "HOME")[];
+            /** @description KXMPR02 agency profile: the agency assigns a clinician after booking */
+            assignsClinician: boolean;
+            /** @description "Visits at home in" districts and the home surcharge (KXMPR01) */
+            homeVisit: components["schemas"]["HomeVisitProfileDto"];
             id: string;
             status: string;
             bookable: boolean;
@@ -2938,9 +3557,29 @@ export interface components {
             shareUrl: string;
         };
         ProviderSlotsDto: {
+            /** @enum {string} */
+            serviceLocation: "IN_CLINIC" | "HOME";
+            /** @description District code the HOME slots were searched for */
+            district: string | null;
             slots: components["schemas"]["SlotDto"][];
             providerId: string;
             typeId: string;
+        };
+        CareTypeDto: {
+            /** @enum {string} */
+            code: "DOCTORS" | "PHYSIOTHERAPY" | "HOME_NURSING";
+            /** @description false while the category flag is OFF or awaiting its launch gate */
+            enabled: boolean;
+            flag: string | null;
+            labelEn: string;
+            labelAr: string;
+            reason: string;
+            providerCount: number;
+        };
+        HomeDistrictDto: {
+            governorate: string | null;
+            district: string;
+            homeEnabledProviders: number;
         };
         ViewResultDto: {
             ok?: boolean;
@@ -3021,6 +3660,9 @@ export interface components {
             /** @enum {string} */
             channel?: "MARKETPLACE" | "CLINIC_LINK";
             bookingPageSlug?: string;
+            /** @enum {string} */
+            serviceLocation?: "IN_CLINIC" | "HOME";
+            addressId?: string;
         };
         BookingDepositDto: {
             /** @enum {string} */
@@ -3048,6 +3690,85 @@ export interface components {
             /** Format: date-time */
             at: string;
         };
+        HomeStepDto: {
+            /** @enum {string} */
+            key: "CONFIRMED" | "ON_THE_WAY" | "ARRIVED" | "FINISHED";
+            /** Format: date-time */
+            at: string | null;
+            reached: boolean;
+        };
+        HomeEtaDto: {
+            /** @description Coarse arrival estimate, only when the provider shares it (KXMHV06) */
+            minutes: number | null;
+            shared: boolean;
+        };
+        HomeAssigneeDto: {
+            displayName: string | null;
+            photoUrl: string | null;
+            /** @description Verified-professional badge text */
+            badge: string | null;
+            /** @enum {string|null} */
+            profession: "PHYSICIAN" | "DENTIST" | "PHYSIOTHERAPIST" | "NURSE" | null;
+        };
+        HomeFeeDto: {
+            /** @description Visit fee without the home surcharge */
+            visitFeeMinor: number | null;
+            /** @description Home surcharge (BR56): provider patient revenue on a separate invoice line; never enters S or C */
+            homeSurchargeMinor: number;
+            /** @description Visit fee incl. home surcharge (KXMHV04) */
+            totalMinor: number;
+            /** @description Deposit required (BR54 default for home visits when an amount is configured) */
+            depositRequired: boolean;
+            currency: string;
+        };
+        HomeAbortedDto: {
+            /** Format: date-time */
+            abortedAt: string | null;
+            /** @description always false: an unsafe abort is never a no-show (BR61) */
+            noShow: boolean;
+            /** @description The deposit is held for ops review, never auto-forfeited (KXMPAY07) */
+            depositUnderReview: boolean;
+        };
+        VisitAddressViewDto: {
+            governorate: string | null;
+            /** @description true 24 h after the visit (KXMHV10): doorstep lines are no longer returned */
+            masked: boolean;
+            /** Format: date-time */
+            maskedAt?: string | null;
+            /** @description Doorstep lines of the booking snapshot; null once masked */
+            address: {
+                [key: string]: unknown;
+            } | null;
+            district: string;
+        };
+        HomeSafetyInfoDto: {
+            /** @description Report-a-problem SLA in minutes (KXMOP05: 60) */
+            reportProblemSlaMinutes: number;
+            /** @example 123 */
+            emergencyNumber: string;
+        };
+        HomeBookingDto: {
+            district: string | null;
+            /**
+             * @description Home sub-state (main status stays in the KX-03 §05 machine)
+             * @enum {string|null}
+             */
+            subState: "ASSIGNED" | "EN_ROUTE" | "ARRIVED" | "ABORTED_UNSAFE" | null;
+            /** @description Confirmed → On the way → Arrived → Finished (KXMHV06) */
+            steps: components["schemas"]["HomeStepDto"][];
+            /** @description kiorex.visit_tracking effective: on-the-way updates and the estimate are shown */
+            trackingEnabled: boolean;
+            eta: components["schemas"]["HomeEtaDto"];
+            /** @description Agency bookings: assigned nurse name, photo, badge once HOME_VISIT_ASSIGNED arrives (KXMHV05). Never a phone number */
+            assignee: components["schemas"]["HomeAssigneeDto"] | null;
+            /** @description Agency listing: waiting for the agency to assign a clinician */
+            assignmentPending: boolean;
+            fee: components["schemas"]["HomeFeeDto"];
+            aborted: components["schemas"]["HomeAbortedDto"] | null;
+            /** @description Masked 24 h after the visit (KXMHV10) */
+            address: components["schemas"]["VisitAddressViewDto"];
+            safety: components["schemas"]["HomeSafetyInfoDto"];
+        };
         BookingDto: {
             /** @description Kiorex booking id; also the Kiorly Idempotency-Key / externalReference */
             id: string;
@@ -3073,7 +3794,7 @@ export interface components {
             /** @enum {string} */
             callState: "NONE" | "IN_FLIGHT" | "UNCERTAIN";
             /** @enum {string} */
-            depositStatus: "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED";
+            depositStatus: "NONE" | "REQUIRED" | "PAID" | "REFUNDED" | "FORFEITED" | "RELEASED" | "HOLD_FOR_REVIEW";
             depositRefundable: boolean | null;
             deposit: components["schemas"]["BookingDepositDto"] | null;
             doctor: components["schemas"]["BookingDoctorDto"] | null;
@@ -3083,6 +3804,16 @@ export interface components {
             timeline: components["schemas"]["BookingTimelineDto"][];
             /** Format: date-time */
             createdAt: string;
+            /** @enum {string} */
+            serviceLocation: "IN_CLINIC" | "HOME";
+            /** @enum {string} */
+            careType: "DOCTORS" | "PHYSIOTHERAPY" | "HOME_NURSING";
+            /** @description District code only (KXMHV03: the address itself is under the patient) */
+            visitDistrict: string | null;
+            /** @description Visit fee (home surcharge is separate, see home.fee) */
+            feeMinor: number | null;
+            /** @description Present for HOME bookings */
+            home: components["schemas"]["HomeBookingDto"] | null;
             providerId: string;
             clinicId: string;
             typeId: string;
@@ -3108,8 +3839,7 @@ export interface components {
             currency: string;
         };
         ReviewBody: {
-            rating: number;
-            text?: string;
+            reason: string;
         };
         ReviewDto: {
             rating: number;
@@ -3194,6 +3924,12 @@ export interface components {
             specialty: string | null;
             /** Format: date-time */
             syncedAt?: string;
+            /** @description KXMOP01 mirrors the profession */
+            profession?: string | null;
+            /** @enum {string} */
+            careType?: "DOCTORS" | "PHYSIOTHERAPY" | "HOME_NURSING";
+            serviceLocations?: string[];
+            coverageDistricts?: string[];
             id: string;
             clinicId: string;
             clinicianId: string;
@@ -3437,6 +4173,11 @@ export interface components {
             payouts: components["schemas"]["PayoutRowDto"][];
             reconciliationRuns: components["schemas"]["ReconRunRowDto"][];
             balances: components["schemas"]["LedgerBalanceDto"][];
+            /** @description KXMPAY07 deposits held for review */
+            heldForReview: {
+                count?: number;
+                amountMinor?: number;
+            };
         };
         RefundBody: {
             paymentId: string;
@@ -3450,6 +4191,53 @@ export interface components {
             paymentId: string;
             amountMinor: number;
             reason: string;
+        };
+        HeldDepositDto: {
+            bookingId: string | null;
+            reason: string | null;
+            /** Format: date-time */
+            heldForReviewAt: string | null;
+            ageHours: number | null;
+            providerId: string | null;
+            /** @description District code only */
+            district: string | null;
+            /** Format: date-time */
+            abortedAt: string | null;
+            paymentId: string;
+            clinicId: string;
+            amountMinor: number;
+            currency: string;
+        };
+        ReviewDecisionDto: {
+            /** @enum {string} */
+            outcome: "RELEASED_TO_PROVIDER" | "REFUNDED_TO_PATIENT";
+            refundId?: string;
+            paymentId: string;
+            amountMinor: number;
+        };
+        HomeGateClusterDto: {
+            byCareType: {
+                [key: string]: unknown;
+            };
+            cluster: string;
+            homeEnabledProviders: number;
+            threshold: number;
+            met: boolean;
+        };
+        HomeGateMetricDto: {
+            /** @description Minimum home-enabled providers per launch cluster (50) */
+            threshold: number;
+            /** @example governorate */
+            clusterBasis: string;
+            clusters: components["schemas"]["HomeGateClusterDto"][];
+            /** @description Human-recorded evidence state per gate (GHV1, GHV2): the metric never satisfies a gate */
+            gates: {
+                [key: string]: unknown;
+            };
+            /** @description Safety console (KXMOP12) is deployed in this API */
+            safetyConsoleLive: boolean;
+            anyMet: boolean;
+            allMet: boolean;
         };
         FeeStatementLineDto: {
             /** @description Ledger partner account owner, e.g. ph:<pharmacyId> or lab:<labId> */
@@ -3537,10 +4325,15 @@ export interface components {
             slaDueAt: string;
             /** Format: date-time */
             createdAt: string;
+            /** @description KXMOP05: home-visit complaints have a 1 h SLA */
+            homeVisit: boolean;
+            /** @description Minutes until the SLA is due (negative = overdue) */
+            minutesToSla: number;
             id: string;
             sub: string;
             category: string;
             status: string;
+            slaBreached: boolean;
         };
         LiquidityDto: {
             bookingsByStatus: {
@@ -3548,6 +4341,17 @@ export interface components {
                 count: number;
             }[];
             searchToBook: number | null;
+            /** @description KXMOP06 by care type and visit location */
+            byCareType: {
+                [key: string]: unknown;
+            }[];
+            /** @description KXMOP06 home-enabled providers per district */
+            homeEnabledByDistrict: {
+                [key: string]: unknown;
+            }[];
+            safetyAlerts: {
+                [key: string]: unknown;
+            };
             windowDays: number;
             listedDoctors: number;
             liveDoctors: number;
@@ -3758,7 +4562,12 @@ export interface components {
             canGrant: boolean;
         };
         ShareBody: {
-            granted: boolean;
+            contactName: string;
+            phone: string;
+            /** @enum {string} */
+            locale?: "ar" | "en";
+            consentAttested: boolean;
+            visitStatusSharingConsent?: boolean;
         };
         PrescriptionItemDto: {
             id: string;
@@ -3925,13 +4734,6 @@ export interface components {
             pharmacyId: string;
             items: components["schemas"]["CartItemBody"][];
             prescriptionRecordId?: string;
-        };
-        AddressBody: {
-            line1: string;
-            area?: string;
-            governorate?: string;
-            notes?: string;
-            phone?: string;
         };
         DeliveryBody: {
             /** @enum {string} */
@@ -4127,6 +4929,214 @@ export interface components {
         JoinResultDto: {
             session: components["schemas"]["TeleSessionDto"];
             video: components["schemas"]["VideoTokenDto"];
+        };
+        FamilyShareCreatedDto: {
+            /** @description Masked phone (the number itself is encrypted and never returned) */
+            phoneMasked: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "STOPPED" | "REVOKED";
+            /** Format: date-time */
+            createdAt: string;
+            /** @description WhatsApp visit-status link; returned ONCE (only its hash is stored) */
+            link: string;
+            id: string;
+            bookingId: string;
+            contactName: string;
+            locale: string;
+        };
+        FamilyShareDto: {
+            /** @description Masked phone (the number itself is encrypted and never returned) */
+            phoneMasked: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "STOPPED" | "REVOKED";
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            bookingId: string;
+            contactName: string;
+            locale: string;
+        };
+        PublicVisitStatusDto: {
+            patientFirstName: string | null;
+            /** Format: date-time */
+            startsAt: string;
+            subState: string | null;
+            steps: {
+                [key: string]: unknown;
+            }[];
+            eta: {
+                [key: string]: unknown;
+            };
+            provider: {
+                [key: string]: unknown;
+            } | null;
+            /** @description The visit was stopped (no reason is ever shown to family) */
+            stopped: boolean;
+            status: string;
+        };
+        SafetyCardDto: {
+            provider: {
+                [key: string]: unknown;
+            };
+            /** @example 123 */
+            emergencyNumber: string;
+            reportProblem: {
+                [key: string]: unknown;
+            };
+            familyShare: {
+                [key: string]: unknown;
+            };
+            bookingId: string;
+            assignmentPending: boolean;
+        };
+        ProblemBody: {
+            /** @enum {string} */
+            category: "SAFETY" | "CONDUCT" | "PROVIDER_NO_SHOW" | "BILLING" | "OTHER";
+            body?: string;
+        };
+        ProblemReportDto: {
+            /** Format: date-time */
+            slaDueAt: string;
+            /** @description true for home visits: 1 h SLA (KXMOP05) */
+            homeVisit: boolean;
+            id: string;
+            category: string;
+            status: string;
+        };
+        CarePlanBody: {
+            providerId: string;
+            addressId: string;
+            typeId?: string;
+            preferredStartDate?: string;
+            notes?: string;
+        };
+        CarePlanVisitDto: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            homeState: string | null;
+            bookingId: string;
+            status: string;
+        };
+        CarePlanDto: {
+            /** @enum {string} */
+            status: "REQUESTED" | "CONFIRMED" | "ENDED" | "REJECTED";
+            district: string | null;
+            /** Format: date-time */
+            confirmedAt: string | null;
+            /** Format: date-time */
+            endedAt: string | null;
+            endedReason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description One booking with a schedule; each visit has its own status (KXMHV08) */
+            visits: components["schemas"]["CarePlanVisitDto"][];
+            id: string;
+            providerId: string;
+            completedVisits: number;
+        };
+        SafetySloDto: {
+            /** Format: date-time */
+            deadlineAt: string;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            deliveryLagSeconds: number | null;
+            met: boolean | null;
+            seconds: number;
+            breached: boolean;
+            receiveLagSeconds: number;
+        };
+        SafetyAlertDto: {
+            /** @enum {string} */
+            kind: "TIMER_EXPIRED" | "SOS" | "UNSAFE_ABORT";
+            /** @enum {string} */
+            status: "RAISED" | "ACKNOWLEDGED" | "ESCALATED" | "RESOLVED";
+            bookingId: string | null;
+            /** @description District code only */
+            district: string | null;
+            /** Format: date-time */
+            raisedAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** @description 60 s delivery SLO fields */
+            slo: components["schemas"]["SafetySloDto"];
+            delivery: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            acknowledgedAt: string | null;
+            acknowledgedBy: string | null;
+            ackLagSeconds: number | null;
+            /** Format: date-time */
+            escalatedAt: string | null;
+            /** Format: date-time */
+            resolvedAt: string | null;
+            /** @description Unacknowledged beyond SAFETY_ACK_ESCALATE_MINUTES (10) */
+            needsEscalation: boolean;
+            providerName: string | null;
+            clinicPhone: string | null;
+            actions: {
+                [key: string]: unknown;
+            }[];
+            id: string;
+            alertId: string;
+            clinicId: string;
+            escalationLevel: number;
+            ageSeconds: number;
+        };
+        SafetyAlertListDto: {
+            items: components["schemas"]["SafetyAlertDto"][];
+        };
+        SafetySummaryDto: {
+            medianDeliverySeconds: number | null;
+            p95DeliverySeconds: number | null;
+            byKind: {
+                [key: string]: unknown;
+            }[];
+            windowDays: number;
+            total: number;
+            open: number;
+            unacknowledged: number;
+            sloBreaches: number;
+            unsafeAborts: number;
+            depositsHeldForReview: number;
+            deliveryMode: string;
+            sloSeconds: number;
+            ackEscalateMinutes: number;
+        };
+        EscalationLogDto: {
+            district: string | null;
+            note: string | null;
+            /** Format: date-time */
+            at: string;
+            alertId: string;
+            id: string;
+            kind: string;
+            action: string;
+            actor: string;
+            level: number;
+        };
+        UnsafeAbortDto: {
+            district: string | null;
+            /** Format: date-time */
+            abortedAt: string | null;
+            /** @description always false (BR61) */
+            noShow: boolean;
+            paymentId: string | null;
+            reviewState: string | null;
+            bookingId: string;
+            providerId: string;
+            clinicId: string;
+            depositStatus: string;
+            amountMinor: number;
+        };
+        NoteBody: {
+            note?: string;
+        };
+        SweepSafetyDto: {
+            retried: number;
+            escalated: number;
         };
         LiveDto: {
             /** @example ok */
@@ -4431,6 +5441,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionDto"];
+                };
+            };
+        };
+    };
+    ControlPlaneController_gates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateBoardDto"];
+                };
+            };
+        };
+    };
+    ControlPlaneController_gateAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateAllBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateRecordedDto"];
                 };
             };
         };
@@ -4967,6 +6021,115 @@ export interface operations {
             };
         };
     };
+    AddressController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressDto"][];
+                };
+            };
+        };
+    };
+    AddressController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddressBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressDto"];
+                };
+            };
+        };
+    };
+    AddressController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddressPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressDto"];
+                };
+            };
+        };
+    };
+    AddressController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    AddressController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressDto"];
+                };
+            };
+        };
+    };
     CatalogController_search: {
         parameters: {
             query?: {
@@ -4987,6 +6150,10 @@ export interface operations {
                 maxDistanceKm?: string;
                 page?: string;
                 pageSize?: string;
+                careType?: string;
+                serviceLocation?: string;
+                district?: string;
+                profession?: string;
             };
             header?: never;
             path?: never;
@@ -5050,6 +6217,10 @@ export interface operations {
                 typeId: string;
                 from?: string;
                 to?: string;
+                serviceLocation?: string;
+                district?: string;
+                lat?: string;
+                lng?: string;
             };
             header?: never;
             path: {
@@ -5065,6 +6236,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderSlotsDto"];
+                };
+            };
+        };
+    };
+    CatalogController_careTypes: {
+        parameters: {
+            query?: {
+                market?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareTypeDto"][];
+                };
+            };
+        };
+    };
+    CatalogController_homeDistricts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeDistrictDto"][];
                 };
             };
         };
@@ -5929,6 +7140,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefundDto"];
+                };
+            };
+        };
+    };
+    OpsController_heldForReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeldDepositDto"][];
+                };
+            };
+        };
+    };
+    OpsController_reviewRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDecisionDto"];
+                };
+            };
+        };
+    };
+    OpsController_reviewRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDecisionDto"];
+                };
+            };
+        };
+    };
+    OpsController_homeGate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeGateMetricDto"];
                 };
             };
         };
@@ -7409,6 +8708,420 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeleSessionDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_listShares: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyShareDto"][];
+                };
+            };
+        };
+    };
+    HomeCareController_addShare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyShareCreatedDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_revokeShare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_publicStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicVisitStatusDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_safetyCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyCardDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProblemBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemReportDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_listPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanDto"][];
+                };
+            };
+        };
+    };
+    HomeCareController_requestPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CarePlanBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanDto"];
+                };
+            };
+        };
+    };
+    HomeCareController_getPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_alerts: {
+        parameters: {
+            query?: {
+                status?: string;
+                kind?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyAlertListDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetySummaryDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_escalations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EscalationLogDto"][];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_unsafeAborts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnsafeAbortDto"][];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyAlertDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_ack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyAlertDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_escalate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyAlertDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SafetyAlertDto"];
+                };
+            };
+        };
+    };
+    SafetyConsoleController_sweep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SweepSafetyDto"];
                 };
             };
         };

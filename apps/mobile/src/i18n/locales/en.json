@@ -264,7 +264,9 @@
     "REQUIRED": "A deposit of {{amount}} is required.",
     "PAID": "Deposit paid.",
     "REFUNDED": "Deposit refunded.",
-    "FORFEITED": "Deposit forfeited (visit missed)."
+    "FORFEITED": "Deposit forfeited (visit missed).",
+    "RELEASED": "Deposit released.",
+    "HOLD_FOR_REVIEW": "Deposit held for review."
   },
   "appointments": {
     "title": "My appointments",
@@ -372,6 +374,10 @@
     "record_sharing": {
       "title": "Record sharing",
       "body": "Allow clinics to share visit summaries with your account."
+    },
+    "visit_status_sharing": {
+      "title": "Visit-status sharing",
+      "body": "Let family contacts you add follow the status of a home visit (never the address or health details)."
     }
   },
   "sessions": {
@@ -398,7 +404,8 @@
     "save": "Save",
     "loading": "Loading…",
     "signInRequired": "Sign in to continue",
-    "signInRequiredHint": "This area is private to your Kiorex account."
+    "signInRequiredHint": "This area is private to your Kiorex account.",
+    "delete": "Delete"
   },
   "signIn": {
     "title": "Book a verified doctor in minutes",
@@ -654,7 +661,8 @@
     "cancelOrder": "Cancel order",
     "cancelled": "Order cancelled.",
     "cancelledRefund": "Order cancelled. Your payment will be refunded.",
-    "cancelFailed": "We could not cancel. It may already be ready."
+    "cancelFailed": "We could not cancel. It may already be ready.",
+    "deliverTo": "Deliver to"
   },
   "lab": {
     "myBookings": "My lab bookings",
@@ -735,5 +743,173 @@
     "selfTile": "Your video",
     "roomInfo": "Room",
     "tokenExpires": "Session token expires {{time}}"
+  },
+  "careType": {
+    "title": "What care do you need?",
+    "doctors": "Doctors",
+    "physio": "Physiotherapy",
+    "nursing": "Home nursing",
+    "awaitingShort": "Awaiting launch",
+    "providers_one": "{{count}} provider",
+    "providers_other": "{{count}} providers"
+  },
+  "hv": {
+    "homeVisit": "Home visit",
+    "visitsAtHome": "Visits at home",
+    "atHome": "At home",
+    "inClinic": "At the clinic",
+    "whereLabel": "Where do you want the visit?",
+    "yourDistrict": "Your district",
+    "noDistricts": "No districts have home providers yet.",
+    "pickDistrictFirst": "Choose your district to see providers who visit you at home.",
+    "noHomeProviders": "No home providers in your district yet",
+    "noHomeProvidersHint": "No provider covers {{district}} at the moment. Try another district or a clinic visit.",
+    "homeFee": "Home visit {{fee}}",
+    "includesSurcharge": "incl. {{amount}} home surcharge",
+    "coverage": "Visits in",
+    "visitAddress": "Visit address",
+    "pickAddressFirst": "Choose your visit address to see available times.",
+    "confirmFirst": "Confirm this address with your verified phone before your first home booking.",
+    "addressProblem": "There is a problem with the visit address. Check it in your address book.",
+    "outOfCoverageTitle": "This provider does not visit your district",
+    "outOfCoverageBody": "This provider does not visit {{district}} yet. Pick another address or another provider.",
+    "coveredDistricts": "Covered districts",
+    "suggested": "Providers who visit your district",
+    "agencyAssigns": "This is an agency: a clinician is assigned after you book, and you will see their name and badge before they arrive.",
+    "assignmentPending": "A clinician has not been assigned yet. You will see their name and badge here before they arrive.",
+    "visitFee": "Visit fee",
+    "homeSurcharge": "Home visit surcharge",
+    "total": "Total",
+    "depositBody": "A deposit of {{amount}} secures your home visit. It is paid after you confirm.",
+    "addressMaskedAfter": "For your privacy the address is hidden from the booking 24 hours after the visit.",
+    "addressMasked": "Address hidden for your privacy.",
+    "depositUnderReview": "Your deposit is held while our team reviews this visit. It is not forfeited.",
+    "pending": "not yet",
+    "eta": "About {{minutes}} min away",
+    "assignedClinician": "Your clinician",
+    "abortedTitle": "The visit was stopped for safety",
+    "abortedBody": "The clinician ended this visit because of a safety concern. This is not counted against you and is not a no-show.",
+    "abortedDeposit": "Your deposit is under review and will not be forfeited.",
+    "step": {
+      "CONFIRMED": "Confirmed",
+      "ON_THE_WAY": "On the way",
+      "ARRIVED": "Arrived",
+      "FINISHED": "Finished"
+    }
+  },
+  "address": {
+    "title": "Address book",
+    "add": "Add address",
+    "edit": "Edit address",
+    "empty": "No saved addresses",
+    "emptyHint": "Add the address where you want home visits. Only you see the doorstep details.",
+    "label": "Name this address",
+    "labelHint": "Home, Parents…",
+    "governorate": "Governorate",
+    "district": "District",
+    "districtHint": "Pick a district above or type its code, e.g. nasr-city.",
+    "street": "Street",
+    "building": "Building",
+    "floor": "Floor",
+    "flat": "Flat",
+    "landmark": "Landmark (optional)",
+    "makeDefault": "Use as my default address",
+    "default": "Default",
+    "confirmed": "Confirmed",
+    "unconfirmed": "Not confirmed",
+    "confirm": "Confirm with my verified phone",
+    "confirmedMsg": "Address confirmed.",
+    "confirmFailed": "Could not confirm the address. Try again.",
+    "phoneNotVerified": "Verify your phone with a one-time code first.",
+    "phoneMismatch": "The verified phone does not match your profile phone.",
+    "privacy": "Doorstep details are encrypted and shown only to you. Providers see your district until a visit is booked, and the address is hidden again 24 hours after the visit.",
+    "editResets": "Changing the district or street means you confirm the address again.",
+    "limit": "You can save a limited number of addresses. Delete one first.",
+    "invalidDistrict": "Use a district code such as nasr-city.",
+    "saveFailed": "Could not save the address.",
+    "saved": "Address saved.",
+    "deleted": "Address deleted.",
+    "deleteTitle": "Delete this address?",
+    "deleteBody": "Upcoming bookings keep their own copy of the address.",
+    "outsideCoverage": "Outside this provider's area"
+  },
+  "safety": {
+    "title": "Safety card",
+    "open": "Safety card",
+    "arriving": "Who is coming to you",
+    "agency": "Agency",
+    "register": "Verified in",
+    "checkBadge": "Check the name and badge before you open the door.",
+    "emergencyTitle": "In an emergency",
+    "emergencyBody": "If you or anyone is in danger, call emergency services first.",
+    "callEmergency": "Call {{number}}",
+    "emergencyNote": "Emergency number 123. Report a problem any time from the safety card.",
+    "reportTitle": "Report a problem",
+    "reportBody": "Tell us what happened. Our team responds within {{minutes}} minutes.",
+    "report": "Report a problem",
+    "category": "What happened?",
+    "details": "Details (optional)",
+    "submitReport": "Send report",
+    "reportFailed": "Could not send the report. Try again.",
+    "reported": "Report received. We will respond by {{time}}.",
+    "cat": {
+      "SAFETY": "I felt unsafe",
+      "CONDUCT": "Conduct",
+      "PROVIDER_NO_SHOW": "Provider did not come",
+      "BILLING": "Billing",
+      "OTHER": "Something else"
+    }
+  },
+  "share": {
+    "title": "Family share",
+    "open": "Share with family",
+    "summary": "{{active}} of {{max}} family contacts follow this visit.",
+    "whatTitle": "Share the visit status",
+    "whatBody": "A family member gets a WhatsApp link with the visit status only: confirmed, on the way, arrived, finished. Never the address, price or health details. They can stop updates any time.",
+    "empty": "Nobody follows this visit yet",
+    "emptyHint": "Add a family contact below.",
+    "addTitle": "Add a contact ({{count}}/{{max}})",
+    "contactName": "Contact name",
+    "contactPhone": "Contact phone (international)",
+    "language": "Message language",
+    "attest": "This person agreed to receive updates about my visit.",
+    "consent": "I allow Kiorex to share my visit status with the contacts I add (you can withdraw this in Consents).",
+    "consentGranted": "Visit-status sharing consent is on (change it in Consents).",
+    "whatsappMock": "Messages are sent by WhatsApp. In this test environment they are simulated.",
+    "send": "Send invitation",
+    "sent": "Invitation sent. Link:",
+    "limit": "At most 3 family contacts per visit.",
+    "exists": "This contact already follows the visit.",
+    "invalidPhone": "Enter an international phone number.",
+    "consentRequired": "Allow visit-status sharing to continue.",
+    "attestRequired": "Confirm that this person agreed.",
+    "notShareable": "This visit can no longer be shared.",
+    "failed": "Could not add the contact.",
+    "stop": "Stop sharing",
+    "status": {
+      "ACTIVE": "Following",
+      "STOPPED": "Stopped by contact",
+      "REVOKED": "Stopped"
+    }
+  },
+  "carePlan": {
+    "title": "Care plans",
+    "request": "Request a care plan",
+    "submit": "Send request",
+    "draftNote": "Care plans are a draft feature: a recurring home-nursing schedule agreed with one provider. Availability depends on launch approval.",
+    "empty": "No care plans yet",
+    "emptyHint": "Find a home nurse and request a plan from their profile.",
+    "find": "Find a home nurse",
+    "start": "Preferred start date",
+    "notes": "Notes for the provider (optional)",
+    "requested": "Care plan requested. The provider will confirm it.",
+    "failed": "Could not request the care plan.",
+    "completed": "{{count}} visits completed",
+    "status": {
+      "REQUESTED": "Requested",
+      "CONFIRMED": "Active",
+      "ENDED": "Ended",
+      "REJECTED": "Declined"
+    }
   }
 }

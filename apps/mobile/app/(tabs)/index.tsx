@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth/AuthProvider";
 import { useBookings, useSpecialties } from "@/api/hooks";
+import { useCareTypes } from "@/api/homecare";
+import { CareTypeTiles } from "@/components/homecare";
 import { Avatar } from "@/components/bits";
 import { EmergencyBanner } from "@/components/EmergencyBanner";
 import { FamilySwitcher } from "@/components/FamilySwitcher";
@@ -48,6 +50,8 @@ function Services() {
         <Tile testID="tile-lab" icon="flask" label={t("services.lab")} flag="kiorex.lab_bookings" href="/lab" />
         <Tile testID="tile-tele" icon="video" label={t("services.telemedicine")} flag="kiorex.telemedicine" href="/telemedicine" />
         <Tile testID="tile-waitlist" icon="clock" label={t("services.waitlist")} flag="kiorex.marketplace" href="/waitlist" />
+        <Tile testID="tile-addresses" icon="pin" label={t("address.title")} flag="kiorex.home_visits" href="/settings/addresses" />
+        <Tile testID="tile-care-plans" icon="calendarPlus" label={t("carePlan.title")} flag="nurse.care_plans" href="/care-plans" />
       </View>
     </View>
   );
@@ -63,6 +67,7 @@ export default function Home() {
   const signedIn = status === "signedIn";
   const { selected } = usePatient();
   const specialties = useSpecialties();
+  const careTypes = useCareTypes();
   const bookings = useBookings(signedIn);
   const [q, setQ] = useState("");
   const [recent, setRecent] = useState<RecentDoctor[]>([]);
@@ -90,6 +95,13 @@ export default function Home() {
         <Field testID="search-input" label={t("search.label")} value={q} onChangeText={setQ} placeholder={t("home.searchPlaceholder")} returnKeyType="search" onSubmitEditing={submit} />
         {emergency ? <EmergencyBanner /> : <Button testID="search-submit" title={t("search.submit")} icon="search" onPress={submit} disabled={!q.trim()} />}
       </View>
+
+      {careTypes.data?.length ? (
+        <View style={{ gap: 10 }} testID="care-types">
+          <T variant="h2" accessibilityRole="header">{t("careType.title")}</T>
+          <CareTypeTiles items={careTypes.data} onSelect={(c) => router.push({ pathname: "/results", params: { careType: c.code, ...(c.code === "HOME_NURSING" ? { loc: "HOME" } : {}) } })} />
+        </View>
+      ) : null}
 
       <View style={{ gap: 10 }}>
         <T variant="h2">{t("search.specialties")}</T>

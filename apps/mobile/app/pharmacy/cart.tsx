@@ -7,6 +7,9 @@ import { useCart, useClearCart, usePlaceOrder, usePrescriptions, useSetCart, use
 import { FlagScreen, RequireAuth } from "@/components/feature";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge, Banner, Button, Card, Chip, Field, Row, Screen, T } from "@/components/ui";
+import { AddressPicker } from "@/components/homecare";
+import { addressToBody } from "@/lib/homecare";
+import type { Address } from "@/api/types";
 import { useHostedPay } from "@/hooks/useHostedPay";
 import { formatDay, formatMoney } from "@/lib/format";
 
@@ -23,7 +26,7 @@ function Body() {
   const rxs = usePrescriptions(!!c?.rxRequired);
   const [rxId, setRxId] = useState<string>();
   const [method, setMethod] = useState<"PICKUP" | "DELIVERY">("PICKUP");
-  const [addr, setAddr] = useState({ line1: "", area: "", phone: "" });
+  const [addr, setAddr] = useState<Address | undefined>();
   const [msg, setMsg] = useState<string | null>(null);
   useEffect(() => { if (c?.deliveryMethod) setMethod(c.deliveryMethod); }, [c?.deliveryMethod]);
   const { pay, busy } = useHostedPay();
@@ -34,14 +37,14 @@ function Body() {
     if (!items.length) clear.mutate(); else setCart.mutate({ pharmacyId: c.pharmacyId, items, prescriptionRecordId: c.prescriptionRecordId ?? undefined });
   };
   const needsAddr = method === "DELIVERY";
-  const addrOk = !needsAddr || (addr.line1.trim().length > 2 && addr.phone.trim().length > 5);
+  const addrOk = !needsAddr || (!!addr && !!addr.street);
   const needsRx = !!c?.rxRequired;
   const ready = !!c?.items.length && addrOk && (!needsRx || !!rxId) && c.items.every((i) => i.available);
 
   const checkout = async () => {
     setMsg(null);
     try {
-      await delivery.mutateAsync(method === "PICKUP" ? { method } : { method, address: { line1: addr.line1.trim(), area: addr.area.trim() || undefined, phone: addr.phone.trim() } });
+      await delivery.mutateAsync(method === "PICKUP" ? { method } : { method, address: addressToBody(addr!) });
       const order = await place.mutateAsync({ prescriptionRecordId: rxId });
       // Hosted (mock PSP) checkout, then the order detail polls until the pharmacy acknowledges.
       await pay(order.payment?.checkoutUrl);
@@ -77,11 +80,7 @@ function Body() {
       <Card style={{ gap: 8 }}>
         <T variant="h2">{t("pharmacy.delivery")}</T>
         <Row style={{ flexWrap: "wrap" }}><Chip testID="method-PICKUP" label={t("pharmacy.pickup")} selected={method === "PICKUP"} onPress={() => setMethod("PICKUP")} /><Chip testID="method-DELIVERY" label={t("pharmacy.deliveryHome")} selected={method === "DELIVERY"} onPress={() => setMethod("DELIVERY")} /></Row>
-        {needsAddr ? (<>
-          <Field testID="addr-line1" label={t("pharmacy.addr1")} value={addr.line1} onChangeText={(v) => setAddr((a) => ({ ...a, line1: v }))} />
-          <Field testID="addr-area" label={t("pharmacy.area")} value={addr.area} onChangeText={(v) => setAddr((a) => ({ ...a, area: v }))} />
-          <Field testID="addr-phone" label={t("pharmacy.phone")} keyboardType="phone-pad" value={addr.phone} onChangeText={(v) => setAddr((a) => ({ ...a, phone: v }))} />
-        </>) : null}
+        {needsAddr ? (<View style={{ gap: 8 }}><T variant="label">{t("pharmacy.deliverTo")}</T><AddressPicker value={addr?.id} onChange={setAddr} /></View>) : null}
         <Row style={{ justifyContent: "space-between" }}><T variant="small" muted>{t("pharmacy.subtotal")}</T><T variant="small">{formatMoney(c.subtotalMinor / 100, lang)}</T></Row>
         <Row style={{ justifyContent: "space-between" }}><T variant="small" muted>{t("pharmacy.deliveryFee")}</T><T variant="small">{formatMoney(c.deliveryFeeMinor / 100, lang)}</T></Row>
       </Card>

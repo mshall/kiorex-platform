@@ -42,7 +42,8 @@ export const isUpcoming = (b: Pick<Booking, "status" | "endsAt">, now = Date.now
 export const isActiveBooking = (s: BookingStatus) => s === "HELD" || s === "PENDING_CLINIC";
 
 /** Polling cadence for states waiting on the clinic / hold. */
-export const pollIntervalFor = (s: BookingStatus | undefined) => (s && isActiveBooking(s) ? 5_000 : false);
+export const pollIntervalFor = (s: BookingStatus | undefined, home = false) =>
+  s && isActiveBooking(s) ? 5_000 : home && (s === "CONFIRMED" || s === "CHECKED_IN") ? 15_000 : false; // home visits: assigned / on the way / arrived updates
 
 /** Only COMPLETED visits can be reviewed, once (KXMRV01). `reviewedBookingIds` comes from GET /me/reviews. */
 export const canReview = (b: Pick<Booking, "id" | "status">, reviewedBookingIds: ReadonlySet<string> = new Set()) => b.status === "COMPLETED" && !reviewedBookingIds.has(b.id);

@@ -49,6 +49,10 @@ function Shell() {
         <Stack.Screen name="settings/consents" options={{ title: t("account.consentsTitle") }} />
         <Stack.Screen name="settings/sessions" options={{ title: t("account.sessionsTitle") }} />
         <Stack.Screen name="settings/delete" options={{ title: t("account.deleteTitle") }} />
+        <Stack.Screen name="settings/addresses" options={{ title: t("address.title") }} />
+        <Stack.Screen name="care-plans/index" options={{ title: t("carePlan.title") }} />
+        <Stack.Screen name="safety/[id]" options={{ title: t("safety.title") }} />
+        <Stack.Screen name="family-share/[id]" options={{ title: t("share.title") }} />
         <Stack.Screen name="waitlist" options={{ title: t("waitlist.title") }} />
         <Stack.Screen name="records/[id]" options={{ title: t("records.title") }} />
         <Stack.Screen name="records/sharing" options={{ title: t("records.sharing") }} />

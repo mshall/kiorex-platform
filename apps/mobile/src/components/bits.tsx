@@ -37,7 +37,7 @@ export function SlotButton({ slot, selected, onPress, showDay }: { slot: Slot; s
   return <Chip testID={`slot-${slot.startsAt}`} label={label} selected={selected} onPress={onPress} />;
 }
 
-export function DoctorCard({ d, onOpen, onPickSlot }: { d: DoctorSummary; onOpen: () => void; onPickSlot: (s: Slot) => void }) {
+export function DoctorCard({ d, onOpen, onPickSlot, home }: { d: DoctorSummary; onOpen: () => void; onPickSlot: (s: Slot) => void; home?: boolean }) {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const lang = i18n.language;
@@ -52,12 +52,14 @@ export function DoctorCard({ d, onOpen, onPickSlot }: { d: DoctorSummary; onOpen
             <T variant="small" muted>{[pick(d, "clinicName", lang), pick(d, "area", lang)].filter(Boolean).join(" · ")}</T>
             <Row gap={8} style={{ flexWrap: "wrap" }}>
               {d.verified ? <VerifiedBadge /> : null}
+              {d.professionBadge && d.careType !== "DOCTORS" ? <Badge tone="ocean" icon="shield" label={lang.startsWith("ar") ? d.professionBadge.ar : d.professionBadge.en} /> : null}
+              {d.homeEnabled ? <Badge tone="success" icon="home" label={t("hv.visitsAtHome")} /> : null}
               {d.ratingAvg ? <Row gap={4}><Stars value={d.ratingAvg} /><T variant="caption" muted accessibilityLabel={t("doctor.ratingLabel", { avg: d.ratingAvg, count: d.ratingCount })}>{formatNumber(d.ratingAvg, lang)} ({d.ratingCount})</T></Row> : null}
             </Row>
           </View>
         </Row>
         <Row gap={12} style={{ flexWrap: "wrap" }}>
-          <T variant="small" weight="semibold">{t("doctor.feeFrom", { fee: formatMoney(d.feeFromEgp, lang) })}</T>
+          <T variant="small" weight="semibold">{home && d.homeFeeEgp != null ? t("hv.homeFee", { fee: formatMoney(d.homeFeeEgp, lang) }) : t("doctor.feeFrom", { fee: formatMoney(d.feeFromEgp, lang) })}</T>
           {d.distanceKm != null ? <Row gap={4}><Icon name="pin" size={14} color={colors.muted} /><T variant="small" muted>{t("doctor.distance", { km: formatNumber(d.distanceKm, lang) })}</T></Row> : null}
           {d.depositRequired ? <Badge tone="warning" label={t("doctor.depositRequired")} /> : null}
         </Row>

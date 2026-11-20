@@ -7,7 +7,7 @@ import { Card, Row, Screen, T } from "@/components/ui";
 import { formatDay } from "@/lib/format";
 import { useTheme } from "@/theme";
 
-const KEY: Record<ConsentPurpose, string> = { MARKETPLACE_PROCESSING: "marketplace_processing", REMINDERS: "reminders", RECORD_SHARING: "record_sharing", AI_PROCESSING: "ai_processing" };
+const KEY: Record<ConsentPurpose, string> = { MARKETPLACE_PROCESSING: "marketplace_processing", REMINDERS: "reminders", RECORD_SHARING: "record_sharing", AI_PROCESSING: "ai_processing", VISIT_STATUS_SHARING: "visit_status_sharing" };
 
 export default function Consents() {
   const { t, i18n } = useTranslation();

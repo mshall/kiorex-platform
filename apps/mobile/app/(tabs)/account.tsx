@@ -61,6 +61,8 @@ export default function Account() {
       </Card>
       <Card style={{ paddingVertical: 4 }}>
         <NavRow testID="nav-family" icon="users" label={t("account.familyTitle")} onPress={() => router.push("/settings/family")} />
+        <NavRow testID="nav-addresses" icon="pin" label={t("address.title")} onPress={() => router.push("/settings/addresses")} />
+        <NavRow testID="nav-care-plans" icon="calendarPlus" label={t("carePlan.title")} onPress={() => router.push("/care-plans")} />
         <NavRow testID="nav-sharing" icon="lock" label={t("records.sharing")} onPress={() => router.push("/records/sharing")} />
         <NavRow testID="nav-pharmacy-orders" icon="pill" label={t("pharmacy.myOrders")} onPress={() => router.push("/pharmacy/orders")} />
         <NavRow testID="nav-lab-bookings" icon="flask" label={t("lab.myBookings")} onPress={() => router.push("/lab/bookings")} />
