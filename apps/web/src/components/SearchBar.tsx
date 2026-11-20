@@ -28,7 +28,7 @@ export function SearchBar({ initialQ = "", autoFocus }: { initialQ?: string; aut
     <div className="space-y-4">
       <form onSubmit={submit} role="search" aria-label={t("search.label")} className="flex gap-2 rounded-2xl border bg-card p-1.5 shadow-card focus-within:border-primary/60 focus-within:ring-[3px] focus-within:ring-ring/40">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search className="pointer-events-none absolute inset-s-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search.placeholder")} aria-label={t("search.label")} className="h-12 border-0 bg-transparent ps-12 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" autoFocus={autoFocus} data-testid="search-input" />
         </div>
         <Button type="submit" size="lg" className="rounded-xl" data-testid="search-submit">{t("search.submit")}</Button>

@@ -30,7 +30,7 @@ function Profile() {
   return (
     <>
     <section className="kx-card flex items-center gap-4 p-5 sm:p-6" aria-label={t("p3.yourAccount")}>
-      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-ocean text-2xl font-semibold text-white shadow-raised" aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-ocean text-2xl font-semibold text-white shadow-raised" aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
       <dl className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
         <div className="min-w-0"><dt className="text-sm text-muted-foreground">{t("account.name")}</dt><dd className="truncate text-lg font-semibold">{name}</dd></div>
         <div><dt className="text-sm text-muted-foreground">{t("account.phone")}</dt><dd className="kx-label-num text-lg font-semibold"><bdi dir="ltr">{m.phone}</bdi></dd></div>

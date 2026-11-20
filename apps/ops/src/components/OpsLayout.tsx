@@ -33,7 +33,7 @@ export function OpsLayout() {
         <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground"><ScrollText className="inline h-3 w-3" aria-hidden="true" /> {user?.name ?? user?.sub}<br />{user?.roles.join(", ")}</div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-card/90 px-4 backdrop-blur">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-card/90 px-4 backdrop-blur-sm">
           <nav className="flex gap-1 overflow-x-auto md:hidden" aria-label={t("nav.main")}>
             {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent text-primary")}>{t(`nav.${key}`)}</NavLink>)}
           </nav>

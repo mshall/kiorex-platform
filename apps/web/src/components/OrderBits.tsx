@@ -20,7 +20,7 @@ export function ProgressSteps({ steps, current, failed, i18nPrefix }: { steps: s
         const last = i === all.length - 1;
         return (
           <li key={s} className={cn("relative flex gap-3 sm:flex-1 sm:flex-col sm:items-center sm:gap-2 sm:text-center", !last && "pb-6 sm:pb-0")} aria-current={here ? "step" : undefined} data-testid={isFail ? "order-failed" : undefined}>
-            {!last && <span className={cn("absolute start-[17px] top-9 h-[calc(100%-2.25rem)] w-0.5 sm:start-[calc(50%+22px)] sm:top-[17px] sm:h-0.5 sm:w-[calc(100%-44px)]", done ? "bg-success" : "bg-border")} aria-hidden="true" />}
+            {!last && <span className={cn("absolute inset-s-[17px] top-9 h-[calc(100%-2.25rem)] w-0.5 sm:inset-s-[calc(50%+22px)] sm:top-[17px] sm:h-0.5 sm:w-[calc(100%-44px)]", done ? "bg-success" : "bg-border")} aria-hidden="true" />}
             <span className={cn("relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 bg-card text-sm font-semibold kx-label-num", done && "border-success bg-success text-white", here && "border-pulse text-foreground shadow-[0_0_0_5px_hsl(var(--pulse)/0.18)]", isFail && "border-destructive bg-destructive text-white", !done && !here && !isFail && "border-border text-muted-foreground", failed && !isFail && "opacity-60")}>
               {done ? <Check className="h-4 w-4" aria-hidden="true" /> : isFail ? <XCircle className="h-4 w-4" aria-hidden="true" /> : here ? <CircleDot className="h-4 w-4 text-pulse" aria-hidden="true" /> : i + 1}
             </span>

@@ -20,7 +20,7 @@ export function StatusTimeline({ booking }: { booking: Booking }) {
         const end = i === events.length - 1 && upcoming.length === 0;
         return (
           <li key={`${e.status}-${i}`} className="relative flex gap-4 pb-6 last:pb-0" aria-current={current ? "step" : undefined}>
-            {!end && <span className={cn("absolute start-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5", current ? "bg-border" : "bg-primary/60")} aria-hidden="true" />}
+            {!end && <span className={cn("absolute inset-s-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5", current ? "bg-border" : "bg-primary/60")} aria-hidden="true" />}
             <span className={cn("relative z-10 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full", current ? "bg-pulse/20 ring-2 ring-pulse" : "bg-primary text-primary-foreground")}>
               {current ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-pulse motion-reduce:animate-none" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
             </span>
@@ -34,7 +34,7 @@ export function StatusTimeline({ booking }: { booking: Booking }) {
       })}
       {upcoming.map((s, i) => (
         <li key={s} className="relative flex gap-4 pb-6 last:pb-0 opacity-70" data-upcoming="true">
-          {i < upcoming.length - 1 && <span className="absolute start-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5 border-s-2 border-dashed border-border" aria-hidden="true" />}
+          {i < upcoming.length - 1 && <span className="absolute inset-s-[13px] top-7 h-[calc(100%-1.75rem)] w-0.5 border-s-2 border-dashed border-border" aria-hidden="true" />}
           <span className="relative z-10 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-card" aria-hidden="true" />
           <div><p className="font-medium leading-7 text-muted-foreground">{t(`status.${s}`)}</p><p className="text-xs text-muted-foreground">{t("appointment.upcomingStep")}</p></div>
         </li>

@@ -21,7 +21,7 @@ export function ReviewSummary({ avg, count, items }: { avg: number | null; count
         {dist.map((d) => (
           <div key={d.n} className="flex items-center gap-3 text-xs">
             <span className="kx-label-num w-3 text-end font-medium">{d.n}</span><Star className="h-3 w-3 fill-pulse text-pulse" aria-hidden="true" />
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-primary to-ocean transition-[width] duration-500" style={{ width: `${(d.c / max) * 100}%` }} /></div>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-linear-to-r from-primary to-ocean transition-[width] duration-500" style={{ width: `${(d.c / max) * 100}%` }} /></div>
             <span className="kx-label-num w-6 text-muted-foreground">{d.c}</span>
           </div>
         ))}

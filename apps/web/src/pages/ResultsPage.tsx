@@ -67,7 +67,7 @@ export default function ResultsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <div role="radiogroup" aria-label={t("results.view")} className="inline-flex rounded-xl border bg-card p-0.5" data-testid="view-toggle">
                   {([["list", List, "results.viewList"], ["map", MapIcon, "results.viewMap"]] as const).map(([v, Icon, k]) => (
-                    <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)} className={cn("inline-flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium transition-colors", view === v ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)} className={cn("inline-flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium transition-colors", view === v ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground")}>
                       <Icon className="h-4 w-4" aria-hidden="true" />{t(k)}
                     </button>
                   ))}

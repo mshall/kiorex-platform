@@ -216,7 +216,7 @@ export default function DoctorProfilePage() {
           {offersClinic && (
             <Section id="clinic-title" title={t("doctor.clinic")}>
               <ClinicMap clinic={p.clinic} />
-              <div className="kx-card grid gap-px divide-y text-sm sm:grid-cols-2 sm:divide-x sm:divide-y-0 rtl:sm:divide-x-reverse">
+              <div className="kx-card grid gap-px divide-y text-sm sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:rtl:divide-x-reverse">
                 <a className="flex min-h-14 items-center gap-3 p-4 text-ocean hover:bg-accent" href={`tel:${p.clinic.phone.replace(/\s/g, "")}`}><Phone className="h-4 w-4" aria-hidden="true" /><span dir="ltr" className="font-medium">{p.clinic.phone}</span></a>
                 <div className="flex min-h-14 items-center gap-3 p-4 text-muted-foreground"><Clock className="h-4 w-4 shrink-0" aria-hidden="true" />{hours || t("doctor.hoursUnknown")}</div>
               </div>

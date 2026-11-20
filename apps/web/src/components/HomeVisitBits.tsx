@@ -135,7 +135,7 @@ export function SafetyCardPanel({ bookingId }: { bookingId: string }) {
         )}
       </div>
       <div className="flex flex-wrap gap-2 border-t bg-muted/40 p-4">
-        <a href={`tel:${c.emergencyNumber}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 text-sm font-semibold text-destructive-foreground shadow-sm transition-transform active:scale-[0.98]" data-testid="emergency-call"><Phone className="h-4 w-4" aria-hidden="true" />{t("hv.emergencyCall", { number: c.emergencyNumber })}</a>
+        <a href={`tel:${c.emergencyNumber}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 text-sm font-semibold text-destructive-foreground shadow-xs transition-transform active:scale-[0.98]" data-testid="emergency-call"><Phone className="h-4 w-4" aria-hidden="true" />{t("hv.emergencyCall", { number: c.emergencyNumber })}</a>
         <ReportProblem bookingId={bookingId} slaMinutes={sla} />
       </div>
     </section>

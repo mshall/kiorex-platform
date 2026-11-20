@@ -155,7 +155,7 @@ export function Timeline({ steps, label, className, testId }: { steps: { key: st
         const last = i === steps.length - 1;
         return (
           <li key={s.key} data-reached={s.reached} aria-current={current ? "step" : undefined} className={cn("relative flex items-start gap-3 ps-0", !last && "pb-5")}>
-            {!last && <span className={cn("absolute start-[13px] top-8 h-[calc(100%-2rem)] w-0.5", i < lastReached ? "bg-primary" : "bg-border")} aria-hidden="true" />}
+            {!last && <span className={cn("absolute inset-s-[13px] top-8 h-[calc(100%-2rem)] w-0.5", i < lastReached ? "bg-primary" : "bg-border")} aria-hidden="true" />}
             <span className={cn("relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 bg-card", s.reached ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground", current && "border-pulse bg-card text-pulse shadow-[0_0_0_5px_hsl(var(--pulse)/0.2)]")} aria-hidden="true">
               {s.reached && !current ? <Check className="h-4 w-4" /> : current ? <span className="h-2.5 w-2.5 rounded-full bg-pulse motion-safe:animate-pulse" /> : <span className="h-1.5 w-1.5 rounded-full bg-border" />}
             </span>

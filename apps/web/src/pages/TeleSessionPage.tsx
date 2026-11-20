@@ -53,19 +53,19 @@ export function TeleRoomPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5" data-testid="tele-room">
       {mock && <MockNotice kind="video" proven />}
-      <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-3xl bg-[#0C0D1F] text-white shadow-float sm:aspect-video" data-testid="tele-stage">
+      <div className="relative flex aspect-4/5 items-center justify-center overflow-hidden rounded-3xl bg-[#0C0D1F] text-white shadow-float sm:aspect-video" data-testid="tele-stage">
         {mock || !video.url ? (
           <>
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,hsl(var(--primary)/0.55),transparent_60%),radial-gradient(ellipse_at_80%_90%,hsl(var(--ocean)/0.45),transparent_55%)]" aria-hidden="true" />
             <div className="relative flex flex-col items-center gap-4 text-center">
-              <span className="flex h-24 w-24 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur"><LogoMark className="h-12 [&_svg]:text-white" /></span>
+              <span className="flex h-24 w-24 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-sm"><LogoMark className="h-12 [&_svg]:text-white" /></span>
               <div className="space-y-1"><p className="text-lg font-semibold">{t("tele.roomMock")}</p><p className="text-sm text-white/70" dir="ltr">{video.room}</p></div>
               <svg viewBox="0 0 240 24" className="h-6 w-40" aria-hidden="true"><path d="M0 12 H90 l6 -8 l7 16 l8 -22 l8 20 l4 -6 H240" fill="none" className="stroke-pulse animate-pulseline" strokeWidth="2.5" strokeDasharray="200" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
           </>
         ) : <iframe src={video.url} title={t("tele.roomFrame")} allow="camera; microphone; fullscreen" className="h-full w-full border-0" />}
-        <div className="absolute end-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm backdrop-blur" aria-live="off"><span className="h-2 w-2 rounded-full bg-success animate-pulse motion-reduce:animate-none" aria-hidden="true" /><Elapsed since={new Date(joined || Date.now()).toISOString()} /></div>
-        <div className="absolute bottom-3 end-3 flex h-24 w-20 flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-white/10 text-xs backdrop-blur sm:h-28 sm:w-36" data-testid="tele-self">
+        <div className="absolute inset-e-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm backdrop-blur-sm" aria-live="off"><span className="h-2 w-2 rounded-full bg-success animate-pulse motion-reduce:animate-none" aria-hidden="true" /><Elapsed since={new Date(joined || Date.now()).toISOString()} /></div>
+        <div className="absolute bottom-3 inset-e-3 flex h-24 w-20 flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-white/10 text-xs backdrop-blur-sm sm:h-28 sm:w-36" data-testid="tele-self">
           {cam ? <Video className="h-5 w-5 opacity-80" aria-hidden="true" /> : <VideoOff className="h-5 w-5 opacity-80" aria-hidden="true" />}<span>{t("tele.you")}{mic ? "" : ` · ${t("tele.muted")}`}{cam ? "" : ` · ${t("tele.camOff")}`}</span>
         </div>
       </div>

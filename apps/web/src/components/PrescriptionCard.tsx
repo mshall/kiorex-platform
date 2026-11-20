@@ -16,7 +16,7 @@ export function PrescriptionCard({ item, standalone = false }: { item: VaultItem
     <article className="kx-card flex flex-col gap-5 p-5 sm:flex-row" data-testid="rx-card">
       <div className="flex shrink-0 flex-col items-center gap-2">
         {d.data?.verification ? <QrImage value={d.data.verification.qrPayload} /> : <div className="h-48 w-48 animate-pulse rounded-lg bg-muted" aria-hidden="true" />}
-        <p className="max-w-[12rem] text-center text-xs text-muted-foreground">{t("records.qrHint")}</p>
+        <p className="max-w-48 text-center text-xs text-muted-foreground">{t("records.qrHint")}</p>
       </div>
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex items-center gap-2"><Pill className="h-5 w-5 text-ocean" aria-hidden="true" />

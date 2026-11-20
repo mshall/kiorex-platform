@@ -11,7 +11,7 @@ export function DateBlock({ iso, className }: { iso: string; className?: string 
   const { i18n } = useTranslation();
   const l = i18n.language;
   return (
-    <div className={cn("flex h-[4.5rem] w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-ocean text-white shadow-raised", className)} aria-hidden="true">
+    <div className={cn("flex h-18 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-linear-to-br from-primary to-ocean text-white shadow-raised", className)} aria-hidden="true">
       <span className="text-[11px] font-medium uppercase leading-4 tracking-wide opacity-90">{formatWeekdayShort(iso, l)}</span>
       <span className="kx-label-num text-2xl font-semibold leading-7">{formatDayNum(iso, l)}</span>
       <span className="text-[11px] font-medium leading-4 opacity-90">{formatMonthShort(iso, l)}</span>
@@ -38,7 +38,7 @@ export function AppointmentTicket({ booking: b, patientName }: { booking: Bookin
         <p className="flex items-center gap-1.5 text-sm"><Clock className="h-4 w-4 text-ocean" aria-hidden="true" />{rel && <span className="font-medium">{t(`results.${rel}`)} ·</span>}<span className="kx-label-num" dir="ltr">{formatTime(b.startsAt, l)}</span></p>
         <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground"><MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />{b.serviceLocation === "HOME" ? t("hv.homeVisitAt") : pick(b.clinic, "name", l)}{patientName && ` · ${patientName}`}</p>
       </div>
-      <ChevronRight className="rtl-flip h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+      <ChevronRight className="rtl-flip h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5" aria-hidden="true" />
     </Link>
   );
 }

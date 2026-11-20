@@ -42,7 +42,7 @@ export function HeroSearch({ className }: { className?: string }) {
           <label className="kx-field sm:flex-1"><Search className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="sr-only">{t("search.label")}</span>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search.placeholder")} data-testid="search-input" /></label>
-          <button type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-base font-semibold text-primary-foreground shadow-sm transition-[background-color,box-shadow,transform] hover:bg-primary/90 hover:shadow-raised active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:active:scale-100" data-testid="search-submit">
+          <button type="submit" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-base font-semibold text-primary-foreground shadow-xs transition-[background-color,box-shadow,transform] hover:bg-primary/90 hover:shadow-raised active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:active:scale-100" data-testid="search-submit">
             <Search className="h-5 w-5" aria-hidden="true" />{t("search.submit")}
           </button>
         </div>

@@ -1,8 +1,170 @@
-@import "../brand/tokens.css";
-@import "../brand/shadcn-bridge.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '../brand/tokens.css' layer(base);
+@import '../brand/shadcn-bridge.css' layer(base);
+@import 'tailwindcss';
+
+@config '../../tailwind.config.ts';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility kx-card {
+  @apply rounded-xl border bg-card text-card-foreground shadow-card;
+  transition:
+    box-shadow var(--kx-dur-base) var(--kx-ease-standard),
+    border-color var(--kx-dur-base) var(--kx-ease-standard),
+    transform var(--kx-dur-base) var(--kx-ease-standard);
+}
+
+@utility kx-card-interactive {
+  &:hover {
+    box-shadow: var(--kx-shadow-3);
+    border-color: hsl(var(--primary) / 0.35);
+    transform: translateY(-1px);
+  }
+}
+
+@utility kx-chip {
+  @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium hover:bg-accent;
+  transition:
+    background-color var(--kx-dur-fast) var(--kx-ease-standard),
+    border-color var(--kx-dur-fast) var(--kx-ease-standard);
+  &[aria-pressed='true'] {
+    @apply border-pulse bg-pulse/15;
+  }
+  &[data-active='true'] {
+    @apply border-pulse bg-pulse/15;
+  }
+}
+
+@utility kx-label-num {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility kx-page {
+  animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both;
+}
+
+@utility kx-hairline {
+  box-shadow: inset 0 -1px 0 var(--kx-hairline);
+}
+
+@utility kx-hero {
+  /* ── Q11 P2 premium surfaces ── */
+  background:
+    radial-gradient(
+      60% 80% at 100% 0%,
+      hsl(var(--ocean) / 0.16),
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 70% at 0% 100%,
+      hsl(var(--primary) / 0.14),
+      transparent 70%
+    ),
+    linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92));
+  [dir='rtl'] & {
+    background:
+      radial-gradient(
+        60% 80% at 0% 0%,
+        hsl(var(--ocean) / 0.16),
+        transparent 70%
+      ),
+      radial-gradient(
+        55% 70% at 100% 100%,
+        hsl(var(--primary) / 0.14),
+        transparent 70%
+      ),
+      linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92));
+  }
+}
+
+@utility kx-glass {
+  background: hsl(var(--card) / 0.72);
+  backdrop-filter: blur(var(--kx-blur-md));
+  -webkit-backdrop-filter: blur(var(--kx-blur-md));
+  border: 1px solid hsl(var(--border));
+}
+
+@utility kx-gradient-brand {
+  background: var(--kx-gradient);
+}
+
+@utility kx-eyebrow {
+  @apply text-xs font-semibold uppercase text-ocean;
+  letter-spacing: 0.14em;
+  html[lang='ar'] & {
+    letter-spacing: 0;
+    text-transform: none;
+    @apply text-sm;
+  }
+}
+
+@utility kx-section-title {
+  @apply text-xl md:text-2xl;
+}
+
+@utility kx-field {
+  @apply flex min-h-12 w-full items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm transition-colors hover:border-primary/50;
+  &:focus-within {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35);
+  }
+  & input {
+    @apply w-full min-w-0 border-0 bg-transparent py-2 text-base outline-hidden placeholder:text-muted-foreground;
+    box-shadow: none;
+  }
+  & select {
+    @apply w-full min-w-0 border-0 bg-transparent py-2 text-base outline-hidden placeholder:text-muted-foreground;
+    box-shadow: none;
+  }
+  & :where(input, select):focus-visible {
+    outline: none;
+  }
+}
+
+@utility kx-slot {
+  @apply inline-flex min-h-11 min-w-19 flex-col items-center justify-center rounded-xl border bg-card px-3 py-1 text-sm font-semibold;
+  transition:
+    background-color var(--kx-dur-fast) var(--kx-ease-standard),
+    border-color var(--kx-dur-fast) var(--kx-ease-standard),
+    transform var(--kx-dur-fast) var(--kx-ease-standard),
+    color var(--kx-dur-fast) var(--kx-ease-standard);
+  &:hover:not(:disabled) {
+    @apply border-primary bg-accent;
+    transform: translateY(-1px);
+  }
+  &[aria-pressed='true'] {
+    @apply border-primary bg-primary text-primary-foreground;
+    box-shadow: var(--kx-shadow-2);
+  }
+  &:disabled {
+    @apply opacity-50;
+  }
+}
+
+@utility kx-rise {
+  animation: kx-rise 520ms var(--kx-ease-decelerate) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@utility kx-divider-v {
+  @apply w-px self-stretch bg-border;
+}
 
 /* Design tokens come from the vendored brand kit (src/brand, generated from _brand/tokens.json). Do not hand-edit colours here. */
 @layer base {
@@ -21,41 +183,6 @@
   ::selection { background: hsl(var(--primary) / 0.2); }
   /* Numerals stay tabular in data surfaces */
   table, .kx-label-num { font-variant-numeric: tabular-nums; }
-}
-
-@layer components {
-  .kx-card { @apply rounded-xl border bg-card text-card-foreground shadow-card; transition: box-shadow var(--kx-dur-base) var(--kx-ease-standard), border-color var(--kx-dur-base) var(--kx-ease-standard), transform var(--kx-dur-base) var(--kx-ease-standard); }
-  .kx-card-interactive:hover { box-shadow: var(--kx-shadow-3); border-color: hsl(var(--primary) / 0.35); transform: translateY(-1px); }
-  .kx-chip { @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium hover:bg-accent; transition: background-color var(--kx-dur-fast) var(--kx-ease-standard), border-color var(--kx-dur-fast) var(--kx-ease-standard); }
-  .kx-chip[aria-pressed="true"], .kx-chip[data-active="true"] { @apply border-pulse bg-pulse/15; }
-  .kx-label-num { font-variant-numeric: tabular-nums; }
-  .kx-page { animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both; }
-  .kx-hairline { box-shadow: inset 0 -1px 0 var(--kx-hairline); }
-
-  /* ── Q11 P2 premium surfaces ── */
-  .kx-hero { background:
-      radial-gradient(60% 80% at 100% 0%, hsl(var(--ocean) / 0.16), transparent 70%),
-      radial-gradient(55% 70% at 0% 100%, hsl(var(--primary) / 0.14), transparent 70%),
-      linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92)); }
-  [dir="rtl"] .kx-hero { background:
-      radial-gradient(60% 80% at 0% 0%, hsl(var(--ocean) / 0.16), transparent 70%),
-      radial-gradient(55% 70% at 100% 100%, hsl(var(--primary) / 0.14), transparent 70%),
-      linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.92)); }
-  .kx-glass { background: hsl(var(--card) / 0.72); backdrop-filter: blur(var(--kx-blur-md)); -webkit-backdrop-filter: blur(var(--kx-blur-md)); border: 1px solid hsl(var(--border)); }
-  .kx-gradient-brand { background: var(--kx-gradient); }
-  .kx-eyebrow { @apply text-xs font-semibold uppercase text-ocean; letter-spacing: 0.14em; }
-  html[lang="ar"] .kx-eyebrow { letter-spacing: 0; text-transform: none; @apply text-sm; }
-  .kx-section-title { @apply text-xl md:text-2xl; }
-  .kx-field { @apply flex min-h-12 w-full items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm transition-colors hover:border-primary/50; }
-  .kx-field:focus-within { border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35); }
-  .kx-field input, .kx-field select { @apply w-full min-w-0 border-0 bg-transparent py-2 text-base outline-none placeholder:text-muted-foreground; box-shadow: none; }
-  .kx-field :where(input, select):focus-visible { outline: none; }
-  .kx-slot { @apply inline-flex min-h-11 min-w-[4.75rem] flex-col items-center justify-center rounded-xl border bg-card px-3 py-1 text-sm font-semibold; transition: background-color var(--kx-dur-fast) var(--kx-ease-standard), border-color var(--kx-dur-fast) var(--kx-ease-standard), transform var(--kx-dur-fast) var(--kx-ease-standard), color var(--kx-dur-fast) var(--kx-ease-standard); }
-  .kx-slot:hover:not(:disabled) { @apply border-primary bg-accent; transform: translateY(-1px); }
-  .kx-slot[aria-pressed="true"] { @apply border-primary bg-primary text-primary-foreground; box-shadow: var(--kx-shadow-2); }
-  .kx-slot:disabled { @apply opacity-50; }
-  .kx-rise { animation: kx-rise 520ms var(--kx-ease-decelerate) both; animation-delay: calc(var(--i, 0) * 70ms); }
-  .kx-divider-v { @apply w-px self-stretch bg-border; }
 }
 @keyframes kx-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes kx-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }

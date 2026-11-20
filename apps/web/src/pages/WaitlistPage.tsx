@@ -35,8 +35,8 @@ function OfferRow({ offer, entryId }: { offer: WaitlistOffer; entryId: string })
     </li>
   );
   return (
-    <li className="relative overflow-hidden rounded-2xl border border-pulse/60 bg-gradient-to-br from-pulse/15 via-card to-card p-4 shadow-card" data-testid="waitlist-offer" data-entry={entryId}>
-      <span className="absolute inset-y-0 start-0 w-1 bg-pulse" aria-hidden="true" />
+    <li className="relative overflow-hidden rounded-2xl border border-pulse/60 bg-linear-to-br from-pulse/15 via-card to-card p-4 shadow-card" data-testid="waitlist-offer" data-entry={entryId}>
+      <span className="absolute inset-y-0 inset-s-0 w-1 bg-pulse" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-3 ps-2">
         <div className="space-y-1">
           <p className="flex items-center gap-2 font-semibold"><BellRing className="h-4 w-4 text-pulse motion-safe:animate-pulse" aria-hidden="true" />{t("waitlist.offerTitle")}</p>

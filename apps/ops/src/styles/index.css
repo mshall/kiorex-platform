@@ -1,8 +1,67 @@
-@import "../brand/tokens.css";
-@import "../brand/shadcn-bridge.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '../brand/tokens.css' layer(base);
+@import '../brand/shadcn-bridge.css' layer(base);
+@import 'tailwindcss';
+
+@config '../../tailwind.config.ts';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility kx-card {
+  @apply rounded-xl border bg-card text-card-foreground shadow-card;
+  transition:
+    box-shadow var(--kx-dur-base) var(--kx-ease-standard),
+    border-color var(--kx-dur-base) var(--kx-ease-standard),
+    transform var(--kx-dur-base) var(--kx-ease-standard);
+}
+
+@utility kx-card-interactive {
+  &:hover {
+    box-shadow: var(--kx-shadow-3);
+    border-color: hsl(var(--primary) / 0.35);
+    transform: translateY(-1px);
+  }
+}
+
+@utility kx-chip {
+  @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium hover:bg-accent;
+  transition:
+    background-color var(--kx-dur-fast) var(--kx-ease-standard),
+    border-color var(--kx-dur-fast) var(--kx-ease-standard);
+  &[aria-pressed='true'] {
+    @apply border-pulse bg-pulse/15;
+  }
+  &[data-active='true'] {
+    @apply border-pulse bg-pulse/15;
+  }
+}
+
+@utility kx-label-num {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility kx-page {
+  animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both;
+}
+
+@utility kx-hairline {
+  box-shadow: inset 0 -1px 0 var(--kx-hairline);
+}
 
 /* Design tokens come from the vendored brand kit (src/brand, generated from _brand/tokens.json). Do not hand-edit colours here. */
 @layer base {
@@ -21,16 +80,6 @@
   ::selection { background: hsl(var(--primary) / 0.2); }
   /* Numerals stay tabular in data surfaces */
   table, .kx-label-num { font-variant-numeric: tabular-nums; }
-}
-
-@layer components {
-  .kx-card { @apply rounded-xl border bg-card text-card-foreground shadow-card; transition: box-shadow var(--kx-dur-base) var(--kx-ease-standard), border-color var(--kx-dur-base) var(--kx-ease-standard), transform var(--kx-dur-base) var(--kx-ease-standard); }
-  .kx-card-interactive:hover { box-shadow: var(--kx-shadow-3); border-color: hsl(var(--primary) / 0.35); transform: translateY(-1px); }
-  .kx-chip { @apply inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium hover:bg-accent; transition: background-color var(--kx-dur-fast) var(--kx-ease-standard), border-color var(--kx-dur-fast) var(--kx-ease-standard); }
-  .kx-chip[aria-pressed="true"], .kx-chip[data-active="true"] { @apply border-pulse bg-pulse/15; }
-  .kx-label-num { font-variant-numeric: tabular-nums; }
-  .kx-page { animation: kx-page-in var(--kx-dur-slow) var(--kx-ease-decelerate) both; }
-  .kx-hairline { box-shadow: inset 0 -1px 0 var(--kx-hairline); }
 }
 @keyframes kx-page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

@@ -66,7 +66,7 @@ export default function CarePlansPage() {
       ) : (
         <ul className="space-y-3">{plans.data!.map((p) => (
           <li key={p.id} className="kx-card space-y-3 p-4" data-testid="plan-row"><div className="flex items-center justify-between gap-3"><p className="flex items-center gap-2 font-semibold"><CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" />{districtLabel(p.district, i18n.language)}</p><StatusChip tone={STATUS_TONE[p.status] ?? "neutral"}>{t(`hv.planStatus.${p.status}`)}</StatusChip></div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation" aria-hidden="true"><div className="h-full rounded-full bg-gradient-to-r from-primary to-ocean" style={{ width: `${p.visits.length ? Math.round((p.completedVisits / p.visits.length) * 100) : 0}%` }} /></div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation" aria-hidden="true"><div className="h-full rounded-full bg-linear-to-r from-primary to-ocean" style={{ width: `${p.visits.length ? Math.round((p.completedVisits / p.visits.length) * 100) : 0}%` }} /></div>
             <p className="text-sm text-muted-foreground">{t("hv.planVisits", { done: p.completedVisits, total: p.visits.length })}{p.visits[0] && ` · ${formatDay(p.visits[0].startsAt, lang)}`}</p></li>
         ))}</ul>
       )}

@@ -191,7 +191,7 @@ export default function PharmacyPage() {
               <h2 id="med-h" className="flex items-center gap-2.5 text-xl"><Num n={2} />{t("pharmacy.medicines")}</h2>
               <form role="search" className="kx-field-row flex gap-2" onSubmit={(e) => { e.preventDefault(); setTerm(q); }}>
                 <Label htmlFor="med-q" className="sr-only">{t("pharmacy.searchLabel")}</Label>
-                <div className="relative flex-1"><Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input id="med-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("pharmacy.searchPlaceholder")} className="ps-10" data-testid="medicine-search" /></div>
+                <div className="relative flex-1"><Search className="pointer-events-none absolute inset-s-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input id="med-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("pharmacy.searchPlaceholder")} className="ps-10" data-testid="medicine-search" /></div>
                 <Button type="submit" data-testid="medicine-search-submit">{t("search.submit")}</Button>
               </form>
               <p className="text-xs text-muted-foreground">{t("pharmacy.controlled")}</p>
@@ -201,7 +201,7 @@ export default function PharmacyPage() {
           {desktop ? <aside className="lg:sticky lg:top-20 lg:self-start" aria-label={t("pharmacy.cart")}><h2 className="sr-only">{t("pharmacy.cart")}</h2><CartPanel pharmacy={pharmacy} /></aside> : (
             <>
               {count > 0 && (
-                <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_hsl(var(--foreground)/0.25)] backdrop-blur" data-testid="cart-bar">
+                <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_hsl(var(--foreground)/0.25)] backdrop-blur-sm" data-testid="cart-bar">
                   <Button size="lg" className="w-full justify-between" onClick={() => setSheet(true)} data-testid="open-cart"><span className="flex items-center gap-2"><ShoppingCart aria-hidden="true" />{t("p3.viewCart")} · {t("p3.cartCount", { count })}</span><span className="kx-label-num">{cart.data ? formatMinor(cart.data.totalMinor, i18n.language) : ""}</span></Button>
                 </div>
               )}

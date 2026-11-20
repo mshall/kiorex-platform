@@ -59,7 +59,7 @@ export default function LandingPage() {
           <svg className="pointer-events-none absolute inset-x-0 top-[12px] hidden h-6 w-full md:block rtl:-scale-x-100" viewBox="0 0 900 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <path d="M60 12 H300 l6 -8 l7 16 l8 -22 l8 20 l4 -6 H840" pathLength={1} fill="none" className={cn("stroke-pulse", howSeen ? "kx-draw" : "opacity-0")} style={{ ["--kx-draw-ms" as string]: "1600ms" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <svg className="pointer-events-none absolute inset-y-6 start-3 w-6 md:hidden" viewBox="0 0 24 300" preserveAspectRatio="none" aria-hidden="true">
+          <svg className="pointer-events-none absolute inset-y-6 inset-s-3 w-6 md:hidden" viewBox="0 0 24 300" preserveAspectRatio="none" aria-hidden="true">
             <path d="M12 0 V118 l-7 8 l12 14 l-9 -30 l4 8 V300" pathLength={1} fill="none" className={cn("stroke-pulse", howSeen ? "kx-draw" : "opacity-0")} style={{ ["--kx-draw-ms" as string]: "1600ms" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <ol className="relative grid gap-6 md:grid-cols-3">

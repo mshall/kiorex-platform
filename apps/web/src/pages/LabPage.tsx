@@ -142,7 +142,7 @@ export default function LabPage() {
 
           {desktop ? <aside className="lg:sticky lg:top-20 lg:self-start" aria-label={t("lab.yourBooking")}>{summary}</aside> : (
             <>
-              {picked.length > 0 && <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_hsl(var(--foreground)/0.25)] backdrop-blur" data-testid="lab-bar"><Button size="lg" className="w-full justify-between" onClick={() => setSheet(true)} data-testid="open-lab-summary"><span>{t("lab.yourBooking")} · {t("p3.testsCount", { count: picked.length })}</span><span className="kx-label-num">{formatMinor(total, lang)}</span></Button></div>}
+              {picked.length > 0 && <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_hsl(var(--foreground)/0.25)] backdrop-blur-sm" data-testid="lab-bar"><Button size="lg" className="w-full justify-between" onClick={() => setSheet(true)} data-testid="open-lab-summary"><span>{t("lab.yourBooking")} · {t("p3.testsCount", { count: picked.length })}</span><span className="kx-label-num">{formatMinor(total, lang)}</span></Button></div>}
               <Sheet open={sheet} onOpenChange={setSheet}><SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto rounded-t-3xl p-5 pb-8" data-testid="lab-sheet"><SheetHeader className="sr-only"><SheetTitle>{t("lab.yourBooking")}</SheetTitle><SheetDescription>{t("lab.payNote")}</SheetDescription></SheetHeader>{summary}</SheetContent></Sheet>
             </>
           )}

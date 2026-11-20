@@ -10,10 +10,10 @@ export function DoctorAvatar({ name, photoUrl, verified, size = "md", className 
     <div className={cn("relative shrink-0", className)}>
       <Avatar className={cn(dim, "ring-2 ring-card shadow-raised")}>
         {photoUrl && <AvatarImage src={photoUrl} alt="" className="object-cover" />}
-        <AvatarFallback className="bg-gradient-to-br from-primary/15 via-accent to-ocean/20 font-semibold text-primary">{initial}</AvatarFallback>
+        <AvatarFallback className="bg-linear-to-br from-primary/15 via-accent to-ocean/20 font-semibold text-primary">{initial}</AvatarFallback>
       </Avatar>
       {verified && (
-        <span className="absolute -bottom-0.5 -end-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-card text-ocean shadow-raised" aria-hidden="true"><BadgeCheck className="h-5 w-5" /></span>
+        <span className="absolute -bottom-0.5 -inset-e-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-card text-ocean shadow-raised" aria-hidden="true"><BadgeCheck className="h-5 w-5" /></span>
       )}
     </div>
   );

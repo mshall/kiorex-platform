@@ -182,7 +182,7 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
       <div ref={host} className="absolute inset-0" role="region" aria-label={label} />
       {!ready && <div className="absolute inset-0 grid place-items-center text-muted-foreground" aria-hidden="true"><Loader2 className="h-5 w-5 animate-spin" /></div>}
       {onLocate && (
-        <div className="absolute bottom-8 end-3 z-10 flex flex-col items-end gap-2">
+        <div className="absolute bottom-8 inset-e-3 z-10 flex flex-col items-end gap-2">
           <button type="button" onClick={locate} disabled={geo === "locating"} data-testid="near-me" className="kx-glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-md hover:bg-accent disabled:opacity-70">
             {geo === "locating" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <LocateFixed className="h-4 w-4 text-ocean" aria-hidden="true" />}{t("map.nearMe")}
           </button>
@@ -190,7 +190,7 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
       )}
       <p className="sr-only" role="status" aria-live="polite" data-testid="map-geo-status">{geo === "denied" ? t("map.denied") : geo === "unsupported" ? t("map.unsupported") : geo === "unavailable" ? t("map.unavailable") : geo === "locating" ? t("map.locating") : ""}</p>
       {(geo === "denied" || geo === "unsupported" || geo === "unavailable") && (
-        <p className="absolute start-3 top-3 z-10 max-w-[70%] rounded-lg border border-warning/50 bg-warning-soft px-3 py-2 text-xs text-warning" aria-hidden="true">{geo === "denied" ? t("map.denied") : geo === "unsupported" ? t("map.unsupported") : t("map.unavailable")}</p>
+        <p className="absolute inset-s-3 top-3 z-10 max-w-[70%] rounded-lg border border-warning/50 bg-warning-soft px-3 py-2 text-xs text-warning" aria-hidden="true">{geo === "denied" ? t("map.denied") : geo === "unsupported" ? t("map.unsupported") : t("map.unavailable")}</p>
       )}
     </div>
   );
