@@ -37,7 +37,7 @@ if (cmd === "up") {
   run("npx", ["prisma", "migrate", "deploy"], { DATABASE_URL: URL_DB });
   run("npx", ["ts-node", "--transpile-only", "prisma/seed.ts"], { DATABASE_URL: URL_DB });
   for (const key of ["kiorex.pharmacy_orders", "kiorex.lab_bookings", "kiorex.telemedicine"]) {
-    psql(DB, `INSERT INTO "FlagGateEvidence" ("flagKey","gateId","approver","approvedOn","documentUrl","recordedBy") VALUES ('${key}','E2E-FIXTURE-NOT-A-REAL-GATE','e2e fixture (not a human approval)',now(),'https://dev.invalid/e2e-fixture','E2E_FIXTURE') ON CONFLICT ("flagKey") DO NOTHING`);
+    psql(DB, `INSERT INTO "FlagGateEvidence" ("flagKey","gateId","approver","approvedOn","documentUrl","recordedBy") VALUES ('${key}','E2E-FIXTURE-NOT-A-REAL-GATE','e2e fixture (not a human approval)',now(),'https://dev.invalid/e2e-fixture','E2E_FIXTURE') ON CONFLICT ("flagKey","gateId") DO NOTHING`);
   }
   console.log("[verticals] compiling API…");
   const out = path.join(here, ".api-dist");
