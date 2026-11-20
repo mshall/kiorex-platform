@@ -84,4 +84,5 @@ Mobile (`apps/mobile`, own lockfile) reports moderate findings in Expo/Jest tool
 API unit 73/73, API integration 242/242 (includes contract, flag-OFF and OpenAPI contract suites, scratch DB), web 132/132, ops 32/32, mobile jest 115/115;
 `typecheck` and `lint` clean in every workspace; `build` for api, web and ops; OpenAPI export produces no drift (`git diff --exit-code apps/api/openapi Docs/API.md`);
 `expo export` web and iOS; `tofu fmt -check` and `tofu validate` (staging, prod); `infra/lambda/demo-seed` tests 4/4.
+The seed Dockerfile (`apps/api/Dockerfile.seed`, Node 26 Lambda base, Prisma 7) could not be built because Docker was not running; its `npm ci`, `prisma generate` and `build:seed` steps were run locally instead. Build it once before the next deploy.
 Playwright specs under `apps/web/e2e` need the full local stack (Passport, Kiorly, seeded data) and were not run; Playwright itself is at the latest version and a headless smoke of the landing page rendered correctly under Tailwind 4 with no console errors.
