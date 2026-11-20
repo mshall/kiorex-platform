@@ -8,7 +8,7 @@ import { PartnerHttpError, PartnerTransientError } from '../common/partner-http'
 import { EngagementService } from '../engagement/engagement-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService, Tx } from '../prisma/prisma.service';
 import { RecordsService } from '../records/records-public';
 import { PharmacyClient, PharmacyOrderIntent, QuoteDto } from './pharmacy.client';
 
@@ -156,8 +156,8 @@ export class PharmacyService implements OnModuleInit {
 
   // ───────────── fulfilment ─────────────
 
-  private async move(o: PharmacyOrder, from: string[], to: string, patch: Record<string, unknown> = {}) {
-    const r = await this.prisma.pharmacyOrder.updateMany({ where: { id: o.id, status: { in: from } }, data: { status: to, ...patch } });
+  private async move(o: PharmacyOrder, from: string[], to: string, patch: Record<string, unknown> = {}, db: Tx | PrismaService = this.prisma) {
+    const r = await db.pharmacyOrder.updateMany({ where: { id: o.id, status: { in: from } }, data: { status: to, ...patch } });
     return r.count > 0;
   }
 
@@ -201,9 +201,17 @@ export class PharmacyService implements OnModuleInit {
     }
   }
 
+  /** Status change + refund in ONE transaction: a reader that sees the final status also sees the refunded payment (and a crash cannot leave one without the other). */
+  private async moveAndRefund(o: PharmacyOrder, from: string[], to: 'REJECTED' | 'CANCELLED', patch: Record<string, unknown> = {}): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const moved = await this.move(o, from, to, patch, tx);
+      if (moved && o.paymentId) await this.pay.refundOrder(o.paymentId, to, tx);
+      return moved;
+    });
+  }
+
   private async reject(o: PharmacyOrder, reason: string, from: string[] = ['PAID', 'SUBMITTED', 'READY']) {
-    if (await this.move(o, from, 'REJECTED', { rejectionReason: reason.slice(0, 120) })) {
-      if (o.paymentId) await this.pay.refundOrder(o.paymentId, 'REJECTED'); // full automatic refund (KPMKT02)
+    if (await this.moveAndRefund(o, from, 'REJECTED', { rejectionReason: reason.slice(0, 120) })) { // full automatic refund (KPMKT02)
       await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_REJECTED', dedupeKey: `PHARMACY_ORDER_REJECTED:${o.id}` });
     }
     return 'REJECTED';
@@ -241,7 +249,7 @@ export class PharmacyService implements OnModuleInit {
 
   async cancel(sub: string, id: string) {
     const o = await this.owned(sub, id);
-    if (o.status === 'PENDING_PAYMENT') { await this.move(o, ['PENDING_PAYMENT'], 'CANCELLED'); if (o.paymentId) await this.pay.refundOrder(o.paymentId, 'CANCELLED'); return this.get(sub, id); }
+    if (o.status === 'PENDING_PAYMENT') { await this.moveAndRefund(o, ['PENDING_PAYMENT'], 'CANCELLED'); return this.get(sub, id); }
     if (!['PAID', 'SUBMITTED'].includes(o.status)) throw conflict('ORDER_NOT_CANCELLABLE', `Order is ${o.status}`);
     if (o.partnerOrderId) {
       try { await this.client.cancelOrder(o.partnerOrderId, 'PATIENT_CANCELLED'); } catch (e) {
@@ -249,7 +257,7 @@ export class PharmacyService implements OnModuleInit {
         throw unavailable('PHARMACY_SYSTEM_BUSY', 'Pharmacy system busy, try again shortly', { retryable: true });
       }
     }
-    if (await this.move(o, ['PAID', 'SUBMITTED'], 'CANCELLED') && o.paymentId) await this.pay.refundOrder(o.paymentId, 'CANCELLED');
+    await this.moveAndRefund(o, ['PAID', 'SUBMITTED'], 'CANCELLED');
     return this.get(sub, id);
   }
 

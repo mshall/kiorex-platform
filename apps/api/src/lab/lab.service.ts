@@ -8,7 +8,7 @@ import { PartnerHttpError, PartnerTransientError } from '../common/partner-http'
 import { EngagementService } from '../engagement/engagement-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService, Tx } from '../prisma/prisma.service';
 import { RecordsService } from '../records/records-public';
 import { LabClient, LabOrderIntent } from './lab.client';
 
@@ -91,8 +91,8 @@ export class LabService implements OnModuleInit {
   get(sub: string, id: string) { return this.owned(sub, id).then((b) => this.present(b)); }
   async opsList(status?: string) { return Promise.all((await this.prisma.labBooking.findMany({ where: status ? { status } : {}, orderBy: { createdAt: 'desc' }, take: 200 })).map(async (b) => ({ ...(await this.present(b)), sub: b.sub, platformFeeMinor: b.platformFeeMinor, takeRateBps: b.takeRateBps }))); }
 
-  private async move(b: LabBooking, from: string[], to: string, patch: Record<string, unknown> = {}) {
-    return (await this.prisma.labBooking.updateMany({ where: { id: b.id, status: { in: from } }, data: { status: to, ...patch } })).count > 0;
+  private async move(b: LabBooking, from: string[], to: string, patch: Record<string, unknown> = {}, db: Tx | PrismaService = this.prisma) {
+    return (await db.labBooking.updateMany({ where: { id: b.id, status: { in: from } }, data: { status: to, ...patch } })).count > 0;
   }
 
   async onPaid(bookingId: string) {
@@ -128,14 +128,23 @@ export class LabService implements OnModuleInit {
     }
   }
 
+  /** Status change + refund in ONE transaction: a reader that sees the final status also sees the refunded payment. */
+  private async moveAndRefund(b: LabBooking, from: string[], to: 'REJECTED' | 'CANCELLED', patch: Record<string, unknown> = {}): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const moved = await this.move(b, from, to, patch, tx);
+      if (moved && b.paymentId) await this.pay.refundOrder(b.paymentId, to, tx);
+      return moved;
+    });
+  }
+
   private async reject(b: LabBooking, reason: string) {
-    if (await this.move(b, ['PAID', 'SUBMITTED'], 'REJECTED', { rejectionReason: reason.slice(0, 120) }) && b.paymentId) await this.pay.refundOrder(b.paymentId, 'REJECTED');
+    await this.moveAndRefund(b, ['PAID', 'SUBMITTED'], 'REJECTED', { rejectionReason: reason.slice(0, 120) });
     return 'REJECTED';
   }
 
   async cancel(sub: string, id: string) {
     const b = await this.owned(sub, id);
-    if (b.status === 'PENDING_PAYMENT') { await this.move(b, ['PENDING_PAYMENT'], 'CANCELLED'); if (b.paymentId) await this.pay.refundOrder(b.paymentId, 'CANCELLED'); return this.get(sub, id); }
+    if (b.status === 'PENDING_PAYMENT') { await this.moveAndRefund(b, ['PENDING_PAYMENT'], 'CANCELLED'); return this.get(sub, id); }
     if (!['PAID', 'SUBMITTED'].includes(b.status)) throw conflict('LAB_BOOKING_NOT_CANCELLABLE', `Booking is ${b.status}`);
     if (b.partnerOrderId) {
       try { await this.client.cancelOrder(b.id, 'PATIENT_CANCELLED'); } catch (e) {
@@ -143,7 +152,7 @@ export class LabService implements OnModuleInit {
         throw unavailable('LAB_SYSTEM_BUSY', 'Lab system busy, try again shortly', { retryable: true });
       }
     }
-    if ((await this.move(b, ['PAID', 'SUBMITTED'], 'CANCELLED')) && b.paymentId) await this.pay.refundOrder(b.paymentId, 'CANCELLED');
+    await this.moveAndRefund(b, ['PAID', 'SUBMITTED'], 'CANCELLED');
     return this.get(sub, id);
   }
   async resubmit(id: string) { return { status: await this.submit(id) }; }

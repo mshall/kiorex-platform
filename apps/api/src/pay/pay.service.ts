@@ -97,11 +97,13 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Cancelled/rejected order: refund the captured amount (idempotent per reason key); cancel an uncaptured intent. */
-  async refundOrder(paymentId: string, reason: string) {
-    const p = await this.getIntent(paymentId);
-    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; }
+  async refundOrder(paymentId: string, reason: string, tx?: Tx) {
+    const db = tx ?? this.prisma;
+    const p = await db.paymentIntent.findUnique({ where: { id: paymentId } });
+    if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
+    if (p.status === 'CREATED') { await db.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; }
     if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status) || p.releasedAt) return null;
-    return this.refund(p.id, { reason, idempotencyKey: `refund-order:${p.id}:${reason}` });
+    return this.refund(p.id, { reason, idempotencyKey: `refund-order:${p.id}:${reason}` }, tx);
   }
 
   async getIntent(id: string) {
@@ -169,10 +171,12 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   // ───────────── refunds (KXM-PAY-02) ─────────────
 
   /** Idempotent by key. Over-refund is impossible: remaining is checked under a row lock. */
-  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string; reviewedBy?: string }) {
-    const existing = await this.prisma.refund.findUnique({ where: { idempotencyKey: o.idempotencyKey } });
+  /** Pass `outer` to run inside the caller's transaction (e.g. order REJECTED/CANCELLED + refund commit together, so no reader sees the new status with an un-refunded payment). */
+  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string; reviewedBy?: string }, outer?: Tx) {
+    const existing = await (outer ?? this.prisma).refund.findUnique({ where: { idempotencyKey: o.idempotencyKey } });
     if (existing) return existing;
-    return this.prisma.$transaction(async (tx) => {
+    const run = <T>(fn: (tx: Tx) => Promise<T>): Promise<T> => (outer ? fn(outer) : this.prisma.$transaction(fn));
+    return run(async (tx) => {
       const rows = await tx.$queryRaw<PaymentIntent[]>(Prisma.sql`SELECT * FROM "PaymentIntent" WHERE id = ${paymentId} FOR UPDATE`);
       const p = rows[0];
       if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
