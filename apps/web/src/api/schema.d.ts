@@ -3457,6 +3457,10 @@ export interface components {
             languages: string[];
             gender: string | null;
             distanceKm: number | null;
+            /** @description Clinic latitude for the results map; omitted for home-only providers (never a personal address) */
+            latitude?: number | null;
+            /** @description Clinic longitude for the results map; omitted for home-only providers */
+            longitude?: number | null;
             /** @description false when kiorex.marketplace is OFF: show clinicPhone instead */
             bookable: boolean;
             defaultTypeId: string | null;

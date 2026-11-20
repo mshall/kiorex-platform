@@ -8519,6 +8519,16 @@
             "type": "number",
             "nullable": true
           },
+          "latitude": {
+            "type": "number",
+            "nullable": true,
+            "description": "Clinic latitude for the results map; omitted for home-only providers (never a personal address)"
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true,
+            "description": "Clinic longitude for the results map; omitted for home-only providers"
+          },
           "bookable": {
             "type": "boolean",
             "description": "false when kiorex.marketplace is OFF: show clinicPhone instead"

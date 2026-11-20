@@ -18,7 +18,7 @@ export function mapSearchItem(i: Pick<S["SearchItemDto"], "id"> & Partial<S["Sea
     id: i.id, nameAr: i.nameAr ?? i.nameEn ?? "", nameEn: i.nameEn ?? i.nameAr ?? "", specialtyCode: i.specialty ?? "other", photoUrl: i.photoUrl ?? null,
     verified: !!i.verified, ratingAvg: i.rating?.count ? i.rating.average : null, ratingCount: i.rating?.count ?? 0, feeFromEgp: egp(i.minFeeMinor), depositRequired: !!i.acceptsDeposit,
     clinicNameAr: i.clinicNameAr ?? i.clinicNameEn ?? "", clinicNameEn: i.clinicNameEn ?? i.clinicNameAr ?? "", areaAr: i.area ?? "", areaEn: i.area ?? "",
-    distanceKm: i.distanceKm ?? null, languages: i.languages ?? [], gender: i.gender === "M" ? "M" : "F",
+    distanceKm: i.distanceKm ?? null, latitude: i.latitude ?? null, longitude: i.longitude ?? null, languages: i.languages ?? [], gender: i.gender === "M" ? "M" : "F",
     careType: i.careType, serviceLocations: (i.serviceLocations as ServiceLocation[] | undefined) ?? ["IN_CLINIC"], coverageDistricts: i.coverageDistricts ?? [],
     homeFeeEgp: i.homeVisit?.enabled ? egp(i.homeVisit.visitFeeIncludingSurchargeMinor) : null, homeSurchargeEgp: egp(i.homeVisit?.homeSurchargeMinor), badge: i.professionBadge ?? null, assignsClinician: !!i.assignsClinician,
     nextSlots: (i.nextSlots ?? []).map((s) => mapSlot(s, typeId)), sponsored: !!i.sponsored, bookable: i.bookable ?? true, clinicPhone: i.clinicPhone ?? null,

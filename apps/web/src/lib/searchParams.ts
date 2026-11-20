@@ -8,7 +8,7 @@ export function parseSearch(sp: URLSearchParams): SearchParams {
     gender: (sp.get("gender") as SearchParams["gender"]) ?? undefined, language: sp.get("language") ?? undefined,
     sort: sort ?? "earliest", maxFee: n("maxFee"), minRating: n("minRating"), acceptsDeposit: sp.get("acceptsDeposit") === "true" || undefined,
     availableWithinDays: n("availableWithinDays"), page: n("page") ?? 1,
-    careType: (sp.get("careType") as SearchParams["careType"]) ?? undefined, serviceLocation: (sp.get("serviceLocation") as SearchParams["serviceLocation"]) ?? undefined, district: sp.get("district") ?? undefined,
+    careType: (sp.get("careType") as SearchParams["careType"]) ?? undefined, serviceLocation: (sp.get("serviceLocation") as SearchParams["serviceLocation"]) ?? undefined, district: sp.get("district") ?? undefined, lat: n("lat"), lng: n("lng"),
   };
 }
 

@@ -9,7 +9,7 @@ export interface Slot { slotId: string; startsAt: string; endsAt: string; visitT
 export interface VisitType { id: string; nameAr: string; nameEn: string; feeEgp: number; durationMin: number; depositRequired: boolean; depositEgp: number | null; serviceLocation?: ServiceLocation; surchargeEgp?: number }
 export interface DoctorSummary {
   id: string; nameAr: string; nameEn: string; specialtyCode: string; photoUrl: string | null; verified: boolean; sponsored: boolean; bookable: boolean; clinicPhone: string | null; ratingAvg: number | null; ratingCount: number; feeFromEgp: number; depositRequired: boolean;
-  clinicNameAr: string; clinicNameEn: string; areaAr: string; areaEn: string; distanceKm: number | null; languages: string[]; gender: "F" | "M"; nextSlots: Slot[];
+  clinicNameAr: string; clinicNameEn: string; areaAr: string; areaEn: string; distanceKm: number | null; latitude?: number | null; longitude?: number | null; languages: string[]; gender: "F" | "M"; nextSlots: Slot[];
   careType?: CareType; serviceLocations?: ServiceLocation[]; coverageDistricts?: string[]; homeFeeEgp?: number | null; homeSurchargeEgp?: number; badge?: { en: string; ar: string } | null; assignsClinician?: boolean;
 }
 export interface Clinic { id: string; nameAr: string; nameEn: string; addressAr: string; addressEn: string; phone: string; lat: number | null; lng: number | null; paymentMethods: string[]; hoursAr: string[]; hoursEn: string[] }
@@ -45,4 +45,6 @@ export interface SearchParams {
   sort?: "earliest" | "distance" | "rating" | "fee"; maxFee?: number; minRating?: number;
   acceptsDeposit?: boolean; availableWithinDays?: number; page?: number;
   careType?: CareType; serviceLocation?: ServiceLocation; district?: string;
+  /** "Near me": the patient's position (sent with sort=distance; never stored or logged by the web app). */
+  lat?: number; lng?: number;
 }

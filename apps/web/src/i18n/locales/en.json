@@ -164,8 +164,6 @@
     "viewList": "List",
     "viewMap": "Map",
     "mapTitle": "Map view",
-    "mapSoonTitle": "Interactive map is coming soon",
-    "mapSoonBody": "Until then, results are listed with their area and distance where known.",
     "byArea": "Results on this page, by area",
     "byAreaEmpty": "No results to group yet."
   },
@@ -227,7 +225,7 @@
     "reviews": "Reviews from verified visits",
     "clinicReply": "Clinic reply",
     "clinic": "Clinic",
-    "mapPlaceholder": "Map of the clinic location (interactive map coming soon)",
+    "mapPlaceholder": "Clinic address (map unavailable)",
     "about": "About",
     "credentials": "Credentials and verification",
     "credVerified": "Verified by Kiorex",
@@ -1002,5 +1000,23 @@
     "retryNow": "Try again",
     "lastSeen": "Last active",
     "earlierOffers": "Earlier offers ({{count}})"
+  },
+  "map": {
+    "label": "Interactive map of results",
+    "clinicLabel": "Map of {{name}}",
+    "nearMe": "Near me",
+    "you": "Your location",
+    "cluster_one": "{{count}} clinic here, zoom in",
+    "cluster_other": "{{count}} clinics here, zoom in",
+    "locating": "Finding your location",
+    "denied": "Location permission was declined. Pick an area instead.",
+    "unsupported": "This browser cannot share your location.",
+    "unavailable": "We could not get your location. Try again.",
+    "selected": "Selected",
+    "pickHint": "Tap a marker to see the doctor and clinic.",
+    "noCoords": "No results on this page have a map location yet.",
+    "missing_one": "{{count}} result has no map location. See it in the list.",
+    "missing_other": "{{count}} results have no map location. See them in the list.",
+    "unsupportedBrowser": "The interactive map needs WebGL, which is not available here. Browse by area instead."
   }
 }

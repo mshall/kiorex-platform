@@ -305,7 +305,8 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
         homeVisit: { enabled: this.isHomeEnabled(r) && homeOn, homeSurchargeMinor: this.isHomeEnabled(r) ? sur : null, visitFeeIncludingSurchargeMinor: loc === 'HOME' && base !== null ? base + sur : null },
         id: r.id, nameEn: r.nameEn, nameAr: r.nameAr, clinicNameEn: r.clinicNameEn, clinicNameAr: r.clinicNameAr, specialty: r.specialty, governorate: r.governorate, area: r.area,
         minFeeMinor: r.minFeeMinor, maxFeeMinor: r.maxFeeMinor, currency: r.currency, rating: { average: r.ratingAvg, count: r.ratingCount }, acceptsDeposit: r.acceptsDeposit, languages: r.languages, gender: r.gender,
-        distanceKm: r.distance, verified: true, bookable: marketplaceOn && !!typeId && (loc === 'IN_CLINIC' || homeOn), defaultTypeId: typeId ?? null, defaultServiceLocation: loc, nextSlots, slotsUnavailable, sponsored: false,
+        distanceKm: r.distance, verified: true,
+        ...(r.serviceLocations.includes('IN_CLINIC') && r.latitude != null && r.longitude != null ? { latitude: r.latitude, longitude: r.longitude } : {}), bookable: marketplaceOn && !!typeId && (loc === 'IN_CLINIC' || homeOn), defaultTypeId: typeId ?? null, defaultServiceLocation: loc, nextSlots, slotsUnavailable, sponsored: false,
         ...(marketplaceOn ? {} : { clinicPhone: (r.raw as any)?.clinic?.phone ?? null }),
       };
     }));

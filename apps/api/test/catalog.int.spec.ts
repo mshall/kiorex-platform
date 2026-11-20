@@ -61,6 +61,8 @@ describe('catalog & search (KXM-DS-01..08, KXM-PR)', () => {
     const near = await s('sort=distance&lat=29.96&lng=31.25');
     expect(near.items[0].id).toBe('lst_a');
     expect(near.items[0].distanceKm).toBeLessThan(1);
+    expect(typeof near.items[0].latitude).toBe('number'); // KXMDS05: clinic coordinates for the results map
+    expect(typeof near.items[0].longitude).toBe('number');
     expect((await s('nextAvailable=today')).items).toHaveLength(0);
     expect((await s('nextAvailable=week')).items).toHaveLength(2);
     await c.http().get('/api/v1/search/providers?sort=bogus').expect(400);

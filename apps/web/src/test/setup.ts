@@ -18,3 +18,6 @@ afterEach(() => { server.resetHandlers(); resetMockState(); });
 afterAll(() => server.close());
 
 globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
+
+// jsdom has no canvas/WebGL: report "unsupported" quietly so map components take their fallback path (map.test.tsx stubs a context explicitly).
+HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;

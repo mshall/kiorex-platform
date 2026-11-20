@@ -1,6 +1,6 @@
 import { districtLabel } from "@/lib/districts";
-import { useEffect, useMemo, useState } from "react";
-import { List, Map as MapIcon, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { List, Map as MapIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,14 @@ import { activeFilterCount, parseSearch, toQuery } from "@/lib/searchParams";
 import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import type { SearchParams } from "@/api/types";
 import { PageHeader } from "@/components/kit";
-import { AREAS, areaLabel } from "@/lib/areas";
+import { ResultsMap } from "@/components/map/ResultsMap";
 import { cn } from "@/lib/utils";
 
 type View = "list" | "map";
 const SORTS: SearchParams["sort"][] = ["earliest", "distance", "rating", "fee"];
 
 export default function ResultsPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [sp, setSp] = useSearchParams();
   const params = parseSearch(sp);
   const localEmergency = !!params.q && isEmergencyQuery(params.q);
@@ -47,11 +47,6 @@ export default function ResultsPage() {
   }, [data]);
 
   const [view, setView] = useState<View>("list");
-  const byArea = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const d of data?.items ?? []) m.set(d.areaEn, (m.get(d.areaEn) ?? 0) + 1);
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [data]);
   const pageSize = data?.pageSize ?? 20;
   const pages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
 
@@ -86,24 +81,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {view === "map" && (
-            <section aria-label={t("results.mapTitle")} className="kx-card grid gap-4 overflow-hidden p-0 md:grid-cols-[1.2fr_1fr]" data-testid="map-placeholder">
-              <div className="relative flex min-h-44 items-center justify-center bg-accent" role="img" aria-label={t("doctor.mapPlaceholder")}>
-                <svg className="absolute inset-0 h-full w-full text-border" aria-hidden="true"><defs><pattern id="mapgrid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="currentColor" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#mapgrid)" /></svg>
-                <div className="kx-glass relative mx-4 max-w-xs rounded-2xl p-4 text-center"><MapPin className="mx-auto mb-1 h-6 w-6 text-pulse" aria-hidden="true" /><p className="text-sm font-semibold">{t("results.mapSoonTitle")}</p><p className="mt-1 text-xs text-muted-foreground">{t("results.mapSoonBody")}</p></div>
-              </div>
-              <div className="space-y-2 p-4">
-                <h2 className="text-sm font-semibold">{t("results.byArea")}</h2>
-                {byArea.length === 0 ? <p className="text-sm text-muted-foreground">{t("results.byAreaEmpty")}</p> : (
-                  <ul className="flex flex-wrap gap-2">
-                    {byArea.map(([a, n]) => (
-                      <li key={a}><button type="button" className="kx-chip min-h-10" aria-pressed={params.area === a} disabled={!AREAS.includes(a)} onClick={() => apply({ ...params, area: params.area === a ? undefined : a, page: 1 })}>{areaLabel(a, i18n.language)}<span className="kx-label-num text-xs text-muted-foreground">{n}</span></button></li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </section>
-          )}
+          {view === "map" && data && <ResultsMap items={data.items} params={params} apply={apply} />}
 
           {sponsored.data && sponsored.data.items.length > 0 && (
             <section aria-label={sponsored.data.label} className="space-y-3" data-testid="sponsored-section">

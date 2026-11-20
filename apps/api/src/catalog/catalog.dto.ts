@@ -45,6 +45,8 @@ export class SearchItemDto {
   @ApiProperty({ type: [String] }) languages!: string[];
   @ApiProperty({ nullable: true, type: String }) gender!: string | null;
   @ApiProperty({ nullable: true, type: Number }) distanceKm!: number | null;
+  @ApiProperty({ nullable: true, type: Number, required: false, description: 'Clinic latitude for the results map; omitted for home-only providers (never a personal address)' }) latitude?: number | null;
+  @ApiProperty({ nullable: true, type: Number, required: false, description: 'Clinic longitude for the results map; omitted for home-only providers' }) longitude?: number | null;
   verified!: boolean;
   @ApiProperty({ description: 'false when kiorex.marketplace is OFF: show clinicPhone instead' }) bookable!: boolean;
   @ApiProperty({ nullable: true, type: String }) defaultTypeId!: string | null;
