@@ -85,7 +85,7 @@ export const useBookings = (enabled = true) =>
 export const useBooking = (id: string, opts?: { poll?: boolean }) =>
   useQuery({
     queryKey: qk.booking(id),
-    refetchInterval: (q) => (opts?.poll && (["HELD", "PENDING_CLINIC"].includes(q.state.data?.status ?? "") || (q.state.data?.serviceLocation === "HOME" && ["CONFIRMED", "CHECKED_IN"].includes(q.state.data.status))) ? 5_000 : false),
+    refetchInterval: (q) => (opts?.poll && (["HELD", "PENDING_CLINIC"].includes(q.state.data?.status ?? "") || (q.state.data?.serviceLocation === "HOME" && (["CONFIRMED", "CHECKED_IN"].includes(q.state.data.status) || (!!q.state.data.home?.aborted && q.state.data.deposit.status === "PAID")))) ? 5_000 : false),
     queryFn: async () => mapBooking(await unwrap(api.GET("/api/v1/bookings/{id}", { params: { path: { id } } }))),
   });
 

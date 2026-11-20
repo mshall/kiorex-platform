@@ -1,5 +1,6 @@
 import { expect, type Browser, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { totpCode } from "./totp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +39,8 @@ async function uiLogin(page: Page, phone: string, home: RegExp) {
   await page.locator("#code").fill(DEV_OTP);
   await page.locator('form[action$="/verify"] button[type="submit"]').click();
   const skipPasskey = page.locator("form#finish button");
-  await Promise.race([page.waitForURL(home), skipPasskey.waitFor({ state: "visible" }).then(() => skipPasskey.click())]).catch(() => {});
+  const totp = page.locator("#totp"); // privileged roles (ops) get a TOTP challenge after the SMS code
+  await Promise.race([page.waitForURL(home), skipPasskey.waitFor({ state: "visible" }).then(() => skipPasskey.click()), totp.waitFor({ state: "visible" }).then(async () => { await totp.fill(totpCode()); await page.locator('form[action$="/totp"] button[type="submit"]').click(); await Promise.race([page.waitForURL(home), skipPasskey.waitFor({ state: "visible" }).then(() => skipPasskey.click())]); })]).catch(() => {});
   await page.waitForURL(home);
   await page.waitForFunction(() => Object.keys(sessionStorage).some((k) => k.startsWith("oidc.user:")), undefined, { timeout: 15_000 }); // callback page exchanges the code asynchronously
 }

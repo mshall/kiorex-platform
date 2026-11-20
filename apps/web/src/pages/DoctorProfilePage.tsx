@@ -201,14 +201,14 @@ export default function DoctorProfilePage() {
         )}
       </section>
 
-      <section aria-labelledby="clinic-title" className="space-y-3">
+      {offersClinic && <section aria-labelledby="clinic-title" className="space-y-3">
         <h2 id="clinic-title" className="text-xl">{t("doctor.clinic")}</h2>
         <ClinicMap clinic={p.clinic} />
         <div className="flex flex-wrap gap-4 text-sm">
           <a className="inline-flex min-h-11 items-center gap-2 text-ocean underline underline-offset-4" href={`tel:${p.clinic.phone.replace(/\s/g, "")}`}><Phone className="h-4 w-4" aria-hidden="true" /><span dir="ltr">{p.clinic.phone}</span></a>
           <span className="inline-flex min-h-11 items-center text-muted-foreground">{(lang.startsWith("ar") ? p.clinic.hoursAr : p.clinic.hoursEn).join(" · ")}</span>
         </div>
-      </section>
+      </section>}
 
       <SlotTakenDialog alternatives={booking.alternatives} onClose={booking.clearAlternatives} onPick={(s) => { booking.clearAlternatives(); setSelected(s); setDay(dayKey(s.startsAt)); }} />
     </div>

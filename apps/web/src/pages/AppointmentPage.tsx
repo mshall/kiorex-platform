@@ -55,11 +55,11 @@ export default function AppointmentPage() {
   });
   const onPayLink = () => intent.mutate(b.id, { onSuccess: (r) => window.location.assign(b.deposit.payUrl ?? r.checkoutUrl ?? "/"), onError: () => toast.error(t("checkout.depositFailed")) });
 
-  const clinicCancelled = b.status === "CANCELLED" && b.cancellation.byClinic;
+  const clinicCancelled = b.status === "CANCELLED" && b.cancellation.byClinic && !b.home?.aborted;
   const active = ["PENDING_CLINIC", "CONFIRMED"].includes(b.status);
   const refundable = b.deposit.status === "PAID";
   const isHome = b.serviceLocation === "HOME";
-  const homeLive = isHome && !!b.home && ["PENDING_CLINIC", "CONFIRMED", "CHECKED_IN", "COMPLETED", "NO_SHOW"].includes(b.status);
+  const homeLive = isHome && !!b.home && (["PENDING_CLINIC", "CONFIRMED", "CHECKED_IN", "COMPLETED", "NO_SHOW"].includes(b.status) || !!b.home.aborted); // an unsafe abort ends as CANCELLED but keeps its home sub-state
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

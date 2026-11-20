@@ -24,7 +24,7 @@ export default function CarePlansPage() {
   const home = useFeature("kiorex.home_visits");
   const plans = useCarePlans();
   const addrs = useAddresses();
-  const nurses = useSearchDoctors({ careType: "HOME_NURSING", serviceLocation: "HOME", sort: "rating" });
+  const nurses = useSearchDoctors({ careType: "HOME_NURSING", sort: "rating" });
   const create = useCreateCarePlan();
   const [providerId, setProviderId] = useState(""); const [addressId, setAddressId] = useState(""); const [start, setStart] = useState(""); const [notes, setNotes] = useState("");
   const [locked, setLocked] = useState<{ awaiting: boolean } | null>(null);

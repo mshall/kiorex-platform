@@ -894,6 +894,8 @@
       "CONFIRMED": "Confirmed",
       "ENDED": "Ended",
       "REJECTED": "Rejected"
-    }
+    },
+    "pickDistrictTitle": "Choose your district",
+    "pickDistrictHint": "Pick your district above to see providers who visit you at home."
   }
 }

@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { totpCode } from "./totp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,7 +44,8 @@ export async function signIn(page: Page, to = "/flags") {
   await page.locator("#code").fill(DEV_OTP);
   await page.locator('form[action$="/verify"] button[type="submit"]').click();
   const skip = page.locator("form#finish button");
-  await Promise.race([page.waitForURL(/localhost:5181/), skip.waitFor({ state: "visible" }).then(() => skip.click())]).catch(() => {});
+  const totp = page.locator("#totp"); // ops roles get a TOTP challenge after the SMS code
+  await Promise.race([page.waitForURL(/localhost:5181/), skip.waitFor({ state: "visible" }).then(() => skip.click()), totp.waitFor({ state: "visible" }).then(async () => { await totp.fill(totpCode()); await page.locator('form[action$="/totp"] button[type="submit"]').click(); await Promise.race([page.waitForURL(/localhost:5181/), skip.waitFor({ state: "visible" }).then(() => skip.click())]); })]).catch(() => {});
   await page.waitForURL(/localhost:5181/);
   await page.waitForFunction(() => Object.keys(sessionStorage).some((k) => k.startsWith("oidc.user:")), undefined, { timeout: 15_000 });
   const fresh = await readOidc(page);

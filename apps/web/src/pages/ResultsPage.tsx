@@ -27,7 +27,8 @@ export default function ResultsPage() {
   const [sp, setSp] = useSearchParams();
   const params = parseSearch(sp);
   const localEmergency = !!params.q && isEmergencyQuery(params.q);
-  const { data, isLoading, isFetching, error, refetch } = useSearchDoctors(params, !localEmergency);
+  const needsDistrict = params.serviceLocation === "HOME" && !params.district; // the API answers 400 DISTRICT_REQUIRED for a home search without a district
+  const { data, isLoading, isFetching, error, refetch } = useSearchDoctors(params, !localEmergency && !needsDistrict);
   const emergency = localEmergency || !!data?.emergency;
   const specialties = useSpecialties();
   const sponsored = useSponsored(!localEmergency);
@@ -54,7 +55,7 @@ export default function ResultsPage() {
       {emergency ? <EmergencyBanner /> : (
         <>
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="result-count">{data ? t("results.count", { count: data.total }) : " "}</p>
+            <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="result-count">{data && !needsDistrict ? t("results.count", { count: data.total }) : " "}</p>
             <div className="flex items-end gap-2">
               <div>
                 <Label htmlFor="sort" className="sr-only">{t("results.sort")}</Label>
@@ -71,7 +72,7 @@ export default function ResultsPage() {
               {sponsored.data.items.map((i) => <DoctorCard key={`s-${i.id}`} doctor={{ ...mapSearchItem(i), sponsored: true }} specialties={specialties.data} onPickSlot={(doc, slot) => booking.start(doc.id, slot)} />)}
             </section>
           )}
-          {isLoading ? <CardSkeleton /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : data && data.items.length === 0 ? (
+          {needsDistrict ? <EmptyState title={t("hv.pickDistrictTitle")} hint={t("hv.pickDistrictHint")} /> : isLoading ? <CardSkeleton /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : data && data.items.length === 0 ? (
             <EmptyState title={params.serviceLocation === "HOME" && params.district ? t("hv.outOfCoverageTitle") : t("results.emptyTitle")} hint={params.serviceLocation === "HOME" && params.district ? t("hv.outOfCoverageBody") : t("results.emptyHint")} action={<Button variant="outline" onClick={() => apply({ sort: params.sort })}>{t("filters.reset")}</Button>} />
           ) : (
             <div className={isFetching ? "space-y-4 opacity-70 transition-opacity" : "space-y-4"} data-testid="results-list">

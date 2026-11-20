@@ -4,3 +4,6 @@ test-results/
 playwright-report/
 e2e/verticals/.state/
 e2e/verticals/.api-dist/
+e2e/home/.state/
+e2e/home/.api-dist/
+e2e/.auth/

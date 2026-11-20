@@ -93,7 +93,7 @@ describe("held deposits (KXMPAY07)", () => {
 describe("home-visit gate metric (KXMOP06)", () => {
   it("shows per-cluster progress and never presents the metric as satisfying a gate", async () => {
     server.use(http.get("/api/v1/admin/home-visits/gate-metric", () => HttpResponse.json({
-      threshold: 50, clusterBasis: "governorate", safetyConsoleLive: true, anyMet: true, allMet: false, gates: { GHV1: { recorded: true }, GHV2: { recorded: false } },
+      threshold: 50, clusterBasis: "governorate", safetyConsoleLive: true, anyMet: true, allMet: false, gates: { GHV1: { recordedFor: ["a", "b"], requiredFor: ["a", "b"] }, GHV2: { recordedFor: ["a"], requiredFor: ["a", "b"] } },
       clusters: [{ cluster: "cairo", homeEnabledProviders: 55, threshold: 50, met: true, byCareType: { HOME_NURSING: 40, PHYSIOTHERAPY: 15 } }, { cluster: "giza", homeEnabledProviders: 12, threshold: 50, met: false, byCareType: {} }],
     })));
     renderOps(<HomeGatePage />, { lang: "en" });

@@ -6,8 +6,9 @@ import { CardSkeleton, ErrorState } from "@/components/states";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader, StatTile } from "@/components/PageHeader";
 
-type GateState = { recorded?: boolean; evidence?: unknown } | boolean | null | undefined;
-const isRecorded = (g: GateState) => (typeof g === "object" && g ? g.recorded !== false && (g.recorded === true || !!g.evidence) : g === true);
+/** Wire shape of `gates[GHV1]`: the flags this gate is required for and those a human has already recorded it for. */
+type GateState = { recordedFor?: string[]; requiredFor?: string[] } | null | undefined;
+const isRecorded = (g: GateState) => !!g && (g.requiredFor?.length ?? 0) > 0 && g.requiredFor!.every((k) => g.recordedFor?.includes(k));
 
 /** KXMOP06: home-enabled provider count per launch cluster (>= 50) next to the human-recorded gate evidence. The metric NEVER satisfies a gate (ADR-024): only a human records GHV1/GHV2. */
 export default function HomeGatePage() {
@@ -33,7 +34,7 @@ export default function HomeGatePage() {
                 {Object.entries(gates).map(([id, g]) => (
                   <li key={id} className="flex items-center gap-2 rounded-xl border p-3" data-testid={`gate-${id}`} data-recorded={isRecorded(g)}>
                     {isRecorded(g) ? <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" /> : <Hourglass className="h-5 w-5 text-warning" aria-hidden="true" />}
-                    <b>{id}</b><Badge variant={isRecorded(g) ? "success" : "warning"}>{isRecorded(g) ? t("homeGate.recorded") : t("homeGate.awaitingHuman")}</Badge>
+                    <b>{id}</b><Badge variant={isRecorded(g) ? "success" : "warning"}>{isRecorded(g) ? t("homeGate.recorded") : t("homeGate.awaitingHuman")}</Badge><span className="text-xs text-muted-foreground">{g?.recordedFor?.length ?? 0}/{g?.requiredFor?.length ?? 0}</span>
                   </li>
                 ))}
               </ul>
