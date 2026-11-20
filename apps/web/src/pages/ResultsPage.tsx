@@ -1,3 +1,4 @@
+import { districtLabel } from "@/lib/districts";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -96,7 +97,7 @@ export default function ResultsPage() {
 
 /** KXMHV02: "At home" search by district (+ OUT_OF_COVERAGE hint when no provider covers it). */
 function HomeFilter({ params, apply }: { params: SearchParams; apply: (p: SearchParams) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const districts = useHomeDistricts(params.serviceLocation === "HOME" || params.careType === "HOME_NURSING");
   const home = params.serviceLocation === "HOME";
   return (
@@ -107,7 +108,7 @@ function HomeFilter({ params, apply }: { params: SearchParams; apply: (p: Search
           <Label htmlFor="district" className="sr-only">{t("hv.district")}</Label>
           <select id="district" value={params.district ?? ""} onChange={(e) => apply({ ...params, district: e.target.value || undefined, page: 1 })} className="h-11 rounded-xl border border-input bg-card px-3 text-sm" data-testid="district-select">
             <option value="">{t("hv.anyDistrict")}</option>
-            {(districts.data ?? []).map((d) => <option key={d.district} value={d.district}>{d.district} ({d.homeEnabledProviders})</option>)}
+            {(districts.data ?? []).map((d) => <option key={d.district} value={d.district}>{districtLabel(d.district, i18n.language)} ({d.homeEnabledProviders})</option>)}
           </select>
           {districts.data && districts.data.length === 0 && <p className="text-sm text-muted-foreground" data-testid="no-districts">{t("hv.noDistricts")}</p>}
         </>

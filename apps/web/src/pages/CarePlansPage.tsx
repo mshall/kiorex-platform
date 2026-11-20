@@ -1,3 +1,4 @@
+import { districtLabel } from "@/lib/districts";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -65,7 +66,7 @@ export default function CarePlansPage() {
         <EmptyState icon={<ClipboardList className="h-10 w-10" aria-hidden="true" />} title={t("hv.noPlans")} />
       ) : (
         <ul className="space-y-3">{plans.data!.map((p) => (
-          <li key={p.id} className="kx-card space-y-1 p-4" data-testid="plan-row"><div className="flex items-center justify-between"><p className="font-medium">{p.district}</p><Badge variant={STATUS_VARIANT[p.status]}>{t(`hv.planStatus.${p.status}`)}</Badge></div>
+          <li key={p.id} className="kx-card space-y-1 p-4" data-testid="plan-row"><div className="flex items-center justify-between"><p className="font-medium">{districtLabel(p.district, i18n.language)}</p><Badge variant={STATUS_VARIANT[p.status]}>{t(`hv.planStatus.${p.status}`)}</Badge></div>
             <p className="text-sm text-muted-foreground">{t("hv.planVisits", { done: p.completedVisits, total: p.visits.length })}{p.visits[0] && ` · ${formatDay(p.visits[0].startsAt, lang)}`}</p></li>
         ))}</ul>
       )}
