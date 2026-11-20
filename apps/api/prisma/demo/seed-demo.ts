@@ -85,7 +85,7 @@ async function main() {
   const set = (key: string, scope: 'GLOBAL' | 'MARKET' | 'ORG', scopeId: string | undefined, value: 'ON' | 'OFF', reason: string) =>
     flags.setValue('DEMO_SEED', { key, scope, scopeId, value, reason: `DEV demo: ${reason}`, ticket: 'DEMO-FLAGS' } as any).catch((e) => console.warn('flag', key, e.message));
   await set('kiorex.telemedicine', 'GLOBAL', undefined, 'ON', 'telemedicine visible (mock video)');
-  await set('kiorex.whatsapp_booking', 'GLOBAL', undefined, 'OFF', 'WhatsApp booking channel switched off (non-default example)');
+  await set('clinic.waitlist_autofill', 'ORG', 'demo_t_df', 'OFF', 'waitlist auto-fill off for Delta Family Clinics (ORG-scope example)');
   await set('kiorex.sponsored_listings', 'MARKET', 'EG', 'OFF', 'no sponsored listings in Egypt yet');
   await set('clinic.kiorex_listing', 'ORG', 'demo_t_ss', 'OFF', 'Smile & Skin Studio is on trial: listing off (ORG scope example)');
   await set('lab.module', 'ORG', 'demo_lab_example', 'OFF', 'ORG-scope example row');
@@ -190,7 +190,7 @@ async function main() {
   const msgs: any[] = []; const logs: any[] = [];
   bookingsSpec.slice(0, 18).forEach((s, i) => {
     const st = (['SENT', 'DELIVERED', 'READ', 'FAILED', 'QUEUED'] as const)[i % 5]; const tpl = i % 2 ? 'booking.reminder' : 'booking.confirmed'; const ch = i % 3 === 0 ? 'EMAIL' : 'WHATSAPP';
-    msgs.push({ id: `demo_msg_${i}`, sub: sub(Number(s.patientPhone.slice(-4))), bookingId: `demo_bk_${s.key}`, channel: ch, templateId: tpl, locale: i % 2 ? 'ar' : 'en', status: st === 'QUEUED' ? 'SCHEDULED' : 'SENT', sentAt: at(-(i % 7), 8), dedupeKey: `demo:${s.key}:${tpl}` });
+    msgs.push({ id: `demo_msg_${i}`, sub: sub(Number(s.patientPhone.slice(-4))), bookingId: `demo_bk_${s.key}`, channel: ch, templateId: tpl, locale: i % 2 ? 'ar' : 'en', status: 'SENT', sentAt: at(-(i % 7), 8), dedupeKey: `demo:${s.key}:${tpl}` });
     logs.push({ id: `demo_ml_${i}`, messageId: `demo_msg_${i}`, channel: ch, direction: 'OUTBOUND', mode: 'mock', sub: sub(Number(s.patientPhone.slice(-4))), recipient: s.patientPhone, recipientMasked: `${s.patientPhone.slice(0, 6)}****${s.patientPhone.slice(-2)}`, templateId: tpl, locale: i % 2 ? 'ar' : 'en', body: `[DEMO mock] ${tpl} for ${s.doctorNameEn}`, status: st, error: st === 'FAILED' ? 'DEMO mock: simulated provider failure' : null, createdAt: at(-(i % 7), 8), sentAt: st !== 'QUEUED' ? at(-(i % 7), 8) : null, deliveredAt: ['DELIVERED', 'READ'].includes(st) ? at(-(i % 7), 8, 1) : null, readAt: st === 'READ' ? at(-(i % 7), 8, 9) : null, failedAt: st === 'FAILED' ? at(-(i % 7), 8, 1) : null });
   });
   await many('message', msgs).catch((e) => console.warn('messages:', String(e.message).slice(0, 120)));
