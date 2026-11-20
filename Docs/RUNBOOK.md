@@ -38,3 +38,13 @@ Local dependencies: Kiorly API `:3000` (marketplace client `kx_dev_client`), Pas
 - Waitlist (KXM-BK-12): `POST /waitlist` for a doctor that already has open slots in the requested window returns `409 SLOTS_AVAILABLE {nextSlots, openSlotCount}` (book directly); the waitlist is only for full schedules. Autofill only offers slots freed AFTER joining and never books: accept is always the patient's own call.
 - Guards: `src/no-tax-authority.unit.spec.ts` (no tax-authority reporting), `src/module-boundaries.unit.spec.ts`.
 
+
+
+## Home visits / Nurse (Rev 2.3)
+
+- Apply migrations to dev and test DBs: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform?schema=public npx prisma migrate deploy` (and `..._test`). Migration `20261120040000_home_visits_rev23` is additive (the pg_trgm index is untouched).
+- Re-seed flags: `npm run db:seed -w apps/api` (registers the 15 keys; adds `DEV-ONLY-NOT-A-REAL-GATE:GHV1/GHV2/GPR1` dev evidence only, never GKN1/GKN2). Then `POST /admin/providers/sync?full=true` to pick up profession/coverage from Kiorly.
+- Modes: `MAPS_MODE=mock`, `SAFETY_DELIVERY_MODE=mock`, `MESSAGING_MODE=mock`; tuning: `HOME_DEPOSIT_DEFAULT_MINOR`, `ADDRESS_MASK_HOURS=24`, `SAFETY_ACK_ESCALATE_MINUTES=10`, `HOME_COMPLAINT_SLA_MINUTES=60`, `FAMILY_SHARE_MAX=3`, `HOME_GATE_MIN_PROVIDERS=50`.
+- Safety alert not delivered / unacknowledged: console `GET /admin/safety/alerts` (`needsEscalation`, `slo.breached`), `POST /admin/safety/sweep` retries delivery and auto-escalates; escalate manually with `POST /admin/safety/alerts/{id}/escalate`.
+- Deposit held for review: `GET /admin/payments/held-for-review`, decide with `/admin/payments/{paymentId}/review/release|refund` (reason required). Nothing moves a held deposit automatically; payouts and nightly reconciliation skip it.
+- Address masking sweep runs every 15 min with jobs enabled; lazily masked on read regardless.

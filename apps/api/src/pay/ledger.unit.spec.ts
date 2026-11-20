@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { A, assertValid, capture, identityHolds, LedgerBook, LedgerError, payout, pspFee, refundRequest, refundSettle, release, releaseOrder } from './ledger';
+import { A, assertValid, capture, holdForReview, identityHolds, LedgerBook, LedgerError, payout, pspFee, refundFromReview, refundRequest, refundSettle, release, releaseFromReview, releaseOrder } from './ledger';
 
 /** Money-path property tests (fast-check) — KXM-PAY-05 ledger invariants. */
 type Op =
@@ -126,5 +126,45 @@ describe('ledger invariants (property-based)', () => {
       expect(b.post({ key: 'r', kind: 'RELEASE_ORDER_PHARMACY', postings: releaseOrder('ph:1', total, fee) })).toBe(false); // idempotent
     }), { numRuns: 200 });
     expect(() => assertValid(releaseOrder('ph:1', 1000, 1001))).toThrow(LedgerError); // a fee above the order cannot balance
+  });
+});
+
+
+describe('hold-for-review ledger state (KXMPAY07, property-based)', () => {
+  type ROp = { t: 'capture'; amt: number } | { t: 'hold' } | { t: 'release' } | { t: 'refund' } | { t: 'complete' };
+  const rop: fc.Arbitrary<ROp> = fc.oneof(fc.record({ t: fc.constant('capture' as const), amt: fc.integer({ min: 100, max: 500_000 }) }), fc.constant({ t: 'hold' as const }), fc.constant({ t: 'release' as const }), fc.constant({ t: 'refund' as const }), fc.constant({ t: 'complete' as const }));
+
+  /** Reference model of PayService: one deposit; states NONE -> CAPTURED -> (HELD | RELEASED) -> (PAYABLE | REFUND). */
+  function run(ops: ROp[]) {
+    const book = new LedgerBook(); let amt = 0, state = 'NONE';
+    for (const o of ops) {
+      if (o.t === 'capture' && state === 'NONE') { book.post({ key: 'c', kind: 'CAPTURE', postings: capture('c1', o.amt) }); amt = o.amt; state = 'CAPTURED'; }
+      else if (o.t === 'hold' && state === 'CAPTURED') { book.post({ key: 'h', kind: 'HOLD', postings: holdForReview('c1', amt) }); state = 'HELD'; }
+      else if (o.t === 'hold' && state === 'HELD') expect(book.post({ key: 'h', kind: 'HOLD', postings: holdForReview('c1', amt) })).toBe(false); // idempotent replay
+      else if (o.t === 'release' && state === 'HELD') { book.post({ key: 'rr', kind: 'RELEASE', postings: releaseFromReview('c1', amt) }); state = 'PAYABLE'; }
+      else if (o.t === 'refund' && state === 'HELD') { book.post({ key: 'rf', kind: 'REFUND', postings: refundFromReview('c1', amt) }); book.post({ key: 'rs', kind: 'SETTLE', postings: refundSettle(amt) }); state = 'REFUNDED'; }
+      else if (o.t === 'complete' && state === 'CAPTURED') { book.post({ key: 'rel', kind: 'RELEASE', postings: release('c1', amt) }); state = 'COMPLETED'; }
+    }
+    return { book, amt, state };
+  }
+  it('always balanced; accounting identity holds; REVIEW_HOLD never negative; money is in exactly one place', () => {
+    fc.assert(fc.property(fc.array(rop, { maxLength: 30 }), (ops) => {
+      const { book, amt, state } = run(ops);
+      const t = book.totals();
+      expect(t.debit).toBe(t.credit);
+      expect(identityHolds(book)).toBe(true);
+      expect(book.balance(A.reviewHold('c1'))).toBe(state === 'HELD' ? amt : 0);
+      expect(book.balance(A.held('c1'))).toBe(state === 'CAPTURED' ? amt : 0);
+      expect(book.balance(A.payable('c1'))).toBe(state === 'PAYABLE' || state === 'COMPLETED' ? amt : 0);
+    }), { numRuns: 300 });
+  });
+  it('never auto-forfeits: only an explicit review release moves held money to the provider; a hold needs a capture first', () => {
+    const book = new LedgerBook();
+    expect(() => book.post({ key: 'x', kind: 'HOLD', postings: holdForReview('c1', 100) })).toThrow(LedgerError); // nothing captured
+    book.post({ key: 'c', kind: 'CAPTURE', postings: capture('c1', 500) });
+    book.post({ key: 'h', kind: 'HOLD', postings: holdForReview('c1', 500) });
+    expect(book.balance(A.payable('c1'))).toBe(0);
+    expect(() => book.post({ key: 'over', kind: 'RELEASE', postings: releaseFromReview('c1', 600) })).toThrow(LedgerError); // cannot release more than held
+    expect(() => assertValid(refundFromReview('c1', 0))).toThrow(LedgerError);
   });
 });

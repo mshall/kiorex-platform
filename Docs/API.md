@@ -18,6 +18,16 @@
 - **Consents** purposes: `MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING`; record-share scopes: `VISIT_SUMMARY | PRESCRIPTIONS | LAB_RESULTS | SHARE_WITH_OTHER_CLINICS`.
 - **Emergency routing** is a safety control, never a flag: search/AI/WhatsApp/telemedicine matching return `emergency { number: "123", bookingBlocked: true }` for emergency language.
 
+## address-book
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/me/addresses` | KXMHV01 address book (encrypted at rest; only the owner ever receives doorstep lines) |
+| POST | `/api/v1/me/addresses` | KXMHV01 add an address: label, governorate, district code, street, building, floor, flat, landmark, optional map pin |
+| PUT | `/api/v1/me/addresses/{id}` |  |
+| DELETE | `/api/v1/me/addresses/{id}` |  |
+| POST | `/api/v1/me/addresses/{id}/confirm` | KXMHV01 confirm this address with the OTP-verified phone (required once before the first home booking; any edit of district/street resets it) |
+
 ## ai
 
 | Method | Path | Summary |
@@ -41,7 +51,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04) |
+| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered |
 | GET | `/api/v1/bookings` |  |
 | POST | `/api/v1/bookings/{id}/confirm` | KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id) |
 | POST | `/api/v1/bookings/{id}/release` |  |
@@ -59,6 +69,8 @@
 | GET | `/api/v1/specialties` | Specialty codes with AR/EN labels |
 | GET | `/api/v1/providers/{id}` | KXM-PR-01/02/04 provider profile |
 | GET | `/api/v1/providers/{id}/slots` | KXM-BK-01 slots from Kiorly (60 s cache) |
+| GET | `/api/v1/care-types` | KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*) |
+| GET | `/api/v1/home/districts` | KXMHV02 districts with at least one home-enabled provider (district level only) |
 | POST | `/api/v1/providers/{id}/view` | KXM-DS-08 count a profile view (pushed daily to Kiorly) |
 | GET | `/api/v1/search/sponsored` | Sponsored listings (P3, flag kiorex.sponsored_listings). No sponsorship commercial terms exist yet (NEEDS_HUMAN): always empty, always labelled |
 
@@ -78,6 +90,8 @@
 | GET | `/api/v1/admin/flags` | Every flag of every product with effective value, source, class, deps, last change (OP-07) |
 | PUT | `/api/v1/admin/flags/{key}/values` | Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10) |
 | PUT | `/api/v1/admin/flags/{key}/gate` | Record launch gate evidence (OP-09). STOP flag: only a human may call this. |
+| GET | `/api/v1/admin/gates` | Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag |
+| PUT | `/api/v1/admin/gates/{gateId}` | Record ONE gate for every launch-locked flag that lists it (e.g. GHV1 -> clinic.home_visits + kiorex.home_visits). STOP action: only a human calls this; one audited evidence row per flag. |
 | POST | `/api/v1/admin/flags/{key}/gate/revoke` |  |
 | POST | `/api/v1/admin/flags/definitions` | Register a flag definition (e.g. market.<cc>.live). Safety controls are refused (ADR-025). |
 | GET | `/api/v1/admin/flags/requests` |  |
@@ -115,6 +129,21 @@
 | GET | `/api/v1/health/live` |  |
 | GET | `/api/v1/health/ready` |  |
 
+## home-visits
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/bookings/{id}/family-shares` | KXMHV07 share the visit status with a family contact by WhatsApp link (max 3; needs consentAttested + VISIT_STATUS_SHARING consent) |
+| GET | `/api/v1/bookings/{id}/family-shares` |  |
+| DELETE | `/api/v1/bookings/{id}/family-shares/{shareId}` |  |
+| GET | `/api/v1/public/visit-status/{token}` | Family link (no login): visit status only. Never address, fee, phone or reasons |
+| POST | `/api/v1/public/visit-status/{token}/stop` | Family contact stops the updates (STOP) |
+| GET | `/api/v1/bookings/{id}/safety-card` | KXMHV09 safety card: provider photo, name and badge before arrival, emergency number, report-a-problem |
+| POST | `/api/v1/bookings/{id}/report-problem` | KXMHV09 report a problem during/after a home visit: routes to ops with a 1 h SLA (KXMOP05) |
+| POST | `/api/v1/care-plans` | KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective |
+| GET | `/api/v1/care-plans` |  |
+| GET | `/api/v1/care-plans/{id}` |  |
+
 ## lab
 
 | Method | Path | Summary |
@@ -146,6 +175,10 @@
 | POST | `/api/v1/admin/outbox/{id}/replay` | KXM-OP-03 replay a DEAD/FAILED event |
 | GET | `/api/v1/admin/payments/dashboard` | KXM-OP-04 refunds, payouts, reconciliation dashboard |
 | POST | `/api/v1/admin/payments/refund` |  |
+| GET | `/api/v1/admin/payments/held-for-review` | KXMPAY07 deposits of unsafe-aborted home visits held for ops review (never auto-forfeited) |
+| POST | `/api/v1/admin/payments/{paymentId}/review/release` | KXMPAY07 review decision: release the held deposit to the provider (reason required, audited) |
+| POST | `/api/v1/admin/payments/{paymentId}/review/refund` | KXMPAY07 review decision: refund the held deposit to the patient (reason required, audited) |
+| GET | `/api/v1/admin/home-visits/gate-metric` | Home-visit release gate: >=50 home-enabled providers per launch cluster, GHV1/GHV2 evidence state, safety console live. The metric never satisfies a gate |
 | GET | `/api/v1/admin/fee-statements` | Kiorex's own marketplace fee statement per partner (pharmacy/lab take); VAT is a config line. |
 | POST | `/api/v1/admin/payouts/run` |  |
 | POST | `/api/v1/admin/reconciliation/psp/run` |  |
@@ -167,6 +200,15 @@
 | GET | `/api/v1/admin/partners` | OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked |
 | POST | `/api/v1/admin/partners/{kind}` | OP: register a partner (pharmacy|lab) |
 | PUT | `/api/v1/admin/partners/{kind}/{id}` | OP: update base URL / keys / active of a partner registration |
+| GET | `/api/v1/admin/safety/alerts` | KXMOP12 SAFETY_ALERT_RAISED feed with the 60 s delivery SLO fields |
+| GET | `/api/v1/admin/safety/summary` |  |
+| GET | `/api/v1/admin/safety/escalations` |  |
+| GET | `/api/v1/admin/safety/unsafe-aborts` |  |
+| GET | `/api/v1/admin/safety/alerts/{id}` |  |
+| POST | `/api/v1/admin/safety/alerts/{id}/acknowledge` |  |
+| POST | `/api/v1/admin/safety/alerts/{id}/escalate` |  |
+| POST | `/api/v1/admin/safety/alerts/{id}/resolve` |  |
+| POST | `/api/v1/admin/safety/sweep` | Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes |
 
 ## patient
 

@@ -6405,12 +6405,16 @@
               "review_submitted",
               "waitlist_joined",
               "vault_opened",
-              "whatsapp_link_clicked"
+              "whatsapp_link_clicked",
+              "home_search_started",
+              "home_out_of_coverage",
+              "safety_card_viewed",
+              "family_share_started"
             ]
           },
           "props": {
             "type": "object",
-            "description": "Only these keys are accepted: specialtyCode, providerId, market, code. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400.",
+            "description": "Only these keys are accepted: specialtyCode, providerId, market, code, district, careType, serviceLocation. Values: specialty code, id, ISO market, SCREAMING_SNAKE code. Anything else is a 400.",
             "additionalProperties": {
               "type": "string"
             }

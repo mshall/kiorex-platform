@@ -40,3 +40,18 @@ Kiorly -> Kiorex events (KX-11): `VISIT_SUMMARY_SHARED` (HMAC `KIOREX_RECORD_SHA
 ## Waitlist (BK-12) and WhatsApp (BK-11)
 
 See NEEDS_HUMAN #19/#20: Kiorex-side waitlist (slots API + `SLOTS_CHANGED`, honours `clinic.waitlist_autofill`) and a WhatsApp conversation state machine (`IDLE -> CHOOSE_SPECIALTY -> CHOOSE_DOCTOR -> CHOOSE_SLOT -> CONFIRM`, waitlist offer when no slots) over the same BookingService. Emergency language interrupts any step with the 123 guidance.
+
+
+## Home care: doctors, physiotherapy, home nursing (Rev 2.3, KXMHV01-10, KXMPAY07, KXMOP12)
+
+Kiorex owns search, address, intent, deposit, timeline and family sharing; Kiorly Clinic/Nurse own scheduling, zones, dispatch, visit record and the safety timer. Contracts: kiorex-contracts 1.5.0 (events HOME_VISIT_ASSIGNED / _EN_ROUTE / _ABORTED_UNSAFE, SAFETY_ALERT_RAISED, CARE_PLAN_*; `serviceLocation`/`district` on slots, `visitAddress` on holds, 422 OUT_OF_COVERAGE).
+
+- **Flags** (15 new keys): `kiorex.home_visits` (GHV1+GHV2, money-path => two-person OFF, depends on `clinic.home_visits`), `kiorex.category.physiotherapy` (GPR1), `kiorex.category.nursing`, `kiorex.visit_tracking`, `nurse.*` (served in the kiorly-clinic snapshot), `nurse.care_plans` (GKN1). Safety timer, SOS, unsafe-abort and address masking are never flags (ADR-025).
+- **Projections**: `Provider.profession/careType/serviceLocations/coverageDistricts/assignsClinician/homeSurchargeMinor`; coverage is DISTRICT level only, no provider address (KXMDS05). Care types: DOCTORS, PHYSIOTHERAPY, HOME_NURSING (`GET /care-types`, `careType` filter).
+- **Address book** (`/me/addresses`): doorstep lines AES-GCM encrypted, one confirmation with the OTP-verified phone before the first home booking. A booking keeps an encrypted snapshot (`BookingVisitAddress`) that is masked 24 h after the visit (`ADDRESS_MASK_HOURS`). Addresses never appear in logs, analytics, receipts, audit rows or the provider projection (leak test in `test/home-visits.int.spec.ts`).
+- **State machine**: KX-03 §05 statuses plus home sub-state ASSIGNED < EN_ROUTE < ARRIVED; ABORTED_UNSAFE => CANCELLED (never a no-show, no counter). `kiorex.visit_tracking` OFF suppresses on-the-way updates.
+- **Money**: home surcharge is provider revenue on its own line (never S or C). Unsafe abort moves the captured deposit HELD -> `REVIEW_HOLD:<clinic>` (ledger key `hold-review:<payment>`); only an ops decision releases it to the provider payable or refunds it (`/admin/payments/{id}/review/release|refund`, reason + audit). Reconciliation flags a held deposit without its ledger row.
+- **Safety console** (`/admin/safety/*`): feed with `slo {seconds, deadlineAt, deliveryLagSeconds, met, breached}`, acknowledge / escalate / resolve, summary, escalation log, unsafe aborts; unacknowledged for 10 min => auto-escalation by the sweep (`SAFETY_ACK_ESCALATE_MINUTES`). Delivery adapter `SAFETY_DELIVERY_MODE=mock|real`.
+- **Family share**: up to 3 contacts, WhatsApp (mock adapter), needs the patient's `VISIT_STATUS_SHARING` consent + attestation; public link shows status only; contact can STOP.
+- **Care plans (P3 draft)**: `/care-plans`, behind `nurse.care_plans` (GKN1); each visit is a normal booking with `carePlanId`.
+- **Ops**: complaints about home visits have a 1 h SLA (KXMOP05); liquidity adds care-type/location events, home-enabled providers per district and safety alerts (KXMOP06); `GET /admin/home-visits/gate-metric` shows >=50 home-enabled providers per cluster.
