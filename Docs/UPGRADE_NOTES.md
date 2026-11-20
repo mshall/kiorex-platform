@@ -8,7 +8,7 @@ Nothing was pushed, deployed or applied: infra changes are edits plus `tofu vali
 
 | Area | Before | After |
 |---|---|---|
-| Node.js | 22 (CI, Lambda image), `>=20` engines, no `.nvmrc` | **26 LTS** (`.nvmrc`, `engines >=26`, CI `setup-node` 26, `lambda/nodejs:26`, Lambda runtime `nodejs26.x`) |
+| Node.js | 22 (CI, Lambda image), `>=20` engines, no `.nvmrc` | **26 LTS** (`.nvmrc`, `engines >=26`, CI `setup-node` 26, `lambda/nodejs:26`, Lambda runtime `nodejs24.x` (AWS lists nodejs26.x as preview only)) |
 | npm | 11 | **12** (`engines >=12`) |
 | TypeScript | 5.9 | **6.0.3** (7.0 blocked, see below) |
 | NestJS (`common/core/platform-express/testing`) | 10.4 | **12.5** (Express 5 types, ESM packages) |
