@@ -1,7 +1,7 @@
 const base = {
   preset: "ts-jest",
   testEnvironment: "node",
-  transform: { "^.+\\.ts$": ["ts-jest", { isolatedModules: true, diagnostics: false }] },
+  transform: { "^.+\\.ts$": ["ts-jest", { diagnostics: false }] },
   moduleFileExtensions: ["ts", "js", "json"],
   rootDir: ".",
 };
