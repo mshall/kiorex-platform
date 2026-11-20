@@ -16,6 +16,9 @@ const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const FeesPage = lazy(() => import("@/pages/FeesPage"));
 const OrdersPage = lazy(() => import("@/pages/OrdersPage"));
 const OperationsPage = lazy(() => import("@/pages/OperationsPage"));
+const SafetyPage = lazy(() => import("@/pages/SafetyPage"));
+const HeldDepositsPage = lazy(() => import("@/pages/HeldDepositsPage"));
+const HomeGatePage = lazy(() => import("@/pages/HomeGatePage"));
 const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
@@ -38,6 +41,9 @@ export function AppRoutes() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="fees" element={<FeesPage />} />
           <Route path="operations" element={<OperationsPage />} />
+          <Route path="safety" element={<SafetyPage />} />
+          <Route path="held-deposits" element={<HeldDepositsPage />} />
+          <Route path="home-gate" element={<HomeGatePage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>

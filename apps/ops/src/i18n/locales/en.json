@@ -14,7 +14,10 @@
     "messaging": "Messaging",
     "orders": "Orders",
     "fees": "Fee statements",
-    "operations": "Operations"
+    "operations": "Operations",
+    "safety": "Safety console",
+    "held": "Held deposits",
+    "homeGate": "Home-visit gate"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -25,7 +28,9 @@
     "search": "Search",
     "all": "All",
     "empty": "Nothing to show",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No"
   },
   "states": {
     "loading": "Loading…",
@@ -111,7 +116,8 @@
       "flags": "Flags",
       "approvals": "Approvals",
       "audit": "Audit trail",
-      "propagation": "Propagation"
+      "propagation": "Propagation",
+      "gates": "Launch gates"
     },
     "key": "Flag",
     "product": "Product",
@@ -177,7 +183,12 @@
     "behind": "Versions behind",
     "age": "Snapshot age",
     "lastPush": "Last push",
-    "noWebhook": "no webhook"
+    "noWebhook": "no webhook",
+    "gateMissing": "awaiting evidence",
+    "gatesHint": "Launch gates are recorded by a human with the approver, date and document. Recording a gate satisfies it for every flag that lists it. The console never records one on its own.",
+    "unlocks": "Unlocks",
+    "gateEvidence": "recorded",
+    "evidence": "Evidence"
   },
   "messaging": {
     "title": "Messaging log",
@@ -256,5 +267,96 @@
     "scanned": "{{created}} offers created, {{expired}} expired.",
     "offersCreated": "Offers created",
     "offersExpired": "Offers expired"
+  },
+  "safety": {
+    "title": "Safety console",
+    "hint": "Home-visit alerts (SAFETY_ALERT_RAISED) must reach on-call within {{s}} s. Acknowledge within 10 minutes or they escalate.",
+    "open": "Open alerts",
+    "unacknowledged": "Unacknowledged",
+    "sloBreaches": "SLO breaches",
+    "unsafeAborts": "Unsafe aborts",
+    "heldDeposits": "Deposits held",
+    "median": "Median delivery",
+    "p95": "p95 delivery",
+    "mode": "Delivery mode",
+    "mockNote": "Mock on-call delivery: alerts are recorded as delivered, nobody is paged. Connect the on-call provider before launch.",
+    "status": "Status",
+    "feed": "Safety alert feed",
+    "none": "No alerts",
+    "kind": "Kind",
+    "kinds": {
+      "TIMER_EXPIRED": "Check-in timer expired",
+      "SOS": "SOS",
+      "UNSAFE_ABORT": "Unsafe abort"
+    },
+    "slo": "Delivery SLO",
+    "sloLeft": "{{s}} s left",
+    "sloBreached": "SLO breached",
+    "sloMet": "Delivered in {{s}} s",
+    "sloLate": "Delivered late ({{s}} s)",
+    "st": {
+      "RAISED": "Raised",
+      "ACKNOWLEDGED": "Acknowledged",
+      "ESCALATED": "Escalated",
+      "RESOLVED": "Resolved"
+    },
+    "needsEscalation": "Unacknowledged too long",
+    "district": "District",
+    "provider": "Provider",
+    "raised": "Raised",
+    "acknowledge": "Acknowledge",
+    "escalate": "Escalate",
+    "resolve": "Resolve",
+    "acknowledgeTitle": "Acknowledge this alert",
+    "acknowledgeBody": "You are taking ownership. The patient and provider are not notified by this action.",
+    "escalateTitle": "Escalate this alert",
+    "escalateBody": "Raises the escalation level and pages the next on-call contact.",
+    "resolveTitle": "Resolve this alert",
+    "resolveBody": "Close the alert once the situation is handled.",
+    "note": "Note (optional)",
+    "done": "Done",
+    "sweep": "Retry and escalate",
+    "swept": "Retried {{retried}}, escalated {{escalated}}"
+  },
+  "held": {
+    "title": "Held deposits",
+    "hint": "Deposits of unsafe-aborted home visits wait here for a human decision. They are never forfeited automatically.",
+    "none": "No deposits are waiting for review",
+    "booking": "Booking",
+    "amount": "Amount",
+    "district": "District",
+    "reason": "Reason",
+    "age": "Held since",
+    "ageHours": "{{h}} h ago",
+    "release": "Release to provider",
+    "refund": "Refund patient",
+    "releaseTitle": "Release the deposit to the provider?",
+    "releaseBody": "{{amount}} goes to the provider. This is audited and cannot be undone.",
+    "refundTitle": "Refund the patient?",
+    "refundBody": "{{amount}} is refunded to the patient. This is audited and cannot be undone.",
+    "reasonLabel": "Reason for the decision",
+    "done": "Decision recorded"
+  },
+  "homeGate": {
+    "title": "Home-visit launch gate",
+    "hint": "Home-enabled providers per launch cluster (KXMOP06). This metric never satisfies a gate: only a human records GHV1 and GHV2.",
+    "threshold": "Minimum per cluster",
+    "anyMet": "Any cluster met",
+    "allMet": "All clusters met",
+    "safetyConsole": "Safety console",
+    "live": "Live",
+    "notLive": "Not live",
+    "evidence": "Human-recorded gate evidence",
+    "evidenceHint": "Counsel memo (GHV1) and CMO safety protocol (GHV2) are recorded by a super admin on the Flags page.",
+    "recorded": "Recorded",
+    "awaitingHuman": "Awaiting a human",
+    "clusters": "Clusters by {{basis}}",
+    "noClusters": "No home-enabled providers yet",
+    "cluster": "Cluster ({{basis}})",
+    "providers": "Home-enabled providers",
+    "byCareType": "By care type",
+    "status": "Status",
+    "met": "Met",
+    "short": "{{n}} short"
   }
 }

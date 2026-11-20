@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Activity, Banknote, Building2, Flag, Languages, LogOut, MessagesSquare, Moon, PackageCheck, Receipt, Route, ScrollText, Settings2, ShieldCheck, Sun, Waves } from "lucide-react";
+import { Activity, Banknote, HandCoins, House, Siren, Building2, Flag, Languages, LogOut, MessagesSquare, Moon, PackageCheck, Receipt, Route, ScrollText, Settings2, ShieldCheck, Sun, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/auth/AuthProvider";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/providers", icon: Building2, key: "providers" }, { to: "/bookings", icon: Route, key: "bookings" }, { to: "/outbox", icon: Activity, key: "outbox" },
-  { to: "/finance", icon: Banknote, key: "finance" }, { to: "/moderation", icon: ShieldCheck, key: "moderation" }, { to: "/liquidity", icon: Waves, key: "liquidity" }, { to: "/messaging", icon: MessagesSquare, key: "messaging" }, { to: "/orders", icon: PackageCheck, key: "orders" }, { to: "/fees", icon: Receipt, key: "fees" }, { to: "/operations", icon: Settings2, key: "operations" }, { to: "/flags", icon: Flag, key: "flags" },
+  { to: "/finance", icon: Banknote, key: "finance" }, { to: "/moderation", icon: ShieldCheck, key: "moderation" }, { to: "/liquidity", icon: Waves, key: "liquidity" }, { to: "/messaging", icon: MessagesSquare, key: "messaging" }, { to: "/orders", icon: PackageCheck, key: "orders" }, { to: "/fees", icon: Receipt, key: "fees" }, { to: "/operations", icon: Settings2, key: "operations" }, { to: "/safety", icon: Siren, key: "safety" }, { to: "/held-deposits", icon: HandCoins, key: "held" }, { to: "/home-gate", icon: House, key: "homeGate" }, { to: "/flags", icon: Flag, key: "flags" },
 ] as const;
 
 export function OpsLayout() {

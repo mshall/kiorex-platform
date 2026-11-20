@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useGateBoard, useRecordGateAll } from "@/api/home";
 import { downloadAuditCsv, useDecideRequest, useFlagAudit, useFlagRequests, useFlags, usePropagation, useRecordGate, useRevokeGate, useSetFlag, type FlagRow } from "@/api/hooks";
 import { ApiError } from "@/api/errors";
 import { CardSkeleton, ErrorState } from "@/components/states";
@@ -125,7 +126,8 @@ function FlagsTab({ canAct }: { canAct: boolean }) {
       {flags.isLoading ? <CardSkeleton rows={2} /> : flags.error ? <ErrorState error={flags.error} onRetry={() => void flags.refetch()} /> : (
         <DataTable caption={t("flags.title")} rows={rows} rowKey={(f) => f.key} empty={t("common.empty")} columns={[
           { key: "k", header: t("flags.key"), cell: (f) => <div><code className="text-xs font-semibold" dir="ltr">{f.key}</code><div className="mt-1 flex gap-1"><Badge variant="secondary">{f.product}</Badge>{f.moneyPath && <Badge variant="warning">{t("flags.money")}</Badge>}</div></div> },
-          { key: "c", header: t("flags.class"), cell: (f) => f.launchLocked ? <Badge variant="pulse"><Lock className="me-1 h-3 w-3" aria-hidden="true" />{f.class}</Badge> : f.class },
+          { key: "c", header: t("flags.class"), cell: (f) => <div className="space-y-1">{f.launchLocked ? <Badge variant="pulse"><Lock className="me-1 h-3 w-3" aria-hidden="true" />{f.class}</Badge> : f.class}
+            {f.gateIds.length > 0 && <div className="flex flex-wrap gap-1" data-testid="flag-gates">{f.gateIds.map((g) => <Badge key={g} variant={f.missingGates.includes(g) ? "warning" : "success"} data-testid={`flag-gate-${g}`}>{g}{f.missingGates.includes(g) ? ` · ${t("flags.gateMissing")}` : ""}</Badge>)}</div>}</div> },
           { key: "g", header: t("flags.effectiveGlobal"), cell: (f) => <Badge variant={f.effective.global ? "success" : "destructive"}>{f.effective.global ? "ON" : "OFF"}</Badge> },
           { key: "m", header: t("flags.effectiveMarket", { market }), cell: (f) => <div className="space-y-1"><StateBadge state={f.state} />{f.overrides.length > 0 && <p className="text-xs text-muted-foreground">{f.overrides.map((o) => `${o.scope}${o.scopeId ? `:${o.scopeId}` : ""}`).join(", ")}</p>}</div> },
           { key: "s", header: t("flags.source"), cell: (f) => <div className="text-xs"><b>{f.source?.scope}</b>{f.source?.ticket ? ` · ${f.source?.ticket}` : ""}{f.source?.expiresAt ? <p className="text-warning">{t("flags.expires", { at: formatDateTime(f.source?.expiresAt, i18n.language) })}</p> : null}</div> },
@@ -207,6 +209,41 @@ function PropagationTab() {
   );
 }
 
+function GatesTab({ canAct }: { canAct: boolean }) {
+  const { t, i18n } = useTranslation();
+  const board = useGateBoard();
+  const rec = useRecordGateAll();
+  const [gate, setGate] = useState<string | null>(null);
+  const [f, setF] = useState({ approver: "", approvedOn: "", documentUrl: "" });
+  if (board.isLoading) return <CardSkeleton rows={1} />;
+  if (board.error) return <ErrorState error={board.error} onRetry={() => void board.refetch()} />;
+  const ok = f.approver.trim() && f.approvedOn && /^https?:\/\//i.test(f.documentUrl);
+  return (
+    <div className="space-y-3" data-testid="gate-board">
+      <p className="text-sm text-muted-foreground">{t("flags.gatesHint")}</p>
+      <DataTable caption={t("flags.tabs.gates")} rows={board.data!.gates} rowKey={(g) => g.gateId} empty={t("common.empty")} columns={[
+        { key: "g", header: t("flags.gateId"), cell: (g) => <b data-testid={`board-${g.gateId}`}>{g.gateId}</b> },
+        { key: "f", header: t("flags.unlocks"), cell: (g) => <ul className="space-y-1 text-xs">{g.flags.map((x) => <li key={x.key} className="flex items-center gap-2"><code dir="ltr">{x.key}</code>{x.evidence ? <Badge variant="success">{t("flags.gateEvidence")}</Badge> : <Badge variant="warning">{t("flags.gateMissing")}</Badge>}</li>)}</ul> },
+        { key: "e", header: t("flags.evidence"), cell: (g) => { const e = g.flags.find((x) => x.evidence)?.evidence as { approver?: string; approvedOn?: string } | null | undefined; return e ? <span className="text-xs">{e.approver} · {formatDateTime(e.approvedOn ?? null, i18n.language)}</span> : "—"; } },
+        { key: "a", header: "", cell: (g) => <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setGate(g.gateId)} data-testid={`record-${g.gateId}`}><KeyRound aria-hidden="true" />{t("flags.gateRecord")}</Button> },
+      ]} />
+      {gate && (
+        <Dialog open onOpenChange={(o) => !o && setGate(null)}>
+          <DialogContent data-testid="gate-all-dialog">
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); rec.mutate({ gateId: gate, body: { approver: f.approver.trim(), approvedOn: new Date(f.approvedOn).toISOString(), documentUrl: f.documentUrl.trim() } }, { onSuccess: () => { toast.success(t("flags.gateRecorded")); setGate(null); }, onError: (er) => toast.error(errMsg(er, t("states.errorTitle"))) }); }}>
+              <DialogHeader><DialogTitle>{t("flags.gateTitle")} <code className="text-sm">{gate}</code></DialogTitle><DialogDescription>{t("flags.gateHint")}</DialogDescription></DialogHeader>
+              <div className="space-y-1"><Label htmlFor="ga-ap">{t("flags.approver")} *</Label><Input id="ga-ap" value={f.approver} onChange={(e) => setF({ ...f, approver: e.target.value })} required /></div>
+              <div className="space-y-1"><Label htmlFor="ga-on">{t("flags.approvedOn")} *</Label><Input id="ga-on" type="date" value={f.approvedOn} onChange={(e) => setF({ ...f, approvedOn: e.target.value })} required /></div>
+              <div className="space-y-1"><Label htmlFor="ga-doc">{t("flags.documentUrl")} *</Label><Input id="ga-doc" type="url" dir="ltr" value={f.documentUrl} onChange={(e) => setF({ ...f, documentUrl: e.target.value })} required placeholder="https://" /></div>
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setGate(null)}>{t("common.cancel")}</Button><Button type="submit" disabled={!ok || rec.isPending} data-testid="gate-all-submit">{t("flags.gateRecord")}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 export default function FlagsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -216,9 +253,10 @@ export default function FlagsPage() {
       <PageHeader title={t("flags.title")} hint={t("flags.hint")} />
       <Tabs defaultValue="flags">
         <TabsList className="mb-4 h-auto flex-wrap justify-start">
-          {(["flags", "approvals", "audit", "propagation"] as const).map((k) => <TabsTrigger key={k} value={k} className="min-h-11 px-5" data-testid={`tab-${k}`}>{t(`flags.tabs.${k}`)}</TabsTrigger>)}
+          {(["flags", "gates", "approvals", "audit", "propagation"] as const).map((k) => <TabsTrigger key={k} value={k} className="min-h-11 px-5" data-testid={`tab-${k}`}>{t(`flags.tabs.${k}`)}</TabsTrigger>)}
         </TabsList>
         <TabsContent value="flags"><FlagsTab canAct={canAct} /></TabsContent>
+        <TabsContent value="gates"><GatesTab canAct={canAct} /></TabsContent>
         <TabsContent value="approvals"><ApprovalsTab canAct={canAct} /></TabsContent>
         <TabsContent value="audit"><AuditTab /></TabsContent>
         <TabsContent value="propagation"><PropagationTab /></TabsContent>

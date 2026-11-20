@@ -59,12 +59,12 @@ function row(d: Def, market: string): FlagRow {
     state: m.effective ? "ON" : m.reason === "AWAITING_GATE" ? "ON_AWAITING_GATE" : "OFF", reason: m.reason,
     source: src ? { scope: src.scope, scopeId: src.scopeId, reason: src.reason, ticket: src.ticket, setBy: src.setBy, expiresAt: src.expiresAt, at: src.at } : m.reason === "AWAITING_GATE" ? { scope: "GATE" } : m.reason === "DEPENDENCY_OFF" ? { scope: "DEPENDENCY" } : { scope: "DEFAULT" },
     overrides: ovs.map((o) => ({ scope: o.scope, scopeId: o.scopeId, reason: o.reason, ticket: o.ticket, expiresAt: o.expiresAt, startsAt: o.startsAt })),
-    gate: gate ?? null,
+    gate: gate ?? null, gateIds: [], edition: null, gates: gate ? [gate] : [], missingGates: d.launchLocked && !gate ? ["GATE"] : [],
     lastChange: last ? { at: last.createdAt, actor: last.actor, event: last.event ?? "TOGGLE", newValue: last.newValue, reason: last.reason } : null,
   };
 }
 
-const audit = (a: Partial<FlagAudit> & { flagKey: string }) => S.audit.unshift({ id: `aud_${Math.random().toString(36).slice(2)}`, emergency: false, createdAt: new Date().toISOString(), scope: "GLOBAL", scopeId: "", oldValue: null, newValue: "", actor: ACTOR, reason: null, ticket: null, event: "TOGGLE", ...a });
+const audit = (a: Partial<FlagAudit> & { flagKey: string }) => S.audit.unshift({ id: `aud_${Math.random().toString(36).slice(2)}`, emergency: false, createdAt: new Date().toISOString(), scope: "GLOBAL", scopeId: "", oldValue: null, newValue: "", actor: ACTOR, reason: null, ticket: null, event: "TOGGLE", expiresAt: null, ...a });
 
 function apply(key: string, b: { scope: string; scopeId?: string; value: string; reason: string; ticket: string; expiresAt?: string; startsAt?: string }, emergency: boolean) {
   const scopeId = b.scope === "GLOBAL" ? "" : (b.scope === "MARKET" ? (b.scopeId ?? "").toUpperCase() : b.scopeId ?? "");
