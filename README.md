@@ -24,6 +24,7 @@ Real slots from real clinics, deposits through Kiorex Pay, verified reviews, and
 </div>
 
 > **Synthetic data only.** QA personas, logins and reset steps: [Docs/TEST_DATA.md](Docs/TEST_DATA.md) (DEV ONLY).
+> **Demo data for manual testing** (personas, counts, click-path test scripts, role checklists): [DEMO_DATA.md](DEMO_DATA.md) (DEV ONLY).
 
 ---
 
