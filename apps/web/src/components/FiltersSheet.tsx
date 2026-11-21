@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,13 @@ export function FiltersSheet({ value, onApply, activeCount }: { value: SearchPar
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
-  useEffect(() => { if (open) setDraft(value); }, [open, value]);
+  // start each opening from the applied filters
+  const onOpenChange = (o: boolean) => { if (o) setDraft(value); setOpen(o); };
   const set = (patch: Partial<SearchParams>) => setDraft((d) => ({ ...d, ...patch }));
   const ar = i18n.language.startsWith("ar");
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <Button variant="outline" data-testid="open-filters"><SlidersHorizontal aria-hidden="true" />{t("results.filters")}{activeCount > 0 && <span className="rounded-full bg-pulse px-2 text-xs text-pulse-foreground">{activeCount}</span>}</Button>
       </SheetTrigger>

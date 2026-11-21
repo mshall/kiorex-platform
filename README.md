@@ -195,6 +195,8 @@ Guards worth knowing: `no-tax-authority.unit.spec.ts` (fails on any tax-authorit
 
 Full list in [`apps/api/.env.example`](apps/api/.env.example) (values are dev defaults, never reuse in staging or production).
 
+**Database TLS (staging/production RDS).** Use `DATABASE_URL=postgresql://…/kiorex_platform?schema=public&sslmode=verify-full` and point the process at the RDS global CA bundle with `sslrootcert=/path/global-bundle.pem` in the URL, or `DATABASE_SSL_CA` / `PGSSLROOTCERT` in the environment (URL wins). Modes: no `sslmode` = no TLS (local dev); `require` and `verify-full` = encrypted and verified (default trust store when no bundle is set); `verify-ca` = chain verified, host name not; `no-verify` = encrypted only (seed Lambdas). An unreadable or non-PEM bundle fails at start-up instead of falling back. Implemented in `apps/api/src/prisma/client-factory.ts` (`resolveSsl`).
+
 | Variable | Purpose | Default (dev) |
 |---|---|---|
 | `PORT`, `DATABASE_URL` | API port and Postgres | `4000`, workspace cluster |
@@ -204,6 +206,7 @@ Full list in [`apps/api/.env.example`](apps/api/.env.example) (values are dev de
 | `MESSAGING_MODE`, `VIDEO_MODE`, `STORAGE_MODE`, `AI_PROVIDER` | Provider adapters | `mock` / `fake` |
 | `FIELD_ENCRYPTION_KEY` | AES-256-GCM key for national ID at rest | dev only; KMS in production |
 | `DEPOSIT_DEFAULT_MINOR`, `PSP_FEE_BPS`, `*_TAKE_RATE_BPS` | Pricing placeholders (NEEDS_HUMAN) | `0` |
+| `DATABASE_SSL_CA` (or `PGSSLROOTCERT`) | Path to the RDS CA bundle PEM; used with `sslmode=verify-full` in staging/production | unset (no TLS locally) |
 | `JOBS_ENABLED` | Background jobs (sync, outbox, reminders) | `true` (false in tests) |
 
 ## Folder map

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFamily, useMe } from "@/api/hooks";
 import { useAuth } from "@/auth/AuthProvider";
 
@@ -13,7 +13,7 @@ export function PatientProvider({ children }: { children: ReactNode }) {
   const signedIn = status === "signedIn";
   const me = useMe(signedIn);
   const family = useFamily(signedIn);
-  const [selectedId, setSelected] = useState<string | null>(() => { try { return localStorage.getItem(KEY); } catch { return null; } });
+  const [storedId, setSelected] = useState<string | null>(() => { try { return localStorage.getItem(KEY); } catch { return null; } });
 
   const patients = useMemo<PatientOption[]>(() => {
     if (!me.data) return [];
@@ -21,9 +21,8 @@ export function PatientProvider({ children }: { children: ReactNode }) {
     return [self, ...(family.data ?? []).map((m) => ({ id: m.id, name: m.name, relationship: m.relationship }))];
   }, [me.data, family.data]);
 
-  useEffect(() => {
-    if (patients.length && !patients.some((p) => p.id === selectedId)) setSelected(patients[0].id);
-  }, [patients, selectedId]);
+  // a stored id that is not (or no longer) one of the account's patients falls back to the first one
+  const selectedId = patients.length && !patients.some((p) => p.id === storedId) ? patients[0].id : storedId;
 
   const value = useMemo<Ctx>(() => ({
     patients, selectedId, selected: patients.find((p) => p.id === selectedId), selfId: me.data?.id ?? null,

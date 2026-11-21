@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -61,7 +62,9 @@ function EntryCard({ e }: { e: WaitlistEntry }) {
   const cancel = useCancelWaitlist();
   const open = ["WAITING", "OFFERED"].includes(e.status);
   const offers = e.offers.filter((o) => o.status === "OFFERED" || e.status === "OFFERED");
-  const isLive = (o: WaitlistOffer) => o.status === "OFFERED" && new Date(o.expiresAt).getTime() > Date.now();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
+  const isLive = (o: WaitlistOffer) => o.status === "OFFERED" && new Date(o.expiresAt).getTime() > now;
   const liveOffers = offers.filter(isLive); const pastOffers = offers.filter((o) => !isLive(o));
   return (
     <li className="kx-card space-y-3 p-5" data-testid="waitlist-entry" data-status={e.status}>

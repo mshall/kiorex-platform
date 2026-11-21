@@ -13,13 +13,8 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks, "react-refresh": reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // eslint-plugin-react-hooks 7 also ships React Compiler diagnostics. We do not run the compiler yet, and the flagged patterns
-      // (latest-value refs, resetting draft state when a sheet opens, countdown clocks) are valid React 19; adopting them is a
-      // tracked follow-up in Docs/UPGRADE_NOTES.md. rules-of-hooks and exhaustive-deps stay on.
-      "react-hooks/refs": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/purity": "off",
-      "react-hooks/immutability": "off",
+      // All eslint-plugin-react-hooks 7 rules (incl. the React Compiler diagnostics refs, set-state-in-effect, purity,
+      // immutability) are on and clean: no warnings, nothing disabled.
       "react-refresh/only-export-components": "off",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "error",

@@ -1,6 +1,6 @@
 import type { Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LocateFixed, Loader2 } from "lucide-react";
 import type { GeoJSONSource, Map as MlMap, Marker as MlMarker } from "maplibre-gl";
@@ -43,17 +43,47 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
   const clusterMarkers = useRef<Map<number, MlMarker>>(new Map());
   const userMarker = useRef<MlMarker | null>(null);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [noWebgl] = useState(() => !webglAvailable());
+  const [startFailed, setFailed] = useState(false);
+  const failed = noWebgl || startFailed;
   const [geo, setGeo] = useState<Geo>("idle");
   const latest = useRef({ points, selectedId, onSelect, t });
-  latest.current = { points, selectedId, onSelect, t };
+  useLayoutEffect(() => { latest.current = { points, selectedId, onSelect, t }; });
   const cfg = useRef<MapConfig>(config ?? resolveMapConfig());
   const located = useRef(false);
+
+  /** Cluster bubbles as DOM markers (no glyph server needed offline); rebuilt from the clusters currently on screen. */
+  const syncClusters = useCallback(() => {
+    const map = mapRef.current, ml = lib.current;
+    if (!map || !ml || !map.getSource(SRC) || !map.isSourceLoaded(SRC)) return;
+    const seen = new Set<number>();
+    for (const f of map.querySourceFeatures(SRC, { filter: ["has", "point_count"] })) {
+      const p = f.properties as { cluster_id: number; point_count: number };
+      if (seen.has(p.cluster_id)) continue;
+      seen.add(p.cluster_id);
+      if (clusterMarkers.current.has(p.cluster_id)) continue;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.dataset.testid = "map-cluster";
+      el.setAttribute("data-testid", "map-cluster");
+      el.setAttribute("aria-label", latest.current.t("map.cluster", { count: p.point_count }));
+      const size = p.point_count < 10 ? 36 : p.point_count < 50 ? 44 : 52;
+      el.style.cssText = `width:${size}px;height:${size}px;border-radius:9999px;background:${INDIGO};color:#fff;border:3px solid ${CORAL};font:600 13px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(55,48,163,.35);font-variant-numeric:tabular-nums`;
+      el.textContent = new Intl.NumberFormat(document.documentElement.lang === "ar" ? "ar-EG" : "en").format(p.point_count);
+      const coords = (f.geometry as Point).coordinates as [number, number];
+      el.addEventListener("click", () => {
+        const src = map.getSource(SRC) as GeoJSONSource;
+        void src.getClusterExpansionZoom(p.cluster_id).then((zoom) => map.easeTo({ center: coords, zoom: Math.min(zoom, 17) })).catch(() => undefined);
+      });
+      clusterMarkers.current.set(p.cluster_id, new ml.Marker({ element: el }).setLngLat(coords).addTo(map));
+    }
+    for (const [id, m] of clusterMarkers.current) if (!seen.has(id)) { m.remove(); clusterMarkers.current.delete(id); }
+  }, []);
 
   // -------------------------------------------------------------- create / destroy
   useEffect(() => {
     let cancelled = false;
-    if (!webglAvailable()) { setFailed(true); return; }
+    if (noWebgl) return;
     void (async () => {
       try {
         const ml = await import("maplibre-gl");
@@ -97,34 +127,6 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
     };
     // the map is created once; later prop changes are applied by the effects below
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /** Cluster bubbles as DOM markers (no glyph server needed offline); rebuilt from the clusters currently on screen. */
-  const syncClusters = useCallback(() => {
-    const map = mapRef.current, ml = lib.current;
-    if (!map || !ml || !map.getSource(SRC) || !map.isSourceLoaded(SRC)) return;
-    const seen = new Set<number>();
-    for (const f of map.querySourceFeatures(SRC, { filter: ["has", "point_count"] })) {
-      const p = f.properties as { cluster_id: number; point_count: number };
-      if (seen.has(p.cluster_id)) continue;
-      seen.add(p.cluster_id);
-      if (clusterMarkers.current.has(p.cluster_id)) continue;
-      const el = document.createElement("button");
-      el.type = "button";
-      el.dataset.testid = "map-cluster";
-      el.setAttribute("data-testid", "map-cluster");
-      el.setAttribute("aria-label", latest.current.t("map.cluster", { count: p.point_count }));
-      const size = p.point_count < 10 ? 36 : p.point_count < 50 ? 44 : 52;
-      el.style.cssText = `width:${size}px;height:${size}px;border-radius:9999px;background:${INDIGO};color:#fff;border:3px solid ${CORAL};font:600 13px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(55,48,163,.35);font-variant-numeric:tabular-nums`;
-      el.textContent = new Intl.NumberFormat(document.documentElement.lang === "ar" ? "ar-EG" : "en").format(p.point_count);
-      const coords = (f.geometry as Point).coordinates as [number, number];
-      el.addEventListener("click", () => {
-        const src = map.getSource(SRC) as GeoJSONSource;
-        void src.getClusterExpansionZoom(p.cluster_id).then((zoom) => map.easeTo({ center: coords, zoom: Math.min(zoom, 17) })).catch(() => undefined);
-      });
-      clusterMarkers.current.set(p.cluster_id, new ml.Marker({ element: el }).setLngLat(coords).addTo(map));
-    }
-    for (const [id, m] of clusterMarkers.current) if (!seen.has(id)) { m.remove(); clusterMarkers.current.delete(id); }
   }, []);
 
   // -------------------------------------------------------------- data / selection

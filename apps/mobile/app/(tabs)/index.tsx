@@ -11,6 +11,7 @@ import { Avatar } from "@/components/bits";
 import { EmergencyBanner } from "@/components/EmergencyBanner";
 import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { Icon } from "@/components/Icon";
+import { KeyboardForm } from "@/components/KeyboardForm";
 import { Wordmark } from "@/components/Logo";
 import { Badge, Button, Card, Chip, Field, Row, T } from "@/components/ui";
 import { MarketGateBanner } from "@/components/feature";
@@ -87,7 +88,7 @@ export default function Home() {
     .sort((a, b) => pick(a, "name", lang).localeCompare(pick(b, "name", lang), lang));
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" testID="home">
+    <KeyboardForm style={{ backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} testID="home">
       <Row style={{ justifyContent: "space-between" }}>
         <View style={{ gap: 2 }}>
           <Wordmark size={16} />
@@ -158,6 +159,6 @@ export default function Home() {
         ) : <T variant="small" muted>{t("home.recentEmpty")}</T>}
       </View>
       <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
-    </ScrollView>
+    </KeyboardForm>
   );
 }

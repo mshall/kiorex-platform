@@ -46,8 +46,9 @@ export default function DoctorProfilePage() {
   const reviews = useDoctorReviews(id);
   const specialties = useSpecialties();
   const [vtId, setVtId] = useState<string | undefined>(sp.get("vt") ?? undefined);
-  const [selected, setSelected] = useState<Slot | null>(null);
-  const [day, setDay] = useState<string | null>(null);
+  // `undefined` = untouched: the slot / day come from the ?slot= deep link (if any) or the first day; `null` = explicitly cleared.
+  const [pickedSlot, setSelected] = useState<Slot | null | undefined>(undefined);
+  const [pickedDay, setDay] = useState<string | null | undefined>(undefined);
   const booking = useStartBooking();
   const desktop = useMediaQuery("(min-width: 1024px)");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -80,12 +81,9 @@ export default function DoctorProfilePage() {
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [slots.data]);
 
-  useEffect(() => {
-    const pre = sp.get("slot");
-    const hit = pre ? slots.data?.find((s) => s.slotId === pre) : undefined;
-    if (hit) { setSelected(hit); setDay(dayKey(hit.startsAt)); }
-  }, [slots.data, sp]);
-  useEffect(() => { if (!day && days.length) setDay(days[0][0]); }, [days, day]);
+  const preSlot = useMemo(() => { const pre = sp.get("slot"); return pre ? slots.data?.find((s) => s.slotId === pre) : undefined; }, [slots.data, sp]);
+  const selected: Slot | null = pickedSlot === undefined ? preSlot ?? null : pickedSlot;
+  const day: string | null = pickedDay ?? (pickedSlot === undefined && preSlot ? dayKey(preSlot.startsAt) : null) ?? days[0]?.[0] ?? null;
 
   if (doctor.isLoading) return <LoadingState />;
   if (doctor.error) {
@@ -155,7 +153,7 @@ export default function DoctorProfilePage() {
       {isHome && !homeReady ? null : slots.isLoading ? <CardSkeleton rows={1} /> : slots.error ? (slots.error instanceof ApiError && slots.error.code === "OUT_OF_COVERAGE" ? null : <ErrorState error={slots.error} onRetry={() => void slots.refetch()} />) : days.length === 0 ? (
         <div className="space-y-4" data-testid="no-slots"><EmptyState title={t("doctor.noSlots")} hint={t("doctor.noSlotsHint")} /><WaitlistJoin providerId={d.id} typeId={activeVt?.id} /></div>
       ) : (
-        <SlotPicker days={days} day={day} onDay={setDay} selected={selected} onSelect={setSelected} />
+        <SlotPicker days={days} day={day} onDay={(d) => setDay(d)} selected={selected} onSelect={setSelected} />
       )}
 
       {/* KXMPR04: cancellation policy is shown BEFORE the patient commits to a booking. */}

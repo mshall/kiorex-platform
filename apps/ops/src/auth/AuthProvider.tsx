@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { configureApi } from "@/api/client";
 import { getManager, toAuthUser, type AuthUser } from "./oidc";
 
@@ -17,7 +17,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<AuthUser | null>(null);
   const userRef = useRef<AuthUser | null>(null);
-  userRef.current = user;
+  // layout effect: runs before any child's passive effect, so a request fired right after sign-in sees the new token
+  useLayoutEffect(() => { userRef.current = user; }, [user]);
 
   useEffect(() => {
     configureApi({

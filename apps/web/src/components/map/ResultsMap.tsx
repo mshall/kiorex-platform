@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowUpRight, MapPin } from "lucide-react";
@@ -13,9 +13,9 @@ export function ResultsMap({ items, params, apply }: { items: DoctorSummary[]; p
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const points = useMemo(() => pointsFromDoctors(items, lang), [items, lang]);
-  const [selected, setSelected] = useState<string | null>(null);
-  useEffect(() => { if (selected && !items.some((d) => d.id === selected)) setSelected(null); }, [items, selected]);
-  const sel = items.find((d) => d.id === selected);
+  const [pickedId, setSelected] = useState<string | null>(null);
+  const sel = items.find((d) => d.id === pickedId); // a selection that left the result list is dropped
+  const selected = sel ? pickedId : null;
   const byArea = useMemo(() => {
     const m = new Map<string, number>();
     for (const d of items) m.set(d.areaEn, (m.get(d.areaEn) ?? 0) + 1);

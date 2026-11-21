@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlarmClock } from "lucide-react";
 import { formatCountdown } from "@/lib/format";
@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 /** Countdown ring for the slot hold. The ring's full length is the time left when it first rendered (the API hold is 5 minutes). */
 export function HoldRing({ remainingMs }: { remainingMs: number }) {
   const { t } = useTranslation();
-  const total = useRef(Math.max(remainingMs, 1));
-  if (remainingMs > total.current) total.current = remainingMs;
-  const frac = Math.min(1, Math.max(0, remainingMs / total.current));
+  const [total, setTotal] = useState(() => Math.max(remainingMs, 1));
+  if (remainingMs > total) setTotal(remainingMs); // derived-state update during render (React-sanctioned); the ring only ever grows its reference
+  const frac = Math.min(1, Math.max(0, remainingMs / Math.max(total, remainingMs)));
   const low = remainingMs < 60_000;
   const R = 26, C = 2 * Math.PI * R;
   return (

@@ -122,10 +122,13 @@ Dependants (Yassin, Laila, Salma, Adam, ...) have no login; they appear under th
 ## 7. Known limitations and inconsistencies found
 
 * Mock providers: PSP `sandbox-fake` (no real money), messaging written to the log, video `mock`, maps `mock` tiles (`VITE_MAP_PROVIDER=osm` for real tiles), AI `fake`.
-* `finance` and `support` ops roles are only claims; the API distinguishes `ops_admin` from `super_admin` (see `src/common/auth.ts`). `+201000009003` has no seeded TOTP secret (enrol on first sign-in).
+* `finance` and `support` ops roles are only claims; the API distinguishes `ops_admin` from `super_admin` (see `src/common/auth.ts`). `+201000009003` has no seeded TOTP secret: an unconfirmed TOTP row already exists (left by an enrolment attempt, `confirmed_at` empty), so it still enrols on first sign-in.
 * The held booking `demo_bk_mk28` is already EXPIRED (a background job); re-seed with `--reset` to see a fresh HELD one.
-* Flag registry has **68** definitions, not the "52" quoted in `../TEST_DATA.md`.
-* Provider count: 14 demo LIVE (not "13 doctors"): includes 2 physiotherapists and 2 home-nursing providers; the three older KX-DEV doctors also appear (plus 3 DELISTED duplicates).
+* Flag registry has **68** definitions (`../TEST_DATA.md` was corrected from 52 on 21 Nov 2026).
+* Provider count: 14 demo LIVE (2 more demo ones are PAUSED; `../TEST_DATA.md` was corrected from "13 doctors"): includes 2 physiotherapists and 2 home-nursing providers; the three older KX-DEV doctors also appear (plus 3 DELISTED duplicates).
 * Safety console shows 41 alerts, not 6: the rest come from the e2e suites.
 * The patient mobile app and `kiorly-work` both use Expo web ports: patient app 8081, staff app 8082.
 * Staging (AWS) seeding: see `Docs/TEST_DATA.md`; Passport families / orgs are local only.
+
+---
+Verified: 2026-11-21 (`kiorex_platform` database via SELECT: 68 flag definitions, providers LIVE 17 = 14 demo + 3 KX-DEV, PAUSED 2, DELISTED 3; pharmacy order `kx_ph_demo_3` REJECTED / `SLA_EXPIRED`).

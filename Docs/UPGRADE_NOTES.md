@@ -8,7 +8,7 @@ Nothing was pushed, deployed or applied: infra changes are edits plus `tofu vali
 
 | Area | Before | After |
 |---|---|---|
-| Node.js | 22 (CI, Lambda image), `>=20` engines, no `.nvmrc` | **26 LTS** (`.nvmrc`, `engines >=26`, CI `setup-node` 26, `lambda/nodejs:26`, Lambda runtime `nodejs24.x` (AWS lists nodejs26.x as preview only)) |
+| Node.js | 22 (CI, Lambda image), `>=20` engines, no `.nvmrc` | **26 LTS** (`.nvmrc`, `engines >=26`, CI `setup-node` 26, `lambda/nodejs:24` seed image (aligned with the Lambda runtime; Node 26 stays the dev/CI toolchain), Lambda runtime `nodejs24.x` (AWS lists nodejs26.x as preview only)) |
 | npm | 11 | **12** (`engines >=12`) |
 | TypeScript | 5.9 | **6.0.3** (7.0 blocked, see below) |
 | NestJS (`common/core/platform-express/testing`) | 10.4 | **12.5** (Express 5 types, ESM packages) |
@@ -54,16 +54,20 @@ Nothing was pushed, deployed or applied: infra changes are edits plus `tofu vali
 
 | Item | Pinned at | Why | What unblocks it |
 |---|---|---|---|
-| TypeScript 7.0 (native compiler) | 6.0.3 | `typescript-eslint` supports `<6.1`, `@nestjs/swagger` 12 and Expo's pin are `^5/^6`, `ts-jest` `<7`; the 7.0 JS API used by these tools is not available | typescript-eslint, swagger and Expo declaring TS 7 support |
+| TypeScript 7.0 (native compiler) | 6.0.3 | **Type checking and emit already pass on 7.0.2** (see below); the JS compiler API is gone in 7 (`require('typescript')` has no `createProgram`/`transpileModule`), which breaks `typescript-eslint` 8.73 (peer `<6.1`, latest too), `ts-jest` 29 (peer `<7`) and `ts-node` 10 (API unit tests, `db:seed*` scripts), `@nestjs/cli` 12 `nest build`/`start` and `openapi-typescript` 7 (peer `^5`, overridden to 6.0.3) | typescript-eslint, ts-jest/ts-node replacement (or `@swc/jest` + `tsx`), Nest CLI and openapi-typescript shipping TS 7 support |
 | Prisma 8 | 7.10.1 | npm `latest` for the CLI is `8.0.0-rc.34`, a release candidate; `@prisma/client` latest is still 7.10.1 | stable Prisma 8 |
 | `@babel/core` (mobile) | 7.29.x | `babel-preset-expo` / `expo-doctor` require `^7.29.7`; Babel 8 bundles but is flagged | Expo SDK allowing Babel 8 |
 | `@react-native-async-storage/async-storage` (mobile) | 2.2.0 | Expo SDK 58 bundled-native-module version; 3.x is outside it | Expo bumping its pin |
 | React, react-native-reanimated, worklets, svg, gesture-handler (mobile) | Expo SDK pins (19.3.0, 4.7.1, 0.13.0, 15.16.0, 3.3.0) | `expo install --check` requires these exact versions | next Expo patch |
 | PostgreSQL major | 16 (CI service image, RDS) | The database engine is an operations decision with a data-migration plan, not an npm bump; local dev cluster is 18 and the suites pass on it | a staged RDS upgrade plan |
-| `eslint-plugin-react-hooks` compiler rules (`refs`, `set-state-in-effect`, `purity`, `immutability`) | off | v7 adds React Compiler diagnostics that flag ~15 valid React 19 patterns (latest-value refs, draft reset on open, countdown clocks); we do not run the compiler. `rules-of-hooks` and `exhaustive-deps` stay on | Follow-up: refactor those sites, then enable the rules |
+| `eslint-plugin-react-hooks` compiler rules (`refs`, `set-state-in-effect`, `purity`, `immutability`) | **on** (21 Nov 2026) | All 15 findings in web and ops were refactored (effect-synced refs via `useLayoutEffect`, derived state instead of effect-set state, ticking `now` instead of `Date.now()` in render); web and ops lint with `--max-warnings 0` and no rule disabled | none |
 | `openapi-typescript` 7.13 peer `typescript ^5` | works on 6.0.3 | peer range only; handled by an `overrides` entry in the root `package.json` (generated schemas are byte-compatible) | openapi-typescript release declaring TS 6 |
 
 `overrides` in the root `package.json`: `openapi-typescript` to TypeScript 6, and `effect` `^3.22.5` (the Prisma CLI pins `effect@3.20.0`, which has a ReDoS advisory GHSA-7589-6fvf-x4pw).
+
+### TypeScript 7 readiness (checked 21 Nov 2026 with `typescript@7.0.2` from npm, outside the repo)
+`npm run typecheck:ts7` runs `tsc --noEmit` of TS 7.0.2 over api, web, ops and mobile. Result: **0 errors in all four**, `tsc -b --noEmit` in web and ops passes, and `tsc -p tsconfig.build.json` / `tsconfig.seed.json` emit (decorator metadata included). No tsconfig option is deprecated or removed, so no config change was needed. The production compiler stays at `~6.0.3`.
+Blockers before the upgrade (all tooling that calls the JS compiler API, none is our code): typescript-eslint (web, ops lint), ts-jest and ts-node (API tests, seed scripts), `@nestjs/cli` (`nest build`, `openapi:export`), openapi-typescript (client generation in web, ops, mobile), plus `@nestjs/swagger` and Expo declaring `^5/^6`. Migration order when they ship TS 7: lint, generators, then replace ts-jest/ts-node with SWC/tsx, and use plain `tsc` for emit.
 
 ## Operational notes
 
@@ -84,5 +88,5 @@ Mobile (`apps/mobile`, own lockfile) reports moderate findings in Expo/Jest tool
 API unit 73/73, API integration 242/242 (includes contract, flag-OFF and OpenAPI contract suites, scratch DB), web 132/132, ops 32/32, mobile jest 115/115;
 `typecheck` and `lint` clean in every workspace; `build` for api, web and ops; OpenAPI export produces no drift (`git diff --exit-code apps/api/openapi Docs/API.md`);
 `expo export` web and iOS; `tofu fmt -check` and `tofu validate` (staging, prod); `infra/lambda/demo-seed` tests 4/4.
-The seed Dockerfile (`apps/api/Dockerfile.seed`, Node 26 Lambda base, Prisma 7) could not be built because Docker was not running; its `npm ci`, `prisma generate` and `build:seed` steps were run locally instead. Build it once before the next deploy.
+The seed Dockerfile (`apps/api/Dockerfile.seed`, Node 24 Lambda base to match the runtime, Prisma 7) could not be built because Docker was not running; its `npm ci`, `prisma generate` and `build:seed` steps were run locally instead. Build it once before the next deploy.
 Playwright specs under `apps/web/e2e` need the full local stack (Passport, Kiorly, seeded data) and were not run; Playwright itself is at the latest version and a headless smoke of the landing page rendered correctly under Tailwind 4 with no console errors.

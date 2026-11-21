@@ -20,7 +20,8 @@
     "mobile:install": "npm install --prefix apps/mobile",
     "mobile:web": "npm --prefix apps/mobile run web",
     "mobile:test": "npm --prefix apps/mobile test",
-    "mobile:typecheck": "npm --prefix apps/mobile run typecheck"
+    "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
+    "typecheck:ts7": "for a in api web ops mobile; do (cd apps/$a && npx -y -p typescript@7.0.2 tsc --noEmit -p tsconfig.json) || exit 1; done"
   },
   "devDependencies": {
     "concurrently": "^10.0.7"

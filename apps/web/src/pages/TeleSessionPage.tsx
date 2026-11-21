@@ -47,7 +47,7 @@ export function TeleRoomPage() {
   if (join.error || !video) {
     const e = join.error;
     const msg = e instanceof ApiError ? (e.isFeatureDisabled ? t("unavailable.title") : e.status === 403 || e.status === 409 || e.status === 422 ? t("tele.errors.notOpen") : t("tele.errors.generic")) : t("tele.errors.generic");
-    return <div className="space-y-4"><ErrorState error={e} onRetry={() => join.mutate(id, { onSuccess: (r) => { setVideo(r.video); setSession(r.session); } })} /><p className="text-center text-sm text-muted-foreground" role="status">{msg}</p><Link className="block text-center text-ocean underline" to={`/telemedicine/${id}`}>{t("tele.backToSession")}</Link></div>;
+    return <div className="space-y-4"><ErrorState error={e} onRetry={() => join.mutate(id, { onSuccess: (r) => { setVideo(r.video); setSession(r.session); setJoined(Date.now()); } })} /><p className="text-center text-sm text-muted-foreground" role="status">{msg}</p><Link className="block text-center text-ocean underline" to={`/telemedicine/${id}`}>{t("tele.backToSession")}</Link></div>;
   }
   const mock = video.provider === "mock";
   return (
@@ -64,7 +64,7 @@ export function TeleRoomPage() {
             </div>
           </>
         ) : <iframe src={video.url} title={t("tele.roomFrame")} allow="camera; microphone; fullscreen" className="h-full w-full border-0" />}
-        <div className="absolute inset-e-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm backdrop-blur-sm" aria-live="off"><span className="h-2 w-2 rounded-full bg-success animate-pulse motion-reduce:animate-none" aria-hidden="true" /><Elapsed since={new Date(joined || Date.now()).toISOString()} /></div>
+        <div className="absolute inset-e-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm backdrop-blur-sm" aria-live="off"><span className="h-2 w-2 rounded-full bg-success animate-pulse motion-reduce:animate-none" aria-hidden="true" /><Elapsed since={new Date(joined).toISOString()} /></div>
         <div className="absolute bottom-3 inset-e-3 flex h-24 w-20 flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-white/10 text-xs backdrop-blur-sm sm:h-28 sm:w-36" data-testid="tele-self">
           {cam ? <Video className="h-5 w-5 opacity-80" aria-hidden="true" /> : <VideoOff className="h-5 w-5 opacity-80" aria-hidden="true" />}<span>{t("tele.you")}{mic ? "" : ` · ${t("tele.muted")}`}{cam ? "" : ` · ${t("tele.camOff")}`}</span>
         </div>
