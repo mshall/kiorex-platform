@@ -132,3 +132,19 @@ Dependants (Yassin, Laila, Salma, Adam, ...) have no login; they appear under th
 
 ---
 Verified: 2026-11-21 (`kiorex_platform` database via SELECT: 68 flag definitions, providers LIVE 17 = 14 demo + 3 KX-DEV, PAUSED 2, DELISTED 3; pharmacy order `kx_ph_demo_3` REJECTED / `SLA_EXPIRED`).
+
+## 8. Provider go-live checklist (SMS, Email, WhatsApp, Payment)
+
+Everything above runs on mocks (`SMS_MODE` / `EMAIL_MODE` / `WHATSAPP_MODE` / `PAYMENT_MODE` = `mock`). Going live is **only** supplying the values below; no code change when the vendor speaks the neutral payloads in [Docs/PROVIDERS.md](Docs/PROVIDERS.md) (otherwise adapt the single `apps/api/src/common/providers/<kind>.mapping.ts`).
+
+Mock flows to rehearse first (dummy data): `POST /api/v1/dev/messaging/samples` (booking confirmation, reminder, waitlist offer, refund), book a demo deposit then `POST /api/v1/dev/payments/<id>/simulate {"outcome":"captured|failed|refund_settled"}` or use `/pay/fake-checkout/<id>`; inspect `GET /api/v1/dev/messaging/outbox`, `GET /api/v1/dev/payments`.
+
+| Kind | Secrets Manager / SSM entry (create empty containers; humans fill) | Parameters (plain env) |
+|---|---|---|
+| SMS | `SMS_API_KEY`, `SMS_WEBHOOK_SECRET` | `SMS_MODE=real`, `SMS_API_URL`, `SMS_SENDER_ID` (registered alphanumeric sender), optional `SMS_TIMEOUT_MS`, `SMS_MAX_RETRIES` |
+| EMAIL | `EMAIL_API_KEY`, `EMAIL_WEBHOOK_SECRET` | `EMAIL_MODE=real`, `EMAIL_API_URL`, `EMAIL_SENDER_ID` (verified from address, SPF/DKIM/DMARC done) |
+| WHATSAPP | `WHATSAPP_API_KEY`, `WHATSAPP_WEBHOOK_SECRET` (also signs inbound booking webhook) | `WHATSAPP_MODE=real`, `WHATSAPP_API_URL`, `WHATSAPP_SENDER_ID` (phone number id), `WHATSAPP_TEMPLATE_MAP` (JSON, Meta-approved template names, AR + EN) |
+| PAYMENT | `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET` | `PAYMENT_MODE=real`, `PAYMENT_API_URL`, plus existing `PSP_FEE_BPS`, `DEPOSIT_DEFAULT_MINOR` |
+| Safety paging | none | `SAFETY_DELIVERY_MODE=real`, `SAFETY_ONCALL_PHONES` (needs SMS real) |
+
+Steps: (1) staging first: store the secrets, set the params in the service task definition (infra: add the entries to the existing empty secret containers; the `PSP_MODE` / `MESSAGING_MODE` `TODO_NEEDS_HUMAN` tfvars become the `<KIND>_MODE` values; no tofu was run); (2) point the vendor webhooks at `https://<api>/api/v1/messaging/webhooks/{sms|email|whatsapp}` and `https://<api>/api/v1/pay/webhooks/paymob` (and `fawry`, `instapay`); (3) deploy: the API refuses to start if any real kind lacks URL / key / sender / secret (check the log for the names); (4) golden flow: book with deposit, pay, receive confirmation, reminder, waitlist offer, refund; confirm `MessageLog` rows show `mode=real`, `providerRef`, status progressing to DELIVERED; (5) rollback = set the kind back to `mock`.

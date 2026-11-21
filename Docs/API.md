@@ -14,7 +14,7 @@
 - **Booking flow**: `POST /bookings` (hold) → `POST /bookings/{id}/confirm` (idempotent; safe to retry on 503) → optional `POST /bookings/{id}/deposit-checkout` → hosted checkout URL → status via `GET /bookings/{id}`. Waitlist offers (`POST /waitlist/offers/{id}/accept`) return the same held booking. WhatsApp bookings are the same bookings with `channel: WHATSAPP`.
 - **Flags for UI gating**: `GET /flags/effective?market=EG` → `{ version, flags: { "<key>": { enabled, reason, scope } } }`. Launch-locked flags (pharmacy, lab, telemedicine, AI navigation, `market.<cc>.live`) report `reason: AWAITING_GATE` until a human records gate evidence. `GET /markets` lists LIVE markets for the sign-up country picker.
 - **Sandbox checkout** (dev only, `PSP_MODE=sandbox-fake`): `POST /pay/fake-checkout/{id}/complete` returns the JSON ack, or redirects (303) to `returnUrl` (+ `paymentId`, `status`) when that URL's host is in `PAY_RETURN_URL_HOSTS` (default localhost, 127.0.0.1); never in production.
-- **Mock providers** (`MESSAGING_MODE=mock`, `VIDEO_MODE=mock`, `PSP_MODE=sandbox-fake`): `/dev/messaging/*` is the dev inbox (simulate patient replies, read the outbox); routes 404 in production or real mode. See Docs/NEEDS_HUMAN.md "Provider go-live".
+- **Mock providers** (`SMS_MODE` / `EMAIL_MODE` / `WHATSAPP_MODE` / `PAYMENT_MODE` = `mock`, `VIDEO_MODE=mock`; see PROVIDERS.md): `/dev/messaging/*` is the dev inbox (simulate patient replies, read the outbox); routes 404 in production or real mode. See Docs/NEEDS_HUMAN.md "Provider go-live".
 - **Consents** purposes: `MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING`; record-share scopes: `VISIT_SUMMARY | PRESCRIPTIONS | LAB_RESULTS | SHARE_WITH_OTHER_CLINICS`.
 - **Emergency routing** is a safety control, never a flag: search/AI/WhatsApp/telemedicine matching return `emergency { number: "123", bookingBlocked: true }` for emergency language.
 
@@ -112,6 +112,10 @@
 | GET | `/api/v1/dev/messaging/outbox` | DEV: messages the platform "sent" (all channels), newest first |
 | DELETE | `/api/v1/dev/messaging/outbox` | DEV: clear the dev inbox |
 | POST | `/api/v1/dev/messaging/delivery-tick` | DEV: advance SENT -> DELIVERED for all mock messages |
+| POST | `/api/v1/dev/messaging/webhook-simulate` | DEV: deliver a SIGNED provider status webhook for a mock message (exercises the same verified path as the real provider) |
+| POST | `/api/v1/dev/messaging/samples` | DEV: send sample booking-confirmation / reminder / waitlist-offer / deposit-refund messages through the WhatsApp, SMS and email mocks |
+| GET | `/api/v1/dev/payments` | DEV: latest payment intents with refund state |
+| POST | `/api/v1/dev/payments/{id}/simulate` | DEV: simulate a signed PSP webhook (captured | failed | refund_settled) for a payment |
 
 ## engagement
 
@@ -316,6 +320,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
+| POST | `/api/v1/messaging/webhooks/{channel}` | Provider delivery-status webhook (HMAC verified, idempotent, forward-only status) |
 | POST | `/api/v1/webhooks/kiorly` | Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId |
 | POST | `/api/v1/webhooks/pharmacy` | Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET |
 | POST | `/api/v1/webhooks/lab` | Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET |

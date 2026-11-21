@@ -79,7 +79,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     // PUSH goes to every active registered device (token registry); in MOCK mode an account without a device still gets the dev-inbox push so flows stay testable
     const devices = m.channel === 'PUSH' ? await this.activeDevices(m.sub) : [];
     const targets: string[] = m.channel === 'PUSH'
-      ? (devices.length ? devices.map((d) => d.token) : this.hub.mode() === 'mock' ? [`device:${m.sub}`] : [])
+      ? (devices.length ? devices.map((d) => d.token) : this.hub.channelMode('PUSH') === 'mock' ? [`device:${m.sub}`] : [])
       : [(m.channel === 'EMAIL' ? profile?.email : profile?.phone) ?? ''].filter((x): x is string => !!x);
     if (!targets.length) return finish('FAILED', m.channel === 'PUSH' ? 'NO_DEVICE' : 'NO_RECIPIENT');
     try {

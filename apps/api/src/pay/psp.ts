@@ -1,6 +1,10 @@
 import { createHmac } from 'node:crypto';
 import { cfg } from '../common/config';
 import { safeEqual } from '../common/crypto';
+import { outboundFetch } from '../common/outbound-http';
+import { providerEnv, providerProblems } from '../common/providers/env';
+import { providerRequest, type FetchLike } from '../common/providers/http';
+import { paymentMapping, type PaymentMapping } from '../common/providers/payment.mapping';
 
 export type PspName = 'paymob' | 'fawry' | 'instapay';
 export const PSP_NAMES: PspName[] = ['paymob', 'fawry', 'instapay'];
@@ -37,15 +41,40 @@ export class FakePspAdapter implements PspAdapter {
   async refund(i: { refundId: string }) { return { pspRefundRef: `fake_rf_${i.refundId}` }; }
 }
 
-/** Real PSPs: credentials, payloads and settlement formats are NEEDS_HUMAN (PSP onboarding). */
+/**
+ * PAYMENT_MODE=real: generic HTTP PSP driven only by PAYMENT_API_URL / PAYMENT_API_KEY / PAYMENT_WEBHOOK_SECRET (see common/providers
+ * and Docs/PROVIDERS.md). Checkout creation is idempotent on the payment id, refunds on the refund id (Idempotency-Key header), so a
+ * retried call can never create a second charge or a second refund. Webhooks are HMAC verified by the mapping.
+ */
+export class HttpPspAdapter implements PspAdapter {
+  constructor(public name: PspName, private readonly mapping: PaymentMapping = paymentMapping, private readonly fetchImpl: FetchLike = outboundFetch) {}
+  private get env() { return providerEnv('PAYMENT'); }
+  async createCheckout(i: { paymentId: string; amountMinor: number; currency: string }) {
+    const w = this.mapping.buildCheckout(i);
+    const r = await providerRequest(this.env, { path: w.path, body: w.body, idempotencyKey: `checkout:${i.paymentId}` }, { fetchImpl: this.fetchImpl }, this.mapping.authHeaders(this.env.apiKey));
+    return this.mapping.parseCheckout(r.json);
+  }
+  verifyWebhook(raw: string, headers: Record<string, unknown>): PspWebhookEvent | null {
+    if (!this.mapping.verifyWebhook({ secret: this.env.webhookSecret, rawBody: raw, headers })) return null;
+    return this.mapping.parseWebhook(raw);
+  }
+  async refund(i: { pspRef: string; refundId: string; amountMinor: number }) {
+    const w = this.mapping.buildRefund(i);
+    const r = await providerRequest(this.env, { path: w.path, body: w.body, idempotencyKey: `refund:${i.refundId}` }, { fetchImpl: this.fetchImpl }, this.mapping.authHeaders(this.env.apiKey));
+    return this.mapping.parseRefund(r.json);
+  }
+}
+
+/** Real mode without usable config (startup check normally prevents this): fails closed. */
 export class UnconfiguredPspAdapter implements PspAdapter {
   constructor(public name: PspName) {}
-  async createCheckout(): Promise<never> { throw new Error(`NEEDS_HUMAN: ${this.name} adapter not configured (PSP onboarding + credentials)`); }
+  async createCheckout(): Promise<never> { throw new Error(`NEEDS_HUMAN: ${this.name} adapter not configured (set PAYMENT_API_URL / PAYMENT_API_KEY / PAYMENT_WEBHOOK_SECRET; see Docs/PROVIDERS.md)`); }
   verifyWebhook(): PspWebhookEvent | null { return null; }
   async refund(): Promise<never> { throw new Error(`NEEDS_HUMAN: ${this.name} adapter not configured`); }
 }
 
 export function pspAdapter(name: string): PspAdapter {
   const n = (PSP_NAMES.includes(name as PspName) ? name : 'paymob') as PspName;
-  return cfg().pspMode === 'sandbox-fake' ? new FakePspAdapter(n) : new UnconfiguredPspAdapter(n);
+  if (cfg().pspMode === 'sandbox-fake') return new FakePspAdapter(n);
+  return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new HttpPspAdapter(n);
 }

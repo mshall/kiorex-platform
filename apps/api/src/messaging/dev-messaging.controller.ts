@@ -1,12 +1,17 @@
 import { Body, Controller, Delete, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { DeliveryTickDto, DevClearResultDto, DevInboundResultDto, DevOutboxDto } from './messaging.dto';
+import { DeliveryTickDto, DevClearResultDto, DevInboundResultDto, DevMessageDto, DevOutboxDto } from './messaging.dto';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Public } from '../common/auth';
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
 import { MessagingHub } from './messaging.hub';
 import { MSG_CHANNELS, MsgChannel } from './messaging.types';
+import { providerEnv } from '../common/providers/env';
+import { messagingKindOf } from '../common/providers/real-adapters';
+import { genericStatusBody } from '../common/providers/mapping-types';
+import { signedWebhookHeaders } from '../common/providers/webhook';
+import { PrismaService } from '../prisma/prisma.service';
 
 export class DevInboundBody {
   @IsIn([...MSG_CHANNELS]) channel!: MsgChannel;
@@ -16,6 +21,10 @@ export class DevInboundBody {
   @IsOptional() @IsString() @MaxLength(200) buttonPayload?: string;
 }
 
+export class DevWebhookSimulateBody {
+  @IsString() id!: string;
+  @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED';
+}
 /**
  * DEV INBOX (MESSAGING_MODE=mock, NODE_ENV != production only; 404 otherwise). Simulates patient replies and exposes the
  * provider-side outbox so UI/QA can drive flows without Meta/SMS/email providers.
@@ -24,7 +33,7 @@ export class DevInboundBody {
 @Public()
 @Controller('dev/messaging')
 export class DevMessagingController {
-  constructor(private readonly hub: MessagingHub) {}
+  constructor(private readonly hub: MessagingHub, private readonly prisma: PrismaService) {}
   private guard() { if (!cfg().devRoutesEnabled) throw notFound('NOT_FOUND', 'Not found'); }
 
   @ApiOkResponse({ type: DevInboundResultDto })
@@ -54,4 +63,16 @@ export class DevMessagingController {
 
   @Delete('outbox') @ApiOperation({ summary: 'DEV: clear the dev inbox' })
   async clear(@Query('channel') channel?: string) { this.guard(); return { deleted: (await this.hub.clear(channel)).count }; }
+
+  @ApiOkResponse({ type: DevMessageDto })
+  @Post('webhook-simulate') @HttpCode(200) @ApiOperation({ summary: 'DEV: deliver a SIGNED provider status webhook for a mock message (exercises the same verified path as the real provider)' })
+  async webhookSimulate(@Body() b: DevWebhookSimulateBody) {
+    this.guard();
+    const row = await this.prisma.messageLog.findUnique({ where: { id: b.id } });
+    const kind = row ? messagingKindOf(row.channel) : undefined;
+    if (!row || !kind || row.mode !== 'mock' || row.direction !== 'OUT' || !row.providerRef) throw notFound('MESSAGE_NOT_SIMULATABLE', 'Only mock outbound messages with a provider reference can be simulated');
+    const raw = genericStatusBody(row.providerRef, b.state === 'FAILED' ? 'failed' : b.state === 'READ' ? 'read' : 'delivered', b.state === 'FAILED' ? 'SIMULATED_FAILURE' : undefined);
+    await this.hub.handleStatusWebhook(row.channel, raw, signedWebhookHeaders(providerEnv(kind).webhookSecret, raw));
+    return this.prisma.messageLog.findUniqueOrThrow({ where: { id: b.id } });
+  }
 }

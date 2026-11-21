@@ -17,7 +17,7 @@ const STATUSES = ["QUEUED", "SENT", "DELIVERED", "READ", "FAILED", "RECEIVED"];
 const tone = (s: string) => (["DELIVERED", "READ"].includes(s) ? "success" : s === "FAILED" ? "destructive" : s === "QUEUED" ? "warning" : "secondary") as "success" | "destructive" | "warning" | "secondary";
 const sel = "h-11 rounded-xl border border-input bg-card px-3 text-sm";
 
-/** Unified message log (email / WhatsApp / SMS / push). In MESSAGING_MODE=mock nothing leaves the platform: simulate delivery states here. */
+/** Unified message log (email / WhatsApp / SMS / push). While SMS_MODE / EMAIL_MODE / WHATSAPP_MODE are mock nothing leaves the platform: simulate delivery states here. */
 export default function MessagingPage() {
   const { t, i18n } = useTranslation();
   const [f, setF] = useState({ channel: "", status: "", direction: "" });

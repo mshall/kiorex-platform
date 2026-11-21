@@ -8,6 +8,7 @@ Start with the [README](../README.md), then pick a document.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Bounded contexts, money ledger, booking consistency, flags |
 | [RUNBOOK.md](RUNBOOK.md) | Local run, env, seeds, mock providers, home-visit operations |
 | [API.md](API.md) | Generated route reference |
+| [PROVIDERS.md](PROVIDERS.md) | SMS / Email / WhatsApp / Payment provider contract: env, neutral payloads, webhooks, mock simulators, go-live |
 | [NEEDS_HUMAN.md](NEEDS_HUMAN.md) | Open decisions and STOP flags |
 | [VERTICALS.md](VERTICALS.md) | Pharmacy, Lab, telemedicine and records design notes |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Brand tokens and UI rules |

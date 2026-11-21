@@ -127,6 +127,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       await this.prisma.paymentIntent.updateMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' }, data: { status: 'FAILED' } });
       return { status: 'FAILED_RECORDED' };
     }
+    if (ev.type === 'refund.settled') return { status: await this.settleRefundFromWebhook(ev) };
     return { status: 'IGNORED' };
   }
 
@@ -202,11 +203,28 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const r = await this.prisma.refund.findUnique({ where: { id: refundId }, include: { payment: true } });
     if (!r || r.status === 'SETTLED') return;
     const out = await pspAdapter(r.payment.psp).refund({ pspRef: r.payment.pspRef ?? '', refundId: r.id, amountMinor: r.amountMinor });
+    await this.finalizeRefund(r, out.pspRefundRef);
+  }
+
+  /** Idempotent: ledger posting is keyed on the refund id, so the sync path and a later `refund.settled` webhook cannot double-post. */
+  private async finalizeRefund(r: { id: string; paymentId: string; amountMinor: number; payment: { bookingId: string | null; clinicId: string } }, pspRefundRef: string) {
     await this.prisma.$transaction(async (tx) => {
       await this.postLedger(tx, { key: `refund-settle:${r.id}`, kind: 'REFUND_SETTLED', postings: refundSettle(r.amountMinor), bookingId: r.payment.bookingId, paymentId: r.paymentId, clinicId: r.payment.clinicId });
-      await tx.refund.update({ where: { id: r.id }, data: { status: 'SETTLED', pspRefundRef: out.pspRefundRef, settledAt: new Date() } });
+      await tx.refund.update({ where: { id: r.id }, data: { status: 'SETTLED', pspRefundRef, settledAt: new Date() } });
       await this.outbox.enqueue(tx, { type: 'pay.refund_settled', aggregateType: 'Refund', aggregateId: r.id, payload: { refundId: r.id, bookingId: r.payment.bookingId, amountMinor: r.amountMinor }, dedupeKey: `pay.refund_settled:${r.id}` });
     });
+  }
+
+  /** PSP `refund.settled` webhook: matches the refund by the PSP refund reference (or the payment's open refund) and settles it once. */
+  private async settleRefundFromWebhook(ev: PspWebhookEvent): Promise<string> {
+    const r = await this.prisma.refund.findFirst({
+      where: { OR: [{ pspRefundRef: ev.pspRef }, ...(ev.paymentId ? [{ paymentId: ev.paymentId, status: 'REQUESTED' }] : [])] },
+      include: { payment: true }, orderBy: { createdAt: 'desc' },
+    });
+    if (!r) return 'REFUND_NOT_FOUND';
+    if (r.status === 'SETTLED') return 'ALREADY_SETTLED';
+    await this.finalizeRefund(r, ev.pspRef || r.pspRefundRef || `webhook_${r.id}`);
+    return 'REFUND_SETTLED';
   }
 
   /** Booking cancelled/expired: refund a captured deposit; cancel an uncaptured intent. */

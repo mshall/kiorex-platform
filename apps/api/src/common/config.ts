@@ -1,4 +1,5 @@
 import { PARTNER_DEV_DEFAULTS } from '@kiorex/contracts';
+import { providerEnv } from './providers/env';
 
 /** Lazy env config (read at call time so tests can override process.env). */
 const env = (k: string, d = ''): string => process.env[k] ?? d;
@@ -20,7 +21,8 @@ export const cfg = () => ({
   kiorlyWebhookSecret: env('KIORLY_WEBHOOK_SECRET', 'kx_dev_webhook_secret'),
   kiorlyTimeoutMs: num('KIORLY_TIMEOUT_MS', 8000),
   fieldKey: env('FIELD_ENCRYPTION_KEY', 'a2lvcmV4LWRldi1vbmx5LWZpZWxkLWtleS0zMmJ5dGU='),
-  pspMode: env('PSP_MODE', 'sandbox-fake'),
+  /** PAYMENT_MODE=mock|real (legacy PSP_MODE=sandbox-fake|real still honoured). `sandbox-fake` == mock. */
+  pspMode: (providerEnv('PAYMENT').mode === 'real' ? 'real' : 'sandbox-fake') as 'sandbox-fake' | 'real',
   pspFakeSecret: env('PSP_FAKE_WEBHOOK_SECRET', 'psp_fake_secret_change_me'),
   payLinkBase: env('KIOREX_PAY_LINK_BASE_URL', 'http://localhost:4000/api/v1/pay/links'),
   publicBaseUrl: env('PUBLIC_BASE_URL', 'http://localhost:4000'),
@@ -42,16 +44,20 @@ export const cfg = () => ({
   homeComplaintSlaMinutes: num('HOME_COMPLAINT_SLA_MINUTES', 60),
   familyShareMax: num('FAMILY_SHARE_MAX', 3),
   homeGateMinProviders: num('HOME_GATE_MIN_PROVIDERS', 50),
-  /** mock | real. `log` (legacy value) means mock. Real providers are wired in the pre-launch pass (Docs/NEEDS_HUMAN.md "Provider go-live"). */
-  messagingMode: (['real'].includes(env('MESSAGING_MODE', 'mock')) ? 'real' : 'mock') as 'mock' | 'real',
+  /** Overall mock|real: `real` as soon as ANY of SMS_MODE / EMAIL_MODE / WHATSAPP_MODE (or legacy MESSAGING_MODE) is real. Per-channel modes: providerEnv(kind). See Docs/PROVIDERS.md. */
+  messagingMode: (['SMS', 'EMAIL', 'WHATSAPP'].some((k) => providerEnv(k as 'SMS').mode === 'real') || env('MESSAGING_MODE') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
   videoMode: (env('VIDEO_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
   storageMode: (env('STORAGE_MODE', 'local') === 's3' ? 's3' : 'local') as 'local' | 's3',
   storageLocalDir: env('STORAGE_LOCAL_DIR', '.data/vault'),
   vaultMaxBytes: num('VAULT_MAX_BYTES', 5 * 1024 * 1024),
   /** Dev inbox + dev routes (/dev/messaging/*) exist only outside production AND in mock messaging mode. */
-  devRoutesEnabled: env('NODE_ENV') !== 'production' && env('MESSAGING_MODE', 'mock') !== 'real',
+  devRoutesEnabled: env('NODE_ENV') !== 'production' && !['SMS', 'EMAIL', 'WHATSAPP'].some((k) => providerEnv(k as 'SMS').mode === 'real') && env('MESSAGING_MODE') !== 'real',
+  /** Dev payment simulation (/dev/payments/*): never in production, never when PAYMENT_MODE=real. */
+  payDevRoutesEnabled: env('NODE_ENV') !== 'production' && providerEnv('PAYMENT').mode !== 'real',
+  /** SAFETY_DELIVERY_MODE=real pages the on-call phones below through the real SMS provider (ids + district only, never PHI). */
+  safetyOncallPhones: env('SAFETY_ONCALL_PHONES').split(',').map((x) => x.trim()).filter(Boolean),
   appLinkBase: env('PUBLIC_APP_URL', 'https://kiorex.com/app'),
-  /** NEEDS_HUMAN: Meta webhook verification/app secret. Mock inbound requires HMAC with this dev secret. */
+  /** Same variable as WHATSAPP_WEBHOOK_SECRET in the provider contract: signs the normalised inbound-booking webhook AND verifies delivery-status webhooks. */
   whatsappWebhookSecret: env('WHATSAPP_WEBHOOK_SECRET', 'wa_dev_webhook_secret_change_me'),
   /** Kiorly marketplace API only accepts channel MARKETPLACE|CLINIC_LINK today; flip when Kiorly adds KIOREX_WHATSAPP. */
   kiorlyAcceptsWhatsappChannel: bool('KIORLY_ACCEPTS_WHATSAPP_CHANNEL', false),

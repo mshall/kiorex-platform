@@ -139,6 +139,69 @@
         ]
       }
     },
+    "/api/v1/dev/messaging/webhook-simulate": {
+      "post": {
+        "operationId": "DevMessagingController_webhookSimulate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevWebhookSimulateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevMessageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: deliver a SIGNED provider status webhook for a mock message (exercises the same verified path as the real provider)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/messaging/webhooks/{channel}": {
+      "post": {
+        "operationId": "MessagingWebhookController_status",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingWebhookAckDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Provider delivery-status webhook (HMAC verified, idempotent, forward-only status)",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
     "/api/v1/markets": {
       "get": {
         "operationId": "MarketController_list",
@@ -2077,6 +2140,38 @@
         ]
       }
     },
+    "/api/v1/dev/messaging/samples": {
+      "post": {
+        "operationId": "DevSamplesController_samples",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevSamplesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevSamplesResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: send sample booking-confirmation / reminder / waitlist-offer / deposit-refund messages through the WhatsApp, SMS and email mocks",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
     "/api/v1/pay/intents/{id}": {
       "get": {
         "operationId": "PayController_intent",
@@ -2304,6 +2399,72 @@
         },
         "tags": [
           "pay"
+        ]
+      }
+    },
+    "/api/v1/dev/payments": {
+      "get": {
+        "operationId": "DevPayController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DevPaymentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: latest payment intents with refund state",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/dev/payments/{id}/simulate": {
+      "post": {
+        "operationId": "DevPayController_simulate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevPaySimulateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevPaySimulateResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: simulate a signed PSP webhook (captured | failed | refund_settled) for a payment",
+        "tags": [
+          "dev"
         ]
       }
     },
@@ -6448,6 +6609,41 @@
           "deleted"
         ]
       },
+      "DevWebhookSimulateBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DELIVERED",
+              "READ",
+              "FAILED"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ]
+      },
+      "MessagingWebhookAckDto": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "number"
+          },
+          "ignored": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "applied",
+          "ignored"
+        ]
+      },
       "MarketDto": {
         "type": "object",
         "properties": {
@@ -9383,6 +9579,44 @@
           "id"
         ]
       },
+      "DevSamplesBody": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          }
+        }
+      },
+      "DevSamplesResultDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "number"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sent",
+          "templates"
+        ]
+      },
       "PayIntentDto": {
         "type": "object",
         "properties": {
@@ -9520,6 +9754,86 @@
           "checkoutUrl",
           "paymentId",
           "status"
+        ]
+      },
+      "DevPaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "refundedMinor": {
+            "type": "number"
+          },
+          "refunds": {
+            "description": "Refund id:status pairs",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "amountMinor",
+          "currency",
+          "status",
+          "checkoutUrl",
+          "refundedMinor",
+          "refunds"
+        ]
+      },
+      "DevPaySimulateBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "captured",
+              "failed",
+              "refund_settled"
+            ]
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "DevPaySimulateResultDto": {
+        "type": "object",
+        "properties": {
+          "webhookStatus": {
+            "type": "string"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/DevPaymentDto"
+          }
+        },
+        "required": [
+          "webhookStatus",
+          "payment"
         ]
       },
       "CreateBody": {

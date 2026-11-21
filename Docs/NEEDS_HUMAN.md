@@ -35,6 +35,8 @@ Rows marked **STOP** block the related capability from going live; code ships wi
 
 ## Provider go-live (every third-party provider is MOCKED until the dedicated pre-launch pass, in staging first)
 
+**SMS / Email / WhatsApp / Payment are now fully wired: real providers need ONLY env values (`<KIND>_MODE=real`, `_API_URL`, `_API_KEY`, `_SENDER_ID`, `_WEBHOOK_SECRET`). See [PROVIDERS.md](PROVIDERS.md) and the "Provider go-live checklist" in [../DEMO_DATA.md](../DEMO_DATA.md); the rows below keep the business-side prerequisites (templates, onboarding, sender ids).**
+
 Founder decision 19 Nov 2026. Each integration sits behind an adapter with `MODE=mock|real` (default `mock`); mocks exercise the same code paths (template rendering, consent, quiet hours, delivery states, signed callbacks). No real credentials exist in code. Switching a provider to real = implement the adapter class named below, supply the keys via secrets (never `.env` in git), run the staging checklist, then flip the mode.
 
 | Provider | Adapter / switch | What the mock does today | Needed to go real |
