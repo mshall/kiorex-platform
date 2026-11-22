@@ -7,6 +7,9 @@
 
 The patient marketplace and its operations side: search 22 providers (doctors, physiotherapists, home nurses), book live Kiorly slots with a deposit, see every booking / deposit / refund state, review, keep a record vault, act for family members, join waitlists, take a telemedicine call, order from a pharmacy or book a lab test, book **home visits** and care plans with a live timeline and safety card, and (as ops) watch the money, the outbox, the safety console, held deposits and the feature-flag control plane.
 
+## All 36 specialties (added 22 Nov 2026)
+Every Kiorex specialty (36 codes) now has 2 LIVE verified doctors, with bookable slots, 3 demo bookings in varied states, 14 home-visit doctors and 11 video bookings: new Kiorly tenant `demo_t_sp` (72 doctors, staff logins `<key>.sp@demo.kiorex.test` / `Demo@12345`, owner `owner.sp@`), provider-synced into Kiorex, bookings for the demo patients `+201000001001`..`1012` (OTP `000000`). The full specialty -> doctor -> login/slug -> booking table is in [Docs/TEST_DATA.md](Docs/TEST_DATA.md) (section "All 36 specialties"). Seed order is unchanged (`scripts/seed-all.sh`).
+
 ## 2. Start and seed
 
 ```bash
