@@ -4,7 +4,8 @@ import { isSpecialtyCode, normalizeText, SPECIALTY_LABELS } from '../safety/safe
 /** Kiorly stores free-text/US spellings; fold them onto the Kiorex launch specialty codes (KXM-DS-02 filter by specialty). */
 const SPECIALTY_ALIASES: Record<string, string> = {
   pediatrics: 'paediatrics', pediatric: 'paediatrics', paediatric: 'paediatrics', paediatrician: 'paediatrics',
-  gynecology: 'obgyn', gynaecology: 'obgyn', obstetrics_and_gynecology: 'obgyn', obstetrics_gynaecology: 'obgyn', ob_gyn: 'obgyn',
+  gynecology: 'obgyn', gynaecology: 'obgyn', obstetrics_and_gynecology: 'obgyn', obstetrics_gynaecology: 'obgyn', obstetrics_gynecology: 'obgyn', ob_gyn: 'obgyn', obstetrics: 'obgyn',
+  physio_therapy: 'physiotherapy', physio: 'physiotherapy', physical_therapy: 'physiotherapy', physiotherapist: 'physiotherapy',
   orthopedics: 'orthopaedics', orthopedic: 'orthopaedics', orthopaedic: 'orthopaedics',
   ear_nose_and_throat: 'ent', otolaryngology: 'ent', internal: 'internal_medicine', general_medicine: 'internal_medicine',
   dermatologist: 'dermatology', cardiologist: 'cardiology', dental: 'dentistry', dentist: 'dentistry',
