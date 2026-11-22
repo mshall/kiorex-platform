@@ -130,7 +130,7 @@ Dependants (Yassin, Laila, Salma, Adam, ...) have no login; they appear under th
 * Flag registry has **68** definitions (`../TEST_DATA.md` was corrected from 52 on 21 Nov 2026).
 * Provider count: 14 demo LIVE (2 more demo ones are PAUSED; `../TEST_DATA.md` was corrected from "13 doctors"): includes 2 physiotherapists and 2 home-nursing providers; the three older KX-DEV doctors also appear (plus 3 DELISTED duplicates).
 * Safety console shows 41 alerts, not 6: the rest come from the e2e suites.
-* The patient mobile app and `kiorly-work` both use Expo web ports: patient app 8081, staff app 8082.
+* The patient mobile app and `kiorly-team` both use Expo web ports: patient app 8081, staff app 8082.
 * Staging (AWS) seeding: see `Docs/TEST_DATA.md`; Passport families / orgs are local only.
 
 ---
