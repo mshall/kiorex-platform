@@ -57,8 +57,8 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       for (const dto of data.items ?? []) {
         const row = mapProviderDto(dto);
         seen.push(row.id);
-        const existing = await this.prisma.provider.findUnique({ where: { id: row.id }, select: { sourceVersion: true } });
-        if (!opts.full && existing && existing.sourceVersion > row.sourceVersion) { skipped++; continue; }
+        const existing = await this.prisma.provider.findUnique({ where: { id: row.id }, select: { sourceVersion: true, specialty: true } });
+        if (existing && existing.sourceVersion > row.sourceVersion && existing.specialty === row.specialty) { skipped++; continue; }
         const { id, raw, ...rest } = row;
         await this.prisma.provider.upsert({ where: { id }, create: { id, raw, ...rest } as any, update: { raw, ...rest, syncedAt: new Date() } as any });
         this.invalidateSlots(row.clinicianId);
