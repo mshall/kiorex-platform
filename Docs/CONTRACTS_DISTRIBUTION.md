@@ -19,7 +19,7 @@ workflow `GITHUB_TOKEN` with `packages: write`, so it can publish from Actions o
 
 ## When the founder approves publishing
 Run `publish` (workflow_dispatch) in `kiorex-contracts`, add `//npm.pkg.github.com/:_authToken` (read:packages PAT or `GITHUB_TOKEN` in Actions) and an `.npmrc`
-with `@kiorex:registry=https://npm.pkg.github.com`, change the dependency to `"@kiorex/contracts": "1.6.0"`, delete `vendor/` and `scripts/vendor-contracts.sh`.
+with `@kiorex:registry=https://npm.pkg.github.com`, change the dependency to `"@kiorex/contracts": "1.7.0"`, delete `vendor/` and `scripts/vendor-contracts.sh`.
 
 ## Other repos (not changed here)
 `kiorly-pharmacy` and `kiorly-lab` still use `file:../../../kiorex-contracts/dist-pack/...` (other agents own those repos). Apply the same recipe there

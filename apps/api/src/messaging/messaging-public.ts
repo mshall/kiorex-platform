@@ -4,3 +4,4 @@ export { MSG_CHANNELS, maskRecipient } from './messaging.types';
 export type { MsgChannel, MsgStatus, MessagingAdapter, OutboundMessage, InboundMessage } from './messaging.types';
 export { MessageLogDto, MessageLogItemDto, MessagingStatsDto, DeliveryTickDto } from './messaging.dto';
 export { createMessagingAdapter, channelMode } from './adapters';
+export { HubChannelAdapter, InboxChannelAdapter, flattenBody } from './notification.bridge';

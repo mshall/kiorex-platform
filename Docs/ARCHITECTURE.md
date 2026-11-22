@@ -32,6 +32,10 @@ NestJS 12 + Prisma 7 modular monolith (`apps/api`), PostgreSQL 16+, port 4000, p
 Rule (tested in `module-boundaries.unit.spec.ts`): modules import each other only via `*-public.ts`; shared kernel = `common/`, `prisma/`.
 Modules never share DBs with other products; Kiorly is the only system of record for appointments (ADR-005).
 
+## Notifications (shared layer)
+
+Outbound messages go through `NotificationService` from `@kiorex/contracts/notify` (contracts 1.7.0), never straight to the messaging hub. `engagement` owns the templates and the preference store; `messaging` owns the channel adapters (`HubChannelAdapter`, `InboxChannelAdapter`) over `MessagingHub` (MessageLog, mock/real, vendor mapping). The layer applies consent, opt-out, quiet hours, the PHI-free guard and per-channel rendering (ar/en); status webhooks use the shared normalized status. The in-app inbox is the `Message` table (channel `INAPP`). See [PROVIDERS.md section 7](PROVIDERS.md) and `kiorex-contracts/docs/NOTIFICATION_LAYER.md`.
+
 ## Money (Kiorex Pay ledger only; three ledgers never commingled)
 
 Integer minor units. Every money path = idempotency key + outbox event + ledger entry + reconciliation + property tests.

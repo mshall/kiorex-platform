@@ -77,4 +77,27 @@ All dev routes are 404 when `NODE_ENV=production`, and when the kind is real.
 
 `src/common/providers/providers.unit.spec.ts` (fake HTTP server: retry, backoff, idempotency, timeout, error mapping, HMAC, fail-fast) and `test/providers.int.spec.ts` (real-mode messaging and payment wiring through the API against a fake vendor, signed webhooks, replay, dev routes disabled).
 
+## 7. Notification layer (`@kiorex/contracts/notify`, contracts 1.7.0)
+
+Every engagement message (booking, reminder, review invite, home-visit, pharmacy and lab notices) is now sent through the shared `NotificationService` instead of calling the hub directly. The layer decides consent, opt-out, quiet hours, address, PHI safety and the per-channel body; the hub below it is unchanged and still owns the `MessageLog` row, the mock/real choice per kind (`<KIND>_MODE`) and the vendor mapping files in `common/providers/`.
+
+```
+EngagementService.deliver()  ->  NotificationService.dispatch(intent: one channel)
+                                   |-- PlatformPreferenceStore (consent, NotificationPreference, QUIET_HOURS_*)
+                                   |-- TemplateRegistry (the 25 NotifyKind templates, ar/en, PHI-free allowed params)
+                                   `-- HubChannelAdapter (SMS/EMAIL/WHATSAPP/PUSH) -> MessagingHub.send -> mock | HttpMessagingAdapter
+                                       InboxChannelAdapter (INAPP)                  -> the engagement Message row IS the inbox
+```
+
+* **Files:** `messaging/notification.bridge.ts` (adapters), `engagement/notification.layer.ts` (registry, preference store, result mapping), `engagement/engagement.service.ts` (`deliver`, `inbox`).
+* **Same behaviour:** mock and log mode send exactly what they did (`...0000` still bounces, dev inbox rows identical, statuses `SENT | FAILED | SKIPPED_CONSENT | SKIPPED_OPTOUT | DEFERRED` unchanged). Consent order is consent, opt-out, quiet hours, address.
+* **New safety:** an undeclared template param is dropped before dispatch (callers historically passed extras); a PHI pattern (national id, MRN, lab value, diagnosis word, prescription) in an SMS, push or WhatsApp body fails that message as `PHI_BLOCKED:<code>`; email and in-app are not scanned. Nothing PHI is logged: the audit line is `<type> <channel> <status> <reason>`.
+* **Inbox:** the in-app inbox already existed (`Message` rows with channel `INAPP`, `GET /inbox`, read receipts), so no table or migration was added. It is a first-class layer channel and `inbox()` renders through the registry.
+* **Webhooks:** `MessagingHub.handleStatusWebhook` keeps its URLs, signature check and idempotence, and now normalizes vendor words with `normalizeVendorStatus` and applies them with `mergeStatus` (forward-only). `HubChannelAdapter.parseWebhook` / `verify` expose the same mapping to the layer.
+* **Not yet used here:** multi-channel routing and receipt-timeout fallback (`tick()`): the engagement queue keeps one `Message` row per channel, so each dispatch is single-channel. Turning on severity routes needs a persistent `DispatchStore` (a table) and is a later step, see `kiorex-contracts/docs/NOTIFICATION_LAYER.md`.
+* **Adding a notification:** add the copy to `engagement/templates.ts` (`NotifyKind`); it is registered automatically with its placeholders as the only allowed params.
+* **Tests:** `engagement/notification.layer.unit.spec.ts`; the existing `messaging`, `engagement`, `providers`, `whatsapp-booking` integration suites exercise it end to end.
+
+Full design: [kiorex-contracts/docs/NOTIFICATION_LAYER.md](../../kiorex-contracts/docs/NOTIFICATION_LAYER.md).
+
 Go-live steps and the exact secrets: **Provider go-live checklist** in [../DEMO_DATA.md](../DEMO_DATA.md).

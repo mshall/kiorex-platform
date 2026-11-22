@@ -6,6 +6,7 @@ import { PatientService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId } from '../common/ids';
 import { NotifyKind, render, TEMPLATES } from './templates';
+import { createPlatformNotifier, outcomeOf, PlatformPreferenceStore } from './notification.layer';
 
 export const DEVICE_PLATFORMS = ['IOS', 'ANDROID', 'WEB'] as const;
 
@@ -14,7 +15,14 @@ export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 @Injectable()
 export class EngagementService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub) {}
+  /** Every channel send goes through the shared notification layer (@kiorex/contracts/notify); the hub stays the transport + MessageLog. */
+  private readonly notifier: ReturnType<typeof createPlatformNotifier>;
+  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub) {
+    this.notifier = createPlatformNotifier(hub, new PlatformPreferenceStore({
+      hasConsent: (sub, purpose) => this.patients.hasConsent(sub, purpose),
+      preference: (sub, channel) => this.prisma.notificationPreference.findUnique({ where: { sub_channel: { sub, channel } } }),
+    }));
+  }
 
   onModuleInit() {
     if (!cfg().jobsEnabled) return;
@@ -60,35 +68,33 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     if (!m || m.status !== 'SCHEDULED') return m?.status ?? 'MISSING';
     const params = (m.params ?? {}) as Record<string, unknown>;
     const t = TEMPLATES[params.kind as NotifyKind];
-    const body = render(m.locale === 'en' ? t.en : t.ar, params);
-    const finish = (status: string, reason?: string) => this.prisma.message.update({ where: { id }, data: { status, reason, ...(status === 'SENT' ? { sentAt: new Date() } : {}) } }).then(() => status);
-    if (m.channel === 'INAPP') return finish('SENT'); // in-app inbox is always available
-    // consent (KXM-NT-02): reminders need REMINDERS; transactional need MARKETPLACE_PROCESSING
-    const purpose = t.reminder ? 'REMINDERS' : 'MARKETPLACE_PROCESSING';
-    if (!(await this.patients.hasConsent(m.sub, purpose))) return finish('SKIPPED_CONSENT', purpose);
-    const pref = await this.prisma.notificationPreference.findUnique({ where: { sub_channel: { sub: m.sub, channel: m.channel } } });
-    if (pref && !pref.enabled) return finish('SKIPPED_OPTOUT', m.channel);
-    if (!t.bypassQuiet) {
-      const until = this.quietUntil(new Date(), pref?.quietStart ?? cfg().quietStart, pref?.quietEnd ?? cfg().quietEnd);
-      if (until) {
-        await this.prisma.message.update({ where: { id }, data: { scheduledFor: until, reason: 'QUIET_HOURS_DEFERRED' } });
-        return 'DEFERRED';
-      }
-    }
-    const profile = await this.patients.profileBySub(m.sub);
+        const finish = (status: string, reason?: string) => this.prisma.message.update({ where: { id }, data: { status, reason, ...(status === 'SENT' ? { sentAt: new Date() } : {}) } }).then(() => status);
+    const purpose = t.reminder ? 'REMINDER' as const : 'TRANSACTIONAL' as const; // consent (KXM-NT-02): reminders need REMINDERS; transactional need MARKETPLACE_PROCESSING
+    const channel = m.channel as 'INAPP' | MsgChannel;
+    const profile = channel === 'INAPP' ? null : await this.patients.profileBySub(m.sub);
     // PUSH goes to every active registered device (token registry); in MOCK mode an account without a device still gets the dev-inbox push so flows stay testable
-    const devices = m.channel === 'PUSH' ? await this.activeDevices(m.sub) : [];
-    const targets: string[] = m.channel === 'PUSH'
-      ? (devices.length ? devices.map((d) => d.token) : this.hub.channelMode('PUSH') === 'mock' ? [`device:${m.sub}`] : [])
-      : [(m.channel === 'EMAIL' ? profile?.email : profile?.phone) ?? ''].filter((x): x is string => !!x);
-    if (!targets.length) return finish('FAILED', m.channel === 'PUSH' ? 'NO_DEVICE' : 'NO_RECIPIENT');
+    const devices = channel === 'PUSH' ? await this.activeDevices(m.sub) : [];
+    const deviceIds = channel === 'PUSH' ? (devices.length ? devices.map((d) => d.token) : this.hub.channelMode('PUSH') === 'mock' ? [`device:${m.sub}`] : []) : undefined;
+    const allowed = this.notifier.registry.get(params.kind as string)?.allowedParams ?? [];
+    const intentParams = Object.fromEntries(Object.entries(params).filter(([k, v]) => allowed.includes(k) && (typeof v === 'string' || typeof v === 'number'))) as Record<string, string | number>; // PHI-free guard: only declared params reach a template
     try {
-      let okCount = 0; let lastError: string | undefined;
-      for (const to of targets) {
-        const r = await this.hub.send({ messageId: m.id, channel: m.channel as MsgChannel, sub: m.sub, to, templateId: m.templateId, locale: m.locale, body });
-        if (r.ok) okCount++; else lastError = r.error ?? undefined;
+      const state = await this.notifier.service.dispatch({
+        type: params.kind as string, severity: t.reminder ? 'ROUTINE' : 'IMPORTANT',
+        recipient: { id: m.sub, phone: profile?.phone ?? undefined, email: profile?.email ?? undefined, deviceIds, locale: m.locale === 'en' ? 'en' : 'ar' },
+        params: intentParams, channels: [channel],
+        idempotencyKey: `${m.id}:${m.scheduledFor.getTime()}`, // a quiet-hours deferral moves scheduledFor, so the retry is a new key
+        metadata: { messageId: m.id, sub: m.sub, templateId: m.templateId },
+      });
+      const o = outcomeOf(state, channel, purpose);
+      switch (o.kind) {
+        case 'SENT': return finish('SENT');
+        case 'DEFERRED':
+          await this.prisma.message.update({ where: { id }, data: { scheduledFor: o.until, reason: 'QUIET_HOURS_DEFERRED' } });
+          return 'DEFERRED';
+        case 'SKIPPED_CONSENT': return finish('SKIPPED_CONSENT', o.purpose);
+        case 'SKIPPED_OPTOUT': return finish('SKIPPED_OPTOUT', m.channel);
+        case 'FAILED': return finish('FAILED', o.reason);
       }
-      return okCount ? finish('SENT') : finish('FAILED', (lastError ?? 'SEND_FAILED').slice(0, 200));
     } catch (e) {
       return finish('FAILED', String(e).slice(0, 200));
     }
@@ -147,7 +153,9 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
       rows.map((m) => {
         const p = (m.params ?? {}) as Record<string, unknown>;
         const t = TEMPLATES[p.kind as NotifyKind];
-        return { id: m.id, kind: p.kind, bookingId: m.bookingId, body: render(m.locale === 'en' ? t.en : t.ar, p), readAt: m.readAt, createdAt: m.createdAt };
+        const item = this.notifier.registry.render(p.kind as string, 'INAPP', m.locale === 'en' ? 'en' : 'ar', Object.fromEntries(Object.entries(p).filter(([k, v]) => (this.notifier.registry.get(p.kind as string)?.allowedParams ?? []).includes(k) && (typeof v === 'string' || typeof v === 'number'))) as Record<string, string | number>);
+        // first-class in-app item from the notify registry; falls back to the legacy copy if a template ever fails to render
+        return { id: m.id, kind: p.kind, bookingId: m.bookingId, body: item.ok ? item.body.body : render(m.locale === 'en' ? t.en : t.ar, p), readAt: m.readAt, createdAt: m.createdAt };
       }),
     );
   }

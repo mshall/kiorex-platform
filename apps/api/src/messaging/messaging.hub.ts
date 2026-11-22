@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { channelMode, createMessagingAdapter } from './adapters';
 import { providerEnv } from '../common/providers/env';
 import { messagingKindOf, MESSAGING_MAPPINGS } from '../common/providers/real-adapters';
+import { mergeStatus, normalizeVendorStatus, type DeliveryStatus as NotifyStatus } from '@kiorex/contracts/notify';
 import { InboundHandler, InboundMessage, maskRecipient, MessagingAdapter, MSG_CHANNELS, MsgChannel, MsgStatus, OutboundMessage, SIMULATABLE_STATES } from './messaging.types';
 
 const ORDER: MsgStatus[] = ['QUEUED', 'SENT', 'DELIVERED', 'READ'];
@@ -99,7 +100,10 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
     const mapping = MESSAGING_MAPPINGS[kind];
     if (!mapping.verifyWebhook({ secret: env.webhookSecret, rawBody, headers })) throw new ApiError(401, 'INVALID_SIGNATURE', 'Signature rejected');
     let applied = 0; let ignored = 0;
-    for (const ev of mapping.parseStatusWebhook(rawBody)) {
+    for (const raw of mapping.parseStatusWebhook(rawBody)) {
+      const status = normalizeVendorStatus(kind, raw.status); // shared status model (@kiorex/contracts/notify); unknown vendor states are dropped, never guessed
+      if (!status || status === 'SKIPPED') { ignored++; continue; }
+      const ev = { ...raw, status };
       const row = await this.prisma.messageLog.findFirst({ where: { channel: ch, direction: 'OUT', providerRef: ev.providerRef } });
       if (!row) { ignored++; continue; }
       const at = ev.occurredAt && !Number.isNaN(Date.parse(ev.occurredAt)) ? new Date(ev.occurredAt) : new Date();
@@ -109,7 +113,7 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
         if (row.messageId) await this.prisma.message.updateMany({ where: { id: row.messageId }, data: { status: 'FAILED', reason: (ev.error ?? 'DELIVERY_FAILED').slice(0, 200) } });
         applied++; continue;
       }
-      if (row.status === 'FAILED' || ORDER.indexOf(row.status as MsgStatus) >= ORDER.indexOf(ev.status)) { ignored++; continue; }
+      if (mergeStatus(row.status as NotifyStatus, ev.status) === row.status) { ignored++; continue; } // forward-only: replays and out-of-order events are no-ops
       const data = ev.status === 'READ' ? { status: 'READ', readAt: at, deliveredAt: row.deliveredAt ?? at } : ev.status === 'DELIVERED' ? { status: 'DELIVERED', deliveredAt: at } : { status: ev.status, sentAt: row.sentAt ?? at };
       await this.prisma.messageLog.update({ where: { id: row.id }, data });
       applied++;
