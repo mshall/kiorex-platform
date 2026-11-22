@@ -13,6 +13,7 @@ import { Button, Card, Chip, Row, Screen, T, useToast } from "@/components/ui";
 import { setLanguage, type Lang } from "@/i18n";
 import { useTheme, type ThemePref } from "@/theme";
 import { pick } from "@/lib/format";
+import { SignOutSheet } from "@/components/SignOutSheet";
 
 function NavRow({ icon, label, onPress, testID, danger }: { icon: IconName; label: string; onPress: () => void; testID?: string; danger?: boolean }) {
   const { colors } = useTheme();
@@ -71,7 +72,8 @@ export default function Account() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { status, logout, user } = useAuth();
+  const { status, user } = useAuth();
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const { pref, setPref } = useTheme();
   const me = useMe(status === "signedIn");
 
@@ -103,6 +105,7 @@ export default function Account() {
         <T variant="label" muted style={{ marginTop: 8 }}>{t("account.phone")}</T><T style={{ writingDirection: "ltr", textAlign: i18n.language === "ar" ? "right" : "left" }}>{me.data?.phone ?? user?.phone ?? "—"}</T>
         <T variant="caption" muted style={{ marginTop: 8 }}>{t("account.managedBy")}</T>
       </Card>
+      <Button testID="sign-out-top" variant="secondary" icon="logout" title={t("account.signOut")} accessibilityLabel={t("account.signOut")} onPress={() => setSignOutOpen(true)} />
       <Card style={{ paddingVertical: 4 }}>
         <NavRow testID="nav-family" icon="users" label={t("account.familyTitle")} onPress={() => router.push("/settings/family")} />
         <NavRow testID="nav-addresses" icon="pin" label={t("address.title")} onPress={() => router.push("/settings/addresses")} />
@@ -118,8 +121,9 @@ export default function Account() {
       {settings}
       <Card style={{ paddingVertical: 4 }}>
         <NavRow testID="nav-delete" icon="trash" danger label={t("account.deleteTitle")} onPress={() => router.push("/settings/delete")} />
-        <NavRow testID="sign-out" icon="logout" label={t("account.signOut")} onPress={() => { void logout().then(() => router.replace("/sign-in")); }} />
       </Card>
+      <Button testID="sign-out" variant="danger" icon="logout" title={t("account.signOut")} accessibilityLabel={t("account.signOut")} onPress={() => setSignOutOpen(true)} />
+      <SignOutSheet visible={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </Screen>
   );
 }

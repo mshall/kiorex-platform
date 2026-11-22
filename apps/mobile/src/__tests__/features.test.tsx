@@ -126,7 +126,7 @@ describe("waitlist: 409 SLOTS_AVAILABLE means book directly", () => {
   });
   it("the waitlist screen reads the doctor summary from the entry (no per-entry profile fetch)", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "../../app/waitlist.tsx"), "utf8") as string;
+    const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "../../app/(tabs)/(more)/waitlist.tsx"), "utf8") as string;
     expect(src).not.toContain("useDoctor");
     expect(src).toContain("e.doctor");
   });

@@ -24,6 +24,7 @@ import { getRecent, type RecentDoctor } from "@/lib/recent";
 import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import { useTheme } from "@/theme";
 import { usePatient } from "@/hooks/usePatient";
+import { SignOutSheet } from "@/components/SignOutSheet";
 
 function Tile({ icon, label, flag, href, testID }: { icon: IconName; label: string; flag: string; href: string; testID: string }) {
   const { t } = useTranslation();
@@ -70,6 +71,7 @@ export default function Home() {
   const specialties = useSpecialties();
   const careTypes = useCareTypes();
   const bookings = useBookings(signedIn);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
   const [specFilter, setSpecFilter] = useState("");
   const [recent, setRecent] = useState<RecentDoctor[]>([]);
@@ -89,12 +91,19 @@ export default function Home() {
 
   return (
     <KeyboardForm style={{ backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} testID="home">
-      <Row style={{ justifyContent: "space-between" }}>
-        <View style={{ gap: 2 }}>
+      <Row style={{ justifyContent: "space-between" }} gap={12}>
+        <View style={{ gap: 2, flex: 1 }}>
           <Wordmark size={16} />
           <T variant="display" accessibilityRole="header">{signedIn && name ? t("home.greeting", { name }) : t("home.greetingAnon")}</T>
         </View>
+        {signedIn ? (
+          <Pressable testID="open-account-menu" accessibilityRole="button" accessibilityLabel={t("signOutDlg.menu")} onPress={() => setMenuOpen(true)}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="logout" color={colors.ink} mirror />
+          </Pressable>
+        ) : null}
       </Row>
+      <SignOutSheet visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <View style={{ gap: 10 }}>
         <Field testID="search-input" label={t("search.label")} value={q} onChangeText={setQ} placeholder={t("home.searchPlaceholder")} returnKeyType="search" onSubmitEditing={submit} />

@@ -401,6 +401,14 @@
     "call": "Call {{number}}",
     "note": "123 is Egypt's ambulance number."
   },
+  "signOutDlg": {
+    "title": "Sign out",
+    "open": "Sign out",
+    "confirm": "Sign out of Kiorex?",
+    "body": "You will be signed out on this device and it will stop receiving push notifications. Your appointments and records stay safe in your account.",
+    "action": "Sign out",
+    "menu": "Account menu, sign out"
+  },
   "tabs": {
     "home": "Home",
     "appointments": "Appointments",
