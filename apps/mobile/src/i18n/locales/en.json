@@ -454,7 +454,30 @@
     "pharmacy": "Pharmacy",
     "lab": "Lab tests",
     "telemedicine": "Video visits",
-    "waitlist": "Waitlist"
+    "waitlist": "Waitlist",
+    "title": "Services",
+    "intro": "Everything beyond booking a doctor. Services marked as awaiting approval are built but not yet switched on.",
+    "available": "Available",
+    "awaiting": "Awaiting approval",
+    "paused": "Temporarily unavailable",
+    "whatsapp": {
+      "title": "Book on WhatsApp",
+      "body": "Prefer chatting? You can book the same real slots by messaging Kiorex on WhatsApp.",
+      "s1": "Send a message and choose a specialty.",
+      "s2": "Pick a doctor and a time from the options we send.",
+      "s3": "Confirm. You get the same confirmation and reminders as in the app.",
+      "privacy": "Do not send symptoms or medical details in the chat. For an emergency call 123.",
+      "open": "Open WhatsApp",
+      "soon": "The Kiorex WhatsApp number will be announced here at launch."
+    },
+    "all": "All services",
+    "teleBody": "See a doctor by video from home.",
+    "pharmacyBody": "Order medicines from nearby pharmacies, for pickup or delivery.",
+    "labBody": "Book lab tests with home collection. Results arrive in your records.",
+    "safety": "Visit safety",
+    "safetyBody": "Provider name and badge before a home visit, emergency number and family updates. Open a booking to see its safety card.",
+    "reminders": "Reminders",
+    "remindersBody": "Follow-up reminders for your care, by push, WhatsApp and in the app."
   },
   "channel": {
     "marketplace": "Kiorex",
@@ -814,7 +837,18 @@
       "ON_THE_WAY": "On the way",
       "ARRIVED": "Arrived",
       "FINISHED": "Finished"
-    }
+    },
+    "progressTitle": "Visit progress",
+    "familyTitle": "{{name}}'s home visit",
+    "familyProvider": "Your family member's visit is with {{name}}.",
+    "familyStopped": "This visit is no longer active.",
+    "familyStop": "Stop these updates",
+    "familyStopDone": "You will not receive more updates.",
+    "familyPrivacy": "This page shows visit status only. It never shows an address, fee or phone number.",
+    "linkGoneTitle": "This link is no longer active",
+    "linkGoneBody": "Ask your family member to send a new link.",
+    "familyScreenTitle": "Visit status",
+    "stepDone": "done"
   },
   "address": {
     "title": "Address book",

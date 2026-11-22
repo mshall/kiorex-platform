@@ -42,6 +42,7 @@ const state = {
   consents: { MARKETPLACE_PROCESSING: true, REMINDERS: true, RECORD_SHARING: false, AI_PROCESSING: false } as Record<string, boolean>,
   sessions: [{ id: "s1", device: "Kiorex app · demo", lastSeenAt: new Date().toISOString(), current: true }, { id: "s2", device: "Safari · iPhone", lastSeenAt: new Date(Date.now() - 86_400_000).toISOString(), current: false }] as Any[],
   flagsOff: new Set<string>(),
+  stoppedLinks: new Set<string>(),
 };
 
 // ---- new patient features (waitlist, vault, pharmacy, lab, telemedicine) ----
@@ -102,6 +103,15 @@ const progressLab = (b: Any) => { if (b.status === "PENDING_PAYMENT" && Date.now
 async function route(method: string, path: string, url: URL, body: Any): Promise<Response> {
   let m: RegExpMatchArray | null;
   if (method === "GET" && path === "/flags/effective") return json(200, { market: "EG", flags: Object.fromEntries(["kiorex.marketplace", "kiorex.pay_deposits", "kiorex.reviews", "kiorex.family_accounts", "kiorex.record_vault", "kiorex.pharmacy_orders", "kiorex.lab_bookings", "kiorex.telemedicine"].map((k) => [k, { enabled: !state.flagsOff.has(k), reason: "mock" }])) });
+  // public family link (no login): token "gone-token" is a revoked link (404); "stopped-token" a stopped one. Never any address / fee / phone / reason.
+  if ((m = path.match(/^\/public\/visit-status\/([^/]+)(\/stop)?$/))) {
+    const tok = m[1];
+    if (tok === "gone-token") return err(404, "NOT_FOUND", "Link not found");
+    if (m[2] && method === "POST") { state.stoppedLinks.add(tok); return json(200, { ok: true }); }
+    const stopped = tok === "stopped-token" || state.stoppedLinks.has(tok);
+    const steps = ["CONFIRMED", "ON_THE_WAY", "ARRIVED", "FINISHED"].map((key, i) => ({ key, reached: i < 2, at: i < 2 ? iso(-3_600_000 + i * 1_200_000) : null }));
+    return json(200, { patientFirstName: "Youssef", startsAt: iso(3_600_000), subState: null, steps, eta: stopped ? {} : { shared: true, minutes: 18 }, provider: stopped ? null : { displayName: "Nurse Heba" }, stopped, status: stopped ? "STOPPED" : "ON_THE_WAY" });
+  }
   if (method === "GET" && path === "/specialties") return json(200, SPECIALTIES);
   if (method === "GET" && path === "/search/providers") {
     const g = gate("kiorex.marketplace"); if (g) return g;

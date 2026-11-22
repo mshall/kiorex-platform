@@ -1,0 +1,15 @@
+{
+  "Simulator Target Bundle": "com.kiorex.app",
+  "aps": {
+    "alert": {
+      "title": "تحديث طلب الصيدلية",
+      "body": "طلبك جاهز للاستلام."
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "body": {
+    "template": "pharmacy.order.ready",
+    "pharmacyOrderId": "demo_pharmacy_order_1"
+  }
+}

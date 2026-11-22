@@ -107,6 +107,7 @@ export default function Account() {
       </Card>
       <Button testID="sign-out-top" variant="secondary" icon="logout" title={t("account.signOut")} accessibilityLabel={t("account.signOut")} onPress={() => setSignOutOpen(true)} />
       <Card style={{ paddingVertical: 4 }}>
+        <NavRow testID="nav-services" icon="list" label={t("services.title")} onPress={() => router.push("/services" as never)} />
         <NavRow testID="nav-family" icon="users" label={t("account.familyTitle")} onPress={() => router.push("/settings/family")} />
         <NavRow testID="nav-addresses" icon="pin" label={t("address.title")} onPress={() => router.push("/settings/addresses")} />
         <NavRow testID="nav-care-plans" icon="calendarPlus" label={t("carePlan.title")} onPress={() => router.push("/care-plans")} />

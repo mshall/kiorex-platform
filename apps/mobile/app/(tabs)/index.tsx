@@ -44,9 +44,14 @@ function Tile({ icon, label, flag, href, testID }: { icon: IconName; label: stri
 /** Patient services. A tile stays visible when its flag is OFF and opens a localized "temporarily unavailable" state (never a dead end). */
 function Services() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const router = useRouter();
   return (
     <View style={{ gap: 10 }}>
-      <T variant="h2" accessibilityRole="header">{t("home.services")}</T>
+      <Row style={{ justifyContent: "space-between" }}>
+        <T variant="h2" accessibilityRole="header">{t("home.services")}</T>
+        <Pressable testID="link-all-services" accessibilityRole="link" accessibilityLabel={t("services.all")} hitSlop={8} onPress={() => router.push("/services" as never)} style={{ minHeight: 44, justifyContent: "center" }}><T weight="semibold" color={colors.ink2}>{t("services.all")}</T></Pressable>
+      </Row>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         <Tile testID="tile-pharmacy" icon="pill" label={t("services.pharmacy")} flag="kiorex.pharmacy_orders" href="/pharmacy" />
         <Tile testID="tile-lab" icon="flask" label={t("services.lab")} flag="kiorex.lab_bookings" href="/lab" />

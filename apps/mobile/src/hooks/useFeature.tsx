@@ -7,7 +7,8 @@ import { UnavailableState } from "@/components/states";
 export function useFeature(key: string) {
   const { data, isLoading } = useFlags();
   const entry = data?.flags?.[key];
-  return { enabled: entry ? entry.enabled : true, scope: entry?.scope, isLoading };
+  const reason = (entry as { reason?: string } | undefined)?.reason;
+  return { enabled: entry ? entry.enabled : true, scope: entry?.scope, awaiting: reason === "AWAITING_GATE" || entry?.scope === "GATE", isLoading };
 }
 
 export function FeatureGate({ flag, children, fallback }: { flag: string; children: ReactNode; fallback?: ReactNode }) {

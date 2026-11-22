@@ -1,0 +1,15 @@
+{
+  "Simulator Target Bundle": "com.kiorex.app",
+  "aps": {
+    "alert": {
+      "title": "نتائجك جاهزة",
+      "body": "نتيجة تحليلك متاحة الآن في سجلاتك."
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "body": {
+    "template": "result.released",
+    "resultId": "demo_result_1"
+  }
+}

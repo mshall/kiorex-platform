@@ -17,6 +17,7 @@ import { PatientProvider } from "@/hooks/usePatient";
 import { setAnalyticsSink } from "@/lib/analytics";
 import { ApiError } from "@/api/errors";
 import { api } from "@/api/client";
+import { usePushRouting } from "@/hooks/usePushRouting";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -31,6 +32,7 @@ const queryClient = new QueryClient({
 });
 
 function Shell() {
+  usePushRouting();
   const { t, i18n } = useTranslation();
   const { colors, scheme } = useTheme();
   const common = { headerStyle: { backgroundColor: colors.surface }, headerShadowVisible: false, animation: "slide_from_right" as const, headerLargeTitleShadowVisible: false, headerTintColor: colors.ink, headerTitleStyle: { fontFamily: fontFamily(i18n.language, "semibold"), color: colors.text }, contentStyle: { backgroundColor: colors.ground }, headerBackButtonDisplayMode: "minimal" as const };
@@ -43,6 +45,7 @@ function Shell() {
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
+        <Stack.Screen name="visit-status/[token]" options={{ title: t("hv.familyScreenTitle"), headerShown: false }} />
         <Stack.Screen name="telemedicine/room/[id]" options={{ title: t("tele.roomTitle") }} />
         <Stack.Screen name="+not-found" options={{ title: t("notFound.title") }} />
       </Stack>

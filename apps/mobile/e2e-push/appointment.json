@@ -1,0 +1,15 @@
+{
+  "Simulator Target Bundle": "com.kiorex.app",
+  "aps": {
+    "alert": {
+      "title": "تذكير بموعدك",
+      "body": "موعدك غدًا الساعة 10:00 صباحًا."
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "body": {
+    "template": "booking.reminder",
+    "bookingId": "demo_booking_1"
+  }
+}

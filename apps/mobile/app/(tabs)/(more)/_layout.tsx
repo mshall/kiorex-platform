@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { fontFamily, useTheme } from "@/theme";
 import { Icon } from "@/components/Icon";
 
-/** Every pushed screen (appointment, care-plans, doctor, lab, pharmacy, records/*, results, review, safety, settings/*, telemedicine list, waitlist, family-share) lives here,
+/** Every pushed screen (appointment, care-plans, doctor, lab, pharmacy, records/*, results, review, safety, settings/*, telemedicine list, waitlist, family-share, services) lives here,
  *  inside the `(tabs)` group as ONE hidden tab (button hidden), so the bottom tab bar stays visible. Route groups do not change URLs. Checkout (payment) and the telemedicine call
  *  stay full-screen on the root Stack on purpose and have their own back button. */
 export default function MoreLayout() {
@@ -22,6 +22,7 @@ export default function MoreLayout() {
     ) };
   return (
     <Stack screenOptions={common}>
+      <Stack.Screen name="services" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("services.title") }} />
       <Stack.Screen name="results" options={{ title: t("results.title") }} />
       <Stack.Screen name="doctor/[id]" options={{ title: "" }} />
       <Stack.Screen name="appointment/[id]" options={{ title: t("appointment.title") }} />

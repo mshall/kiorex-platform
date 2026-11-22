@@ -1,0 +1,15 @@
+{
+  "Simulator Target Bundle": "com.kiorex.app",
+  "aps": {
+    "alert": {
+      "title": "تحديث حجز المعمل",
+      "body": "تم تأكيد موعد سحب العينة."
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "body": {
+    "template": "lab.booking.confirmed",
+    "labBookingId": "demo_lab_booking_1"
+  }
+}

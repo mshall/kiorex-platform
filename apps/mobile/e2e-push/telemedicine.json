@@ -1,0 +1,15 @@
+{
+  "Simulator Target Bundle": "com.kiorex.app",
+  "aps": {
+    "alert": {
+      "title": "زيارتك بالفيديو",
+      "body": "الطبيب في انتظارك. انضم الآن."
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "body": {
+    "template": "telemedicine.waiting",
+    "sessionId": "demo_tele_session_1"
+  }
+}
