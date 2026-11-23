@@ -26,6 +26,16 @@ async function main() {
       for (const key of keys) await flags.recordGate('DEV_SEED', key, { gateId: `DEV-ONLY-NOT-A-REAL-GATE:${gate}`, approver: 'DEV SEED (not a human approval)', approvedOn: new Date(), documentUrl: `https://dev.invalid/dev-seed-not-evidence-${gate}` });
     }
   }
+  if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_GATES !== 'false') {
+    // DEV ONLY — NOT A REAL GATE: lets local QA walk the patient Services tab end to end (pharmacy orders, lab bookings,
+    // telemedicine). Labelled DEV-ONLY-NOT-A-REAL-GATE:<flag>; production never runs this seed with dev gates, and real
+    // evidence (merchant-of-record memo Q5, counsel memo, clinical governance) is recorded by a human in the super admin.
+    for (const key of ['kiorex.pharmacy_orders', 'kiorex.lab_bookings', 'kiorex.telemedicine']) {
+      const gateId = `DEV-ONLY-NOT-A-REAL-GATE:${key}`;
+      if (await prisma.flagGateEvidence.findFirst({ where: { flagKey: key, gateId } })) continue;
+      await flags.recordGate('DEV_SEED', key, { gateId, approver: 'DEV SEED (not a human approval)', approvedOn: new Date(), documentUrl: `https://dev.invalid/dev-seed-not-evidence-${key}` });
+    }
+  }
   if (process.env.NODE_ENV !== 'production') {
     // DEV partner registrations (kiorex-contracts PARTNER_DEV_DEFAULTS; documented in INTEGRATION.md). Production registrations are made by ops in the super admin.
     const partners = new PartnerRegistry(prisma as never);
