@@ -20,7 +20,7 @@ import { CONN_KINDS, KIND_FLAGS, computeSteps, goLiveBlockers, needsHandshakeCre
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const eq = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const HOST_RE = /^https?:\/\/[^/\s]+$/;
-export interface IntakeBody { kind: ConnKind; orgRef: string; name: string; nameAr?: string; market?: string; contactEmail?: string; locale?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; readiness?: Record<string, any> }
+export interface IntakeBody { statusToken?: string; kind: ConnKind; orgRef: string; name: string; nameAr?: string; market?: string; contactEmail?: string; locale?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; readiness?: Record<string, any> }
 
 const MSG: Record<string, { en: string; ar: string }> = {
   SUBMITTED: { en: 'We received your request to connect to Kiorex. Our team reviews it in the Kiorex console; you can follow every step in your product settings.', ar: 'استلمنا طلب الربط بكيوريكس. يراجعه فريقنا، ويمكنك متابعة كل خطوة من إعدادات منتجك.' },
@@ -75,12 +75,14 @@ export class PartnerOnboardingService {
     const readiness = { ...(b.readiness ?? {}), locale: b.locale === 'ar' ? 'ar' : 'en' };
     const existing = await this.prisma.partnerConnection.findUnique({ where: { kind_orgRef: { kind: b.kind, orgRef: b.orgRef } } });
     if (!existing) {
-      const token = randomBytes(24).toString('base64url');
+      // a partner may derive its own status token (so it never has to store one); otherwise we mint one and return it once
+      const supplied = typeof b.statusToken === 'string' && b.statusToken.length >= 32 && b.statusToken.length <= 128 ? b.statusToken : undefined;
+      const token = supplied ?? randomBytes(24).toString('base64url');
       const r = await this.prisma.partnerConnection.create({ data: { id: newId('pc'), kind: b.kind, orgRef: b.orgRef, name: b.name, nameAr: b.nameAr, market, contactEmail: b.contactEmail, baseUrl, clientKey: b.clientKey, secretsEnc, statusTokenHash: sha(token), readiness } });
       await this.audit('partner', 'submitted', r.id, { kind: r.kind, market });
       void this.notify(r, 'SUBMITTED');
       void this.runChecks('system', r.id).catch((e) => this.log.warn(`auto checks failed id=${r.id} err=${(e as Error).name}`));
-      return { id: r.id, status: r.status, statusToken: token, created: true };
+      return { id: r.id, status: r.status, ...(supplied ? {} : { statusToken: token }), created: true };
     }
     // idempotent re-submit: refresh readiness; a changed credential set while LIVE is a rotation that ops applies after a passing handshake
     const data: Record<string, unknown> = { name: b.name, nameAr: b.nameAr, market, contactEmail: b.contactEmail ?? existing.contactEmail, readiness };
