@@ -47,12 +47,19 @@ export class UnconfiguredAdapter implements MessagingAdapter {
  * MODE=real PUSH adapter: FCM HTTP v1 (native Android tokens) and the Expo push service (Expo tokens), chosen by token shape; credentials only from
  * PUSH_FCM_SERVICE_ACCOUNT_JSON / PUSH_EXPO_ACCESS_TOKEN (see common/providers/vendors/push.ts). A dead token comes back as `invalidToken` so the hub revokes it.
  */
+/** Android notification channel (created by the app at start, see apps/mobile/src/lib/notificationChannels.ts) per template family. */
+export function pushChannelFor(templateId: string): string {
+  if (/^(BOOKING|WAITLIST|DEPOSIT|TELE_SESSION)/.test(templateId)) return 'kiorex-bookings';
+  if (/^(FOLLOW_UP|REVIEW|CARE_PLAN)/.test(templateId)) return 'kiorex-reminders';
+  if (/^(PHARMACY|LAB|HOME_VISIT|RECORD)/.test(templateId)) return 'kiorex-orders';
+  return process.env.PUSH_ANDROID_CHANNEL_ID || 'kiorex-default';
+}
 export class PushAdapter implements MessagingAdapter {
   readonly mode = 'real' as const;
   readonly channel = 'PUSH' as const;
   constructor(private readonly sender: PushSender = new PushSender(pushConfigFromEnv(process.env), outboundFetch)) {}
   async send(m: OutboundMessage): Promise<SendResult> {
-    const r = await this.sender.send({ token: m.to, title: m.subject ?? 'Kiorex', body: m.body, data: { ...(m.data ?? {}), templateId: m.templateId }, channelId: process.env.PUSH_ANDROID_CHANNEL_ID });
+    const r = await this.sender.send({ token: m.to, title: m.subject ?? 'Kiorex', body: m.body, data: { ...(m.data ?? {}), templateId: m.templateId }, channelId: pushChannelFor(m.templateId) });
     return { ok: r.ok, providerRef: r.providerRef ?? '', error: r.error, invalidToken: r.invalidToken };
   }
 }

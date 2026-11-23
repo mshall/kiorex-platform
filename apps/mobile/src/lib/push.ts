@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { api, send } from "@/api/client";
 import { prefs } from "./storage";
+import { ensureNotificationChannels } from "./notificationChannels";
 
 const K_ON = "kx-push-on";
 const K_DEVICE = "kx-push-device-id";
@@ -17,7 +18,7 @@ export type PushResult = { ok: true; deviceId: string } | { ok: false; reason: "
 const randomToken = () => `web-${Array.from({ length: 4 }, () => Math.random().toString(16).slice(2, 10)).join("")}`;
 
 /** Requests permission and returns the device token, or null (denied / unavailable). Never throws. */
-export async function registerForPush(): Promise<string | null> {
+export async function registerForPush(locale: "ar" | "en" = "en"): Promise<string | null> {
   try {
     if (Platform.OS === "web") {
       const N = (globalThis as { Notification?: { permission: string; requestPermission: () => Promise<string> } }).Notification;
@@ -30,11 +31,17 @@ export async function registerForPush(): Promise<string | null> {
     }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Notifications = require("expo-notifications") as typeof import("expo-notifications"); // lazy: never loaded on web
+    await ensureNotificationChannels(Platform.OS, Notifications, locale);
     const cur = await Notifications.getPermissionsAsync();
     const status = cur.granted ? cur : await Notifications.requestPermissionsAsync();
     if (!status.granted) return null;
-    const token = await Notifications.getDevicePushTokenAsync();
-    return String(token.data);
+    // EXPO_PUBLIC_PUSH_TOKEN_KIND=expo (default): Expo push token, one path for Android (FCM) and iOS (APNs) through the Expo push service.
+    // native: the raw FCM token (Android only; iOS native tokens are APNs tokens that FCM HTTP v1 cannot address). The API routes by token shape.
+    const kind = (process.env.EXPO_PUBLIC_PUSH_TOKEN_KIND ?? "expo").toLowerCase();
+    if (kind === "native") return String((await Notifications.getDevicePushTokenAsync()).data);
+    const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+    if (!projectId) return String((await Notifications.getDevicePushTokenAsync()).data); // no EAS project yet: fall back to the native token (dev builds)
+    return String((await Notifications.getExpoPushTokenAsync({ projectId })).data);
   } catch (e) {
     if (typeof __DEV__ !== "undefined" && __DEV__) console.log("[push] registration skipped:", (e as Error).message);
     return null;
@@ -47,7 +54,7 @@ export const pushEnabledLocally = async (): Promise<string | null> => ((await pr
 /** Enables push for this install: permission -> token -> POST /me/devices. */
 export async function enablePush(locale: "ar" | "en"): Promise<PushResult> {
   if (!pushSupported()) return { ok: false, reason: "unsupported" };
-  const token = await registerForPush();
+  const token = await registerForPush(locale);
   if (!token) return { ok: false, reason: "denied" };
   try {
     const dev = await send(api.POST("/api/v1/me/devices", { body: { platform: pushPlatform(), token, appVersion: Constants.expoConfig?.version, locale } }));

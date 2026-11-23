@@ -8,12 +8,15 @@ jest.mock("@/api/client", () => ({
 jest.mock("expo-notifications", () => ({
   getPermissionsAsync: async () => ({ granted: true }), requestPermissionsAsync: async () => ({ granted: true }),
   getDevicePushTokenAsync: async () => ({ data: "native-device-token-0123456789" }),
+  getExpoPushTokenAsync: async ({ projectId }: { projectId: string }) => ({ data: `ExponentPushToken[${projectId}]` }),
+  setNotificationChannelAsync: async () => undefined, AndroidImportance: { DEFAULT: 3, HIGH: 4 },
 }));
-jest.mock("expo-constants", () => ({ __esModule: true, default: { expoConfig: { version: "1.2.3" } } }));
+let mockProjectId: string | undefined;
+jest.mock("expo-constants", () => ({ __esModule: true, default: { get expoConfig() { return { version: "1.2.3", extra: mockProjectId ? { eas: { projectId: mockProjectId } } : {} }; } } }));
 
 import { disablePush, enablePush, pushEnabledLocally, pushPlatform } from "@/lib/push";
 
-beforeEach(() => { mockPost.mockReset(); mockDel.mockReset(); });
+beforeEach(() => { mockPost.mockReset(); mockDel.mockReset(); mockProjectId = undefined; delete process.env.EXPO_PUBLIC_PUSH_TOKEN_KIND; });
 
 describe("push registration (mobile settings toggle)", () => {
   it("registers this device through /me/devices and remembers its id", async () => {
@@ -22,6 +25,18 @@ describe("push registration (mobile settings toggle)", () => {
     expect(r).toEqual({ ok: true, deviceId: "dev1" });
     expect(mockPost).toHaveBeenCalledWith("/api/v1/me/devices", { body: expect.objectContaining({ platform: pushPlatform(), token: "native-device-token-0123456789", locale: "en", appVersion: "1.2.3" }) });
     expect(await pushEnabledLocally()).toBe("dev1");
+  });
+  it("registers the Expo push token (one path for FCM + APNs) once an EAS project id is configured", async () => {
+    mockProjectId = "proj-123";
+    mockPost.mockResolvedValue({ data: { id: "dev2" }, response: { ok: true, status: 201 } });
+    await enablePush("en");
+    expect(mockPost).toHaveBeenCalledWith("/api/v1/me/devices", { body: expect.objectContaining({ token: "ExponentPushToken[proj-123]" }) });
+  });
+  it("EXPO_PUBLIC_PUSH_TOKEN_KIND=native keeps the raw FCM token even with a project id", async () => {
+    mockProjectId = "proj-123"; process.env.EXPO_PUBLIC_PUSH_TOKEN_KIND = "native";
+    mockPost.mockResolvedValue({ data: { id: "dev3" }, response: { ok: true, status: 201 } });
+    await enablePush("en");
+    expect(mockPost).toHaveBeenCalledWith("/api/v1/me/devices", { body: expect.objectContaining({ token: "native-device-token-0123456789" }) });
   });
   it("reports failure without throwing when the API rejects", async () => {
     mockPost.mockResolvedValue({ data: undefined, response: { ok: false, status: 500 } });
