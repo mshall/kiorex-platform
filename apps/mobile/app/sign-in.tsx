@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +11,9 @@ import { Button, T } from "@/components/ui";
 import { useTheme } from "@/theme";
 import { config } from "@/lib/config";
 import { Icon } from "@/components/Icon";
+
+// DEV ONLY. The condition must stay an inline literal expression: Metro folds `__DEV__` and EXPO_PUBLIC_* per file, so a production bundle drops the require and with it ./dev/* (asserted by scripts/check-no-dev-test-users.mjs).
+const DevTestUsers = __DEV__ && process.env.EXPO_PUBLIC_DEV_TEST_USERS !== "false" ? (require("@/dev/DevTestUsers") as typeof import("@/dev/DevTestUsers")).DevTestUsers : null;
 
 /** Onboarding / sign-in (KX-03 §06, KX-04): one action — Continue with Kiorex Passport. */
 export default function SignIn() {
@@ -34,7 +37,7 @@ export default function SignIn() {
         </View>
         <PulseLine width={150} loop={false} color="#F08A75" />
       </LinearGradient>
-      <View style={{ padding: 24, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: 24, gap: 14 }} keyboardShouldPersistTaps="handled">
         {error ? <T testID="sign-in-error" color={colors.danger} style={{ textAlign: "center" }} accessibilityRole="alert">{t(error)}</T> : null}
         <Button testID="continue-passport" title={t("signIn.cta")} icon="shield" loading={busy} onPress={go} />
         <Button testID="browse-doctors" variant="secondary" title={t("signIn.browse")} icon="search" onPress={() => router.replace("/(tabs)")} />
@@ -42,9 +45,10 @@ export default function SignIn() {
           <Icon name="shield" size={16} color={colors.muted} />
           <T variant="caption" muted style={{ flex: 1 }}>{t("signIn.passportNote")}</T>
         </View>
+        {DevTestUsers ? <DevTestUsers busy={busy} onPick={(phone) => void login(phone)} /> : null}
         {config.mock ? <T variant="caption" color={colors.pulse} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
         <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
-      </View>
+      </ScrollView>
     </View>
   );
 }

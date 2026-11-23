@@ -10,6 +10,7 @@
     "android": "expo start --android",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "check:dev-test-users": "node scripts/check-no-dev-test-users.mjs",
     "gen:api": "node scripts/gen-api.mjs",
     "gen:assets": "node scripts/gen-assets.mjs"
   },

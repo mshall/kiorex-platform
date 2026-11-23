@@ -18,7 +18,7 @@ const KEY = "kx-passport-tokens";
 interface Stored { accessToken: string; refreshToken?: string; idToken?: string; expiresAt: number }
 export interface AuthUser { sub: string; name?: string; phone?: string; roles: string[] }
 type Status = "loading" | "signedOut" | "signedIn";
-interface Ctx { status: Status; user: AuthUser | null; login: () => Promise<boolean>; completeWebLogin: (p: { code?: string; state?: string }) => Promise<boolean>; logout: () => Promise<void>; error: string | null; busy: boolean }
+interface Ctx { status: Status; user: AuthUser | null; login: (loginHint?: string) => Promise<boolean>; completeWebLogin: (p: { code?: string; state?: string }) => Promise<boolean>; logout: () => Promise<void>; error: string | null; busy: boolean }
 const AuthCtx = createContext<Ctx | null>(null);
 
 export const redirectUri = () => AuthSession.makeRedirectUri({ scheme: "kiorex", path: "auth/callback" });
@@ -77,12 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { if (status === "signedIn") void refreshPushRegistration(i18n.language?.startsWith("en") ? "en" : "ar"); }, [status]);
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (loginHint?: string) => {
     setError(null); setBusy(true);
     try {
       if (config.mock) { await setSession(MOCK_TOKEN); return true; }
       const d = await discover();
-      const request = new AuthSession.AuthRequest({ clientId: config.oidcClientId, redirectUri: redirectUri(), scopes: config.oidcScopes, usePKCE: true, responseType: AuthSession.ResponseType.Code });
+      const request = new AuthSession.AuthRequest({ clientId: config.oidcClientId, redirectUri: redirectUri(), scopes: config.oidcScopes, usePKCE: true, responseType: AuthSession.ResponseType.Code, ...(loginHint ? { extraParams: { login_hint: loginHint } } : {}) });
       if (Platform.OS === "web") {
         // Full-page redirect (no popup: popup blockers and embedded browsers break the opener hand-off). The code is exchanged on /auth/callback.
         const url = await request.makeAuthUrlAsync(d);
