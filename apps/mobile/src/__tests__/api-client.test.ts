@@ -14,11 +14,19 @@ describe("api client middleware", () => {
     expect(res.response).toBe(foreign);
   });
 
-  it("calls onUnauthorized on 401 without throwing", async () => {
+  const r401 = { ok: false, status: 401, url: "http://x", headers: new Headers({ "content-type": "application/json" }), clone() { return this; }, json: async () => ({}), text: async () => "{}" } as unknown as Response;
+
+  it("calls onUnauthorized on a 401 for a request that carried a token, without throwing", async () => {
+    const onUnauthorized = jest.fn();
+    configureApi({ getToken: async () => "tok", onUnauthorized });
+    await api.GET("/api/v1/specialties", { fetch: async () => r401 });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it("never signs out on a 401 for a request sent without a token (cold-start deep link before the stored session loaded)", async () => {
     const onUnauthorized = jest.fn();
     configureApi({ getToken: async () => null, onUnauthorized });
-    const foreign = { ok: false, status: 401, url: "http://x", headers: new Headers({ "content-type": "application/json" }), clone() { return this; }, json: async () => ({}), text: async () => "{}" } as unknown as Response;
-    await api.GET("/api/v1/specialties", { fetch: async () => foreign });
-    expect(onUnauthorized).toHaveBeenCalled();
+    await api.GET("/api/v1/specialties", { fetch: async () => r401 });
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });

@@ -20,8 +20,10 @@ const auth: Middleware = {
     request.headers.set("Accept-Language", i18n.language?.startsWith("en") ? "en" : "ar");
     return request;
   },
-  async onResponse({ response }) {
-    if (response.status === 401) onUnauthorized();
+  async onResponse({ request, response }) {
+    // Only a request that carried a token can prove the session is dead. A cold-start deep link can fire a query before the stored
+    // session has loaded (no Authorization header): that 401 must never sign a signed-in patient out.
+    if (response.status === 401 && request.headers.has("Authorization")) onUnauthorized();
     // Return nothing: openapi-fetch only accepts a *global* Response here, and RN's fetch returns its own Response class.
   },
 };

@@ -7,6 +7,7 @@ import { config } from "@/lib/config";
 import { secureStore } from "@/lib/storage";
 import { configureApi } from "@/api/client";
 import { decodeClaims } from "./jwt";
+import { endPassportSession } from "./endSession";
 import { refreshPushRegistration } from "@/lib/push";
 import i18n from "@/i18n";
 
@@ -114,7 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) { console.log("[auth] web callback failed:", (e as Error).message); setError("signIn.failed"); return false; }
   }, [setSession]);
 
-  const logout = useCallback(async () => { await setSession(null); }, [setSession]);
+  /** Clears the app session first (so the app is signed out whatever happens next), then ends the Passport session (id_token_hint: no confirm page). */
+  const logout = useCallback(async () => {
+    const idToken = tokens.current?.idToken;
+    await setSession(null);
+    await endPassportSession(idToken);
+  }, [setSession]);
   const value = useMemo(() => ({ status, user, login, completeWebLogin, logout, error, busy }), [status, user, login, completeWebLogin, logout, error, busy]);
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

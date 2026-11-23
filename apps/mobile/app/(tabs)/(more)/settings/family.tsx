@@ -7,10 +7,11 @@ import { EmptyState, ErrorState, LoadingState, UnavailableState } from "@/compon
 import { Banner, Button, Card, Chip, Field, Row, Screen, Sheet, T } from "@/components/ui";
 import { useFeature } from "@/hooks/useFeature";
 import { pick } from "@/lib/format";
+import { RequireAuth } from "@/components/feature";
 
 const RELS = ["CHILD", "PARENT", "SPOUSE", "OTHER"] as const;
 
-export default function Family() {
+function FamilyBody() {
   const { t, i18n } = useTranslation();
   const family = useFamily();
   const add = useAddFamily();
@@ -48,3 +49,5 @@ export default function Family() {
     </>
   );
 }
+
+export default function Family() { return <RequireAuth><FamilyBody /></RequireAuth>; }

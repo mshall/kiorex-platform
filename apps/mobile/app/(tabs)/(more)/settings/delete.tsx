@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useDeleteAccount } from "@/api/hooks";
 import { useAuth } from "@/auth/AuthProvider";
 import { Banner, Button, Card, Checkbox, Field, Screen, T } from "@/components/ui";
+import { RequireAuth } from "@/components/feature";
 
 /** In-app account deletion with optional export (KXMAC06). Requires typing the confirmation word. */
-export default function DeleteAccount() {
+function DeleteAccountBody() {
   const { t } = useTranslation();
   const router = useRouter();
   const { logout } = useAuth();
@@ -38,3 +39,5 @@ export default function DeleteAccount() {
     </Screen>
   );
 }
+
+export default function DeleteAccount() { return <RequireAuth><DeleteAccountBody /></RequireAuth>; }

@@ -43,6 +43,7 @@ function Shell() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/logout" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="visit-status/[token]" options={{ title: t("hv.familyScreenTitle"), headerShown: false }} />

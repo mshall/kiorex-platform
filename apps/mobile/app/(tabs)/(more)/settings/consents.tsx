@@ -6,10 +6,11 @@ import { ErrorState, LoadingState } from "@/components/states";
 import { Card, Row, Screen, T } from "@/components/ui";
 import { formatDay } from "@/lib/format";
 import { useTheme } from "@/theme";
+import { RequireAuth } from "@/components/feature";
 
 const KEY: Record<ConsentPurpose, string> = { MARKETPLACE_PROCESSING: "marketplace_processing", REMINDERS: "reminders", RECORD_SHARING: "record_sharing", AI_PROCESSING: "ai_processing", VISIT_STATUS_SHARING: "visit_status_sharing" };
 
-export default function Consents() {
+function ConsentsBody() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const q = useConsents();
@@ -28,3 +29,5 @@ export default function Consents() {
     </Screen>
   );
 }
+
+export default function Consents() { return <RequireAuth><ConsentsBody /></RequireAuth>; }

@@ -4,8 +4,9 @@ import { useRevokeSession, useSessions } from "@/api/hooks";
 import { ErrorState, LoadingState } from "@/components/states";
 import { Badge, Button, Card, Row, Screen, T } from "@/components/ui";
 import { formatDay, formatTime } from "@/lib/format";
+import { RequireAuth } from "@/components/feature";
 
-export default function Sessions() {
+function SessionsBody() {
   const { t, i18n } = useTranslation();
   const q = useSessions();
   const revoke = useRevokeSession();
@@ -22,3 +23,5 @@ export default function Sessions() {
     </Screen>
   );
 }
+
+export default function Sessions() { return <RequireAuth><SessionsBody /></RequireAuth>; }

@@ -11,9 +11,10 @@ import { useFeature } from "@/hooks/useFeature";
 import { track } from "@/lib/analytics";
 import { pick } from "@/lib/format";
 import { useTheme } from "@/theme";
+import { RequireAuth } from "@/components/feature";
 
 /** Review submission (KXMRV01): completed visits only. The comment must not contain medical or personal details. */
-export default function ReviewScreen() {
+function ReviewScreenBody() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -58,3 +59,5 @@ export default function ReviewScreen() {
     </Screen>
   );
 }
+
+export default function ReviewScreen() { return <RequireAuth><ReviewScreenBody /></RequireAuth>; }
