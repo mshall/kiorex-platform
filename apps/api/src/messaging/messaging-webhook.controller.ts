@@ -1,8 +1,10 @@
-import { Controller, HttpCode, Post, Param, Req } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post, Param, Query, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { ApiError } from '../common/errors';
 import { MessagingHub } from './messaging.hub';
+import { providerEnv } from '../common/providers/env';
+import { messagingKindOf, messagingMapping } from '../common/providers/real-adapters';
 
 export class MessagingWebhookAckDto { @ApiProperty() applied!: number; @ApiProperty() ignored!: number }
 
@@ -15,6 +17,16 @@ export class MessagingWebhookAckDto { @ApiProperty() applied!: number; @ApiPrope
 @Controller('messaging/webhooks')
 export class MessagingWebhookController {
   constructor(private readonly hub: MessagingHub) {}
+
+  /** Vendor subscription handshake (Meta: hub.mode / hub.verify_token / hub.challenge -> echo the challenge). */
+  @Public() @Get(':channel')
+  @ApiOperation({ summary: 'Provider webhook verification handshake (Meta WhatsApp hub.challenge)' })
+  handshake(@Param('channel') channel: string, @Query() q: Record<string, unknown>) {
+    const kind = messagingKindOf(channel.toUpperCase());
+    const challenge = kind && providerEnv(kind).mode === 'real' ? messagingMapping(kind).verifyChallenge?.(q, process.env.WHATSAPP_VERIFY_TOKEN ?? '') : null;
+    if (challenge === null || challenge === undefined) throw new ApiError(403, 'INVALID_VERIFY_TOKEN', 'Verification rejected');
+    return challenge;
+  }
 
   @ApiOkResponse({ type: MessagingWebhookAckDto })
   @Public() @Post(':channel') @HttpCode(200)

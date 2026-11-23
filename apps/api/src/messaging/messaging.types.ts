@@ -12,8 +12,12 @@ export interface OutboundMessage {
   templateId: string;
   locale: string;
   body: string;
+  /** EMAIL subject / PUSH title (optional; vendors fall back to the brand string). */
+  subject?: string;
+  /** PUSH: opaque deep-link data (ids only, never PHI). */
+  data?: Record<string, unknown>;
 }
-export interface SendResult { providerRef: string; ok: boolean; error?: string }
+export interface SendResult { providerRef: string; ok: boolean; error?: string; /** PUSH: the device token is dead, the hub revokes it */ invalidToken?: boolean }
 
 /** Adapter contract shared by every messaging provider. `mode` is mock|real (MESSAGING_MODE). */
 export interface MessagingAdapter {

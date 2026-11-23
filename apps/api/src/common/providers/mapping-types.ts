@@ -8,18 +8,31 @@ import { verifyWebhookBody } from './webhook';
 export type StatusState = 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
 export interface StatusEvent { providerRef: string; status: StatusState; error?: string; occurredAt?: string }
 
-export interface OutboundWire { path: string; body: unknown; headers?: Record<string, string> }
+export interface OutboundWire {
+  path: string; body?: unknown; headers?: Record<string, string>;
+  /** x-www-form-urlencoded body instead of JSON (Twilio). */
+  form?: Record<string, string>;
+  /** Per-attempt request signer (AWS SigV4). */
+  sign?: (r: { method: string; url: string; body: string }) => Record<string, string>;
+}
+export interface InboundParsed { from: string; text?: string; buttonPayload?: string; providerRef?: string }
 
 export interface MessagingMapping {
   /** Auth headers from the API key (default: `Authorization: Bearer <key>`). */
   authHeaders(apiKey: string): Record<string, string>;
-  buildSend(i: { to: string; body: string; senderId: string; reference: string; templateId: string; locale: string; variables?: Record<string, string> }): OutboundWire;
+  buildSend(i: { to: string; body: string; senderId: string; reference: string; templateId: string; locale: string; variables?: Record<string, string>; subject?: string; apiUrl?: string; apiKey?: string; publicWebhookUrl?: string }): OutboundWire;
   /** Extract the vendor message id from a 2xx response. Throw if absent. */
   parseSend(json: any): { providerRef: string };
   /** Parse a (signature-verified) status webhook body into events. */
   parseStatusWebhook(raw: string): StatusEvent[];
   /** Verify the webhook signature. Default = generic X-Webhook-Signature scheme. */
-  verifyWebhook(o: { secret: string; rawBody: string; headers: Record<string, unknown> }): boolean;
+  verifyWebhook(o: { secret: string; rawBody: string; headers: Record<string, unknown>; publicUrl?: string }): boolean;
+  /** Vendor inbound customer messages carried by the same webhook (Meta WhatsApp). */
+  parseInbound?(raw: string): InboundParsed[];
+  /** Vendor subscription-confirmation URL to GET (SNS), when the body is one. */
+  subscriptionConfirmUrl?(raw: string): string | null;
+  /** Vendor GET verification handshake (Meta hub.challenge). */
+  verifyChallenge?(query: Record<string, unknown>, verifyToken: string): string | null;
 }
 
 export const bearer = (apiKey: string): Record<string, string> => ({ authorization: `Bearer ${apiKey}` });

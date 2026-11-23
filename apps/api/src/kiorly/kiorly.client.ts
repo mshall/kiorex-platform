@@ -137,7 +137,7 @@ export class KiorlyClient {
     return this.request<any>({ method: 'POST', path: `/patients/${encodeURIComponent(kiorlyPatientId)}/consents`, body: { consents }, clinicId });
   }
   /** Org onboarding import (contracts 1.7.0 draft): idempotent per item.idempotencyKey; the clinic tags every created row with the batch id so it can be rolled back. */
-  importRecords(batchId: string, body: { orgId: string; entity: string; items: unknown[] }) {
+  importRecords(batchId: string, body: { orgId: string; orgName?: string; entity: string; items: unknown[] }) {
     return this.request<{ results: Array<{ sourceKey: string; targetId: string }> }>({ method: 'POST', path: `/imports/${encodeURIComponent(batchId)}/records`, body, idempotencyKey: `imp-chunk:${batchId}:${body.entity}:${(body.items as any[])[0]?.idempotencyKey ?? ''}` });
   }
   importRollback(batchId: string, body: { orgId: string }) {

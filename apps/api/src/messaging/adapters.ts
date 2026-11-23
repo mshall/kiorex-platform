@@ -3,6 +3,7 @@ import { outboundFetch } from '../common/outbound-http';
 import { providerEnv, providerProblems } from '../common/providers/env';
 import { HttpMessagingTransport, messagingKindOf } from '../common/providers/real-adapters';
 import type { HttpDeps } from '../common/providers/http';
+import { PushSender, pushConfigFromEnv, pushProblems } from '../common/providers/vendors/push';
 import { MessagingAdapter, MsgChannel, OutboundMessage, SendResult } from './messaging.types';
 
 /**
@@ -29,7 +30,7 @@ export class HttpMessagingAdapter implements MessagingAdapter {
     this.transport = new HttpMessagingTransport(messagingKindOf(channel)!, undefined, deps);
   }
   async send(m: OutboundMessage): Promise<SendResult> {
-    return this.transport.send({ to: m.to, body: m.body, reference: m.messageId ?? `${m.channel}:${m.templateId}:${m.to}`, templateId: m.templateId, locale: m.locale });
+    return this.transport.send({ to: m.to, body: m.body, reference: m.messageId ?? `${m.channel}:${m.templateId}:${m.to}`, templateId: m.templateId, locale: m.locale, subject: m.subject });
   }
 }
 
@@ -42,15 +43,32 @@ export class UnconfiguredAdapter implements MessagingAdapter {
   }
 }
 
-/** Per-channel mode: SMS/EMAIL/WHATSAPP from <KIND>_MODE; PUSH has no HTTP provider yet (FCM/APNs) so it is mock unless legacy MESSAGING_MODE=real. */
+/**
+ * MODE=real PUSH adapter: FCM HTTP v1 (native Android tokens) and the Expo push service (Expo tokens), chosen by token shape; credentials only from
+ * PUSH_FCM_SERVICE_ACCOUNT_JSON / PUSH_EXPO_ACCESS_TOKEN (see common/providers/vendors/push.ts). A dead token comes back as `invalidToken` so the hub revokes it.
+ */
+export class PushAdapter implements MessagingAdapter {
+  readonly mode = 'real' as const;
+  readonly channel = 'PUSH' as const;
+  constructor(private readonly sender: PushSender = new PushSender(pushConfigFromEnv(process.env), outboundFetch)) {}
+  async send(m: OutboundMessage): Promise<SendResult> {
+    const r = await this.sender.send({ token: m.to, title: m.subject ?? 'Kiorex', body: m.body, data: { ...(m.data ?? {}), templateId: m.templateId }, channelId: process.env.PUSH_ANDROID_CHANNEL_ID });
+    return { ok: r.ok, providerRef: r.providerRef ?? '', error: r.error, invalidToken: r.invalidToken };
+  }
+}
+
+/** Per-channel mode: SMS/EMAIL/WHATSAPP from <KIND>_MODE; PUSH from PUSH_MODE (legacy MESSAGING_MODE=real still switches it on). */
 export function channelMode(channel: MsgChannel): 'mock' | 'real' {
   const k = messagingKindOf(channel);
   if (k) return providerEnv(k).mode;
+  const m = process.env.PUSH_MODE;
+  if (m === 'real' || m === 'mock') return m;
   return process.env.MESSAGING_MODE === 'real' ? 'real' : 'mock';
 }
 
 export function createMessagingAdapter(channel: MsgChannel): MessagingAdapter {
   if (channelMode(channel) === 'mock') return new MockAdapter(channel);
+  if (channel === 'PUSH') return pushProblems(process.env).length ? new UnconfiguredAdapter(channel) : new PushAdapter();
   const k = messagingKindOf(channel);
   if (!k || providerProblems(k).length) return new UnconfiguredAdapter(channel);
   return new HttpMessagingAdapter(channel);

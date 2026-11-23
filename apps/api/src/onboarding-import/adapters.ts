@@ -19,7 +19,7 @@ export class LocalStagingStore implements StagingStore {
 }
 
 export interface CommitItem { idempotencyKey: string; sourceKey: string; data: Record<string, unknown>; file?: { name: string; contentBase64: string } }
-export interface CommitArgs { batchId: string; orgId: string; entity: Entity; items: CommitItem[] }
+export interface CommitArgs { batchId: string; orgId: string; orgName?: string; entity: Entity; items: CommitItem[] }
 export interface ImportTarget { readonly mode: 'mock' | 'kiorly'; commit(a: CommitArgs): Promise<Array<{ sourceKey: string; targetId: string }>>; rollback(a: { batchId: string; orgId: string }): Promise<{ removed: number }> }
 
 /** Default (MODE=mock): deterministic ids, same code path, nothing leaves the platform. `failAfter` lets tests simulate a crash mid-commit. */
@@ -46,7 +46,7 @@ export class KiorlyImportTarget implements ImportTarget {
   readonly mode = 'kiorly' as const;
   constructor(private readonly kiorly: KiorlyClient) {}
   async commit(a: CommitArgs) {
-    const r = await this.kiorly.importRecords(a.batchId, { orgId: a.orgId, entity: a.entity, items: a.items });
+    const r = await this.kiorly.importRecords(a.batchId, { orgId: a.orgId, orgName: a.orgName, entity: a.entity, items: a.items });
     return r.data.results;
   }
   async rollback(a: { batchId: string; orgId: string }) { const r = await this.kiorly.importRollback(a.batchId, { orgId: a.orgId }); return { removed: r.data.removed }; }

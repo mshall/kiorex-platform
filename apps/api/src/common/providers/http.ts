@@ -16,6 +16,12 @@ export interface ProviderRequest {
   /** Path appended to <KIND>_API_URL. */
   path: string;
   body?: unknown;
+  /** application/x-www-form-urlencoded body (Twilio-style); takes precedence over `body`. */
+  form?: Record<string, string>;
+  /** Absolute URL override (vendor hosts that differ from <KIND>_API_URL, e.g. the FCM OAuth token endpoint). */
+  absoluteUrl?: string;
+  /** Per-attempt request signing (AWS SigV4 etc.): receives the final method/url/body string, returns extra headers. */
+  sign?: (r: { method: string; url: string; body: string }) => Record<string, string>;
   headers?: Record<string, string>;
   /** Sent as `Idempotency-Key` on every attempt of this request, so a retried send can never double-charge / double-send. */
   idempotencyKey?: string;
@@ -46,8 +52,10 @@ export async function providerRequest(env: ProviderEnv, req: ProviderRequest, de
   const f = deps.fetchImpl ?? fetch;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const rnd = deps.random ?? Math.random;
-  const url = `${env.apiUrl}${req.path.startsWith('/') ? '' : '/'}${req.path}`;
-  const headers: Record<string, string> = { accept: 'application/json', ...(req.body !== undefined ? { 'content-type': 'application/json' } : {}), ...authHeaders, ...req.headers };
+  const url = req.absoluteUrl ?? `${env.apiUrl}${req.path.startsWith('/') ? '' : '/'}${req.path}`;
+  const method = req.method ?? 'POST';
+  const bodyStr = req.form ? new URLSearchParams(req.form).toString() : req.body === undefined ? undefined : JSON.stringify(req.body);
+  const headers: Record<string, string> = { accept: 'application/json', ...(req.form ? { 'content-type': 'application/x-www-form-urlencoded' } : req.body !== undefined ? { 'content-type': 'application/json' } : {}), ...authHeaders, ...req.headers };
   if (req.idempotencyKey) headers['idempotency-key'] = req.idempotencyKey;
   const max = env.maxRetries + 1;
   let last: ProviderError | undefined;
@@ -56,7 +64,8 @@ export async function providerRequest(env: ProviderEnv, req: ProviderRequest, de
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), env.timeoutMs);
     try {
-      const res = await f(url, { method: req.method ?? 'POST', headers, body: req.body === undefined ? undefined : JSON.stringify(req.body), signal: ctl.signal });
+      const signed = req.sign ? req.sign({ method, url, body: bodyStr ?? '' }) : {};
+      const res = await f(url, { method, headers: { ...headers, ...signed }, body: bodyStr, signal: ctl.signal });
       const text = await res.text();
       if (res.ok) {
         let json: any = {};

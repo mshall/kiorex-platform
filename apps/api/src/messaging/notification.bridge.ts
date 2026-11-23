@@ -1,7 +1,7 @@
 import type { Channel, ChannelAdapter, RenderedMessage, SendOutcome, StatusEvent } from '@kiorex/contracts/notify';
 import { normalizeVendorStatus } from '@kiorex/contracts/notify';
 import { providerEnv } from '../common/providers/env';
-import { messagingKindOf, MESSAGING_MAPPINGS } from '../common/providers/real-adapters';
+import { messagingKindOf, messagingMapping } from '../common/providers/real-adapters';
 import type { MessagingHub } from './messaging.hub';
 import type { MsgChannel } from './messaging.types';
 
@@ -28,7 +28,7 @@ export class HubChannelAdapter implements ChannelAdapter {
   async send(m: RenderedMessage): Promise<SendOutcome> {
     const r = await this.hub.send({
       messageId: m.metadata?.messageId, channel: this.channel as MsgChannel, sub: m.metadata?.sub, to: m.to,
-      templateId: m.metadata?.templateId ?? m.type, locale: m.locale, body: flattenBody(m),
+      templateId: m.metadata?.templateId ?? m.type, locale: m.locale, body: flattenBody(m), subject: m.channel === 'EMAIL' ? (m.body as { subject?: string }).subject : m.channel === 'PUSH' ? (m.body as { title?: string }).title : undefined,
     });
     return { ok: r.ok, providerRef: r.providerRef ?? undefined, error: r.error ?? undefined };
   }
@@ -37,7 +37,7 @@ export class HubChannelAdapter implements ChannelAdapter {
     const kind = messagingKindOf(this.channel);
     if (!kind) return [];
     const out: StatusEvent[] = [];
-    for (const e of MESSAGING_MAPPINGS[kind].parseStatusWebhook(rawBody)) {
+    for (const e of messagingMapping(kind).parseStatusWebhook(rawBody)) {
       const status = normalizeVendorStatus(this.channel, e.status);
       if (status) out.push({ providerRef: e.providerRef, status, ...(e.error ? { error: e.error } : {}), ...(e.occurredAt ? { occurredAt: e.occurredAt } : {}) });
     }
@@ -47,7 +47,7 @@ export class HubChannelAdapter implements ChannelAdapter {
   verify(rawBody: string, headers: Record<string, unknown> = {}): boolean {
     const kind = messagingKindOf(this.channel);
     if (!kind) return false;
-    return MESSAGING_MAPPINGS[kind].verifyWebhook({ secret: providerEnv(kind).webhookSecret, rawBody, headers });
+    return messagingMapping(kind).verifyWebhook({ secret: providerEnv(kind).webhookSecret, rawBody, headers });
   }
 }
 

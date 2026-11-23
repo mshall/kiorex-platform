@@ -14,7 +14,7 @@ import { parseXlsx } from './lib/xlsx';
 /** Business errors carry stable codes (the console shows localized text by code). Never put row values in a message. */
 const err = (E: new (b: object) => Error, code: string, extra: object = {}) => new E({ code, message: code, ...extra });
 const MAX_FILES_PER_BATCH = 500;
-const COMMIT_CHUNK: Record<Entity, number> = { patients: 100, appointments: 200, visits: 200, billing: 200, documents: 5 };
+const COMMIT_CHUNK: Record<Entity, number> = { patients: 100, appointments: 200, visits: 200, billing: 200, documents: 2 };
 
 @Injectable()
 export class OnboardingImportService {
@@ -222,7 +222,7 @@ export class OnboardingImportService {
             if (entity === 'documents') { const f = await this.prisma.importFile.findUnique({ where: { id: String(r.data.fileId) } }); file = { name: f!.name, contentBase64: (await this.store.get(f!.storageKey!)).toString('base64') }; delete data.fileId; }
             return { idempotencyKey: `imp:${batchId}:${entity}:${r.sourceKey}`, sourceKey: r.sourceKey, data, file };
           }));
-          const res = await this.target.commit({ batchId, orgId: b.orgId, entity, items });
+          const res = await this.target.commit({ batchId, orgId: b.orgId, orgName: b.orgName, entity, items });
           await this.prisma.importCommitItem.createMany({ data: res.map((x) => ({ batchId, entity, sourceKey: x.sourceKey, targetId: x.targetId, idempotencyKey: `imp:${batchId}:${entity}:${x.sourceKey}` })), skipDuplicates: true });
           if (entity === 'patients') for (const x of res) targetIds.set(x.sourceKey, x.targetId);
           progress[entity] = (progress[entity] ?? 0) + res.length;

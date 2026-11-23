@@ -21,9 +21,21 @@ export interface ProviderEnv {
   apiKey: string;
   senderId: string;
   webhookSecret: string;
+  /** Vendor wire format: `gateway` (default, the neutral contract in Docs/PROVIDERS.md) or a native vendor: whatsapp=meta, email=ses, sms=twilio. */
+  provider: string;
+  /** Public https URL the vendor posts status callbacks to (needed by Twilio-style URL-bound signatures and as StatusCallback). */
+  publicWebhookUrl: string;
   timeoutMs: number;
   maxRetries: number;
 }
+
+/** Native vendors per kind, and the vendor's default API base (so go-live is just MODE + credentials). */
+export const NATIVE_VENDORS: Partial<Record<ProviderKind, { name: string; defaultUrl?: string; secretFromKey?: (k: string) => string }>> = {
+  WHATSAPP: { name: 'meta', defaultUrl: 'https://graph.facebook.com/v21.0' },
+  EMAIL: { name: 'ses' },
+  SMS: { name: 'twilio', defaultUrl: 'https://api.twilio.com', secretFromKey: (k) => k.slice(k.indexOf(':') + 1) },
+};
+const providerName = (kind: ProviderKind, env: Env): string => { const v = (env[`${kind}_PROVIDER`] ?? '').trim().toLowerCase(); return v === NATIVE_VENDORS[kind]?.name ? v : 'gateway'; };
 
 const NEEDS_SENDER: Record<ProviderKind, boolean> = { SMS: true, EMAIL: true, WHATSAPP: true, PAYMENT: false };
 /** Dev-only default so mock-mode simulators can sign. WHATSAPP keeps the historical dev secret used by the inbound booking webhook. */
@@ -48,13 +60,18 @@ function rawMode(kind: ProviderKind, env: Env): string | undefined {
 
 export function providerEnv(kind: ProviderKind, env: Env = process.env): ProviderEnv {
   const mode: ProviderMode = rawMode(kind, env) === 'real' ? 'real' : 'mock';
+  const provider = providerName(kind, env);
+  const native = provider !== 'gateway' ? NATIVE_VENDORS[kind] : undefined;
+  const apiKey = env[`${kind}_API_KEY`] ?? '';
   return {
     kind,
     mode,
-    apiUrl: (env[`${kind}_API_URL`] ?? '').trim().replace(/\/+$/, ''),
-    apiKey: env[`${kind}_API_KEY`] ?? '',
+    provider,
+    publicWebhookUrl: (env[`${kind}_WEBHOOK_PUBLIC_URL`] ?? '').trim(),
+    apiUrl: ((env[`${kind}_API_URL`] ?? '').trim() || native?.defaultUrl || '').replace(/\/+$/, ''),
+    apiKey,
     senderId: env[`${kind}_SENDER_ID`] ?? '',
-    webhookSecret: env[`${kind}_WEBHOOK_SECRET`] || (mode === 'mock' ? mockWebhookSecret(kind) : ''),
+    webhookSecret: env[`${kind}_WEBHOOK_SECRET`] || (mode === 'mock' ? mockWebhookSecret(kind) : native?.secretFromKey && apiKey.includes(':') ? native.secretFromKey(apiKey) : ''),
     timeoutMs: intOr(env[`${kind}_TIMEOUT_MS`], 8000, 1),
     maxRetries: intOr(env[`${kind}_MAX_RETRIES`], 2, 0),
   };
@@ -80,6 +97,17 @@ export function providerProblems(kind: ProviderKind, env: Env = process.env): st
   if (!p.webhookSecret) out.push(`${kind}_WEBHOOK_SECRET is required when ${kind}_MODE=real`);
   else if (p.webhookSecret.length < 16) out.push(`${kind}_WEBHOOK_SECRET must be at least 16 characters`);
   if (NEEDS_SENDER[kind] && !p.senderId) out.push(`${kind}_SENDER_ID is required when ${kind}_MODE=real`);
+  const rawProvider = (env[`${kind}_PROVIDER`] ?? '').trim().toLowerCase();
+  if (rawProvider && rawProvider !== 'gateway' && rawProvider !== NATIVE_VENDORS[kind]?.name) out.push(`${kind}_PROVIDER must be gateway${NATIVE_VENDORS[kind] ? ` or ${NATIVE_VENDORS[kind]!.name}` : ''}`);
+  if (p.provider === 'meta' && !(env.WHATSAPP_VERIFY_TOKEN ?? '').trim()) out.push('WHATSAPP_VERIFY_TOKEN is required when WHATSAPP_PROVIDER=meta');
+  if (p.provider === 'ses') {
+    if (!/^[^:]+:[^:]+(:.+)?$/.test(p.apiKey)) out.push('EMAIL_API_KEY must be "<ACCESS_KEY_ID>:<SECRET_ACCESS_KEY>" when EMAIL_PROVIDER=ses');
+    if (!/\.[a-z]{2}(-[a-z]+)+-\d\.amazonaws\.com/.test(p.apiUrl)) out.push('EMAIL_API_URL must be https://email.<region>.amazonaws.com when EMAIL_PROVIDER=ses');
+  }
+  if (p.provider === 'twilio') {
+    if (!/^[^:]+:.+$/.test(p.apiKey)) out.push('SMS_API_KEY must be "<AccountSid>:<AuthToken>" when SMS_PROVIDER=twilio');
+    if (!p.publicWebhookUrl) out.push('SMS_WEBHOOK_PUBLIC_URL is required when SMS_PROVIDER=twilio (the URL Twilio signs)');
+  }
   return out;
 }
 

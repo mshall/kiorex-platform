@@ -1,10 +1,11 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { outboundFetch } from '../common/outbound-http';
 import { ApiError, notFound } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
 import { channelMode, createMessagingAdapter } from './adapters';
 import { providerEnv } from '../common/providers/env';
-import { messagingKindOf, MESSAGING_MAPPINGS } from '../common/providers/real-adapters';
+import { messagingKindOf, messagingMapping } from '../common/providers/real-adapters';
 import { mergeStatus, normalizeVendorStatus, type DeliveryStatus as NotifyStatus } from '@kiorex/contracts/notify';
 import { InboundHandler, InboundMessage, maskRecipient, MessagingAdapter, MSG_CHANNELS, MsgChannel, MsgStatus, OutboundMessage, SIMULATABLE_STATES } from './messaging.types';
 
@@ -46,6 +47,7 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
     });
     try {
       const r = await adapter.send(m);
+      if (!r.ok && r.invalidToken && m.channel === 'PUSH') await this.prisma.deviceToken.updateMany({ where: { token: m.to, revokedAt: null }, data: { revokedAt: new Date() } }); // FCM UNREGISTERED / Expo DeviceNotRegistered: stop pushing to a dead token
       if (!r.ok) {
         const failed = await this.prisma.messageLog.update({ where: { id: row.id }, data: { status: 'FAILED', error: r.error ?? 'SEND_FAILED', failedAt: new Date() } });
         this.log.warn(`[${m.channel}] ${m.templateId} log=${row.id} FAILED ${r.error ?? ''}`);
@@ -97,9 +99,12 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
     const kind = messagingKindOf(ch);
     if (!kind || (providerEnv(kind).mode === 'mock' && cfg().isProd)) throw notFound('NOT_FOUND', 'Not found');
     const env = providerEnv(kind);
-    const mapping = MESSAGING_MAPPINGS[kind];
-    if (!mapping.verifyWebhook({ secret: env.webhookSecret, rawBody, headers })) throw new ApiError(401, 'INVALID_SIGNATURE', 'Signature rejected');
+    const mapping = messagingMapping(kind);
+    if (!mapping.verifyWebhook({ secret: env.webhookSecret, rawBody, headers, publicUrl: env.publicWebhookUrl })) throw new ApiError(401, 'INVALID_SIGNATURE', 'Signature rejected');
+    const confirm = mapping.subscriptionConfirmUrl?.(rawBody);
+    if (confirm) { await outboundFetch(confirm, { method: 'GET' }).catch(() => undefined); return { applied: 0, ignored: 0 }; } // SNS subscription handshake
     let applied = 0; let ignored = 0;
+    for (const inb of mapping.parseInbound?.(rawBody) ?? []) { await this.receive({ channel: ch as MsgChannel, ...inb }); applied++; } // vendor inbound customer messages (Meta WhatsApp)
     for (const raw of mapping.parseStatusWebhook(rawBody)) {
       const status = normalizeVendorStatus(kind, raw.status); // shared status model (@kiorex/contracts/notify); unknown vendor states are dropped, never guessed
       if (!status || status === 'SKIPPED') { ignored++; continue; }
