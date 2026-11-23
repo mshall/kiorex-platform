@@ -4,6 +4,7 @@ import { signIn, bearer, apiHeaders } from "../helpers";
 /** Not an assertion suite: refreshes the README screenshots (dark + mobile) of the home screens. Run after home.spec.ts: npx playwright test -c playwright.home.config.ts shots */
 const API = "http://localhost:4001";
 test.use({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => { try { localStorage.setItem("kx-theme", "dark"); } catch { /* ignore */ } }); }); // light is the default: dark is an explicit stored choice
 test("screenshots", async ({ page }) => {
   await page.context().route("http://localhost:5180/api/**", (r) => r.continue({ url: r.request().url().replace("http://localhost:5180", API) }));
   await signIn(page, "/");

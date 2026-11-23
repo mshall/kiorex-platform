@@ -21,7 +21,8 @@
     <script>
       try {
         var t = localStorage.getItem("kx-theme");
-        if (t === "dark" || (!t && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("dark");
+        /* LIGHT is the default theme: only an explicit Dark choice (kx-theme) is restored, never the OS setting. */
+        if (t === "dark") document.documentElement.classList.add("dark");
         var l = localStorage.getItem("kx-lang") || "en";
         document.documentElement.lang = l; document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
       } catch (e) {}

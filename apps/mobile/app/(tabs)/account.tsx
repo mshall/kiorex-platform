@@ -89,7 +89,7 @@ export default function Account() {
       <View style={{ gap: 8 }}><T variant="label">{t("settings.language")}</T>
         <Row><Chip testID="lang-ar" label={t("settings.ar")} selected={i18n.language === "ar"} onPress={() => void switchLang("ar")} /><Chip testID="lang-en" label={t("settings.en")} selected={i18n.language === "en"} onPress={() => void switchLang("en")} /></Row></View>
       <View style={{ gap: 8 }}><T variant="label">{t("settings.theme")}</T>
-        <Row style={{ flexWrap: "wrap" }}>{(["system", "light", "dark"] as ThemePref[]).map((p) => <Chip key={p} testID={`theme-${p}`} label={t(`settings.${p}`)} selected={pref === p} onPress={() => setPref(p)} />)}</Row></View>
+        <Row style={{ flexWrap: "wrap" }}>{(["light", "dark", "system"] as ThemePref[]).map((p) => <Chip key={p} testID={`theme-${p}`} label={t(`settings.${p}`)} selected={pref === p} onPress={() => setPref(p)} />)}</Row></View>
     </Card>
   );
 
