@@ -47,3 +47,8 @@ State machine: `DRAFT → NEEDS_REVIEW ⇄ READY → AWAITING_APPROVAL → APPRO
 ## Go-live (NEEDS_HUMAN, provider pass)
 
 Real malware scanning (ClamAV / GuardDuty Malware Protection for S3) behind `MalwareScanner`; S3 staging bucket behind `StagingStore` (private, SSE, lifecycle expiry ≤ 30 days, tofu); the Clinic receiver above; retention period for staged PHI and a DPA/consent basis for importing another organization's patients (counsel); a launch flag (`ops.org_import`) would need a `@kiorex/contracts` FLAG_KEYS bump, so it is deliberately not added here.
+
+
+## Commit target (mock vs Kiorly Clinic)
+
+`IMPORT_TARGET_MODE=mock` (default, nothing leaves the platform) or `kiorly` (HMAC `POST /marketplace/v1/imports/{batchId}/records|rollback` on the Clinic; `scripts/up.sh` starts the dev stack with `kiorly`). The Clinic receiver provisions the organization, creates patients, appointments, visits, invoices and documents (through its upload storage adapter), is idempotent per item key, chunk-atomic, audited with counts only, and supports batch rollback. The integration client needs the `ONBOARDING_IMPORT` scope (the Clinic dev seed grants it to `kx_dev_client`). Contract: `kiorex-contracts/docs/ORG_IMPORT.md`. Document chunks are 2 files.
