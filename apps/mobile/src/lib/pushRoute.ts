@@ -1,4 +1,4 @@
-// Push tap routing for the patient app. Remote payloads carry the product data under the `body` key (APNs custom key; FCM data) like kiorly-team;
+// Push tap routing for the patient app. Remote payloads carry the product data under the `body` key (APNs custom key; FCM data) like the Kiorly staff app;
 // expo-notifications surfaces it as content.data. We accept the object directly, nested under `body`, or as a JSON string. Never trust the payload:
 // ids are validated before they become a path, and unknown shapes return null (the app then just opens).
 export type PushData = Record<string, unknown>;
