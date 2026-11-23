@@ -17,7 +17,8 @@
     "operations": "Operations",
     "safety": "Safety console",
     "held": "Held deposits",
-    "homeGate": "Home-visit gate"
+    "homeGate": "Home-visit gate",
+    "onboarding": "Onboarding imports"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -358,5 +359,213 @@
     "status": "Status",
     "met": "Met",
     "short": "{{n}} short"
+  },
+  "onb": {
+    "title": "Organization onboarding",
+    "hint": "Import another organization's SQL dump, spreadsheets and patient files into a quarantined batch. The scan proposes the mapping; anything ambiguous becomes a task for a human. Nothing touches live data until a second super admin approves.",
+    "newBatch": "New import",
+    "newHint": "Choose the organization that will receive the data.",
+    "orgId": "Organization ID",
+    "orgName": "Organization name",
+    "create": "Create batch",
+    "createFailed": "Could not create the batch",
+    "none": "No imports yet",
+    "org": "Organization",
+    "status": "Status",
+    "blockers": "Blockers",
+    "warnings": "Warnings",
+    "patients": "Patients",
+    "created": "Created",
+    "filesMatched": "Files matched",
+    "severity": "Severity",
+    "all": "All",
+    "upload": "Upload",
+    "uploadHint": "SQL dump (.sql), CSV/XLSX, and patient files (PDF, images). Files are scanned in quarantine; SQL is parsed, never executed.",
+    "chooseFiles": "Choose files",
+    "scanning": "Scanning…",
+    "rejected": "File rejected: {{reason}}",
+    "steps": {
+      "label": "Import steps",
+      "upload": "Upload",
+      "scan": "Scan",
+      "resolve": "Resolve",
+      "dry": "Dry-run",
+      "approve": "Approve",
+      "commit": "Commit"
+    },
+    "tab": {
+      "tasks": "Resolution queue",
+      "files": "Files",
+      "mapping": "Detected mapping",
+      "commit": "Dry-run & commit",
+      "audit": "Audit"
+    },
+    "st": {
+      "DRAFT": "Draft",
+      "NEEDS_REVIEW": "Needs review",
+      "READY": "Ready",
+      "AWAITING_APPROVAL": "Awaiting approval",
+      "APPROVED": "Approved",
+      "COMMITTING": "Committing",
+      "COMMIT_FAILED": "Commit interrupted",
+      "COMMITTED": "Committed",
+      "ROLLING_BACK": "Rolling back",
+      "ROLLED_BACK": "Rolled back"
+    },
+    "sev": {
+      "BLOCKER": "Blocker",
+      "WARNING": "Warning",
+      "INFO": "Info"
+    },
+    "taskStatus": {
+      "OPEN": "Open",
+      "RESOLVED": "Resolved",
+      "IGNORED": "Ignored"
+    },
+    "kind": {
+      "SQL": "SQL dump",
+      "CSV": "CSV",
+      "XLSX": "Spreadsheet",
+      "PATIENT_FILE": "Patient file"
+    },
+    "reject": {
+      "MALWARE": "Malware detected",
+      "TYPE_NOT_ALLOWED": "Type not allowed",
+      "MIME_MISMATCH": "Content does not match extension",
+      "TOO_LARGE": "Too large",
+      "EMPTY": "Empty file",
+      "ACTIVE_CONTENT": "Active content",
+      "UNPARSEABLE": "Could not be read"
+    },
+    "entity": {
+      "patients": "Patients",
+      "appointments": "Appointments",
+      "visits": "Visits",
+      "billing": "Billing",
+      "documents": "Documents"
+    },
+    "act": {
+      "EDIT_VALUE": "Save value",
+      "MAP_COLUMN": "Map column",
+      "MAP_TABLE": "Use table as",
+      "MERGE": "Merge into selected",
+      "KEEP_BOTH": "Keep both",
+      "SKIP_ROW": "Skip row",
+      "SKIP_FILE": "Skip file",
+      "ACCEPT_REPAIR": "Repair text",
+      "IGNORE": "Ignore"
+    },
+    "field": "Field",
+    "row": "Row",
+    "table": "Table",
+    "rows": "rows",
+    "suggested": "Suggested",
+    "newValue": "New value",
+    "pick": "Choose",
+    "keepWhich": "Which record to keep",
+    "searchPatient": "Find patient (id, name, phone)",
+    "ignoreReason": "Reason to ignore",
+    "dayFirst": "Dates are day/month",
+    "monthFirst": "Dates are month/day",
+    "unclassified": "Not recognised",
+    "noTasks": "Nothing to resolve here.",
+    "prev": "Previous",
+    "next": "Next",
+    "dryNote": "{{files}} patient files will be attached · {{merged}} duplicate patients merged · {{warn}} open warnings · {{ignored}} ignored with a reason",
+    "cannotCommit": "{{n}} blockers must be resolved before this can be committed.",
+    "targetMode": "Target: {{mode}} (mock keeps everything inside the platform).",
+    "requestCommit": "Request commit",
+    "requested": "Commit requested: a second super admin must approve.",
+    "approve": "Approve",
+    "approved": "Approved",
+    "twoPerson": "A different super admin must approve this (two-person rule).",
+    "commit": "Commit import",
+    "resume": "Resume commit",
+    "committed": "Import committed",
+    "commitDone": "{{n}} records written. Every record is tagged with this batch so it can be rolled back.",
+    "rollbackReason": "Reason to roll back",
+    "rollback": "Roll back batch",
+    "rolledBack": "Batch rolled back",
+    "purge": "Delete staged copies",
+    "purged": "Staged data deleted",
+    "err": {
+      "generic": "Something went wrong",
+      "TWO_PERSON_RULE": "Approval needs a different person",
+      "BLOCKERS_OPEN": "Blockers are still open",
+      "REPORT_CHANGED": "The data changed after the report; review the dry-run again",
+      "COMMIT_FAILED_RESUMABLE": "Commit interrupted: progress is saved, resume it",
+      "IGNORE_REASON_REQUIRED": "A reason is required to ignore",
+      "ACTION_NOT_ALLOWED": "That action is not allowed here",
+      "IMPORT_LOCKED": "This batch is locked",
+      "NOT_APPROVED": "The batch is not approved",
+      "TASK_NOT_FOUND": "That task was already resolved",
+      "REASON_REQUIRED": "A reason is required"
+    },
+    "task": {
+      "TABLE_UNCLASSIFIED": {
+        "title": "Unrecognised table",
+        "hint": "We could not tell what this table holds. Choose what it contains or ignore it."
+      },
+      "MAP_COLUMN_REQUIRED": {
+        "title": "Required column not found",
+        "hint": "Pick the source column for this required field."
+      },
+      "CONFIRM_MAPPING": {
+        "title": "Confirm column mapping",
+        "hint": "The match is likely but not certain. Choose the right column or ignore to accept it."
+      },
+      "MISSING_REQUIRED": {
+        "title": "Required value missing",
+        "hint": "Type the missing value or skip this row."
+      },
+      "INVALID_VALUE": {
+        "title": "Invalid value",
+        "hint": "Correct the value, or skip the row if it cannot be fixed."
+      },
+      "AMBIGUOUS_DATE": {
+        "title": "Ambiguous date",
+        "hint": "This date reads two ways. Choose the format for the whole import, or type the right date."
+      },
+      "ENCODING_PROBLEM": {
+        "title": "Broken characters",
+        "hint": "Text looks double-encoded. Repair it to restore the original letters."
+      },
+      "DUPLICATE_PATIENT": {
+        "title": "Possible duplicate patients",
+        "hint": "Pick the record to keep and merge, keep both, or skip."
+      },
+      "ORPHAN_REFERENCE": {
+        "title": "Record points to a missing patient",
+        "hint": "Assign the right patient or skip the row."
+      },
+      "ORPHAN_FILE": {
+        "title": "File matches no patient",
+        "hint": "Assign the file to a patient or skip it."
+      },
+      "AMBIGUOUS_FILE": {
+        "title": "File matches several patients",
+        "hint": "Choose the right patient or skip the file."
+      },
+      "CONFIRM_FILE_MATCH": {
+        "title": "Confirm file match",
+        "hint": "Matched by name or id only. Reassign, skip, or ignore to accept."
+      },
+      "FILE_REJECTED": {
+        "title": "File rejected by the scan",
+        "hint": "This file was quarantined and will not be imported."
+      },
+      "DUPLICATE_FILE": {
+        "title": "Duplicate file",
+        "hint": "An identical file was uploaded; only one copy is imported."
+      },
+      "SQL_UNSAFE_STATEMENTS": {
+        "title": "Non-data statements skipped",
+        "hint": "The dump contained commands such as DROP or GRANT. They were never executed."
+      },
+      "TRUNCATED_TABLE": {
+        "title": "Table too large",
+        "hint": "Only the first rows were read."
+      }
+    }
   }
 }

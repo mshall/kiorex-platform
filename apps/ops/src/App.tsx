@@ -20,6 +20,8 @@ const SafetyPage = lazy(() => import("@/pages/SafetyPage"));
 const HeldDepositsPage = lazy(() => import("@/pages/HeldDepositsPage"));
 const HomeGatePage = lazy(() => import("@/pages/HomeGatePage"));
 const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
 const client = makeQueryClient();
@@ -45,6 +47,8 @@ export function AppRoutes() {
           <Route path="held-deposits" element={<HeldDepositsPage />} />
           <Route path="home-gate" element={<HomeGatePage />} />
           <Route path="flags" element={<FlagsPage />} />
+          <Route path="onboarding" element={<OnboardingPage />} />
+          <Route path="onboarding/:id" element={<OnboardingBatchPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>
       </Routes>

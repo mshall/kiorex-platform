@@ -23,6 +23,20 @@ const auth: Middleware = {
   },
 };
 
+/** Authenticated fetch for endpoints not (yet) in the generated OpenAPI schema (org onboarding). Throws ApiError like unwrap(). */
+export async function rawApi<T = unknown>(method: string, path: string, body?: unknown, opts: { binary?: boolean } = {}): Promise<T> {
+  const token = await getToken();
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (body !== undefined && !opts.binary) headers["content-type"] = "application/json";
+  if (opts.binary) headers["content-type"] = "application/octet-stream";
+  const res = await globalThis.fetch(`/api/v1${path}`, { method, headers, body: body === undefined ? undefined : opts.binary ? (body as BodyInit) : JSON.stringify(body) });
+  if (res.status === 401) onUnauthorized();
+  const text = await res.text(); const data = text ? JSON.parse(text) : undefined;
+  if (!res.ok) throw toApiError(res.status, data);
+  return data as T;
+}
+
 export const api = createClient<paths>({ baseUrl: typeof window !== "undefined" ? window.location.origin : "", fetch: (r) => globalThis.fetch(r) });
 api.use(auth);
 
