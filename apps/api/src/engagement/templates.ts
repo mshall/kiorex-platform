@@ -4,7 +4,7 @@
  */
 export type NotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKING_CHANGED' | 'BOOKING_CANCELLED' | 'BOOKING_CANCELLED_BY_CLINIC' | 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION' | 'DEPOSIT_REFUNDED' | 'BOOKING_EXPIRED'
   | 'HOME_VISIT_ASSIGNED' | 'HOME_VISIT_EN_ROUTE' | 'HOME_VISIT_ABORTED' | 'HOME_VISIT_FAMILY_INVITE' | 'HOME_VISIT_FAMILY_UPDATE' | 'CARE_PLAN_CONFIRMED'
-  | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY';
+  | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_OUT_FOR_DELIVERY' | 'PHARMACY_ORDER_PARTIAL_REFUND' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY';
 
 export interface Template { templateId: string; reminder: boolean; bypassQuiet?: boolean; en: string; ar: string }
 
@@ -22,6 +22,8 @@ export const TEMPLATES: Record<NotifyKind, Template> = {
   FOLLOW_UP_DUE: { templateId: 'TODO_NEEDS_HUMAN_follow_up_due', reminder: true, en: 'Time for your follow-up visit. Open Kiorex to book.', ar: 'حان موعد زيارة المتابعة. افتح كيوريكس للحجز.' },
   RECORD_SHARED: { templateId: 'TODO_NEEDS_HUMAN_record_shared', reminder: false, en: 'A new record from your clinic is in your Kiorex vault.', ar: 'وصل سجل جديد من عيادتك إلى خزنتك في كيوريكس.' },
   PHARMACY_ORDER_READY: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_ready', reminder: false, en: 'Your pharmacy order is ready.', ar: 'طلبك من الصيدلية جاهز.' },
+  PHARMACY_ORDER_OUT_FOR_DELIVERY: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_out_for_delivery', reminder: false, en: 'Your pharmacy order is out for delivery.', ar: 'طلبك من الصيدلية في الطريق إليك.' },
+  PHARMACY_ORDER_PARTIAL_REFUND: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_partial_refund', reminder: false, bypassQuiet: true, en: 'The pharmacy could fill only part of your order. {amount} is refunded automatically; open the order for the itemised refund.', ar: 'تمكنت الصيدلية من تجهيز جزء من طلبك فقط. يُرد {amount} تلقائيًا؛ افتح الطلب لترى الرد مفصّلًا.' },
   PHARMACY_ORDER_DISPENSED: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_dispensed', reminder: false, en: 'Your pharmacy order was handed over.', ar: 'تم تسليم طلبك من الصيدلية.' },
   PHARMACY_ORDER_REJECTED: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_rejected', reminder: false, bypassQuiet: true, en: 'The pharmacy could not fulfil your order. You are refunded automatically.', ar: 'تعذر على الصيدلية تنفيذ طلبك. يُرد المبلغ تلقائيًا.' },
   LAB_BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_lab_booking_confirmed', reminder: false, en: 'Your lab booking is confirmed for {time}.', ar: 'تم تأكيد حجز التحاليل في {time}.' },

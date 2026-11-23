@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from "@/components/states";
 import { Badge, Banner, Button, Card, Row, Screen, T } from "@/components/ui";
 import { useHostedPay } from "@/hooks/useHostedPay";
 import { formatDayLong, formatMoney, formatTime } from "@/lib/format";
+import { medName } from "@/lib/localName";
 import { labCancellable, orderTone } from "@/lib/orders";
 
 function Body({ id }: { id: string }) {
@@ -32,7 +33,7 @@ function Body({ id }: { id: string }) {
       {b.status === "RESULT_RELEASED" ? <Banner tone="success" testID="lab-result-ready" title={t("lab.resultReady")} body={t("lab.resultReadyBody")}>{b.resultRecordId ? <Button testID="open-result" icon="file" title={t("lab.openResult")} onPress={() => router.push(`/records/${b.resultRecordId}`)} /> : null}</Banner> : null}
       {b.status === "REJECTED" ? <Banner tone="danger" title={t("lab.rejectedTitle")} body={b.rejectionReason ?? t("pharmacy.rejectedBody")} /> : null}
       <Card style={{ gap: 8 }}>
-        {b.tests.map((x) => <Row key={x.code} style={{ justifyContent: "space-between" }}><T style={{ flex: 1 }}>{x.name}</T><T>{formatMoney(x.priceMinor / 100, lang)}</T></Row>)}
+        {b.tests.map((x) => <Row key={x.code} style={{ justifyContent: "space-between" }}><T style={{ flex: 1 }}>{medName(lang, x)}</T><T>{formatMoney(x.priceMinor / 100, lang)}</T></Row>)}
         <Row style={{ justifyContent: "space-between" }}><T variant="small" muted>{t("lab.collectionFee")}</T><T variant="small">{formatMoney(b.collectionFeeMinor / 100, lang)}</T></Row>
         <Row style={{ justifyContent: "space-between" }}><T weight="bold">{t("lab.total")}</T><T weight="bold">{formatMoney(b.totalMinor / 100, lang)}</T></Row>
       </Card>

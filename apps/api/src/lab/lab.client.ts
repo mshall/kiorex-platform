@@ -18,7 +18,7 @@ export class LabClient {
   constructor(private readonly registry: PartnerRegistry) {}
   private conn() { return this.registry.conn('LAB'); }
   async tests(q: { q?: string; labId?: string }) { return partnerRequest<{ items: LabTestDto[] }>(await this.conn(), { method: 'GET', path: '/tests', query: q }); }
-  async quote(body: { labId: string; testCodes: string[]; collectionType: string }) { return partnerRequest<{ tests: { code: string; name: string; priceMinor: number }[]; collectionFeeMinor: number }>(await this.conn(), { method: 'POST', path: '/tests/quote', body }); }
+  async quote(body: { labId: string; testCodes: string[]; collectionType: string }) { return partnerRequest<{ tests: { code: string; name: string; nameAr?: string; priceMinor: number }[]; collectionFeeMinor: number }>(await this.conn(), { method: 'POST', path: '/tests/quote', body }); }
   async slots(labId: string, q: { collectionType: string; from: string; to: string; tests?: string }) { return partnerRequest<{ slots: { startsAt: string; endsAt: string }[] }>(await this.conn(), { method: 'GET', path: `/labs/${encodeURIComponent(labId)}/slots`, query: q }); }
   /** Idempotent on `sourceRef` (= Kiorex booking id); the lab answers its internal order id and status (never REJECTED: refusals are 4xx). */
   async createOrder(key: string, body: LabOrderIntent) { return partnerRequest<{ orderId: string; orderNumber?: string; status: string; created?: boolean }>(await this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
@@ -34,4 +34,5 @@ export interface LabOrderIntent {
   collection: { type: 'IN_LAB' | 'HOME'; address?: string; windowStart: string; windowEnd: string; contactPhone?: string };
   consentChannels: ('KIOREX_VAULT')[];
 }
-export interface LabTestDto { labId: string; labName: string; code: string; name: string; priceMinor: number; sampleType?: string; homeCollection: boolean; preparation?: string }
+/** Arabic fields are optional (contracts 1.8.0): when the lab holds none the patient apps show the English `name` / `preparation` / `sampleType`. */
+export interface LabTestDto { labId: string; labName: string; code: string; name: string; nameAr?: string; priceMinor: number; sampleType?: string; sampleTypeAr?: string; homeCollection: boolean; preparation?: string; preparationAr?: string }

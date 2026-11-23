@@ -14,6 +14,7 @@ import AuthCallbackPage from "@/pages/AuthCallbackPage";
 
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const FeesPage = lazy(() => import("@/pages/FeesPage"));
+const PolicyPage = lazy(() => import("@/pages/PolicyPage"));
 const OrdersPage = lazy(() => import("@/pages/OrdersPage"));
 const OperationsPage = lazy(() => import("@/pages/OperationsPage"));
 const SafetyPage = lazy(() => import("@/pages/SafetyPage"));
@@ -42,6 +43,7 @@ export function AppRoutes() {
           <Route path="messaging" element={<MessagingPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="fees" element={<FeesPage />} />
+          <Route path="policy" element={<PolicyPage />} />
           <Route path="operations" element={<OperationsPage />} />
           <Route path="safety" element={<SafetyPage />} />
           <Route path="held-deposits" element={<HeldDepositsPage />} />

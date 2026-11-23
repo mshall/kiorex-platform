@@ -5,6 +5,7 @@ import { cfg } from '../common/config';
 import { badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';
 import { newId } from '../common/ids';
 import { PartnerHttpError, PartnerTransientError } from '../common/partner-http';
+import { computePartialSettlement, DispensedLine, PartialSettlement, PolicyService, PROPOSED_DEFAULT_NOTE } from '../policy/policy-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
@@ -14,8 +15,10 @@ import { PharmacyClient, PharmacyOrderIntent, QuoteDto } from './pharmacy.client
 
 export interface CartInput { pharmacyId: string; items: { sku: string; qty: number }[]; prescriptionRecordId?: string }
 export interface Address { line1: string; area?: string; governorate?: string; notes?: string; phone?: string }
-type Line = { sku: string; name: string; qty: number; unitPriceMinor: number; rxRequired: boolean; available: boolean };
-const FINAL = new Set(['DISPENSED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED']);
+type Line = { sku: string; name: string; nameAr?: string; strength?: string; form?: string; formAr?: string; qty: number; unitPriceMinor: number; rxRequired: boolean; available: boolean };
+const FINAL = new Set(['DISPENSED', 'PARTIALLY_FULFILLED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED']);
+/** Statuses from which the pharmacy's next fulfilment event may arrive (events can overtake each other through the outbox). */
+const IN_FLIGHT = ['PAID', 'SUBMITTED', 'READY', 'OUT_FOR_DELIVERY'];
 
 /**
  * Pharmacy orders (KX-03 §08, launch-locked kiorex.pharmacy_orders). Kiorex owns search, cart, order intent, delivery choice and
@@ -26,7 +29,7 @@ const FINAL = new Set(['DISPENSED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED']);
 export class PharmacyService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly client: PharmacyClient, private readonly pay: PayService, private readonly records: RecordsService,
-    private readonly patients: PatientService, private readonly engagement: EngagementService,
+    private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly policy: PolicyService,
   ) {}
 
   onModuleInit() {
@@ -60,7 +63,8 @@ export class PharmacyService implements OnModuleInit {
 
   // ───────────── cart ─────────────
 
-  private lines(quote: QuoteDto): Line[] { return quote.items.map((i) => ({ sku: i.sku, name: i.name, qty: i.qty, unitPriceMinor: i.unitPriceMinor, rxRequired: i.rxRequired, available: i.available })); }
+  /** Snapshot of the quoted lines; Arabic name/form are kept when the pharmacy sent them (absent => the apps show the English one). */
+  private lines(quote: QuoteDto): Line[] { return quote.items.map((i) => ({ sku: i.sku, name: i.name, ...(i.nameAr && { nameAr: i.nameAr }), ...(i.strength && { strength: i.strength }), ...(i.form && { form: i.form }), ...(i.formAr && { formAr: i.formAr }), qty: i.qty, unitPriceMinor: i.unitPriceMinor, rxRequired: i.rxRequired, available: i.available })); }
   private assertNoControlled(quote: QuoteDto) {
     if (quote.items.some((i) => i.controlled)) throw unprocessable('CONTROLLED_NOT_ORDERABLE', 'Controlled medicines cannot be ordered online');
   }
@@ -147,9 +151,17 @@ export class PharmacyService implements OnModuleInit {
     const p = o.paymentId ? await this.pay.getIntent(o.paymentId) : null;
     return {
       id: o.id, status: o.status, pharmacyId: o.pharmacyId, items: o.items as unknown as Line[], subtotalMinor: o.subtotalMinor, deliveryFeeMinor: o.deliveryFeeMinor, totalMinor: o.totalMinor, currency: o.currency, deliveryMethod: o.deliveryMethod,
-      rxStatus: o.rxStatus, deliveryAddress: o.deliveryMethod === 'DELIVERY' ? this.publicAddress(o.deliveryAddress) : null, rejectionReason: o.rejectionReason, readyAt: o.readyAt?.toISOString() ?? null, dispensedAt: o.dispensedAt?.toISOString() ?? null,
+      rxStatus: o.rxStatus, deliveryAddress: o.deliveryMethod === 'DELIVERY' ? this.publicAddress(o.deliveryAddress) : null, rejectionReason: o.rejectionReason, readyAt: o.readyAt?.toISOString() ?? null, outForDeliveryAt: o.outForDeliveryAt?.toISOString() ?? null, dispensedAt: o.dispensedAt?.toISOString() ?? null,
+      refund: await this.presentRefund(o),
       payment: p ? { paymentId: p.id, status: p.status, checkoutUrl: p.status === 'CREATED' ? p.checkoutUrl : null } : null, createdAt: o.createdAt.toISOString(),
     };
+  }
+  /** Itemised refund of a partially fulfilled order (null otherwise). `status` follows the PSP settlement of the refund. */
+  private async presentRefund(o: PharmacyOrder) {
+    const st = o.settlement as null | { refund?: { lines: unknown[]; goodsMinor: number; deliveryFeeMinor: number; totalMinor: number; fulfilledMinor: number; refundedAt: string } };
+    if (!st?.refund || !o.paymentId) return null;
+    const r = await this.prisma.refund.findUnique({ where: { idempotencyKey: `refund-partial:${o.paymentId}` } });
+    return { status: r?.status === 'SETTLED' ? 'SETTLED' : 'REQUESTED', ...st.refund, currency: o.currency, policyNote: PROPOSED_DEFAULT_NOTE };
   }
   private async owned(sub: string, id: string) {
     const o = await this.prisma.pharmacyOrder.findUnique({ where: { id } });
@@ -216,7 +228,7 @@ export class PharmacyService implements OnModuleInit {
     });
   }
 
-  private async reject(o: PharmacyOrder, reason: string, from: string[] = ['PAID', 'SUBMITTED', 'READY']) {
+  private async reject(o: PharmacyOrder, reason: string, from: string[] = IN_FLIGHT) {
     if (await this.moveAndRefund(o, from, 'REJECTED', { rejectionReason: reason.slice(0, 120) })) { // full automatic refund (KPMKT02)
       await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_REJECTED', dedupeKey: `PHARMACY_ORDER_REJECTED:${o.id}` });
     }
@@ -237,20 +249,76 @@ export class PharmacyService implements OnModuleInit {
       if (await this.move(o, ['PAID', 'SUBMITTED'], 'READY', { readyAt: new Date(data.readyAt ?? Date.now()), ...(o.rxStatus === 'PENDING' ? { rxStatus: 'VALID' } : {}) })) await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_READY', dedupeKey: `PHARMACY_ORDER_READY:${o.id}` });
       return 'APPLIED';
     }
+    if (type === 'OrderOutForDelivery') { // 1.8.0: READY -> OUT_FOR_DELIVERY, DELIVERY orders only; DispenseCompleted still completes the order
+      if (o.deliveryMethod !== 'DELIVERY') {
+        await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.out_for_delivery_on_pickup_order', resource: 'PharmacyOrder', resourceId: o.id, metadata: { type } } });
+        return 'IGNORED';
+      }
+      if (await this.move(o, ['PAID', 'SUBMITTED', 'READY'], 'OUT_FOR_DELIVERY', { outForDeliveryAt: new Date(data.outForDeliveryAt ?? Date.now()), ...(o.rxStatus === 'PENDING' ? { rxStatus: 'VALID' } : {}) })) {
+        await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_OUT_FOR_DELIVERY', dedupeKey: `PHARMACY_ORDER_OUT_FOR_DELIVERY:${o.id}` });
+      }
+      return 'APPLIED';
+    }
     if (type === 'DispenseCompleted') {
-      if (data.partial) { // no amounts in the draft contract: never auto-release a partial fulfilment (NEEDS_HUMAN: partial refund/take policy)
-        await this.move(o, ['PAID', 'SUBMITTED', 'READY'], 'PARTIAL_REVIEW', { dispensedAt: new Date(data.dispensedAt ?? Date.now()) });
-        await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.partial_dispense_review', resource: 'PharmacyOrder', resourceId: o.id } });
+      if (data.partial) {
+        const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: o.pharmacyId }).value;
+        const lines = Array.isArray(data.lines) ? (data.lines as { sku: string; quantityDispensed: number }[]) : null;
+        if (pol.mode === 'PRO_RATA_REFUND' && lines) { await this.settlePartial(o, { dispensed: lines, deliveryMade: data.deliveryMade, dispensedAt: new Date(data.dispensedAt ?? Date.now()) }, IN_FLIGHT, 'pharmacy'); return 'APPLIED'; }
+        // no per-line amounts (pre-1.8.0 pharmacy) or the market chose manual review: never auto-release, ops decides (POST /admin/pharmacy/orders/:id/resolve-partial)
+        await this.move(o, IN_FLIGHT, 'PARTIAL_REVIEW', { dispensedAt: new Date(data.dispensedAt ?? Date.now()), settlement: { pending: true, reportedLines: lines, deliveryMade: data.deliveryMade ?? null } as object });
+        await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.partial_dispense_review', resource: 'PharmacyOrder', resourceId: o.id, metadata: { reason: lines ? 'POLICY_MANUAL_REVIEW' : 'NO_LINES_IN_EVENT' } } });
         return 'APPLIED';
       }
       const fee = Math.round((o.subtotalMinor * o.takeRateBps) / 10000); // take on fulfilled goods value, rate snapshotted at order time
-      if (await this.move(o, ['PAID', 'SUBMITTED', 'READY'], 'DISPENSED', { dispensedAt: new Date(data.dispensedAt ?? Date.now()), platformFeeMinor: fee })) {
+      if (await this.move(o, IN_FLIGHT, 'DISPENSED', { dispensedAt: new Date(data.dispensedAt ?? Date.now()), platformFeeMinor: fee })) {
         if (o.paymentId) await this.pay.releaseOrder(o.paymentId, { feeMinor: fee });
         await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_DISPENSED', dedupeKey: `PHARMACY_ORDER_DISPENSED:${o.id}` });
       }
       return 'APPLIED';
     }
     return 'IGNORED';
+  }
+
+  /**
+   * Partial fulfilment (policy pharmacy.partial_fulfilment, PROPOSED_DEFAULT delegated by founder 23 Nov 2026): refund the rejected/unavailable lines
+   * pro-rata (+ the delivery fee when the delivery is not made), release the fulfilled lines to the pharmacy, store the itemised refund on the order.
+   * Same money pattern as every refund: status change + Refund row + ledger postings + outbox event in ONE transaction, idempotent on `refund-partial:<payment>`,
+   * settled through the PSP outbox and covered by the daily reconciliation. Nothing fulfilled => the ordinary full refund (REJECTED).
+   */
+  private async settlePartial(o: PharmacyOrder, i: { dispensed: DispensedLine[]; deliveryMade?: boolean; dispensedAt: Date }, from: string[], actor: string): Promise<PartialSettlement> {
+    const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: o.pharmacyId });
+    const calc = computePartialSettlement({ items: o.items as unknown as Line[], deliveryMethod: o.deliveryMethod, deliveryFeeMinor: o.deliveryFeeMinor, dispensed: i.dispensed, deliveryMade: i.deliveryMade }, pol.value);
+    if (calc.nothingFulfilled) { await this.reject(o, 'NOTHING_DISPENSED', from); return calc; }
+    const fee = Math.round((calc.fulfilledGoodsMinor * o.takeRateBps) / 10000); // take on the fulfilled goods only
+    const refunded = await this.prisma.$transaction(async (tx) => {
+      const refundedAt = new Date().toISOString();
+      const settlement = { refund: { lines: calc.lines, goodsMinor: calc.goodsRefundMinor, deliveryFeeMinor: calc.deliveryFeeRefundMinor, totalMinor: calc.refundTotalMinor, fulfilledMinor: calc.fulfilledGoodsMinor, refundedAt }, policy: { key: pol.key, source: pol.source, value: pol.value, note: pol.note ?? PROPOSED_DEFAULT_NOTE }, resolvedBy: actor };
+      const moved = await this.move(o, from, calc.refundTotalMinor > 0 ? 'PARTIALLY_FULFILLED' : 'DISPENSED', { dispensedAt: i.dispensedAt, platformFeeMinor: fee, settlement: calc.refundTotalMinor > 0 ? (settlement as object) : Prisma.DbNull }, tx);
+      if (!moved) return false;
+      if (o.paymentId) {
+        if (calc.refundTotalMinor > 0) await this.pay.refund(o.paymentId, { reason: 'PARTIAL_FULFILMENT', amountMinor: calc.refundTotalMinor, idempotencyKey: `refund-partial:${o.paymentId}` }, tx);
+        if (pol.value.releaseFulfilledToPharmacy) await this.pay.releaseOrder(o.paymentId, { feeMinor: fee }, tx);
+      }
+      await tx.auditLog.create({ data: { actor, action: 'pharmacy.partial_settled', resource: 'PharmacyOrder', resourceId: o.id, metadata: { refundTotalMinor: calc.refundTotalMinor, goodsRefundMinor: calc.goodsRefundMinor, deliveryFeeRefundMinor: calc.deliveryFeeRefundMinor, fulfilledMinor: calc.fulfilledGoodsMinor, policySource: pol.source } } });
+      return true;
+    });
+    if (refunded) {
+      if (calc.refundTotalMinor > 0) await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_PARTIAL_REFUND', params: { amount: `${(calc.refundTotalMinor / 100).toFixed(2)} ${o.currency}` }, dedupeKey: `PHARMACY_ORDER_PARTIAL_REFUND:${o.id}` });
+      else await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_DISPENSED', dedupeKey: `PHARMACY_ORDER_DISPENSED:${o.id}` });
+    }
+    return calc;
+  }
+
+  /** Ops: settle a PARTIAL_REVIEW order with the market/org policy (lines default to what the pharmacy reported; ops may correct them). */
+  async resolvePartial(id: string, actor: string, body: { lines?: DispensedLine[]; deliveryMade?: boolean }) {
+    const o = await this.prisma.pharmacyOrder.findUnique({ where: { id } });
+    if (!o) throw notFound('ORDER_NOT_FOUND', 'Order not found');
+    if (o.status !== 'PARTIAL_REVIEW') throw conflict('NOT_IN_PARTIAL_REVIEW', `Order is ${o.status}`);
+    const pending = (o.settlement ?? {}) as { reportedLines?: DispensedLine[] | null; deliveryMade?: boolean | null };
+    const dispensed = body.lines ?? pending.reportedLines;
+    if (!dispensed?.length) throw badRequest('LINES_REQUIRED', 'Provide the dispensed quantity per sku (the pharmacy did not report lines)');
+    const calc = await this.settlePartial(o, { dispensed, deliveryMade: body.deliveryMade ?? pending.deliveryMade ?? undefined, dispensedAt: o.dispensedAt ?? new Date() }, ['PARTIAL_REVIEW'], actor);
+    return { order: await this.get(o.sub, o.id), refundTotalMinor: calc.refundTotalMinor };
   }
 
   async cancel(sub: string, id: string) {

@@ -8,6 +8,7 @@ import { FlagScreen, RequireAuth } from "@/components/feature";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge, Banner, Button, Card, Chip, Field, Row, Screen, T } from "@/components/ui";
 import { formatMoney } from "@/lib/format";
+import { medForm, medName } from "@/lib/localName";
 
 function Body() {
   const { t, i18n } = useTranslation();
@@ -46,7 +47,7 @@ function Body() {
           {q.trim().length < 2 ? <T variant="small" muted>{t("pharmacy.searchHint")}</T> : search.isLoading ? <LoadingState /> : search.error ? <ErrorState error={search.error} onRetry={() => void search.refetch()} /> : !search.data?.items.length ? <EmptyState icon="pill" title={t("pharmacy.noResults")} hint={t("pharmacy.noResultsHint")} /> : search.data.items.map((m) => (
             <Card key={`${m.pharmacyId}-${m.sku}`} testID={`med-${m.sku}`} style={{ gap: 6 }}>
               <Row style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-                <View style={{ flex: 1 }}><T weight="semibold">{m.name}</T><T variant="small" muted>{[m.strength, m.form].filter(Boolean).join(" · ")}</T></View>
+                <View style={{ flex: 1 }}><T weight="semibold">{medName(lang, m)}</T><T variant="small" muted>{[m.strength, medForm(lang, m)].filter(Boolean).join(" · ")}</T></View>
                 <T weight="bold">{formatMoney(m.priceMinor / 100, lang)}</T>
               </Row>
               <Row style={{ flexWrap: "wrap" }}>{m.rxRequired ? <Badge tone="warning" icon="file" label={t("pharmacy.rxRequired")} /> : null}{!m.available ? <Badge tone="danger" label={t("pharmacy.unavailable")} /> : null}</Row>

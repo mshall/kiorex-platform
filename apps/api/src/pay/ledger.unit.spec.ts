@@ -168,3 +168,23 @@ describe('hold-for-review ledger state (KXMPAY07, property-based)', () => {
     expect(() => assertValid(refundFromReview('c1', 0))).toThrow(LedgerError);
   });
 });
+
+describe('partial order fulfilment: refund + net release (pharmacy.partial_fulfilment)', () => {
+  it('capture -> partial refund -> settle -> release of the NET keeps the accounting identity and empties HELD (property)', () => {
+    fc.assert(fc.property(fc.integer({ min: 100, max: 1_000_000 }), fc.integer({ min: 1, max: 99 }), fc.integer({ min: 0, max: 1000 }), (gross, refundPct, feeBps) => {
+      const refund = Math.max(1, Math.min(gross - 1, Math.floor((gross * refundPct) / 100)));
+      const net = gross - refund;
+      const fee = Math.floor((net * feeBps) / 10_000);
+      const b = new LedgerBook();
+      b.post({ key: 'cap', kind: 'CAPTURE', postings: capture('ph:1', gross) });
+      b.post({ key: 'rf', kind: 'REFUND_REQUEST', postings: refundRequest('ph:1', refund) });
+      b.post({ key: 'rs', kind: 'REFUND_SETTLED', postings: refundSettle(refund) });
+      b.post({ key: 'rel', kind: 'RELEASE_ORDER', postings: releaseOrder('ph:1', net, fee) });
+      expect(b.balance(A.held('ph:1'))).toBe(0);
+      expect(b.balance(A.payable('ph:1'))).toBe(net - fee);
+      expect(b.balance(A.marketplaceFees)).toBe(fee);
+      expect(b.balance(A.refundPayable)).toBe(0);
+      expect(identityHolds(b)).toBe(true);
+    }));
+  });
+});

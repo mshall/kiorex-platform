@@ -15,6 +15,7 @@ import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } fr
 import { useFeature } from "@/hooks/useFeature";
 import { dayKey, formatDay, formatDayLong, formatMinor, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { localized, medName } from "@/lib/localName";
 import { IconTile, PageHeader, Row, SegmentedControl, StatusChip } from "@/components/kit";
 
 const errMsg = (e: unknown, t: (k: string) => string) => (e instanceof ApiError ? (e.isFeatureDisabled ? t("unavailable.title") : e.code === "SLOT_TAKEN" || e.code === "SLOT_UNAVAILABLE" ? t("lab.errors.slot") : t("lab.errors.generic")) : t("lab.errors.generic"));
@@ -70,7 +71,7 @@ export default function LabPage() {
               <h2 id="lab-sum" className="text-lg">{t("lab.yourBooking")}</h2>
               {picked.length === 0 ? <p className="text-sm text-muted-foreground">{t("lab.pickHint")}</p> : (
                 <>
-                  <ul className="text-sm">{picked.map((p) => <li key={p.code} className="flex justify-between py-1"><span>{p.name}</span><span className="kx-label-num">{formatMinor(p.priceMinor, lang)}</span></li>)}</ul>
+                  <ul className="text-sm">{picked.map((p) => <li key={p.code} className="flex justify-between py-1"><span><bdi>{medName(lang, p)}</bdi></span><span className="kx-label-num">{formatMinor(p.priceMinor, lang)}</span></li>)}</ul>
                   <fieldset className="space-y-2"><legend className="text-sm font-semibold">{t("lab.collection")}</legend>
                     <SegmentedControl label={t("lab.collection")} value={method} onChange={(v) => { setCollection(v); setSlot(null); }} options={[
                       { value: "HOME", label: t("lab.home"), icon: <Home />, disabled: !homeOk, testId: "collect-home" },
@@ -126,9 +127,9 @@ export default function LabPage() {
                     <li key={`${x.labId}-${x.code}`} className={cn("kx-card kx-card-interactive flex items-start gap-3 p-4", on && "border-primary bg-accent/60 ring-1 ring-primary")} data-testid="lab-test">
                       <IconTile tone={on ? "brand" : "neutral"} className={on ? "bg-primary text-primary-foreground" : ""}>{on ? <Check /> : <TestTube2 />}</IconTile>
                       <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex items-start justify-between gap-3"><Label htmlFor={`t-${x.labId}-${x.code}`} className="cursor-pointer text-base font-semibold leading-snug" >{x.name}</Label><span className="kx-label-num shrink-0 text-base font-semibold">{formatMinor(x.priceMinor, lang)}</span></div>
-                        <p className="text-sm text-muted-foreground">{x.labName}{x.sampleType ? <> · <span className="capitalize">{x.sampleType}</span></> : null}</p>
-                        <div className="flex flex-wrap gap-1.5">{x.homeCollection && <StatusChip tone="info" dot={false}><Home className="h-3 w-3" aria-hidden="true" />{t("lab.homeAvailable")}</StatusChip>}{x.preparation && <StatusChip tone="warning" dot={false}>{t("lab.prep")}: {x.preparation}</StatusChip>}</div>
+                        <div className="flex items-start justify-between gap-3"><Label htmlFor={`t-${x.labId}-${x.code}`} className="cursor-pointer text-base font-semibold leading-snug" ><bdi>{medName(lang, x)}</bdi></Label><span className="kx-label-num shrink-0 text-base font-semibold">{formatMinor(x.priceMinor, lang)}</span></div>
+                        <p className="text-sm text-muted-foreground">{x.labName}{x.sampleType ? <> · <span className="capitalize">{localized(lang, x.sampleType, x.sampleTypeAr)}</span></> : null}</p>
+                        <div className="flex flex-wrap gap-1.5">{x.homeCollection && <StatusChip tone="info" dot={false}><Home className="h-3 w-3" aria-hidden="true" />{t("lab.homeAvailable")}</StatusChip>}{x.preparation && <StatusChip tone="warning" dot={false}>{t("lab.prep")}: {localized(lang, x.preparation, x.preparationAr)}</StatusChip>}</div>
                       </div>
                       <Checkbox id={`t-${x.labId}-${x.code}`} checked={on} onCheckedChange={() => toggle(x)} className="mt-1" />
                     </li>

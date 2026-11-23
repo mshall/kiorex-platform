@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Bell, BellOff, CalendarCheck, FileText, FlaskConical, Hourglass, Pill, Video } from "lucide-react";
+import { Bell, BellOff, CalendarCheck, FileText, FlaskConical, Hourglass, Pill, RotateCcw, Truck, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { IconTile, PageHeader, StatusChip } from "@/components/kit";
 import { useMarkRead, useNotificationPrefs, useNotifications, useSetNotificationPref, type InboxItem, type NotificationPref } from "@/api/engagement";
 import { formatDay, formatTime } from "@/lib/format";
 
-const KIND_ICON: Record<string, typeof Bell> = { BOOKING_CONFIRMED: CalendarCheck, REMINDER_24H: CalendarCheck, REMINDER_2H: CalendarCheck, WAITLIST_OFFER: Hourglass, RECORD_SHARED: FileText, LAB_RESULT_RELEASED: FlaskConical, PHARMACY_ORDER_READY: Pill, TELEMEDICINE_STARTING: Video };
+const KIND_ICON: Record<string, typeof Bell> = { BOOKING_CONFIRMED: CalendarCheck, REMINDER_24H: CalendarCheck, REMINDER_2H: CalendarCheck, WAITLIST_OFFER: Hourglass, RECORD_SHARED: FileText, LAB_RESULT_RELEASED: FlaskConical, PHARMACY_ORDER_READY: Pill, PHARMACY_ORDER_OUT_FOR_DELIVERY: Truck, PHARMACY_ORDER_PARTIAL_REFUND: RotateCcw, PHARMACY_ORDER_DISPENSED: Pill, TELEMEDICINE_STARTING: Video };
 
 /** Where a notification leads. Unknown kinds fall back to the appointment (when it has one) or nothing. */
 function target(n: InboxItem): string | null {

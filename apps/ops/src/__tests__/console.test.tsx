@@ -8,6 +8,7 @@ import MessagingPage from "@/pages/MessagingPage";
 import FeesPage from "@/pages/FeesPage";
 import OrdersPage from "@/pages/OrdersPage";
 import OperationsPage from "@/pages/OperationsPage";
+import PolicyPage from "@/pages/PolicyPage";
 
 const msg = (over = {}) => ({ id: "m1", messageId: null, channel: "WHATSAPP", direction: "OUT", mode: "mock", sub: "s1", recipientMasked: "+2010****0001", templateId: "booking_confirmed", body: "Your booking is confirmed", status: "SENT", providerRef: null, error: null, createdAt: "2026-11-20T10:00:00Z", sentAt: "2026-11-20T10:00:00Z", deliveredAt: null, readAt: null, failedAt: null, locale: "ar", ...over });
 const stats = (mode: "mock" | "real") => http.get("/api/v1/admin/messaging/stats", () => HttpResponse.json({ mode, channels: ["EMAIL", "WHATSAPP", "SMS", "PUSH"], counts: [{ channel: "WHATSAPP", direction: "OUT", status: "SENT", count: 3 }, { channel: "SMS", direction: "OUT", status: "FAILED", count: 1 }] }));
@@ -65,6 +66,15 @@ describe("order monitors", () => {
     await userEvent.click(await screen.findByTestId("confirm-resubmit"));
     await waitFor(() => expect(hit).toBe("po1"));
   });
+  it("PARTIAL_REVIEW orders can be settled with the market policy (pro-rata refund)", async () => {
+    let hit = "";
+    const partial = { id: "po7", status: "PARTIAL_REVIEW", sub: "s1", totalMinor: 14500, platformFeeMinor: 0, takeRateBps: 0, currency: "EGP", createdAt: "2026-11-20T10:00:00Z", rejectionReason: null, items: [{ sku: "A", name: "Panadol", qty: 3, unitPriceMinor: 2500 }] };
+    server.use(http.get("/api/v1/admin/pharmacy/orders", () => HttpResponse.json([partial])), http.post("/api/v1/admin/pharmacy/orders/:id/resolve-partial", ({ params }) => { hit = String(params.id); return HttpResponse.json({ order: {}, refundTotalMinor: 5000 }); }));
+    renderOps(<OrdersPage />);
+    await userEvent.click(await screen.findByTestId("settle-partial"));
+    await waitFor(() => expect(hit).toBe("po7"));
+    expect(await screen.findByText(/refunded/)).toBeInTheDocument();
+  });
   it("launch-locked vertical shows awaiting-approval state, not an error", async () => {
     server.use(http.get("/api/v1/admin/pharmacy/orders", () => HttpResponse.json({ code: "FEATURE_DISABLED", message: "off", key: "kiorex.pharmacy_orders", scope: "GATE" }, { status: 403 })));
     renderOps(<OrdersPage />);
@@ -78,5 +88,45 @@ describe("operations", () => {
     renderOps(<OperationsPage />);
     await userEvent.click(screen.getByTestId("waitlist-scan"));
     expect(await screen.findByTestId("scan-result")).toHaveTextContent("2");
+  });
+});
+
+const policies = (over: Record<string, unknown> = {}) => ({
+  market: "EG", proposedDefaultNote: "PROPOSED_DEFAULT delegated by founder 23 Nov 2026",
+  items: [
+    { key: "pay.deposit_default", titleEn: "Default deposit", titleAr: "العربون الافتراضي", descriptionEn: "d", descriptionAr: "و", value: { enabled: true, percentBps: 1000, capMajor: 200 }, source: "PROPOSED_DEFAULT", proposedDefault: true, note: "PROPOSED_DEFAULT delegated by founder 23 Nov 2026", defaults: { enabled: true, percentBps: 1000, capMajor: 200 }, scopes: ["GLOBAL", "MARKET", "ORG"], overrides: [], ...over },
+    { key: "pharmacy.partial_fulfilment", titleEn: "Partial pharmacy orders", titleAr: "الطلبات الجزئية للصيدلية", descriptionEn: "d", descriptionAr: "و", value: { mode: "PRO_RATA_REFUND", refundDeliveryFeeIfNotDelivered: true, releaseFulfilledToPharmacy: true }, source: "PROPOSED_DEFAULT", proposedDefault: true, note: "PROPOSED_DEFAULT delegated by founder 23 Nov 2026", defaults: {}, scopes: ["GLOBAL", "MARKET", "ORG"], overrides: [] },
+  ],
+});
+
+describe("market policy (PROPOSED_DEFAULT, founder-delegated 23 Nov 2026)", () => {
+  it("shows the default deposit (10% capped at 200 EGP) marked as a proposed default, in English and Arabic", async () => {
+    server.use(http.get("/api/v1/admin/policy", () => HttpResponse.json(policies())));
+    const a = renderOps(<PolicyPage />);
+    const dep = await screen.findByTestId("policy-pay.deposit_default");
+    expect(within(dep).getByTestId("proposed-default")).toHaveTextContent("Proposed default");
+    expect(within(dep).getByTestId("policy-summary")).toHaveTextContent("10% of the consultation fee, capped at 200 EGP");
+    expect(within(dep).getByTestId("proposed-note")).toHaveTextContent("PROPOSED_DEFAULT delegated by founder 23 Nov 2026");
+    expect(within(screen.getByTestId("policy-pharmacy.partial_fulfilment")).getByTestId("policy-summary")).toHaveTextContent("pro-rata");
+    a.unmount();
+    renderOps(<PolicyPage />, { lang: "ar" });
+    expect(await screen.findByText("العربون الافتراضي")).toBeInTheDocument();
+  });
+  it("super admin saves a market override and resets it", async () => {
+    let put: unknown; let cleared = "";
+    server.use(
+      http.get("/api/v1/admin/policy", () => HttpResponse.json(policies())),
+      http.put("/api/v1/admin/policy/:key", async ({ request, params }) => { put = { key: params.key, ...(await request.json() as object) }; return HttpResponse.json({ key: params.key, scope: "MARKET", scopeId: "EG", value: {} }); }),
+      http.delete("/api/v1/admin/policy/:key", ({ request }) => { cleared = new URL(request.url).search; return HttpResponse.json({ cleared: 1 }); }),
+    );
+    renderOps(<PolicyPage />);
+    const ed = await screen.findByTestId("policy-editor-pay.deposit_default");
+    const pct = within(ed).getByTestId("dep-percent"); await userEvent.clear(pct); await userEvent.type(pct, "20");
+    await userEvent.click(within(ed).getByTestId("policy-save"));
+    await waitFor(() => expect(put).toMatchObject({ key: "pay.deposit_default", scope: "MARKET", scopeId: "EG", value: { enabled: true, percentBps: 2000, capMajor: 200 } }));
+    server.use(http.get("/api/v1/admin/policy", () => HttpResponse.json(policies({ source: "MARKET", proposedDefault: false, overrides: [{ scope: "MARKET", scopeId: "EG", value: { percentBps: 2000 }, note: null, updatedBy: "adm1", updatedAt: "2026-11-23T10:00:00Z" }] }))));
+    await userEvent.click(within(await screen.findByTestId("policy-editor-pay.deposit_default")).getByTestId("policy-save")); // refetch brings the override row
+    await userEvent.click(await screen.findByTestId("policy-reset"));
+    await waitFor(() => expect(cleared).toContain("scope=MARKET"));
   });
 });

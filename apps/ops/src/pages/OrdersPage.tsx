@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { RotateCw } from "lucide-react";
+import { RotateCw, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError } from "@/api/errors";
-import { useLabBookingMonitor, usePharmacyOrderMonitor, useResubmitLab, useResubmitPharmacy } from "@/api/ops";
+import { useLabBookingMonitor, usePharmacyOrderMonitor, useResolvePartial, useResubmitLab, useResubmitPharmacy } from "@/api/ops";
 import { CardSkeleton, ErrorState, UnavailableState } from "@/components/states";
 import { DataTable, type Column } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
@@ -15,9 +15,9 @@ import { useAuth } from "@/auth/AuthProvider";
 import { isSuperAdmin } from "@/auth/RequireOps";
 import { formatBps, formatDateTime, formatMinor } from "@/lib/format";
 
-const PHARM = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "READY", "DISPENSED", "PARTIAL_REVIEW", "REJECTED", "CANCELLED"];
+const PHARM = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "READY", "OUT_FOR_DELIVERY", "DISPENSED", "PARTIALLY_FULFILLED", "PARTIAL_REVIEW", "REJECTED", "CANCELLED"];
 const LAB = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "RESULT_RELEASED", "REJECTED", "CANCELLED"];
-const tone = (s: string) => (["DISPENSED", "READY", "RESULT_RELEASED"].includes(s) ? "success" : ["REJECTED", "CANCELLED"].includes(s) ? "destructive" : ["PAID", "PARTIAL_REVIEW", "PENDING_PAYMENT"].includes(s) ? "warning" : "info") as "success" | "destructive" | "warning" | "info";
+const tone = (s: string) => (["DISPENSED", "READY", "OUT_FOR_DELIVERY", "RESULT_RELEASED"].includes(s) ? "success" : ["REJECTED", "CANCELLED"].includes(s) ? "destructive" : ["PAID", "PARTIAL_REVIEW", "PENDING_PAYMENT"].includes(s) ? "warning" : "info") as "success" | "destructive" | "warning" | "info";
 const sel = "mb-3 h-11 rounded-xl border border-input bg-card px-3 text-sm";
 
 interface Row { id: string; status: string; sub: string; totalMinor: number; platformFeeMinor: number; takeRateBps: number; currency: string; createdAt: string; rejectionReason: string | null; summary: string }
@@ -30,7 +30,7 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
   const ph = usePharmacyOrderMonitor(kind === "pharmacy" ? status : "");
   const lb = useLabBookingMonitor(kind === "lab" ? status : "");
   const q = kind === "pharmacy" ? ph : lb;
-  const rePh = useResubmitPharmacy(); const reLb = useResubmitLab();
+  const rePh = useResubmitPharmacy(); const reLb = useResubmitLab(); const settle = useResolvePartial();
   const { user } = useAuth();
   const canAct = !!user && isSuperAdmin(user.roles);
   const rows: Row[] = ((kind === "pharmacy" ? ph.data : lb.data) ?? []).map((o) => ({
@@ -41,6 +41,10 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
     onSuccess: (res) => { toast.success(t("orders.resubmitted", { status: res.status ?? "OK" })); setConfirm(null); },
     onError: (e) => { toast.error(e instanceof ApiError ? `${e.code}: ${e.message}` : t("states.errorTitle")); setConfirm(null); },
   });
+  const settlePartial = (r: Row) => settle.mutate(r.id, {
+    onSuccess: (res) => toast.success(t("orders.settled", { amount: formatMinor(res.refundTotalMinor ?? 0, lang, r.currency) })),
+    onError: (e) => toast.error(e instanceof ApiError ? `${e.code}: ${e.message}` : t("states.errorTitle")),
+  });
   if (q.error instanceof ApiError && q.error.isFeatureDisabled) return <UnavailableState featureKey={q.error.featureKey} />;
   const columns: Column<Row>[] = [
     { key: "id", header: t("orders.id"), cell: (r) => <code className="text-xs" dir="ltr">{r.id}</code> },
@@ -49,7 +53,7 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
     { key: "t", header: t("orders.total"), cell: (r) => formatMinor(r.totalMinor, lang, r.currency) },
     { key: "f", header: t("orders.fee"), cell: (r) => <span title={formatBps(r.takeRateBps, lang)}>{formatMinor(r.platformFeeMinor, lang, r.currency)} <span className="text-xs text-muted-foreground">({formatBps(r.takeRateBps, lang)})</span></span> },
     { key: "c", header: t("orders.created"), className: "whitespace-nowrap", cell: (r) => formatDateTime(r.createdAt, lang) },
-    { key: "a", header: "", cell: (r) => r.status === "PAID" ? <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setConfirm(r)} data-testid="resubmit"><RotateCw aria-hidden="true" />{t("orders.resubmit")}</Button> : null },
+    { key: "a", header: "", cell: (r) => r.status === "PAID" ? <Button size="sm" variant="outline" disabled={!canAct} onClick={() => setConfirm(r)} data-testid="resubmit"><RotateCw aria-hidden="true" />{t("orders.resubmit")}</Button> : kind === "pharmacy" && r.status === "PARTIAL_REVIEW" ? <Button size="sm" variant="outline" disabled={settle.isPending} onClick={() => settlePartial(r)} data-testid="settle-partial"><Scale aria-hidden="true" />{t("orders.settlePartial")}</Button> : null },
   ];
   return (
     <div>

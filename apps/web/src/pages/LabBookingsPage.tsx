@@ -10,6 +10,7 @@ import { asPayment, PayPanel, ProgressSteps } from "@/components/OrderBits";
 import { orderTone } from "@/pages/PharmacyOrdersPage";
 import { formatDateTime, formatMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { medName } from "@/lib/localName";
 import { IconTile, PageHeader, Row, StatusBanner, StatusChip } from "@/components/kit";
 
 const STEPS = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "RESULT_RELEASED"];
@@ -27,7 +28,7 @@ export function LabBookingsPage() {
           {q.data!.map((b) => (
             <li key={b.id}><Link to={`/lab/bookings/${b.id}`} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid="lab-booking-row">
               <IconTile tone={orderTone(b.status)}>{b.collectionType === "HOME" ? <Home /> : <FlaskConical />}</IconTile>
-              <div className="min-w-0 flex-1 space-y-0.5"><p className="truncate font-semibold">{b.tests.map((x) => x.name).join("، ")}</p><p className="text-sm text-muted-foreground">{formatDateTime(b.slotStartsAt, i18n.language)} · <span className="kx-label-num">{formatMinor(b.totalMinor, i18n.language)}</span></p></div>
+              <div className="min-w-0 flex-1 space-y-0.5"><p className="truncate font-semibold">{b.tests.map((x) => medName(i18n.language, x)).join("، ")}</p><p className="text-sm text-muted-foreground">{formatDateTime(b.slotStartsAt, i18n.language)} · <span className="kx-label-num">{formatMinor(b.totalMinor, i18n.language)}</span></p></div>
               <StatusChip tone={orderTone(b.status)}>{t(`lab.status.${b.status}`)}</StatusChip><ChevronRight className="h-4 w-4 shrink-0 rtl-flip text-muted-foreground" aria-hidden="true" />
             </Link></li>
           ))}
@@ -66,7 +67,7 @@ export default function LabBookingPage() {
       {b.status === "PENDING_PAYMENT" && <PayPanel payment={pay} label={t("pharmacy.pay", { total: formatMinor(b.totalMinor, i18n.language) })} />}
       <section className="kx-card space-y-2 p-5">
         <h2 className="text-lg">{t("lab.testsInBooking")}</h2>
-        <ul className="divide-y">{b.tests.map((x) => <li key={x.code} className="flex justify-between gap-3 py-2.5 text-sm"><span className="font-medium" >{x.name}</span><span className="kx-label-num">{formatMinor(x.priceMinor, i18n.language)}</span></li>)}</ul>
+        <ul className="divide-y">{b.tests.map((x) => <li key={x.code} className="flex justify-between gap-3 py-2.5 text-sm"><span className="font-medium" ><bdi>{medName(i18n.language, x)}</bdi></span><span className="kx-label-num">{formatMinor(x.priceMinor, i18n.language)}</span></li>)}</ul>
         <dl className="border-t pt-2">
           <Row label={t("lab.collection")}><span className="font-sans">{t(`lab.collectionType.${b.collectionType}`)}</span></Row>
           <Row label={t("lab.when")}><span className="font-sans">{formatDateTime(b.slotStartsAt, i18n.language)}</span></Row>

@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
 import { OkDto } from '../common/dto';
 import { RequiresFlag } from '../control-plane/control-plane-public';
@@ -24,6 +24,11 @@ export class PharmacyDeliveryAddressBody {
 export class DeliveryBody {
   @IsIn(['PICKUP', 'DELIVERY']) method!: 'PICKUP' | 'DELIVERY';
   @IsOptional() @ValidateNested() @Type(() => PharmacyDeliveryAddressBody) address?: PharmacyDeliveryAddressBody;
+}
+export class DispensedLineBody { @IsString() @MaxLength(64) sku!: string; @IsInt() @Min(0) @Max(1000) quantityDispensed!: number }
+export class ResolvePartialBody {
+  @IsOptional() @IsArray() @ArrayMaxSize(60) @ValidateNested({ each: true }) @Type(() => DispensedLineBody) lines?: DispensedLineBody[];
+  @IsOptional() @IsBoolean() deliveryMade?: boolean;
 }
 export class CreateOrderBody { @IsOptional() @IsString() prescriptionRecordId?: string }
 
@@ -67,6 +72,9 @@ export class PharmacyController {
   @ApiOkResponse({ schema: { type: 'array', items: { allOf: [{ $ref: '#/components/schemas/PharmacyOrderDto' }, { type: 'object', properties: { sub: { type: 'string' }, platformFeeMinor: { type: 'number' }, takeRateBps: { type: 'number' } } }] } } })
 
   @OpsOnly() @Get('admin/pharmacy/orders') @ApiOperation({ summary: 'OP: pharmacy orders (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @ApiOkResponse({ schema: { type: 'object', properties: { order: { $ref: '#/components/schemas/PharmacyOrderDto' }, refundTotalMinor: { type: 'number' } } } })
+  @OpsOnly() @Post('admin/pharmacy/orders/:id/resolve-partial') @HttpCode(200) @ApiOperation({ summary: 'OP: settle a PARTIAL_REVIEW order with the market/org partial-fulfilment policy (pro-rata refund of the undispensed lines)' })
+  resolvePartial(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ResolvePartialBody) { return this.svc.resolvePartial(id, u.sub, b); }
   @ApiOkResponse({ schema: { type: 'object', properties: { status: { type: 'string', description: 'SUBMITTED | REJECTED | ...' } } } })
   @OpsOnly() @Post('admin/pharmacy/orders/:id/resubmit') @HttpCode(200) @ApiOperation({ summary: 'OP: re-send a PAID order to Kiorly Pharmacy (idempotent)' }) resubmit(@Param('id') id: string) { return this.svc.resubmit(id); }
 }

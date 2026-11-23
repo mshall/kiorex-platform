@@ -5,6 +5,7 @@ import { ApiError, badRequest, conflict, notFound, unavailable } from '../common
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/kiorly-public';
 import { MarketService } from '../market/market-public';
+import { depositFromPolicy, PolicyService, majorToMinor } from '../policy/policy-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { detectEmergency, EMERGENCY_GUIDANCE, isSpecialtyCode, mapSymptomToSpecialties, normalizeText, SPECIALTY_CODES, SPECIALTY_LABELS } from '../safety/safety-public';
 import { CARE_TYPES, CareType, careTypeOf, mapProviderDto, normalizeDistrict, ServiceLocation } from './provider-mapper';
@@ -34,7 +35,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('catalog');
   private slotCache = new Map<string, { at: number; slots: Slot[] }>();
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly markets: MarketService) {}
+  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly markets: MarketService, private readonly policy: PolicyService) {}
 
   onModuleInit() {
     if (!cfg().jobsEnabled) return;
@@ -111,17 +112,28 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /** Deposit policy for a visit type. NEEDS_HUMAN (KX-12): amounts are never invented; 0 = no deposit. */
-  depositFor(p: Provider, typeId: string, o: { home?: boolean } = {}): { required: boolean; amountMinor: number; policy?: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' } {
+  /**
+   * Deposit policy for a visit type. Precedence: explicit provider amount > DEPOSIT_DEFAULT_MINOR (fixed, 0 = unset) > the market policy `pay.deposit_default`
+   * (PROPOSED_DEFAULT delegated by founder 23 Nov 2026: 10% of the consultation fee, capped at 200 major units), which applies ONLY to providers that enabled
+   * deposits (acceptsDeposit / depositRequired). Providers that did not enable deposits never get one. The cancel-window forfeiture rule is unchanged (booking).
+   */
+  depositFor(p: Provider, typeId: string, o: { home?: boolean } = {}): { required: boolean; amountMinor: number; policy?: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' | 'MARKET_DEFAULT_PERCENT' } {
     const f = ((p.raw as any)?.provider?.fees ?? []).find((x: any) => x.appointmentTypeId === typeId);
     if (f?.depositAmount) return { required: true, amountMinor: Math.round(Number(f.depositAmount) * 100) };
+    const enabled = Boolean(p.acceptsDeposit || f?.depositRequired);
+    const marketDefault = () => {
+      if (!enabled || !f?.amount) return 0;
+      const pol = this.policy.get('pay.deposit_default', { market: p.market, orgId: p.clinicId }).value;
+      return depositFromPolicy(majorToMinor(Number(f.amount), f.currency ?? 'EGP'), f.currency ?? 'EGP', pol);
+    };
     // BR54: a deposit is required BY DEFAULT for home visits. The amount is a business decision (KX-12, NEEDS_HUMAN) and is never invented: HOME_DEPOSIT_DEFAULT_MINOR (else DEPOSIT_DEFAULT_MINOR); 0 = unset => no deposit collected and the booking says so.
     if (o.home) {
-      const amt = cfg().homeDepositDefaultMinor || cfg().depositDefaultMinor;
-      return amt > 0 ? { required: true, amountMinor: amt } : { required: false, amountMinor: 0, policy: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' };
+      const amt = cfg().homeDepositDefaultMinor || cfg().depositDefaultMinor || marketDefault();
+      return amt > 0 ? { required: true, amountMinor: amt, ...(!(cfg().homeDepositDefaultMinor || cfg().depositDefaultMinor) && { policy: 'MARKET_DEFAULT_PERCENT' as const }) } : { required: false, amountMinor: 0, policy: 'HOME_DEFAULT_REQUIRED_AMOUNT_UNSET' };
     }
-    if (f?.depositRequired && cfg().depositDefaultMinor > 0) return { required: true, amountMinor: cfg().depositDefaultMinor };
-    if (p.acceptsDeposit && cfg().depositDefaultMinor > 0) return { required: true, amountMinor: cfg().depositDefaultMinor };
+    if (enabled && cfg().depositDefaultMinor > 0) return { required: true, amountMinor: cfg().depositDefaultMinor };
+    const pct = marketDefault();
+    if (pct > 0) return { required: true, amountMinor: pct, policy: 'MARKET_DEFAULT_PERCENT' };
     return { required: false, amountMinor: 0 };
   }
   feeFor(p: Provider, typeId: string): number | null {

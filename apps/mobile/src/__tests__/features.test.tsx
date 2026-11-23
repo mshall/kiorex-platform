@@ -76,6 +76,9 @@ describe("pharmacy / lab status helpers", () => {
     expect(pharmacyCancellable("SUBMITTED")).toBe(true); expect(pharmacyCancellable("READY")).toBe(false);
     expect(labCancellable("PAID")).toBe(true); expect(labCancellable("RESULT_RELEASED")).toBe(false);
     expect(isTerminalOrder("DISPENSED")).toBe(true);
+    // 1.8.0: the courier step and the partial-fulfilment outcome
+    expect(orderTone("OUT_FOR_DELIVERY")).toBe("ink"); expect(orderTone("PARTIALLY_FULFILLED")).toBe("warning");
+    expect(pharmacyCancellable("OUT_FOR_DELIVERY")).toBe(false); expect(pharmacyCancellable("PARTIALLY_FULFILLED")).toBe(false);
   });
 });
 

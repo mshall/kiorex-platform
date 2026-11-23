@@ -23,7 +23,7 @@ export class WebhooksController {
   @ApiOkResponse({ type: WebhookAckDto })
 
   @Public() @Post('pharmacy') @HttpCode(200)
-  @ApiOperation({ summary: 'Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET' })
+  @ApiOperation({ summary: 'Kiorly Pharmacy outbox webhook (OrderReady / OrderOutForDelivery / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET' })
   async pharmacy(@Req() req: any, @Headers('x-kiorly-signature') sig?: string, @Headers('x-kiorly-timestamp') ts?: string, @Headers('x-kiorly-event-id') hdrId?: string, @Headers('x-kiorly-client-key') clientKey?: string) {
     const raw: Buffer | undefined = req.rawBody;
     if (!raw) throw new ApiError(400, 'RAW_BODY_REQUIRED', 'raw body unavailable');

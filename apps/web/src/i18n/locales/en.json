@@ -733,7 +733,9 @@
       "DISPENSED": "Collected or delivered",
       "PARTIAL_REVIEW": "Under review",
       "REJECTED": "Rejected",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "OUT_FOR_DELIVERY": "Out for delivery",
+      "PARTIALLY_FULFILLED": "Partly filled, refund issued"
     },
     "rejectedTitle": "The pharmacy could not fill this order",
     "rejectedBody": "No reason was given.",
@@ -766,7 +768,8 @@
       "DISPENSED": "Delivered",
       "PARTIAL_REVIEW": "Under review",
       "REJECTED": "Rejected",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "OUT_FOR_DELIVERY": "Out for delivery"
     },
     "deliverTo": "Delivery address",
     "rejectReason": {
@@ -782,7 +785,21 @@
       "RX_UNKNOWN": "The prescription is unknown to Kiorex.",
       "RX_REVOKED": "The prescription was withdrawn by the clinic or the patient."
     },
-    "handedOverAt": "Handed over"
+    "handedOverAt": "Handed over",
+    "outForDeliveryAt": "Left the pharmacy at",
+    "outForDeliveryHint": "The courier is on the way to your address. You will be notified when it is delivered.",
+    "refund": {
+      "title": "Your refund",
+      "intro": "The pharmacy could not fill every item. You are refunded for the items it could not supply; the rest of your order was filled.",
+      "ofOrdered": "(of {{count}} ordered)",
+      "deliveryFee": "Delivery fee (not delivered)",
+      "fulfilled": "Filled items",
+      "total": "Total refunded",
+      "status": {
+        "REQUESTED": "Refund on its way",
+        "SETTLED": "Refunded"
+      }
+    }
   },
   "lab": {
     "title": "Lab tests",
@@ -1122,6 +1139,9 @@
       "LAB_RESULT_RELEASED": "Lab result ready",
       "PHARMACY_ORDER_READY": "Pharmacy order ready",
       "TELEMEDICINE_STARTING": "Video visit starting",
+      "PHARMACY_ORDER_OUT_FOR_DELIVERY": "Pharmacy order out for delivery",
+      "PHARMACY_ORDER_PARTIAL_REFUND": "Partial refund for your pharmacy order",
+      "PHARMACY_ORDER_DISPENSED": "Pharmacy order handed over",
       "OTHER": "Message from Kiorex"
     }
   },

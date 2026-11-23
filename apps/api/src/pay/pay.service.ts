@@ -85,13 +85,21 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.paymentIntent.create({ data: { id, orderRef: i.orderRef, purpose: i.purpose, sub: i.sub, clinicId: i.partnerId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
   }
 
-  /** Order fulfilled: held funds become partner-payable minus Kiorex's marketplace take. Idempotent. */
-  async releaseOrder(paymentId: string, o: { feeMinor: number }) {
-    const p = await this.getIntent(paymentId);
-    if (p.status !== 'CAPTURED' || p.releasedAt) return null;
-    await this.prisma.$transaction(async (tx) => {
+  /**
+   * Order fulfilled: held funds become partner-payable minus Kiorex's marketplace take. Idempotent.
+   * After a partial refund (policy pharmacy.partial_fulfilment) only the NET amount (captured - refunded) is released; `feeMinor` is capped at that net.
+   * Pass `outer` to commit together with the refund (one transaction: a reader never sees a refund without the matching release).
+   */
+  async releaseOrder(paymentId: string, o: { feeMinor: number }, outer?: Tx) {
+    const run = <T>(fn: (tx: Tx) => Promise<T>): Promise<T> => (outer ? fn(outer) : this.prisma.$transaction(fn));
+    const p = await (outer ?? this.prisma).paymentIntent.findUnique({ where: { id: paymentId } });
+    if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
+    if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status) || p.releasedAt) return null;
+    const net = p.amountMinor - p.refundedMinor;
+    if (net <= 0) return null;
+    await run(async (tx) => {
       const c = await tx.paymentIntent.updateMany({ where: { id: p.id, releasedAt: null }, data: { releasedAt: new Date(), releaseKind: 'COMPLETED' } });
-      if (c.count) await this.postLedger(tx, { key: `release-order:${p.id}`, kind: `RELEASE_ORDER_${p.purpose}`, postings: releaseOrder(p.clinicId, p.amountMinor, o.feeMinor), paymentId: p.id, clinicId: p.clinicId });
+      if (c.count) await this.postLedger(tx, { key: `release-order:${p.id}`, kind: `RELEASE_ORDER_${p.purpose}`, postings: releaseOrder(p.clinicId, net, Math.min(Math.max(o.feeMinor, 0), net)), paymentId: p.id, clinicId: p.clinicId });
     });
     return 'RELEASED';
   }
@@ -430,6 +438,9 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     for (const n of noLedger) disc.push({ type: 'CAPTURE_WITHOUT_LEDGER', ref: n.id });
     const heldNoLedger = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p."reviewState" = 'HELD_FOR_REVIEW' AND NOT EXISTS (SELECT 1 FROM "LedgerTx" t WHERE t."idempotencyKey" = 'hold-review:' || p.id)`;
     for (const n of heldNoLedger) disc.push({ type: 'REVIEW_HOLD_WITHOUT_LEDGER', ref: n.id });
+    // vertical orders: once released (fulfilled, or partially fulfilled with a pro-rata refund) nothing may stay HELD for that payment (captured = refunded + released)
+    const heldAfterRelease = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p.purpose <> 'DEPOSIT' AND p."releasedAt" IS NOT NULL AND (SELECT COALESCE(SUM(e."creditMinor" - e."debitMinor"), 0) FROM "LedgerEntry" e JOIN "LedgerTx" t ON t.id = e."txId" WHERE t."paymentId" = p.id AND e.account LIKE 'HELD:%') <> 0`;
+    for (const n of heldAfterRelease) disc.push({ type: 'ORDER_HELD_AFTER_RELEASE', ref: n.id });
     const run = await this.prisma.reconciliationRun.create({ data: { kind: 'PSP_DAILY', status: disc.length ? 'DISCREPANCIES' : 'OK', discrepancies: disc as any, stats: { captured: captured.length, lines: lines.length, date: day.toISOString().slice(0, 10) } } });
     return run;
   }

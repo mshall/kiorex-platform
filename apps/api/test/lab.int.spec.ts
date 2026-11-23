@@ -36,6 +36,17 @@ describe('lab bookings (launch-locked kiorex.lab_bookings; fake Kiorly Lab contr
     await c.http().get('/api/v1/lab/tests').set(auth).expect(403).expect((r) => expect(r.body).toMatchObject({ code: 'FEATURE_DISABLED', key: 'kiorex.lab_bookings', scope: 'GATE' }));
   });
 
+  it('1.8.0 Arabic names: tests carry nameAr/preparationAr/sampleTypeAr where the lab holds them (English fallback otherwise); Arabic and English search both work; the booking snapshot keeps nameAr', async () => {
+    const ar = await c.http().get(`/api/v1/lab/tests?q=${encodeURIComponent('صورة دم')}`).set(auth).expect(200);
+    expect(ar.body.items).toHaveLength(1);
+    expect(ar.body.items[0]).toMatchObject({ code: 'CBC', name: 'Complete blood count', nameAr: 'صورة دم كاملة', sampleTypeAr: 'دم', preparationAr: 'لا يلزم أي تحضير', preparation: 'No preparation needed' });
+    const en = await c.http().get('/api/v1/lab/tests?q=thyroid').set(auth).expect(200);
+    expect(en.body.items[0]).toMatchObject({ code: 'TSH', name: 'Thyroid stimulating hormone' });
+    expect('nameAr' in en.body.items[0]).toBe(false); // the lab holds no Arabic name for TSH: absent, never blank
+    const b = await book().expect(201);
+    expect(b.body.tests[0]).toMatchObject({ code: 'CBC', name: 'Complete blood count', nameAr: 'صورة دم كاملة' });
+  });
+
   it('golden path: book + pay -> order sent to Kiorly Lab -> LabResultReleased lands in the vault (secure link only) and releases funds with the take', async () => {
     process.env.LAB_TAKE_RATE_BPS = '800'; // test-only; real rate NEEDS_HUMAN
     const b = (await book().expect(201)).body;

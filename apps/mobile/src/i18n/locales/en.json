@@ -682,7 +682,9 @@
       "DISPENSED": "Dispensed",
       "PARTIAL_REVIEW": "Needs review",
       "REJECTED": "Rejected",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "OUT_FOR_DELIVERY": "Out for delivery",
+      "PARTIALLY_FULFILLED": "Partly filled, refunded"
     },
     "rx": {
       "NOT_REQUIRED": "Not required",
@@ -704,7 +706,23 @@
     "cancelled": "Order cancelled.",
     "cancelledRefund": "Order cancelled. Your payment will be refunded.",
     "cancelFailed": "We could not cancel. It may already be ready.",
-    "deliverTo": "Deliver to"
+    "deliverTo": "Deliver to",
+    "outForDeliveryTitle": "Your order is out for delivery",
+    "outForDeliveryBody": "The courier left the pharmacy at {{time}}.",
+    "outForDeliveryHint": "The courier is on the way to your address.",
+    "partialTitle": "Your order is being reviewed",
+    "partialBody": "The pharmacy filled part of this order. We will update you with the refund for the rest.",
+    "refund": {
+      "title": "Your refund",
+      "intro": "The pharmacy could not fill every item. You are refunded for the items it could not supply.",
+      "ofOrdered": "(of {{count}} ordered)",
+      "deliveryFee": "Delivery fee (not delivered)",
+      "total": "Total refunded",
+      "status": {
+        "REQUESTED": "Refund on its way",
+        "SETTLED": "Refunded"
+      }
+    }
   },
   "lab": {
     "myBookings": "My lab bookings",

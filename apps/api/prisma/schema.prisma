@@ -804,7 +804,7 @@ model PharmacyOrder {
   id                   String    @id // kx_ph_<id>; also the Idempotency-Key towards Kiorly Pharmacy
   sub                  String
   pharmacyId           String
-  status               String // PENDING_PAYMENT PAID SUBMITTED READY DISPENSED REJECTED CANCELLED
+  status               String // PENDING_PAYMENT PAID SUBMITTED READY OUT_FOR_DELIVERY DISPENSED PARTIALLY_FULFILLED PARTIAL_REVIEW REJECTED CANCELLED
   items                Json
   subtotalMinor        Int
   deliveryFeeMinor     Int       @default(0)
@@ -820,7 +820,11 @@ model PharmacyOrder {
   platformFeeMinor     Int       @default(0)
   rejectionReason      String?
   readyAt              DateTime?
+  /// 1.8.0: set when the pharmacy hands a DELIVERY order to the courier (OrderOutForDelivery).
+  outForDeliveryAt     DateTime?
   dispensedAt          DateTime?
+  /// Itemised partial-fulfilment settlement (policy pharmacy.partial_fulfilment): refunded lines, delivery fee, amounts released, policy snapshot. Null otherwise.
+  settlement           Json?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -1132,4 +1136,20 @@ model ImportCommitItem {
   createdAt      DateTime    @default(now())
 
   @@index([batchId, entity])
+}
+
+/// Ops-editable business policy overrides (PolicyService). The in-code value is the PROPOSED_DEFAULT delegated by the founder on 23 Nov 2026;
+/// a row overrides it at GLOBAL (scopeId ''), MARKET (ISO country) or ORG (partner / clinic organisation id) scope. Changes are audited.
+model PolicySetting {
+  id        String   @id @default(cuid())
+  key       String
+  scope     String // GLOBAL | MARKET | ORG
+  scopeId   String   @default("")
+  value     Json
+  note      String?
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, scope, scopeId])
 }

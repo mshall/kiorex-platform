@@ -27,7 +27,7 @@ export class PharmacyClient {
   async cancelOrder(orderId: string, reason: string) { return partnerRequest<{ status: string }>(await this.conn(), { method: 'POST', path: `/orders/${encodeURIComponent(orderId)}/cancel`, body: { reason } }); }
 }
 
-export type PharmacyPartnerStatus = 'RECEIVED' | 'ACCEPTED' | 'PARTIALLY_ACCEPTED' | 'READY' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
+export type PharmacyPartnerStatus = 'RECEIVED' | 'ACCEPTED' | 'PARTIALLY_ACCEPTED' | 'READY' | 'OUT_FOR_DELIVERY' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
 /** Kiorex -> Pharmacy order intent. Unit prices are decimal MAJOR units (the pharmacy ledger unit); the pharmacy refuses a stale price. */
 export interface PharmacyOrderIntent {
   orderId: string; branchId: string; patientRef: string; customer?: { name?: string; phone?: string; address?: string }; prepaid: true;
@@ -38,5 +38,6 @@ export interface PharmacyOrderIntent {
 }
 
 export interface PharmacyDto { id: string; name: string; delivery: { enabled: boolean; feeMinor: number; radiusKm?: number }; pickup: boolean; prepMinutes?: number }
-export interface CatalogueItemDto { pharmacyId: string; sku: string; name: string; strength?: string; form?: string; priceMinor: number; rxRequired: boolean; controlled: boolean; available: boolean }
-export interface QuoteDto { items: { sku: string; name: string; qty: number; unitPriceMinor: number; rxRequired: boolean; controlled: boolean; available: boolean }[]; delivery?: { feeMinor: number } }
+/** `nameAr` / `formAr` / `activeIngredient` are optional (contracts 1.8.0): the patient apps fall back to `name` / `form` when absent. */
+export interface CatalogueItemDto { pharmacyId: string; sku: string; name: string; nameAr?: string; activeIngredient?: string; strength?: string; form?: string; formAr?: string; priceMinor: number; rxRequired: boolean; controlled: boolean; available: boolean }
+export interface QuoteDto { items: { sku: string; name: string; nameAr?: string; strength?: string; form?: string; formAr?: string; qty: number; unitPriceMinor: number; rxRequired: boolean; controlled: boolean; available: boolean }[]; delivery?: { feeMinor: number } }

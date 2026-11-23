@@ -93,6 +93,7 @@ export class WebhooksService {
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'OrderReady':
+      case 'OrderOutForDelivery': // 1.8.0, additive: READY -> OUT_FOR_DELIVERY (DELIVERY orders)
       case 'DispenseCompleted':
       case 'OrderRejected': { // Kiorly Pharmacy (kiorex-contracts v2-draft); pharmacist sign-off enforced in the module
         const o = await this.pharmacy.onPartnerEvent(type, data);

@@ -10,6 +10,7 @@ import { EngagementModule } from './engagement/engagement-public';
 import { HealthModule } from './health/health.module';
 import { AnalyticsModule } from './analytics/analytics-public';
 import { MarketModule } from './market/market-public';
+import { PolicyModule } from './policy/policy-public';
 import { MessagingModule } from './messaging/messaging-public';
 import { KiorlyModule } from './kiorly/kiorly-public';
 import { OpsModule } from './ops/ops.module';
@@ -30,6 +31,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, HealthModule],
 })
 export class AppModule {}

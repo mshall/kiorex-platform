@@ -56,6 +56,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dev/messaging/webhook-simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DEV: deliver a SIGNED provider status webhook for a mock message (exercises the same verified path as the real provider) */
+        post: operations["DevMessagingController_webhookSimulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messaging/webhooks/{channel}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provider webhook verification handshake (Meta WhatsApp hub.challenge) */
+        get: operations["MessagingWebhookController_handshake"];
+        put?: never;
+        /** Provider delivery-status webhook (HMAC verified, idempotent, forward-only status) */
+        post: operations["MessagingWebhookController_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/markets": {
         parameters: {
             query?: never;
@@ -68,6 +103,41 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: business policies resolved for a market (default EG), with source and overrides */
+        get: operations["PolicyController_describe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/policy/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** SA: set a policy override at GLOBAL, MARKET or ORG scope (validated, audited) */
+        put: operations["PolicyController_set"];
+        post?: never;
+        /** SA: remove an override (falls back to the next level / PROPOSED_DEFAULT) */
+        delete: operations["PolicyController_clear"];
         options?: never;
         head?: never;
         patch?: never;
@@ -893,6 +963,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dev/messaging/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DEV: send sample booking-confirmation / reminder / waitlist-offer / deposit-refund messages through the WhatsApp, SMS and email mocks */
+        post: operations["DevSamplesController_samples"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pay/intents/{id}": {
         parameters: {
             query?: never;
@@ -1003,6 +1090,40 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["PayController_fakeComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DEV: latest payment intents with refund state */
+        get: operations["DevPayController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/payments/{id}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DEV: simulate a signed PSP webhook (captured | failed | refund_settled) for a payment */
+        post: operations["DevPayController_simulate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1269,7 +1390,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET */
+        /** Kiorly Pharmacy outbox webhook (OrderReady / OrderOutForDelivery / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET */
         post: operations["WebhooksController_pharmacy"];
         delete?: never;
         options?: never;
@@ -1790,6 +1911,264 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/onboarding/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_list"];
+        put?: never;
+        /** Create an import batch for a target organization */
+        post: operations["OnboardingImportController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name= */
+        post: operations["OnboardingImportController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_rescan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_tasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_resolveMany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_patients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_dryRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/request-commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/purge-staging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OnboardingImportController_purge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/imports/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OnboardingImportController_audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/vault": {
         parameters: {
             query?: never;
@@ -2208,6 +2587,23 @@ export interface paths {
         get: operations["PharmacyController_opsList"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pharmacy/orders/{id}/resolve-partial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: settle a PARTIAL_REVIEW order with the market/org partial-fulfilment policy (pro-rata refund of the undispensed lines) */
+        post: operations["PharmacyController_resolvePartial"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2812,6 +3208,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HealthController_providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/ready": {
         parameters: {
             query?: never;
@@ -2886,6 +3298,15 @@ export interface components {
         DevClearResultDto: {
             deleted: number;
         };
+        DevWebhookSimulateBody: {
+            id: string;
+            /** @enum {string} */
+            state: "DELIVERED" | "READ" | "FAILED";
+        };
+        MessagingWebhookAckDto: {
+            applied: number;
+            ignored: number;
+        };
         MarketDto: {
             /** @example EG */
             code: string;
@@ -2894,6 +3315,68 @@ export interface components {
             flag: string;
             /** @description LIVE or the reason it is not (AWAITING_GATE, OFF_GLOBAL, ...) */
             state: string;
+        };
+        PolicyOverrideDto: {
+            /** @enum {string} */
+            scope: "GLOBAL" | "MARKET" | "ORG";
+            scopeId: string;
+            value: {
+                [key: string]: unknown;
+            };
+            note: string | null;
+            updatedBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PolicyItemDto: {
+            /** @example pay.deposit_default */
+            key: string;
+            titleEn: string;
+            titleAr: string;
+            descriptionEn: string;
+            descriptionAr: string;
+            /** @description Resolved value for the market */
+            value: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            source: "ORG" | "MARKET" | "GLOBAL" | "PROPOSED_DEFAULT";
+            /** @description true while the value is the in-code PROPOSED_DEFAULT (founder-delegated 23 Nov 2026), i.e. no override stored */
+            proposedDefault: boolean;
+            note: string | null;
+            defaults: {
+                [key: string]: unknown;
+            };
+            scopes: string[];
+            overrides: components["schemas"]["PolicyOverrideDto"][];
+        };
+        PolicyDescribeDto: {
+            /** @example EG */
+            market: string;
+            proposedDefaultNote: string;
+            items: components["schemas"]["PolicyItemDto"][];
+        };
+        SetPolicyBody: {
+            /** @enum {string} */
+            scope: "GLOBAL" | "MARKET" | "ORG";
+            /** @description MARKET: ISO country code; ORG: partner / clinic organisation id; GLOBAL: omit */
+            scopeId?: string;
+            /** @description Validated against the policy definition (e.g. { enabled, percentBps, capMajor }) */
+            value: {
+                [key: string]: unknown;
+            };
+            note?: string;
+        };
+        PolicySetResultDto: {
+            key: string;
+            scope: string;
+            scopeId: string;
+            value: {
+                [key: string]: unknown;
+            };
+        };
+        PolicyClearResultDto: {
+            cleared: number;
         };
         ClientEventBody: {
             /** @enum {string} */
@@ -3675,6 +4158,16 @@ export interface components {
             lastSeenAt: string;
             id: string;
         };
+        DevSamplesBody: {
+            phone?: string;
+            email?: string;
+            /** @enum {string} */
+            locale?: "ar" | "en";
+        };
+        DevSamplesResultDto: {
+            sent: number;
+            templates: string[];
+        };
         PayIntentDto: {
             bookingId: string | null;
             /** @enum {string} */
@@ -3710,6 +4203,26 @@ export interface components {
             checkoutUrl: string | null;
             paymentId: string;
             status: string;
+        };
+        DevPaymentDto: {
+            id: string;
+            bookingId: string | null;
+            amountMinor: number;
+            currency: string;
+            status: string;
+            checkoutUrl: string | null;
+            refundedMinor: number;
+            /** @description Refund id:status pairs */
+            refunds: string[];
+        };
+        DevPaySimulateBody: {
+            /** @enum {string} */
+            outcome: "captured" | "failed" | "refund_settled";
+            amountMinor?: number;
+        };
+        DevPaySimulateResultDto: {
+            webhookStatus: string;
+            payment: components["schemas"]["DevPaymentDto"];
         };
         CreateBody: {
             providerId: string;
@@ -4505,6 +5018,34 @@ export interface components {
             action: string;
             resource: string;
         };
+        OnbCreateBatchBody: {
+            orgId: string;
+            orgName: string;
+            label?: string;
+        };
+        OnbResolveManyBody: {
+            ids: string[];
+            /** @enum {string} */
+            action: "MAP_TABLE" | "MAP_COLUMN" | "EDIT_VALUE" | "SKIP_ROW" | "MERGE" | "KEEP_BOTH" | "ASSIGN_PATIENT" | "ASSIGN_FILE" | "SKIP_FILE" | "ACCEPT_REPAIR" | "CHOOSE_DATE_FORMAT" | "IGNORE";
+            params?: {
+                [key: string]: unknown;
+            };
+            reason?: string;
+        };
+        OnbResolveBody: {
+            /** @enum {string} */
+            action: "MAP_TABLE" | "MAP_COLUMN" | "EDIT_VALUE" | "SKIP_ROW" | "MERGE" | "KEEP_BOTH" | "ASSIGN_PATIENT" | "ASSIGN_FILE" | "SKIP_FILE" | "ACCEPT_REPAIR" | "CHOOSE_DATE_FORMAT" | "IGNORE";
+            params?: {
+                [key: string]: unknown;
+            };
+            reason?: string;
+        };
+        OnbApproveBody: {
+            reportHash: string;
+        };
+        OnbReasonBody: {
+            reason: string;
+        };
         VaultItemDto: {
             id: string;
             /** @enum {string} */
@@ -4755,8 +5296,13 @@ export interface components {
             pharmacyId: string;
             sku: string;
             name: string;
+            /** @description Arabic brand name when the pharmacy holds one; fall back to `name`. Search matches Arabic and English. */
+            nameAr?: string;
+            activeIngredient?: string;
             strength?: string;
             form?: string;
+            /** @description Arabic dosage form when known; fall back to `form`. */
+            formAr?: string;
             priceMinor: number;
             /** @description Rx-only: ordering needs a prescription from your vault */
             rxRequired: boolean;
@@ -4768,6 +5314,11 @@ export interface components {
         CartLineDto: {
             sku: string;
             name: string;
+            /** @description Arabic name snapshot (fall back to `name`) */
+            nameAr?: string;
+            strength?: string;
+            form?: string;
+            formAr?: string;
             qty: number;
             unitPriceMinor: number;
             rxRequired: boolean;
@@ -4809,11 +5360,6 @@ export interface components {
         CreateOrderBody: {
             prescriptionRecordId?: string;
         };
-        OrderPaymentDto: {
-            paymentId: string;
-            status: string;
-            checkoutUrl: string | null;
-        };
         PharmacyOrderAddressDto: {
             line1: string;
             area?: string;
@@ -4821,10 +5367,54 @@ export interface components {
             notes?: string;
             phone?: string;
         };
+        RefundLineDto: {
+            sku: string;
+            name: string;
+            nameAr?: string;
+            unitPriceMinor: number;
+            /** @description Quantity ordered */
+            qtyOrdered: number;
+            /** @description Quantity the pharmacy dispensed */
+            qtyFulfilled: number;
+            /** @description Quantity refunded (rejected or unavailable) */
+            qtyRefunded: number;
+            /** @description Refund for this line = unit price x qtyRefunded */
+            refundMinor: number;
+        };
+        OrderRefundDto: {
+            /**
+             * @description SETTLED once the PSP confirmed the money moved back
+             * @enum {string}
+             */
+            status: "REQUESTED" | "SETTLED";
+            lines: components["schemas"]["RefundLineDto"][];
+            goodsMinor: number;
+            /** @description Delivery fee refunded because the delivery was not made (0 otherwise) */
+            deliveryFeeMinor: number;
+            totalMinor: number;
+            /** @description Value of the lines that were fulfilled and released to the pharmacy */
+            fulfilledMinor: number;
+            currency: string;
+            /**
+             * @description Policy provenance; the market/org policy is configurable
+             * @example PROPOSED_DEFAULT delegated by founder 23 Nov 2026
+             */
+            policyNote: string;
+            /** Format: date-time */
+            refundedAt: string;
+        };
+        OrderPaymentDto: {
+            paymentId: string;
+            status: string;
+            checkoutUrl: string | null;
+        };
         PharmacyOrderDto: {
             id: string;
-            /** @enum {string} */
-            status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "READY" | "DISPENSED" | "PARTIAL_REVIEW" | "REJECTED" | "CANCELLED";
+            /**
+             * @description OUT_FOR_DELIVERY: DELIVERY orders handed to the courier. PARTIALLY_FULFILLED: part of the order was dispensed and the rest refunded (see `refund`). PARTIAL_REVIEW: parked for ops (manual review).
+             * @enum {string}
+             */
+            status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "READY" | "OUT_FOR_DELIVERY" | "DISPENSED" | "PARTIALLY_FULFILLED" | "PARTIAL_REVIEW" | "REJECTED" | "CANCELLED";
             pharmacyId: string;
             items: components["schemas"]["CartLineDto"][];
             subtotalMinor: number;
@@ -4841,20 +5431,38 @@ export interface components {
             /** Format: date-time */
             readyAt: string | null;
             /** Format: date-time */
+            outForDeliveryAt: string | null;
+            /** Format: date-time */
             dispensedAt: string | null;
+            /** @description Itemised refund of a partially fulfilled order; null when nothing was partially refunded */
+            refund: components["schemas"]["OrderRefundDto"] | null;
             payment: components["schemas"]["OrderPaymentDto"] | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        DispensedLineBody: {
+            sku: string;
+            quantityDispensed: number;
+        };
+        ResolvePartialBody: {
+            lines?: components["schemas"]["DispensedLineBody"][];
+            deliveryMade?: boolean;
         };
         LabTestDto: {
             labId: string;
             labName: string;
             code: string;
             name: string;
+            /** @description Arabic test name when the lab holds one; fall back to `name`. Search matches Arabic and English. */
+            nameAr?: string;
             priceMinor: number;
             sampleType?: string;
+            /** @description Arabic specimen type when known; fall back to `sampleType`. */
+            sampleTypeAr?: string;
             homeCollection: boolean;
             preparation?: string;
+            /** @description Arabic preparation instructions when the lab holds them; fall back to `preparation`. */
+            preparationAr?: string;
         };
         LabTestsResultDto: {
             items: components["schemas"]["LabTestDto"][];
@@ -4893,6 +5501,8 @@ export interface components {
         LabBookingTestDto: {
             code: string;
             name: string;
+            /** @description Arabic name snapshot (fall back to `name`) */
+            nameAr?: string;
             priceMinor: number;
         };
         LabBookingPaymentDto: {
@@ -5225,11 +5835,22 @@ export interface components {
             /** @example ok */
             status: string;
         };
+        ProviderStatusDto: {
+            /** @example whatsapp */
+            provider: string;
+            /** @enum {string} */
+            mode: "mock" | "real";
+            /** @example meta */
+            vendor: string;
+            /** @description All required variables for the active mode are present */
+            ready: boolean;
+        };
         ReadyDto: {
             /** @example ready */
             status: string;
             /** @example up */
             db: string;
+            providers: components["schemas"]["ProviderStatusDto"][];
         };
     };
     responses: never;
@@ -5327,6 +5948,69 @@ export interface operations {
             };
         };
     };
+    DevMessagingController_webhookSimulate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevWebhookSimulateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevMessageDto"];
+                };
+            };
+        };
+    };
+    MessagingWebhookController_handshake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MessagingWebhookController_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingWebhookAckDto"];
+                };
+            };
+        };
+    };
     MarketController_list: {
         parameters: {
             query?: {
@@ -5344,6 +6028,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarketDto"][];
+                };
+            };
+        };
+    };
+    PolicyController_describe: {
+        parameters: {
+            query?: {
+                /** @description ISO country code (default EG) */
+                market?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyDescribeDto"];
+                };
+            };
+        };
+    };
+    PolicyController_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPolicyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicySetResultDto"];
+                };
+            };
+        };
+    };
+    PolicyController_clear: {
+        parameters: {
+            query?: {
+                scope?: "GLOBAL" | "MARKET" | "ORG";
+                scopeId?: string;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyClearResultDto"];
                 };
             };
         };
@@ -6551,6 +7306,29 @@ export interface operations {
             };
         };
     };
+    DevSamplesController_samples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevSamplesBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevSamplesResultDto"];
+                };
+            };
+        };
+    };
     PayController_intent: {
         parameters: {
             query?: never;
@@ -6702,6 +7480,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PspWebhookAckDto"];
+                };
+            };
+        };
+    };
+    DevPayController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevPaymentDto"][];
+                };
+            };
+        };
+    };
+    DevPayController_simulate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevPaySimulateBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevPaySimulateResultDto"];
                 };
             };
         };
@@ -7758,6 +8580,360 @@ export interface operations {
             };
         };
     };
+    OnboardingImportController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbCreateBatchBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_upload: {
+        parameters: {
+            query?: {
+                name?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_rescan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_tasks: {
+        parameters: {
+            query?: {
+                status?: string;
+                severity?: string;
+                type?: string;
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_resolveMany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbResolveManyBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbResolveBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_patients: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_dryRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbApproveBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_commit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_rollback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnbReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_purge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OnboardingImportController_audit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     VaultController_list: {
         parameters: {
             query?: {
@@ -8413,6 +9589,34 @@ export interface operations {
                         platformFeeMinor?: number;
                         takeRateBps?: number;
                     })[];
+                };
+            };
+        };
+    };
+    PharmacyController_resolvePartial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolvePartialBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        order?: components["schemas"]["PharmacyOrderDto"];
+                        refundTotalMinor?: number;
+                    };
                 };
             };
         };
@@ -9289,6 +10493,23 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LiveDto"];
                 };
+            };
+        };
+    };
+    HealthController_providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

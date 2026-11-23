@@ -139,6 +139,91 @@
         ]
       }
     },
+    "/api/v1/dev/messaging/webhook-simulate": {
+      "post": {
+        "operationId": "DevMessagingController_webhookSimulate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevWebhookSimulateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevMessageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: deliver a SIGNED provider status webhook for a mock message (exercises the same verified path as the real provider)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/messaging/webhooks/{channel}": {
+      "get": {
+        "operationId": "MessagingWebhookController_handshake",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Provider webhook verification handshake (Meta WhatsApp hub.challenge)",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "MessagingWebhookController_status",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingWebhookAckDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Provider delivery-status webhook (HMAC verified, idempotent, forward-only status)",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
     "/api/v1/markets": {
       "get": {
         "operationId": "MarketController_list",
@@ -170,6 +255,127 @@
         "summary": "Markets (countries) that are LIVE; use for the sign-up country picker. ?all=true also lists gated markets with their state",
         "tags": [
           "market"
+        ]
+      }
+    },
+    "/api/v1/admin/policy": {
+      "get": {
+        "operationId": "PolicyController_describe",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "description": "ISO country code (default EG)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDescribeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: business policies resolved for a market (default EG), with source and overrides",
+        "tags": [
+          "policy"
+        ]
+      }
+    },
+    "/api/v1/admin/policy/{key}": {
+      "put": {
+        "operationId": "PolicyController_set",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPolicyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicySetResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "SA: set a policy override at GLOBAL, MARKET or ORG scope (validated, audited)",
+        "tags": [
+          "policy"
+        ]
+      },
+      "delete": {
+        "operationId": "PolicyController_clear",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "GLOBAL",
+                "MARKET",
+                "ORG"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyClearResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "SA: remove an override (falls back to the next level / PROPOSED_DEFAULT)",
+        "tags": [
+          "policy"
         ]
       }
     },
@@ -2077,6 +2283,38 @@
         ]
       }
     },
+    "/api/v1/dev/messaging/samples": {
+      "post": {
+        "operationId": "DevSamplesController_samples",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevSamplesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevSamplesResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: send sample booking-confirmation / reminder / waitlist-offer / deposit-refund messages through the WhatsApp, SMS and email mocks",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
     "/api/v1/pay/intents/{id}": {
       "get": {
         "operationId": "PayController_intent",
@@ -2304,6 +2542,72 @@
         },
         "tags": [
           "pay"
+        ]
+      }
+    },
+    "/api/v1/dev/payments": {
+      "get": {
+        "operationId": "DevPayController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DevPaymentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: latest payment intents with refund state",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/dev/payments/{id}/simulate": {
+      "post": {
+        "operationId": "DevPayController_simulate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevPaySimulateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevPaySimulateResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DEV: simulate a signed PSP webhook (captured | failed | refund_settled) for a payment",
+        "tags": [
+          "dev"
         ]
       }
     },
@@ -2919,7 +3223,7 @@
             }
           }
         },
-        "summary": "Kiorly Pharmacy outbox webhook (OrderReady / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET",
+        "summary": "Kiorly Pharmacy outbox webhook (OrderReady / OrderOutForDelivery / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET",
         "tags": [
           "webhooks"
         ]
@@ -3936,6 +4240,503 @@
         ]
       }
     },
+    "/api/v1/admin/onboarding/imports": {
+      "post": {
+        "operationId": "OnboardingImportController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbCreateBatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create an import batch for a target organization",
+        "tags": [
+          "ops-onboarding"
+        ]
+      },
+      "get": {
+        "operationId": "OnboardingImportController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}": {
+      "get": {
+        "operationId": "OnboardingImportController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/files": {
+      "post": {
+        "operationId": "OnboardingImportController_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name=",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/rescan": {
+      "post": {
+        "operationId": "OnboardingImportController_rescan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/tasks": {
+      "get": {
+        "operationId": "OnboardingImportController_tasks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many": {
+      "post": {
+        "operationId": "OnboardingImportController_resolveMany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbResolveManyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve": {
+      "post": {
+        "operationId": "OnboardingImportController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbResolveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/patients": {
+      "get": {
+        "operationId": "OnboardingImportController_patients",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/dry-run": {
+      "get": {
+        "operationId": "OnboardingImportController_dryRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/request-commit": {
+      "post": {
+        "operationId": "OnboardingImportController_request",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/approve": {
+      "post": {
+        "operationId": "OnboardingImportController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbApproveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/reject": {
+      "post": {
+        "operationId": "OnboardingImportController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/commit": {
+      "post": {
+        "operationId": "OnboardingImportController_commit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/rollback": {
+      "post": {
+        "operationId": "OnboardingImportController_rollback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnbReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/purge-staging": {
+      "post": {
+        "operationId": "OnboardingImportController_purge",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/imports/{id}/audit": {
+      "get": {
+        "operationId": "OnboardingImportController_audit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",
@@ -4863,6 +5664,55 @@
           }
         },
         "summary": "OP: pharmacy orders (status filter)",
+        "tags": [
+          "pharmacy"
+        ]
+      }
+    },
+    "/api/v1/admin/pharmacy/orders/{id}/resolve-partial": {
+      "post": {
+        "operationId": "PharmacyController_resolvePartial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolvePartialBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "order": {
+                      "$ref": "#/components/schemas/PharmacyOrderDto"
+                    },
+                    "refundTotalMinor": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: settle a PARTIAL_REVIEW order with the market/org partial-fulfilment policy (pro-rata refund of the undispensed lines)",
         "tags": [
           "pharmacy"
         ]
@@ -6200,6 +7050,20 @@
         ]
       }
     },
+    "/api/v1/health/providers": {
+      "get": {
+        "operationId": "HealthController_providers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/api/v1/health/ready": {
       "get": {
         "operationId": "HealthController_ready",
@@ -6448,6 +7312,41 @@
           "deleted"
         ]
       },
+      "DevWebhookSimulateBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DELIVERED",
+              "READ",
+              "FAILED"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ]
+      },
+      "MessagingWebhookAckDto": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "number"
+          },
+          "ignored": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "applied",
+          "ignored"
+        ]
+      },
       "MarketDto": {
         "type": "object",
         "properties": {
@@ -6472,6 +7371,207 @@
           "live",
           "flag",
           "state"
+        ]
+      },
+      "PolicyOverrideDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "MARKET",
+              "ORG"
+            ]
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "scope",
+          "scopeId",
+          "value",
+          "note",
+          "updatedBy",
+          "updatedAt"
+        ]
+      },
+      "PolicyItemDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "pay.deposit_default"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "titleAr": {
+            "type": "string"
+          },
+          "descriptionEn": {
+            "type": "string"
+          },
+          "descriptionAr": {
+            "type": "string"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Resolved value for the market"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "ORG",
+              "MARKET",
+              "GLOBAL",
+              "PROPOSED_DEFAULT"
+            ]
+          },
+          "proposedDefault": {
+            "type": "boolean",
+            "description": "true while the value is the in-code PROPOSED_DEFAULT (founder-delegated 23 Nov 2026), i.e. no override stored"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolicyOverrideDto"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "titleEn",
+          "titleAr",
+          "descriptionEn",
+          "descriptionAr",
+          "value",
+          "source",
+          "proposedDefault",
+          "note",
+          "defaults",
+          "scopes",
+          "overrides"
+        ]
+      },
+      "PolicyDescribeDto": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string",
+            "example": "EG"
+          },
+          "proposedDefaultNote": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolicyItemDto"
+            }
+          }
+        },
+        "required": [
+          "market",
+          "proposedDefaultNote",
+          "items"
+        ]
+      },
+      "SetPolicyBody": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "enum": [
+              "GLOBAL",
+              "MARKET",
+              "ORG"
+            ],
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "MARKET: ISO country code; ORG: partner / clinic organisation id; GLOBAL: omit"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Validated against the policy definition (e.g. { enabled, percentBps, capMajor })"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "scope",
+          "value"
+        ]
+      },
+      "PolicySetResultDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "key",
+          "scope",
+          "scopeId",
+          "value"
+        ]
+      },
+      "PolicyClearResultDto": {
+        "type": "object",
+        "properties": {
+          "cleared": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cleared"
         ]
       },
       "ClientEventBody": {
@@ -9383,6 +10483,44 @@
           "id"
         ]
       },
+      "DevSamplesBody": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          }
+        }
+      },
+      "DevSamplesResultDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "number"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sent",
+          "templates"
+        ]
+      },
       "PayIntentDto": {
         "type": "object",
         "properties": {
@@ -9520,6 +10658,86 @@
           "checkoutUrl",
           "paymentId",
           "status"
+        ]
+      },
+      "DevPaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bookingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountMinor": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "refundedMinor": {
+            "type": "number"
+          },
+          "refunds": {
+            "description": "Refund id:status pairs",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "amountMinor",
+          "currency",
+          "status",
+          "checkoutUrl",
+          "refundedMinor",
+          "refunds"
+        ]
+      },
+      "DevPaySimulateBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "captured",
+              "failed",
+              "refund_settled"
+            ]
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "DevPaySimulateResultDto": {
+        "type": "object",
+        "properties": {
+          "webhookStatus": {
+            "type": "string"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/DevPaymentDto"
+          }
+        },
+        "required": [
+          "webhookStatus",
+          "payment"
         ]
       },
       "CreateBody": {
@@ -12440,6 +13658,125 @@
           "resource"
         ]
       },
+      "OnbCreateBatchBody": {
+        "type": "object",
+        "properties": {
+          "orgId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "orgName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "orgId",
+          "orgName"
+        ]
+      },
+      "OnbResolveManyBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "MAP_TABLE",
+              "MAP_COLUMN",
+              "EDIT_VALUE",
+              "SKIP_ROW",
+              "MERGE",
+              "KEEP_BOTH",
+              "ASSIGN_PATIENT",
+              "ASSIGN_FILE",
+              "SKIP_FILE",
+              "ACCEPT_REPAIR",
+              "CHOOSE_DATE_FORMAT",
+              "IGNORE"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "ids",
+          "action"
+        ]
+      },
+      "OnbResolveBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "MAP_TABLE",
+              "MAP_COLUMN",
+              "EDIT_VALUE",
+              "SKIP_ROW",
+              "MERGE",
+              "KEEP_BOTH",
+              "ASSIGN_PATIENT",
+              "ASSIGN_FILE",
+              "SKIP_FILE",
+              "ACCEPT_REPAIR",
+              "CHOOSE_DATE_FORMAT",
+              "IGNORE"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "OnbApproveBody": {
+        "type": "object",
+        "properties": {
+          "reportHash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reportHash"
+        ]
+      },
+      "OnbReasonBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "VaultItemDto": {
         "type": "object",
         "properties": {
@@ -13334,11 +14671,22 @@
           "name": {
             "type": "string"
           },
+          "nameAr": {
+            "type": "string",
+            "description": "Arabic brand name when the pharmacy holds one; fall back to `name`. Search matches Arabic and English."
+          },
+          "activeIngredient": {
+            "type": "string"
+          },
           "strength": {
             "type": "string"
           },
           "form": {
             "type": "string"
+          },
+          "formAr": {
+            "type": "string",
+            "description": "Arabic dosage form when known; fall back to `form`."
           },
           "priceMinor": {
             "type": "number"
@@ -13381,6 +14729,19 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string",
+            "description": "Arabic name snapshot (fall back to `name`)"
+          },
+          "strength": {
+            "type": "string"
+          },
+          "form": {
+            "type": "string"
+          },
+          "formAr": {
             "type": "string"
           },
           "qty": {
@@ -13553,6 +14914,127 @@
           }
         }
       },
+      "PharmacyOrderAddressDto": {
+        "type": "object",
+        "properties": {
+          "line1": {
+            "type": "string"
+          },
+          "area": {
+            "type": "string"
+          },
+          "governorate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line1"
+        ]
+      },
+      "RefundLineDto": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string"
+          },
+          "unitPriceMinor": {
+            "type": "number"
+          },
+          "qtyOrdered": {
+            "type": "number",
+            "description": "Quantity ordered"
+          },
+          "qtyFulfilled": {
+            "type": "number",
+            "description": "Quantity the pharmacy dispensed"
+          },
+          "qtyRefunded": {
+            "type": "number",
+            "description": "Quantity refunded (rejected or unavailable)"
+          },
+          "refundMinor": {
+            "type": "number",
+            "description": "Refund for this line = unit price x qtyRefunded"
+          }
+        },
+        "required": [
+          "sku",
+          "name",
+          "unitPriceMinor",
+          "qtyOrdered",
+          "qtyFulfilled",
+          "qtyRefunded",
+          "refundMinor"
+        ]
+      },
+      "OrderRefundDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "SETTLED"
+            ],
+            "description": "SETTLED once the PSP confirmed the money moved back"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefundLineDto"
+            }
+          },
+          "goodsMinor": {
+            "type": "number"
+          },
+          "deliveryFeeMinor": {
+            "type": "number",
+            "description": "Delivery fee refunded because the delivery was not made (0 otherwise)"
+          },
+          "totalMinor": {
+            "type": "number"
+          },
+          "fulfilledMinor": {
+            "type": "number",
+            "description": "Value of the lines that were fulfilled and released to the pharmacy"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "policyNote": {
+            "type": "string",
+            "example": "PROPOSED_DEFAULT delegated by founder 23 Nov 2026",
+            "description": "Policy provenance; the market/org policy is configurable"
+          },
+          "refundedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "lines",
+          "goodsMinor",
+          "deliveryFeeMinor",
+          "totalMinor",
+          "fulfilledMinor",
+          "currency",
+          "policyNote",
+          "refundedAt"
+        ]
+      },
       "OrderPaymentDto": {
         "type": "object",
         "properties": {
@@ -13586,11 +15068,14 @@
               "PAID",
               "SUBMITTED",
               "READY",
+              "OUT_FOR_DELIVERY",
               "DISPENSED",
+              "PARTIALLY_FULFILLED",
               "PARTIAL_REVIEW",
               "REJECTED",
               "CANCELLED"
-            ]
+            ],
+            "description": "OUT_FOR_DELIVERY: DELIVERY orders handed to the courier. PARTIALLY_FULFILLED: part of the order was dispensed and the rest refunded (see `refund`). PARTIAL_REVIEW: parked for ops (manual review)."
           },
           "pharmacyId": {
             "type": "string"
@@ -13629,6 +15114,16 @@
               "INVALID"
             ]
           },
+          "deliveryAddress": {
+            "nullable": true,
+            "description": "DELIVERY orders only: the address the patient gave",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PharmacyOrderAddressDto"
+              }
+            ]
+          },
           "rejectionReason": {
             "type": "string",
             "nullable": true
@@ -13638,10 +15133,25 @@
             "nullable": true,
             "format": "date-time"
           },
+          "outForDeliveryAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
           "dispensedAt": {
             "type": "string",
             "nullable": true,
             "format": "date-time"
+          },
+          "refund": {
+            "nullable": true,
+            "description": "Itemised refund of a partially fulfilled order; null when nothing was partially refunded",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderRefundDto"
+              }
+            ]
           },
           "payment": {
             "nullable": true,
@@ -13670,10 +15180,45 @@
           "rxStatus",
           "rejectionReason",
           "readyAt",
+          "outForDeliveryAt",
           "dispensedAt",
+          "refund",
           "payment",
           "createdAt"
         ]
+      },
+      "DispensedLineBody": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "quantityDispensed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "sku",
+          "quantityDispensed"
+        ]
+      },
+      "ResolvePartialBody": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "maxItems": 60,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DispensedLineBody"
+            }
+          },
+          "deliveryMade": {
+            "type": "boolean"
+          }
+        }
       },
       "LabTestDto": {
         "type": "object",
@@ -13690,17 +15235,29 @@
           "name": {
             "type": "string"
           },
+          "nameAr": {
+            "type": "string",
+            "description": "Arabic test name when the lab holds one; fall back to `name`. Search matches Arabic and English."
+          },
           "priceMinor": {
             "type": "number"
           },
           "sampleType": {
             "type": "string"
           },
+          "sampleTypeAr": {
+            "type": "string",
+            "description": "Arabic specimen type when known; fall back to `sampleType`."
+          },
           "homeCollection": {
             "type": "boolean"
           },
           "preparation": {
             "type": "string"
+          },
+          "preparationAr": {
+            "type": "string",
+            "description": "Arabic preparation instructions when the lab holds them; fall back to `preparation`."
           }
         },
         "required": [
@@ -13855,6 +15412,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "nameAr": {
+            "type": "string",
+            "description": "Arabic name snapshot (fall back to `name`)"
           },
           "priceMinor": {
             "type": "number"
@@ -15019,6 +16580,36 @@
           "status"
         ]
       },
+      "ProviderStatusDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "example": "whatsapp"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "mock",
+              "real"
+            ]
+          },
+          "vendor": {
+            "type": "string",
+            "example": "meta"
+          },
+          "ready": {
+            "type": "boolean",
+            "description": "All required variables for the active mode are present"
+          }
+        },
+        "required": [
+          "provider",
+          "mode",
+          "vendor",
+          "ready"
+        ]
+      },
       "ReadyDto": {
         "type": "object",
         "properties": {
@@ -15029,11 +16620,18 @@
           "db": {
             "type": "string",
             "example": "up"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderStatusDto"
+            }
           }
         },
         "required": [
           "status",
-          "db"
+          "db",
+          "providers"
         ]
       }
     }

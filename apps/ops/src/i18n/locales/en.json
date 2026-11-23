@@ -18,7 +18,8 @@
     "safety": "Safety console",
     "held": "Held deposits",
     "homeGate": "Home-visit gate",
-    "onboarding": "Onboarding imports"
+    "onboarding": "Onboarding imports",
+    "policy": "Market policy"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -257,7 +258,9 @@
     "resubmit": "Resubmit",
     "resubmitTitle": "Resubmit to the partner?",
     "resubmitBody": "The paid order is sent to the partner again with the same idempotency key, so it cannot be created twice.",
-    "resubmitted": "Resubmitted: {{status}}"
+    "resubmitted": "Resubmitted: {{status}}",
+    "settlePartial": "Settle with policy",
+    "settled": "Partial order settled: {{amount}} refunded"
   },
   "operations": {
     "title": "Operations",
@@ -567,5 +570,35 @@
         "hint": "Only the first rows were read."
       }
     }
+  },
+  "policy": {
+    "title": "Market policy",
+    "hint": "Business defaults per market and organisation. Values marked \"Proposed default\" were delegated by the founder on 23 Nov 2026 and still need CFO and counsel review; every value can be changed here without a deploy.",
+    "proposedDefault": "Proposed default (founder-delegated 23 Nov 2026)",
+    "source": {
+      "ORG": "Organisation override",
+      "MARKET": "Market override",
+      "GLOBAL": "Global override",
+      "PROPOSED_DEFAULT": "Proposed default"
+    },
+    "depositSummary": "{{percent}}% of the consultation fee, capped at {{cap}} {{currency}}. Applies only to providers that enabled deposits and set no amount; the cancel-window forfeiture rule is unchanged.",
+    "depositOff": "No market default deposit: only explicit provider amounts (or DEPOSIT_DEFAULT_MINOR) apply.",
+    "partialMode": {
+      "PRO_RATA_REFUND": "Refund rejected/unavailable lines pro-rata",
+      "MANUAL_REVIEW": "Park partial orders for ops review"
+    },
+    "feeRefunded": "Delivery fee refunded when not delivered",
+    "feeKept": "Delivery fee kept",
+    "released": "Fulfilled lines released to the pharmacy",
+    "heldForOps": "Funds held for ops",
+    "enabled": "Default enabled",
+    "percent": "Percent of fee",
+    "cap": "Cap ({{currency}}, major units)",
+    "mode": "Partial orders",
+    "save": "Save override for {{market}}",
+    "reset": "Reset to default",
+    "saved": "Policy saved",
+    "cleared": "Override removed",
+    "superAdminOnly": "Only a super admin can change policies."
   }
 }

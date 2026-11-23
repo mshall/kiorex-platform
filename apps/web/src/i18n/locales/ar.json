@@ -737,7 +737,9 @@
       "DISPENSED": "تم الاستلام أو التوصيل",
       "PARTIAL_REVIEW": "قيد المراجعة",
       "REJECTED": "مرفوض",
-      "CANCELLED": "ملغى"
+      "CANCELLED": "ملغى",
+      "OUT_FOR_DELIVERY": "خرج للتوصيل",
+      "PARTIALLY_FULFILLED": "تم تجهيز جزء منه ورد المبلغ"
     },
     "rejectedTitle": "تعذّر على الصيدلية تنفيذ هذا الطلب",
     "rejectedBody": "لم يُذكر سبب.",
@@ -770,7 +772,8 @@
       "DISPENSED": "تم التوصيل",
       "PARTIAL_REVIEW": "قيد المراجعة",
       "REJECTED": "مرفوض",
-      "CANCELLED": "ملغى"
+      "CANCELLED": "ملغى",
+      "OUT_FOR_DELIVERY": "خرج للتوصيل"
     },
     "deliverTo": "عنوان التوصيل",
     "rejectReason": {
@@ -786,7 +789,21 @@
       "RX_UNKNOWN": "الروشتة غير معروفة لدى كيوريكس.",
       "RX_REVOKED": "تم سحب الروشتة من العيادة أو من المريض."
     },
-    "handedOverAt": "تم التسليم"
+    "handedOverAt": "تم التسليم",
+    "outForDeliveryAt": "غادر الصيدلية في",
+    "outForDeliveryHint": "المندوب في الطريق إلى عنوانك. سنُعلمك عند التسليم.",
+    "refund": {
+      "title": "المبلغ المردود",
+      "intro": "لم تتمكن الصيدلية من تجهيز كل الأصناف. يُرد لك ثمن الأصناف التي تعذر توفيرها، وتم تجهيز باقي طلبك.",
+      "ofOrdered": "(من {{count}} مطلوبة)",
+      "deliveryFee": "رسوم التوصيل (لم يتم التوصيل)",
+      "fulfilled": "الأصناف المجهزة",
+      "total": "إجمالي المردود",
+      "status": {
+        "REQUESTED": "المبلغ في الطريق إليك",
+        "SETTLED": "تم الرد"
+      }
+    }
   },
   "lab": {
     "title": "التحاليل",
@@ -1137,6 +1154,9 @@
       "LAB_RESULT_RELEASED": "نتيجة التحاليل جاهزة",
       "PHARMACY_ORDER_READY": "طلب الصيدلية جاهز",
       "TELEMEDICINE_STARTING": "زيارة الفيديو على وشك البدء",
+      "PHARMACY_ORDER_OUT_FOR_DELIVERY": "طلب الصيدلية في الطريق إليك",
+      "PHARMACY_ORDER_PARTIAL_REFUND": "رد جزئي لطلب الصيدلية",
+      "PHARMACY_ORDER_DISPENSED": "تم تسليم طلب الصيدلية",
       "OTHER": "رسالة من كيوركس"
     }
   },

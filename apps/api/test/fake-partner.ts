@@ -41,13 +41,14 @@ export class FakePartner {
   /** The partner switched its own flag OFF (pharmacy.kiorex_orders / lab.kiorex_bookings): every call answers 403 FEATURE_DISABLED. */
   flagOff = false;
   readonly catalogue = [
-    { pharmacyId: 'ph_1', sku: 'PARA500', name: 'Paracetamol 500mg', strength: '500mg', form: 'tablet', priceMinor: 2500, rxRequired: false, controlled: false, available: true },
+    { pharmacyId: 'ph_1', sku: 'PARA500', name: 'Paracetamol 500mg', nameAr: 'باراسيتامول ٥٠٠', activeIngredient: 'paracetamol', strength: '500mg', form: 'tablet', formAr: 'أقراص', priceMinor: 2500, rxRequired: false, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'AMOX500', name: 'Amoxicillin 500mg', strength: '500mg', form: 'capsule', priceMinor: 8000, rxRequired: true, controlled: false, available: true },
+    { pharmacyId: 'ph_1', sku: 'VITC', name: 'Vitamin C 1000mg', strength: '1000mg', form: 'effervescent tablet', priceMinor: 4000, rxRequired: false, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'CTRL1', name: 'Controlled substance', priceMinor: 9999, rxRequired: true, controlled: true, available: true },
     { pharmacyId: 'ph_1', sku: 'OUT1', name: 'Out of stock item', priceMinor: 1000, rxRequired: false, controlled: false, available: false },
   ];
   readonly labTests = [
-    { labId: 'lab_1', labName: 'Nile Lab', code: 'CBC', name: 'Complete blood count', priceMinor: 15000, sampleType: 'blood', homeCollection: true },
+    { labId: 'lab_1', labName: 'Nile Lab', code: 'CBC', name: 'Complete blood count', nameAr: 'صورة دم كاملة', priceMinor: 15000, sampleType: 'blood', sampleTypeAr: 'دم', homeCollection: true, preparation: 'No preparation needed', preparationAr: 'لا يلزم أي تحضير' },
     { labId: 'lab_1', labName: 'Nile Lab', code: 'TSH', name: 'Thyroid stimulating hormone', priceMinor: 20000, sampleType: 'blood', homeCollection: true },
   ];
 
@@ -93,9 +94,9 @@ export class FakePartner {
 
     if (this.kind === 'pharmacy') {
       if (m === 'GET' && path === '/pharmacies') return send(200, { items: [{ id: 'ph_1', name: 'Nile Pharmacy', delivery: { enabled: true, feeMinor: 3000, radiusKm: 8 }, pickup: true, prepMinutes: 20 }, { id: 'ph_2', name: 'Pickup Only', delivery: { enabled: false, feeMinor: 0 }, pickup: true }] });
-      if (m === 'GET' && path === '/catalogue') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.catalogue.filter((i) => !q || i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q)) }); }
+      if (m === 'GET' && path === '/catalogue') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.catalogue.filter((i) => !q || i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q) || ((i as any).nameAr ?? '').includes(q)) }); }
       if (m === 'POST' && path === '/catalogue/quote') {
-        const items = body.items.map((l: any) => { const c = this.catalogue.find((x) => x.sku === l.sku); return c ? { sku: c.sku, name: c.name, qty: l.qty, unitPriceMinor: c.priceMinor, rxRequired: c.rxRequired, controlled: c.controlled, available: c.available } : { sku: l.sku, name: 'unknown', qty: l.qty, unitPriceMinor: 0, rxRequired: false, controlled: false, available: false }; });
+        const items = body.items.map((l: any) => { const c = this.catalogue.find((x) => x.sku === l.sku); return c ? { sku: c.sku, name: c.name, ...((c as any).nameAr ? { nameAr: (c as any).nameAr } : {}), ...(c.strength ? { strength: c.strength } : {}), ...(c.form ? { form: c.form } : {}), ...((c as any).formAr ? { formAr: (c as any).formAr } : {}), qty: l.qty, unitPriceMinor: c.priceMinor, rxRequired: c.rxRequired, controlled: c.controlled, available: c.available } : { sku: l.sku, name: 'unknown', qty: l.qty, unitPriceMinor: 0, rxRequired: false, controlled: false, available: false }; });
         return send(200, { items, delivery: { feeMinor: body.delivery?.method === 'DELIVERY' ? 3000 : 0 } });
       }
       if (m === 'POST' && path === '/orders') {
@@ -111,8 +112,8 @@ export class FakePartner {
       if (m === 'POST' && path === '/prescriptions/validate') return send(200, { status: this.rxMode, reason: this.rxMode === 'INVALID' ? 'PRESCRIBER_NOT_VERIFIED' : undefined });
       if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_DISPENSED' }) : send(201, { status: 'CANCELLED' });
     } else {
-      if (m === 'GET' && path === '/tests') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.labTests.filter((t) => !q || t.name.toLowerCase().includes(q) || t.code.toLowerCase() === q) }); }
-      if (m === 'POST' && path === '/tests/quote') return send(200, { tests: body.testCodes.map((c: string) => this.labTests.find((t) => t.code === c)).filter(Boolean).map((t: any) => ({ code: t.code, name: t.name, priceMinor: t.priceMinor })), collectionFeeMinor: body.collectionType === 'HOME' ? 5000 : 0 });
+      if (m === 'GET' && path === '/tests') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.labTests.filter((t) => !q || t.name.toLowerCase().includes(q) || t.code.toLowerCase() === q || ((t as any).nameAr ?? '').includes(q)) }); }
+      if (m === 'POST' && path === '/tests/quote') return send(200, { tests: body.testCodes.map((c: string) => this.labTests.find((t) => t.code === c)).filter(Boolean).map((t: any) => ({ code: t.code, name: t.name, ...(t.nameAr ? { nameAr: t.nameAr } : {}), priceMinor: t.priceMinor })), collectionFeeMinor: body.collectionType === 'HOME' ? 5000 : 0 });
       if (m === 'GET' && /^\/labs\/[^/]+\/slots$/.test(path)) { const f = new Date(url.searchParams.get('from')!).getTime(), t = new Date(url.searchParams.get('to')!).getTime(); return send(200, { slots: this.slots.filter((s) => new Date(s.startsAt).getTime() >= f && new Date(s.startsAt).getTime() <= t) }); }
       if (m === 'GET' && /^\/orders\/[^/]+\/custody$/.test(path)) {
         const ref = decodeURIComponent(path.split('/')[2]);

@@ -698,7 +698,9 @@
       "DISPENSED": "تم الصرف",
       "PARTIAL_REVIEW": "يحتاج مراجعة",
       "REJECTED": "مرفوض",
-      "CANCELLED": "ملغى"
+      "CANCELLED": "ملغى",
+      "OUT_FOR_DELIVERY": "خرج للتوصيل",
+      "PARTIALLY_FULFILLED": "جُهّز جزء منه ورُدّ المبلغ"
     },
     "rx": {
       "NOT_REQUIRED": "غير مطلوبة",
@@ -720,7 +722,23 @@
     "cancelled": "تم إلغاء الطلب.",
     "cancelledRefund": "تم إلغاء الطلب وسيُرد المبلغ المدفوع.",
     "cancelFailed": "تعذّر الإلغاء. ربما أصبح الطلب جاهزًا.",
-    "deliverTo": "التوصيل إلى"
+    "deliverTo": "التوصيل إلى",
+    "outForDeliveryTitle": "طلبك في الطريق إليك",
+    "outForDeliveryBody": "غادر المندوب الصيدلية في {{time}}.",
+    "outForDeliveryHint": "المندوب في الطريق إلى عنوانك.",
+    "partialTitle": "طلبك قيد المراجعة",
+    "partialBody": "جهّزت الصيدلية جزءًا من هذا الطلب. سنوافيك برد ثمن الباقي.",
+    "refund": {
+      "title": "المبلغ المردود",
+      "intro": "لم تتمكن الصيدلية من تجهيز كل الأصناف. يُرد لك ثمن الأصناف التي تعذر توفيرها.",
+      "ofOrdered": "(من {{count}} مطلوبة)",
+      "deliveryFee": "رسوم التوصيل (لم يتم التوصيل)",
+      "total": "إجمالي المردود",
+      "status": {
+        "REQUESTED": "المبلغ في الطريق إليك",
+        "SETTLED": "تم الرد"
+      }
+    }
   },
   "lab": {
     "myBookings": "حجوزات التحاليل",

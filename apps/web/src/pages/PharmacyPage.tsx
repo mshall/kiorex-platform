@@ -13,6 +13,7 @@ import { useCart, useClearCart, useCreateOrder, useMedicineSearch, usePharmacies
 import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } from "@/components/states";
 import { useFeature } from "@/hooks/useFeature";
 import { formatMinor } from "@/lib/format";
+import { medForm, medName } from "@/lib/localName";
 import { cn } from "@/lib/utils";
 import { IconTile, PageHeader, Row, SegmentedControl, StatusChip } from "@/components/kit";
 
@@ -79,11 +80,11 @@ function CartPanel({ pharmacy }: { pharmacy?: Pharmacy }) {
       <ul className="divide-y">
         {c.items.map((i) => (
           <li key={i.sku} className="flex items-center justify-between gap-3 py-3" data-testid="cart-line">
-            <div className="min-w-0 space-y-1"><p className="truncate font-medium">{i.name}</p><p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span className="kx-label-num">{formatMinor(i.unitPriceMinor, i18n.language)}</span>{i.rxRequired && <StatusChip tone="warning" dot={false}>{t("pharmacy.rx")}</StatusChip>}{!i.available && <StatusChip tone="danger">{t("pharmacy.unavailable")}</StatusChip>}</p></div>
+            <div className="min-w-0 space-y-1"><p className="truncate font-medium"><bdi>{medName(i18n.language, i)}</bdi></p><p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span className="kx-label-num">{formatMinor(i.unitPriceMinor, i18n.language)}</span>{i.rxRequired && <StatusChip tone="warning" dot={false}>{t("pharmacy.rx")}</StatusChip>}{!i.available && <StatusChip tone="danger">{t("pharmacy.unavailable")}</StatusChip>}</p></div>
             <div className="flex items-center rounded-full border bg-card p-0.5">
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" aria-label={t("pharmacy.less", { name: i.name })} onClick={() => setQty(i.sku, i.qty - 1)} disabled={put.isPending}>{i.qty === 1 ? <Trash2 aria-hidden="true" /> : <Minus aria-hidden="true" />}</Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" aria-label={t("pharmacy.less", { name: medName(i18n.language, i) })} onClick={() => setQty(i.sku, i.qty - 1)} disabled={put.isPending}>{i.qty === 1 ? <Trash2 aria-hidden="true" /> : <Minus aria-hidden="true" />}</Button>
               <span className="w-7 text-center text-sm font-semibold kx-label-num" aria-live="polite">{i.qty}</span>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" aria-label={t("pharmacy.more", { name: i.name })} onClick={() => setQty(i.sku, i.qty + 1)} disabled={put.isPending || i.qty >= 10}><Plus aria-hidden="true" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" aria-label={t("pharmacy.more", { name: medName(i18n.language, i) })} onClick={() => setQty(i.sku, i.qty + 1)} disabled={put.isPending || i.qty >= 10}><Plus aria-hidden="true" /></Button>
             </div>
           </li>
         ))}
@@ -156,12 +157,12 @@ function MedicineResults({ q, pharmacy }: { q: string; pharmacy?: Pharmacy }) {
           <li key={`${m.pharmacyId}-${m.sku}`} className="kx-card flex items-center gap-3 p-4" data-testid="medicine">
             <IconTile tone={m.rxRequired ? "warning" : "brand"}><Pill /></IconTile>
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="font-semibold leading-snug"><bdi>{m.name}</bdi></p>
-              <p className="text-sm text-muted-foreground"><span dir="ltr">{[m.strength, m.form].filter(Boolean).join(" · ")}</span></p>
+              <p className="font-semibold leading-snug"><bdi>{medName(i18n.language, m)}</bdi></p>
+              <p className="text-sm text-muted-foreground"><bdi>{[m.strength, medForm(i18n.language, m)].filter(Boolean).join(" · ")}</bdi></p>
               <div className="flex flex-wrap gap-1.5">{m.rxRequired && <StatusChip tone="warning" dot={false}>{t("pharmacy.rx")}</StatusChip>}<StatusChip tone={m.available ? "success" : "neutral"}>{m.available ? t("pharmacy.inStock") : t("pharmacy.unavailable")}</StatusChip>{inCart > 0 && <StatusChip tone="brand" dot={false}>{t("p3.inCart", { count: inCart })}</StatusChip>}</div>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2"><span className="kx-label-num text-base font-semibold">{formatMinor(m.priceMinor, i18n.language)}</span>
-              <Button size="sm" variant={inCart ? "outline" : "default"} onClick={() => add(m)} disabled={!m.available || put.isPending} aria-label={t("pharmacy.addNamed", { name: m.name })} data-testid="add-to-cart"><Plus aria-hidden="true" />{t("pharmacy.add")}</Button></div>
+              <Button size="sm" variant={inCart ? "outline" : "default"} onClick={() => add(m)} disabled={!m.available || put.isPending} aria-label={t("pharmacy.addNamed", { name: medName(i18n.language, m) })} data-testid="add-to-cart"><Plus aria-hidden="true" />{t("pharmacy.add")}</Button></div>
           </li>
         );
       })}

@@ -12,6 +12,7 @@ import { addressToBody } from "@/lib/homecare";
 import type { Address } from "@/api/types";
 import { useHostedPay } from "@/hooks/useHostedPay";
 import { formatDay, formatMoney } from "@/lib/format";
+import { medName } from "@/lib/localName";
 
 function Body() {
   const { t, i18n } = useTranslation();
@@ -66,7 +67,7 @@ function Body() {
       {msg ? <Banner tone="danger" body={msg} testID="cart-message" /> : null}
       {c.items.map((i) => (
         <Card key={i.sku} style={{ gap: 6 }} testID={`cart-line-${i.sku}`}>
-          <Row style={{ justifyContent: "space-between" }}><View style={{ flex: 1 }}><T weight="semibold">{i.name}</T><T variant="small" muted>{formatMoney(i.unitPriceMinor / 100, lang)}</T></View>
+          <Row style={{ justifyContent: "space-between" }}><View style={{ flex: 1 }}><T weight="semibold">{medName(lang, i)}</T><T variant="small" muted>{formatMoney(i.unitPriceMinor / 100, lang)}</T></View>
             <Row gap={4}><Button small variant="secondary" accessibilityLabel={t("pharmacy.less")} title="−" onPress={() => changeQty(i.sku, -1)} /><T weight="bold" style={{ minWidth: 24, textAlign: "center" }}>{i.qty}</T><Button small variant="secondary" accessibilityLabel={t("pharmacy.more")} title="+" onPress={() => changeQty(i.sku, 1)} /></Row></Row>
           <Row style={{ flexWrap: "wrap" }}>{i.rxRequired ? <Badge tone="warning" icon="file" label={t("pharmacy.rxRequired")} /> : null}{!i.available ? <Badge tone="danger" label={t("pharmacy.unavailable")} /> : null}</Row>
         </Card>

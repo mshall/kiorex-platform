@@ -1,6 +1,7 @@
 import { createCtx, TestCtx } from './harness';
 import { FakePartner } from './fake-partner';
 import { OutboxService } from '../src/outbox/outbox-public';
+import { PayService } from '../src/pay/pay-public';
 
 const NOW = () => new Date().toISOString();
 
@@ -41,7 +42,7 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
 
     it('search + cart: controlled medicines are never returned or orderable; prices come from the pharmacy quote', async () => {
       const s = await c.http().get('/api/v1/pharmacy/search?q=').set(auth).expect(200);
-      expect(s.body.items.map((i: any) => i.sku).sort()).toEqual(['AMOX500', 'OUT1', 'PARA500']);
+      expect(s.body.items.map((i: any) => i.sku).sort()).toEqual(['AMOX500', 'OUT1', 'PARA500', 'VITC']);
       expect(JSON.stringify(s.body)).not.toContain('CTRL1');
       expect((await c.http().get('/api/v1/pharmacy/pharmacies').set(auth)).body[0]).toMatchObject({ id: 'ph_1', deliveryEnabled: true, deliveryFeeMinor: 3000 });
       await cart([{ sku: 'CTRL1', qty: 1 }]).expect(422).expect((r) => expect(r.body.code).toBe('CONTROLLED_NOT_ORDERABLE'));
@@ -141,7 +142,7 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       expect(await balance('REFUND_PAYABLE')).toBe(0);
     });
 
-    it('OrderRejected / synchronous rejection => full refund; partial dispense is held for ops review (no auto-release)', async () => {
+    it('OrderRejected / synchronous rejection => full refund; a partial dispense WITHOUT per-line data (pre-1.8.0 pharmacy) is held for ops review (no auto-release)', async () => {
       const mk = async () => { await cart([{ sku: 'PARA500', qty: 1 }]); await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'PICKUP' }); const o = (await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body; await pay(o); return o; };
       ph.orderMode = 'reject';
       const a = await mk();
@@ -158,6 +159,137 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       expect(await balance('PAYABLE:ph:ph_1')).toBe(0);
       expect(await c.prisma.auditLog.count({ where: { action: 'pharmacy.partial_dispense_review' } })).toBe(1);
       expect((await c.http().get('/api/v1/admin/pharmacy/orders?status=PARTIAL_REVIEW').set(admin)).body).toHaveLength(1);
+    });
+
+    describe('1.8.0: OUT_FOR_DELIVERY, Arabic names and partial fulfilment (PROPOSED_DEFAULT policy)', () => {
+      const place = async (items: { sku: string; qty: number }[], method: 'PICKUP' | 'DELIVERY' = 'DELIVERY') => {
+        await cart(items);
+        await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send(method === 'DELIVERY' ? { method, address: { line1: '1 Nile St', area: 'Maadi' } } : { method }).expect(200);
+        const o = (await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body;
+        await pay(o);
+        const partnerId = (await c.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id: o.id } })).partnerOrderId!;
+        return { o, partnerId };
+      };
+      const so = { userId: 'u1', signedAt: NOW() };
+      const get = async (id: string) => (await c.http().get(`/api/v1/pharmacy/orders/${id}`).set(auth)).body;
+
+      it('search and cart carry Arabic names with English fallback; Arabic and English queries both find the medicine; the order snapshot keeps them', async () => {
+        const ar = await c.http().get(`/api/v1/pharmacy/search?q=${encodeURIComponent('باراسيتامول')}`).set(auth).expect(200);
+        expect(ar.body.items).toHaveLength(1);
+        expect(ar.body.items[0]).toMatchObject({ sku: 'PARA500', name: 'Paracetamol 500mg', nameAr: 'باراسيتامول ٥٠٠', formAr: 'أقراص', activeIngredient: 'paracetamol' });
+        expect((await c.http().get('/api/v1/pharmacy/search?q=paracetamol').set(auth)).body.items[0].sku).toBe('PARA500');
+        const items = (await c.http().get('/api/v1/pharmacy/search?q=').set(auth)).body.items;
+        expect('nameAr' in items.find((i: any) => i.sku === 'VITC')).toBe(false); // the pharmacy holds no Arabic name: absent, never blank
+        const ok = await cart([{ sku: 'PARA500', qty: 1 }, { sku: 'VITC', qty: 1 }]).expect(200);
+        expect(ok.body.items[0]).toMatchObject({ nameAr: 'باراسيتامول ٥٠٠', formAr: 'أقراص' });
+        expect(ok.body.items[1].nameAr).toBeUndefined();
+        await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'PICKUP' }).expect(200);
+        const o = (await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body;
+        expect(o.items[0]).toMatchObject({ sku: 'PARA500', nameAr: 'باراسيتامول ٥٠٠' });
+      });
+
+      it('OUT_FOR_DELIVERY: OrderReady -> OrderOutForDelivery -> DispenseCompleted; patient notified once (AR/EN, mock channel); DispenseCompleted still releases the funds', async () => {
+        const { o, partnerId } = await place([{ sku: 'PARA500', qty: 2 }]);
+        await event('OrderReady', { orderId: partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });
+        const out = await event('OrderOutForDelivery', { orderId: partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW(), estimatedDeliveryMinutes: 40 });
+        expect(out.body.status).toBe('APPLIED');
+        expect(await get(o.id)).toMatchObject({ status: 'OUT_FOR_DELIVERY', outForDeliveryAt: expect.any(String) });
+        expect((await event('OrderOutForDelivery', { orderId: partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() })).body.status).toBe('APPLIED'); // replayed with another event id: no second move
+        await c.http().post(`/api/v1/pharmacy/orders/${o.id}/cancel`).set(auth).expect(409); // on its way: too late to cancel
+        const notes = (await c.http().get('/api/v1/me/notifications').set(auth)).body.filter((n: any) => n.kind === 'PHARMACY_ORDER_OUT_FOR_DELIVERY');
+        expect(notes).toHaveLength(1);
+        const logs = await c.prisma.messageLog.findMany({ where: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_out_for_delivery' } }); // mock channels write the rendered text to the dev inbox
+        expect(logs.length).toBeGreaterThan(0);
+        expect(logs.every((l) => l.status !== 'FAILED')).toBe(true);
+        expect(logs.some((l) => /في الطريق|out for delivery/i.test(l.body ?? ''))).toBe(true);
+        expect((await c.http().get('/api/v1/me/notifications').set(auth)).body.find((n: any) => n.kind === 'PHARMACY_ORDER_OUT_FOR_DELIVERY')).toBeTruthy();
+        expect((await event('DispenseCompleted', { orderId: partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), pharmacistSignoff: so })).body.status).toBe('APPLIED');
+        expect(await get(o.id)).toMatchObject({ status: 'DISPENSED' });
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(8000);
+        expect(await balance('HELD:ph:ph_1')).toBe(0);
+      });
+
+      it('OrderOutForDelivery out of order (before OrderReady) is applied; a late OrderReady does not move the order back; a PICKUP order ignores it (audited)', async () => {
+        const a = await place([{ sku: 'PARA500', qty: 1 }]);
+        await event('OrderOutForDelivery', { orderId: a.partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() });
+        await event('OrderReady', { orderId: a.partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });
+        expect((await get(a.o.id)).status).toBe('OUT_FOR_DELIVERY');
+        const b = await place([{ sku: 'PARA500', qty: 1 }], 'PICKUP');
+        expect((await event('OrderOutForDelivery', { orderId: b.partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() })).body.status).toBe('IGNORED');
+        expect((await get(b.o.id)).status).toBe('SUBMITTED');
+        expect(await c.prisma.auditLog.count({ where: { action: 'pharmacy.out_for_delivery_on_pickup_order' } })).toBe(1);
+      });
+
+      it('partial fulfilment (default policy): unavailable lines refunded pro-rata, fulfilled lines released to the pharmacy, itemised refund, ledger + reconciliation consistent, idempotent', async () => {
+        process.env.PHARMACY_TAKE_RATE_BPS = '400'; // test-only value
+        const { o, partnerId } = await place([{ sku: 'PARA500', qty: 3 }, { sku: 'VITC', qty: 1 }]); // 3 x 25 + 40 + 30 delivery = 145 EGP
+        expect(o.totalMinor).toBe(7500 + 4000 + 3000);
+        await event('OrderReady', { orderId: partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });
+        await event('OrderOutForDelivery', { orderId: partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() });
+        const done = { orderId: partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), partial: true, pharmacistSignoff: so, lines: [{ sku: 'PARA500', quantityRequested: 3, quantityDispensed: 1 }, { sku: 'VITC', quantityRequested: 1, quantityDispensed: 1 }] };
+        expect((await event('DispenseCompleted', done)).body.status).toBe('APPLIED');
+        const after = await get(o.id);
+        expect(after.status).toBe('PARTIALLY_FULFILLED');
+        expect(after.refund).toMatchObject({ goodsMinor: 5000, deliveryFeeMinor: 0, totalMinor: 5000, fulfilledMinor: 2500 + 4000, currency: 'EGP', policyNote: 'PROPOSED_DEFAULT delegated by founder 23 Nov 2026' });
+        expect(after.refund.lines).toEqual(expect.arrayContaining([expect.objectContaining({ sku: 'PARA500', nameAr: 'باراسيتامول ٥٠٠', qtyOrdered: 3, qtyFulfilled: 1, qtyRefunded: 2, refundMinor: 5000 })]));
+        expect(after.payment.status).toBe('PARTIALLY_REFUNDED');
+        // money path: refund row (idempotency key) -> ledger; remainder released minus the take on the FULFILLED goods only (4% of 65 EGP = 260)
+        const refunds = await c.prisma.refund.findMany({ where: { paymentId: o.payment.paymentId } });
+        expect(refunds).toMatchObject([{ amountMinor: 5000, reason: 'PARTIAL_FULFILMENT', idempotencyKey: `refund-partial:${o.payment.paymentId}` }]);
+        expect(await balance('MARKETPLACE_FEES')).toBe(260);
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(14500 - 5000 - 260);
+        expect(await balance('HELD:ph:ph_1')).toBe(0);
+        await flush();
+        expect((await get(o.id)).refund.status).toBe('SETTLED');
+        expect(await balance('REFUND_PAYABLE')).toBe(0);
+        expect((await c.get(PayService).reconcileDaily()).status).toBe('OK');
+        expect(await c.prisma.auditLog.count({ where: { action: 'pharmacy.partial_settled' } })).toBe(1);
+        // replay of the same event (new event id) and a late OrderRejected change nothing
+        await event('DispenseCompleted', done);
+        await event('OrderRejected', { orderId: partnerId, pharmacyId: 'ph_1', rejectedAt: NOW(), reason: 'x' });
+        expect(await c.prisma.refund.count({ where: { paymentId: o.payment.paymentId } })).toBe(1);
+        expect((await get(o.id)).status).toBe('PARTIALLY_FULFILLED');
+        const notes = (await c.http().get('/api/v1/me/notifications').set(auth)).body.filter((n: any) => n.kind === 'PHARMACY_ORDER_PARTIAL_REFUND');
+        expect(notes).toHaveLength(1);
+        expect(JSON.stringify(notes[0])).toContain('50.00 EGP');
+      });
+
+      it('partial delivery order where the delivery is NOT made (deliveryMade=false): the delivery fee is refunded too', async () => {
+        const { o, partnerId } = await place([{ sku: 'PARA500', qty: 2 }, { sku: 'VITC', qty: 1 }]);
+        await event('DispenseCompleted', { orderId: partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), partial: true, deliveryMade: false, pharmacistSignoff: so, lines: [{ sku: 'PARA500', quantityRequested: 2, quantityDispensed: 2 }, { sku: 'VITC', quantityRequested: 1, quantityDispensed: 0 }] });
+        const after = await get(o.id);
+        expect(after.refund).toMatchObject({ goodsMinor: 4000, deliveryFeeMinor: 3000, totalMinor: 7000, fulfilledMinor: 5000 });
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(5000);
+        expect((await c.get(PayService).reconcileDaily()).status).toBe('OK');
+      });
+
+      it('nothing dispensed in a partial event degrades to the ordinary full refund (REJECTED)', async () => {
+        const { o, partnerId } = await place([{ sku: 'PARA500', qty: 1 }]);
+        await event('DispenseCompleted', { orderId: partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), partial: true, pharmacistSignoff: so, lines: [{ sku: 'PARA500', quantityRequested: 1, quantityDispensed: 0 }] });
+        expect(await get(o.id)).toMatchObject({ status: 'REJECTED', rejectionReason: 'NOTHING_DISPENSED', payment: { status: 'REFUNDED' } });
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(0);
+      });
+
+      it('policy is configurable per organisation: MANUAL_REVIEW parks the order, ops resolves it with the same pro-rata logic (corrected lines allowed)', async () => {
+        await c.http().put('/api/v1/admin/policy/pharmacy.partial_fulfilment').set(admin).send({ scope: 'ORG', scopeId: 'ph_1', value: { mode: 'MANUAL_REVIEW', refundDeliveryFeeIfNotDelivered: true, releaseFulfilledToPharmacy: true }, note: 'test' }).expect(200);
+        const { o, partnerId } = await place([{ sku: 'PARA500', qty: 2 }, { sku: 'VITC', qty: 1 }], 'PICKUP');
+        await event('DispenseCompleted', { orderId: partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), partial: true, pharmacistSignoff: so, lines: [{ sku: 'PARA500', quantityRequested: 2, quantityDispensed: 2 }, { sku: 'VITC', quantityRequested: 1, quantityDispensed: 0 }] });
+        expect((await get(o.id)).status).toBe('PARTIAL_REVIEW');
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(0);
+        const r = await c.http().post(`/api/v1/admin/pharmacy/orders/${o.id}/resolve-partial`).set(admin).send({}).expect(200);
+        expect(r.body.refundTotalMinor).toBe(4000);
+        expect(r.body.order).toMatchObject({ status: 'PARTIALLY_FULFILLED', refund: { totalMinor: 4000, goodsMinor: 4000 } });
+        expect(await balance('PAYABLE:ph:ph_1')).toBe(5000);
+        await c.http().post(`/api/v1/admin/pharmacy/orders/${o.id}/resolve-partial`).set(admin).send({}).expect(409);
+        await c.http().post(`/api/v1/admin/pharmacy/orders/${o.id}/resolve-partial`).set(auth).send({}).expect(403);
+        // a PARTIAL_REVIEW without reported lines needs ops to supply them
+        const p2 = await place([{ sku: 'PARA500', qty: 2 }], 'PICKUP');
+        await event('DispenseCompleted', { orderId: p2.partnerId, pharmacyId: 'ph_1', dispensedAt: NOW(), partial: true, pharmacistSignoff: so });
+        await c.http().post(`/api/v1/admin/pharmacy/orders/${p2.o.id}/resolve-partial`).set(admin).send({}).expect(400).expect((x) => expect(x.body.code).toBe('LINES_REQUIRED'));
+        const fixed = await c.http().post(`/api/v1/admin/pharmacy/orders/${p2.o.id}/resolve-partial`).set(admin).send({ lines: [{ sku: 'PARA500', quantityDispensed: 1 }] }).expect(200);
+        expect(fixed.body.refundTotalMinor).toBe(2500);
+        expect((await c.get(PayService).reconcileDaily()).status).toBe('OK');
+      });
     });
 
     it('partner outage after payment: order stays PAID, outbox retries with the SAME key (no duplicate); patient cancel refunds', async () => {

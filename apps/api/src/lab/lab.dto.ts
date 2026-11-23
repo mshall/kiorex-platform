@@ -5,10 +5,13 @@ export class LabTestDto {
   @ApiProperty() labName!: string;
   @ApiProperty() code!: string;
   @ApiProperty() name!: string;
+  @ApiPropertyOptional({ description: 'Arabic test name when the lab holds one; fall back to `name`. Search matches Arabic and English.' }) nameAr?: string;
   @ApiProperty() priceMinor!: number;
   @ApiPropertyOptional() sampleType?: string;
+  @ApiPropertyOptional({ description: 'Arabic specimen type when known; fall back to `sampleType`.' }) sampleTypeAr?: string;
   @ApiProperty() homeCollection!: boolean;
   @ApiPropertyOptional() preparation?: string;
+  @ApiPropertyOptional({ description: 'Arabic preparation instructions when the lab holds them; fall back to `preparation`.' }) preparationAr?: string;
 }
 export class LabTestsResultDto { @ApiProperty({ type: [LabTestDto] }) items!: LabTestDto[] }
 export class LabSlotDto {
@@ -23,6 +26,7 @@ export class LabSlotsResultDto {
 export class LabBookingTestDto {
   @ApiProperty() code!: string;
   @ApiProperty() name!: string;
+  @ApiPropertyOptional({ description: 'Arabic name snapshot (fall back to `name`)' }) nameAr?: string;
   @ApiProperty() priceMinor!: number;
 }
 export class LabBookingPaymentDto {

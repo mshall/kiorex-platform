@@ -36,6 +36,11 @@ export const useResubmitPharmacy = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => unwrap(api.POST("/api/v1/admin/pharmacy/orders/{id}/resubmit", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "pharmacy-orders"] }) });
 };
+/** PARTIAL_REVIEW: settle with the market/org partial-fulfilment policy (pro-rata refund of the undispensed lines). */
+export const useResolvePartial = () => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: string) => unwrap(api.POST("/api/v1/admin/pharmacy/orders/{id}/resolve-partial", { params: { path: { id } }, body: {} })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "pharmacy-orders"] }) });
+};
 export const useResubmitLab = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => unwrap(api.POST("/api/v1/admin/lab/bookings/{id}/resubmit", { params: { path: { id } } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "lab-bookings"] }) });

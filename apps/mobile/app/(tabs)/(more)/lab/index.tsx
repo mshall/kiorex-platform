@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge, Banner, Button, Card, Checkbox, Chip, Field, Row, Screen, T } from "@/components/ui";
 import { useHostedPay } from "@/hooks/useHostedPay";
 import { formatDay, formatMoney, formatTime } from "@/lib/format";
+import { medName } from "@/lib/localName";
 
 function Body() {
   const { t, i18n } = useTranslation();
@@ -62,7 +63,7 @@ function Body() {
       {msg ? <Banner tone="danger" body={msg} testID="lab-message" /> : null}
       {tests.isLoading ? <LoadingState /> : tests.error ? <ErrorState error={tests.error} onRetry={() => void tests.refetch()} /> : !visible.length ? <EmptyState icon="flask" title={t("lab.noTests")} hint={t("lab.noTestsHint")} /> : visible.map((x) => (
         <Card key={`${x.labId}-${x.code}`} testID={`test-${x.code}`} style={{ gap: 6 }}>
-          <Checkbox testID={`pick-${x.code}`} checked={sel.includes(x.code)} onChange={() => toggle(x.code)} label={`${x.name} · ${formatMoney(x.priceMinor / 100, lang)}`} />
+          <Checkbox testID={`pick-${x.code}`} checked={sel.includes(x.code)} onChange={() => toggle(x.code)} label={`${medName(lang, x)} · ${formatMoney(x.priceMinor / 100, lang)}`} />
           <T variant="caption" muted>{x.labName}</T>
           <Row style={{ flexWrap: "wrap" }}>{x.homeCollection ? <Badge tone="ocean" icon="pin" label={t("lab.homeAvailable")} /> : null}{x.sampleType ? <Badge tone="muted" label={x.sampleType} /> : null}</Row>
           {x.preparation ? <T variant="small" muted>{t("lab.preparation")}: {x.preparation}</T> : null}

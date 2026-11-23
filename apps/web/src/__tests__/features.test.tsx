@@ -170,6 +170,34 @@ describe("pharmacy", () => {
     expect(screen.queryByTestId("order-address")).not.toBeInTheDocument();
   });
 
+  it("OUT_FOR_DELIVERY (1.8.0): delivery order shows the courier step in AR and EN, with the extra progress step", async () => {
+    server.use(orderState({ status: "OUT_FOR_DELIVERY", deliveryMethod: "DELIVERY", deliveryAddress: { line1: "12 Road 9" }, rejectionReason: null, outForDeliveryAt: "2026-11-23T12:00:00Z", refund: null }));
+    const a = renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "en" });
+    expect(await screen.findByTestId("order-status")).toHaveTextContent("Out for delivery");
+    expect(screen.getByTestId("order-out-for-delivery")).toHaveTextContent(/courier is on the way/);
+    expect(within(screen.getByTestId("order-progress")).getAllByRole("listitem")).toHaveLength(6); // pending, paid, sent, ready, out for delivery, delivered
+    expect(screen.queryByTestId("cancel-order")).not.toBeInTheDocument();
+    a.unmount();
+    renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "ar" });
+    expect(await screen.findByTestId("order-status")).toHaveTextContent("خرج للتوصيل");
+  });
+
+  it("partially fulfilled order shows an itemised refund (Arabic names with English fallback)", async () => {
+    const refund = { status: "SETTLED", currency: "EGP", goodsMinor: 5000, deliveryFeeMinor: 3000, totalMinor: 8000, fulfilledMinor: 4000, policyNote: "PROPOSED_DEFAULT delegated by founder 23 Nov 2026", refundedAt: "2026-11-23T12:30:00Z",
+      lines: [{ sku: "PARA500", name: "Paracetamol 500mg", nameAr: "باراسيتامول ٥٠٠", unitPriceMinor: 2500, qtyOrdered: 3, qtyFulfilled: 1, qtyRefunded: 2, refundMinor: 5000 }, { sku: "VITC", name: "Vitamin C 1000mg", unitPriceMinor: 4000, qtyOrdered: 1, qtyFulfilled: 1, qtyRefunded: 0, refundMinor: 0 }] };
+    const items = [{ sku: "PARA500", name: "Paracetamol 500mg", nameAr: "باراسيتامول ٥٠٠", qty: 3, unitPriceMinor: 2500, rxRequired: false, available: true }, { sku: "VITC", name: "Vitamin C 1000mg", qty: 1, unitPriceMinor: 4000, rxRequired: false, available: true }];
+    server.use(orderState({ status: "PARTIALLY_FULFILLED", deliveryMethod: "DELIVERY", rejectionReason: null, dispensedAt: "2026-11-23T12:00:00Z", items, refund }));
+    const a = renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "en" });
+    expect(await screen.findByTestId("order-refund")).toBeInTheDocument();
+    expect(screen.getByTestId("refund-status")).toHaveTextContent("Refunded");
+    expect(within(screen.getByTestId("refund-lines")).getAllByRole("listitem")).toHaveLength(2); // the refunded line + the delivery fee; the fully filled line is not listed
+    expect(screen.getByTestId("refund-lines")).toHaveTextContent("Paracetamol 500mg");
+    expect(screen.getByTestId("refund-total")).toHaveTextContent("80");
+    a.unmount();
+    renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "ar" });
+    expect(await screen.findByTestId("refund-lines")).toHaveTextContent("باراسيتامول ٥٠٠");
+  });
+
   it("rejected order explains the automatic refund; cancelled shows the refund note", async () => {
     server.use(orderState({}));
     const a = renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "en" });
@@ -246,5 +274,45 @@ describe("client analytics", () => {
     flushAnalytics();
     setAnalyticsSink(null);
     expect(got).toEqual([{ name: "waitlist_joined", props: { providerId: "d1" } }, { name: "search_started", props: {} }]);
+  });
+});
+
+describe("bilingual search and names (1.8.0)", () => {
+  it("pharmacy search results show the Arabic name and dosage form in Arabic and the English ones in English; a medicine with no Arabic name falls back", async () => {
+    server.use(
+      http.get("/api/v1/pharmacy/pharmacies", () => HttpResponse.json([{ id: "ph_1", name: "Nile Pharmacy", pickup: true, deliveryEnabled: true, deliveryFeeMinor: 3000 }])),
+      http.get("/api/v1/pharmacy/search", () => HttpResponse.json({ items: [
+        { pharmacyId: "ph_1", sku: "PARA500", name: "Paracetamol 500mg", nameAr: "باراسيتامول ٥٠٠", strength: "500mg", form: "tablet", formAr: "أقراص", priceMinor: 2500, rxRequired: false, available: true },
+        { pharmacyId: "ph_1", sku: "VITC", name: "Vitamin C 1000mg", strength: "1000mg", form: "effervescent tablet", priceMinor: 4000, rxRequired: false, available: true },
+      ] })),
+    );
+    const a = renderApp(<PharmacyPage />, { lang: "ar" });
+    await userEvent.click((await screen.findAllByTestId("pharmacy-option"))[0]);
+    await userEvent.type(screen.getByTestId("medicine-search"), "باراسيتامول"); // an Arabic query is sent as typed; the pharmacy matches Arabic and English
+    await userEvent.click(screen.getByTestId("medicine-search-submit"));
+    const rows = await screen.findAllByTestId("medicine");
+    expect(rows[0]).toHaveTextContent("باراسيتامول ٥٠٠");
+    expect(rows[0]).toHaveTextContent("أقراص");
+    expect(rows[1]).toHaveTextContent("Vitamin C 1000mg"); // fallback, never blank
+    a.unmount();
+    renderApp(<PharmacyPage />, { lang: "en" });
+    await userEvent.click((await screen.findAllByTestId("pharmacy-option"))[0]);
+    await userEvent.type(screen.getByTestId("medicine-search"), "para");
+    await userEvent.click(screen.getByTestId("medicine-search-submit"));
+    const en = await screen.findAllByTestId("medicine");
+    expect(en[0]).toHaveTextContent("Paracetamol 500mg");
+    expect(en[0]).not.toHaveTextContent("باراسيتامول");
+  });
+
+  it("lab tests show Arabic name and preparation in Arabic with English fallback", async () => {
+    server.use(http.get("/api/v1/lab/tests", () => HttpResponse.json({ items: [
+      { labId: "lab_1", labName: "Nile Lab", code: "CBC", name: "Complete blood count", nameAr: "صورة دم كاملة", priceMinor: 15000, sampleType: "blood", sampleTypeAr: "دم", homeCollection: true, preparation: "No preparation needed", preparationAr: "لا يلزم أي تحضير" },
+      { labId: "lab_1", labName: "Nile Lab", code: "TSH", name: "Thyroid stimulating hormone", priceMinor: 20000, sampleType: "blood", homeCollection: false },
+    ] })));
+    renderApp(<LabPage />, { lang: "ar" });
+    const rows = await screen.findAllByTestId("lab-test");
+    expect(rows[0]).toHaveTextContent("صورة دم كاملة");
+    expect(rows[0]).toHaveTextContent("لا يلزم أي تحضير");
+    expect(rows[1]).toHaveTextContent("Thyroid stimulating hormone");
   });
 });
