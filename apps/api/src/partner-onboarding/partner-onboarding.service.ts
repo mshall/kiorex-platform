@@ -181,10 +181,12 @@ export class PartnerOnboardingService {
     const dup: string[] = [];
     if (kind === 'CLINIC' || kind === 'NURSE') { if ((await this.prisma.provider.count({ where: { tenantId: r.orgRef, status: 'LIVE' } })) > 0 && r.status !== 'LIVE') dup.push('ALREADY_LISTED'); }
     else {
-      const regs = await this.prisma.partnerRegistration.findMany({ where: { kind, OR: [{ clientKey: r.clientKey ?? '__none__' }, { baseUrl: r.baseUrl ?? '__none__' }] } });
+      // same API host is normal (one multi-tenant Kiorly deployment serves many organisations): the client key is the identity
+      const regs = await this.prisma.partnerRegistration.findMany({ where: { kind, clientKey: r.clientKey ?? '__none__' } });
       if (regs.some((g) => g.id !== r.registrationId)) dup.push('REGISTRY_DUPLICATE');
     }
     const same = await this.prisma.partnerConnection.findMany({ where: { id: { not: r.id }, kind: r.kind, market: r.market, name: { equals: r.name, mode: 'insensitive' } }, select: { id: true } });
+    if (needsHandshakeCreds(kind) && (await this.prisma.partnerRegistration.count({ where: { kind, name: { equals: r.name, mode: 'insensitive' }, ...(r.registrationId ? { id: { not: r.registrationId } } : {}) } })) > 0) same.push({ id: 'registry' });
     items.duplicates = dup.length ? { status: 'FAILED', code: dup[0], detail: { all: dup } } : same.length ? { status: 'WARN', code: 'SIMILAR_NAME', detail: { count: same.length } } : { status: 'PASSED', code: 'NO_DUPLICATES' };
     // required documents / terms (statuses reported by the product; the files themselves stay in the partner's product)
     const docs = (rd.documents ?? {}) as Record<string, boolean>; const missing: string[] = [];
