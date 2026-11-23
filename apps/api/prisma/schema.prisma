@@ -1039,3 +1039,97 @@ model NurseLabRelay {
   @@index([partnerOrderId])
   @@index([clinicId])
 }
+
+// ───────────────────── organization onboarding / data import (ops console) ─────────────────────
+// Quarantined staging only: nothing here is ever a live clinical table. Rows hold PHI -> never logged, ops/super_admin only.
+
+model ImportBatch {
+  id           String    @id @default(cuid())
+  orgId        String // target Kiorly Clinic organization id
+  orgName      String
+  label        String?
+  status       String    @default("DRAFT") // DRAFT|NEEDS_REVIEW|READY|AWAITING_APPROVAL|APPROVED|COMMITTING|COMMIT_FAILED|COMMITTED|ROLLING_BACK|ROLLED_BACK
+  createdBy    String
+  requestedBy  String?
+  requestedAt  DateTime?
+  reportHash   String? // sha256 of the dry-run report the approver signed off
+  approvedBy   String?
+  approvedAt   DateTime?
+  summary      Json? // last analysis: classification, mappings, stats (no row data)
+  progress     Json? // per-entity committed counts, last error code
+  committedAt  DateTime?
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  files        ImportFile[]
+  decisions    ImportDecision[]
+  tasks        ImportTask[]
+  items        ImportCommitItem[]
+
+  @@index([status])
+  @@index([orgId])
+}
+
+model ImportFile {
+  id           String      @id @default(cuid())
+  batchId      String
+  batch        ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  name         String
+  kind         String // SQL|CSV|XLSX|PATIENT_FILE|REJECTED
+  rejectReason String?
+  sha256       String
+  size         Int
+  sniffed      String?
+  storageKey   String?
+  tables       Json? // parsed tabular content (staging copy)
+  meta         Json? // dialect, statements, skipped counters, encoding
+  createdAt    DateTime    @default(now())
+
+  @@index([batchId])
+}
+
+model ImportDecision {
+  id        String      @id @default(cuid())
+  batchId   String
+  batch     ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  taskKey   String
+  action    String
+  params    Json?
+  reason    String?
+  decidedBy String
+  createdAt DateTime    @default(now())
+
+  @@unique([batchId, taskKey])
+}
+
+model ImportTask {
+  id         String      @id @default(cuid())
+  batchId    String
+  batch      ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  key        String
+  type       String
+  severity   String
+  entity     String?
+  status     String // OPEN|RESOLVED|IGNORED
+  payload    Json // full task (context, suggestion, actions, resolution)
+  resolvedBy String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([batchId, key])
+  @@index([batchId, status, severity])
+}
+
+model ImportCommitItem {
+  id             String      @id @default(cuid())
+  batchId        String
+  batch          ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  entity         String
+  sourceKey      String
+  targetId       String
+  idempotencyKey String      @unique
+  status         String      @default("COMMITTED") // COMMITTED|ROLLED_BACK
+  createdAt      DateTime    @default(now())
+
+  @@index([batchId, entity])
+}
