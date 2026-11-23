@@ -101,3 +101,21 @@ EngagementService.deliver()  ->  NotificationService.dispatch(intent: one channe
 Full design: [kiorex-contracts/docs/NOTIFICATION_LAYER.md](../../kiorex-contracts/docs/NOTIFICATION_LAYER.md).
 
 Go-live steps and the exact secrets: **Provider go-live checklist** in [../DEMO_DATA.md](../DEMO_DATA.md).
+
+
+## 8. Native vendor adapters (config-only go-live)
+
+Selection is by env only; the generic gateway contract above stays the default for each kind.
+
+| Kind | Native vendor | Selector | Code |
+|---|---|---|---|
+| WHATSAPP | Meta Cloud API (templates, `X-Hub-Signature-256`, `hub.challenge`, inbound messages) | `WHATSAPP_PROVIDER=meta` | `common/providers/vendors/meta-whatsapp.ts`, `whatsapp.meta.mapping.ts` |
+| EMAIL | Amazon SES v2 (SigV4 over HTTPS, SNS events) | `EMAIL_PROVIDER=ses` | `vendors/ses.ts`, `vendors/sigv4.ts`, `email.ses.mapping.ts` |
+| SMS | Twilio (form body, `X-Twilio-Signature`) | `SMS_PROVIDER=twilio` | `vendors/twilio-sms.ts`, `sms.twilio.mapping.ts` |
+| PUSH | FCM HTTP v1 + Expo push (by token shape) | `PUSH_MODE=real` | `vendors/push.ts`, `messaging/adapters.ts` `PushAdapter` |
+| PAYMENT | Paymob (intention API, HMAC-SHA512 query), Fawry (FawryPay redirect, callback v2 SHA-256), InstaPay (acquirer gateway contract) | `PAYMENT_PROVIDER=vendor` + `PAYMENT_ENABLED_PSPS` | `vendors/paymob.ts`, `vendors/fawry.ts`, `pay/psp.vendors.ts` |
+| VIDEO | Daily.co REST | `VIDEO_MODE=real` | `vendors/video-daily.ts`, `telemedicine/video.ts` |
+| MAPS | Amazon Location Places v2 | `MAPS_MODE=real` | `vendors/maps-amazon.ts`, `address/maps.adapter.ts` |
+| AI | OpenAI-compatible chat completions (EU) | `AI_PROVIDER=openai-eu` | `ai-gateway/ai-gateway.service.ts` |
+
+Environment checks live in `common/providers/env.ts` (messaging) and `common/providers/problems.ts` (payment, video, maps, AI); `verifyProviderStartup()` runs both before the server listens and `providerStatus()` feeds `/health/ready` + `/health/providers`. The full variable / secret / console checklist is "Provider go-live checklist" in [NEEDS_HUMAN.md](NEEDS_HUMAN.md).
