@@ -153,7 +153,7 @@ export class PartnerOnboardingService {
       }
     } else {
       try {
-        const res = await this.kiorly.request<{ orgRef?: string; listings?: { total?: number; ready?: number } }>({ method: 'GET', path: `/marketplace/v1/connection/${encodeURIComponent(r.orgRef)}` });
+        const res = await this.kiorly.request<{ orgRef?: string; listings?: { total?: number; ready?: number } }>({ method: 'GET', path: `/connection/${encodeURIComponent(r.orgRef)}` });
         const ok = res.data?.orgRef === r.orgRef;
         items.handshake = ok ? { status: 'PASSED', code: 'SIGNED_PING_OK' } : { status: 'FAILED', code: 'ORG_NOT_RECOGNISED' };
         const ready = res.data?.listings?.ready ?? 0;
@@ -195,10 +195,12 @@ export class PartnerOnboardingService {
     if (!rd.termsAcceptedAt) missing.push('terms');
     items.documents = missing.length ? { status: 'FAILED', code: 'DOCUMENTS_MISSING', detail: { missing } } : { status: 'PASSED', code: 'DOCUMENTS_PRESENT' };
     const doc: ChecksDoc = { ranAt: new Date().toISOString(), items };
-    const status = r.status === 'SUBMITTED' ? 'IN_REVIEW' : r.status;
-    const upd = await this.prisma.partnerConnection.update({ where: { id }, data: { checks: doc as any, checksRunAt: new Date(), status } });
+    // only the checks document is written from this (possibly stale) read; SUBMITTED -> IN_REVIEW is a guarded transition so a decision taken meanwhile is never overwritten
+    await this.prisma.partnerConnection.update({ where: { id }, data: { checks: doc as any, checksRunAt: new Date() } });
+    const moved = (await this.prisma.partnerConnection.updateMany({ where: { id, status: 'SUBMITTED' }, data: { status: 'IN_REVIEW' } })).count > 0;
+    const upd = await this.row(id);
     await this.audit(actor, 'checks_run', id, { failed: Object.entries(items).filter(([, v]) => v.status === 'FAILED').map(([k]) => k) });
-    if (r.status === 'SUBMITTED' && upd.status === 'IN_REVIEW') void this.pushToClinic(upd, 'IN_REVIEW').catch(() => undefined);
+    if (moved) void this.pushToClinic(upd, 'IN_REVIEW').catch(() => undefined);
     return this.view(upd);
   }
 
@@ -281,7 +283,7 @@ export class PartnerOnboardingService {
       if (def?.scopes.includes('ORG')) await this.flags.setValue(actor, { key: f.key, scope: 'ORG', scopeId: r.orgRef, value: 'ON', reason: 'Partner connection go-live', ticket: id });
     }
     if (!needsHandshakeCreds(kind)) {
-      try { await this.kiorly.request({ method: 'PUT', path: `/marketplace/v1/connection/${encodeURIComponent(r.orgRef)}`, body: { decision: 'APPROVED', connectionId: id } }); }
+      try { await this.kiorly.request({ method: 'PUT', path: `/connection/${encodeURIComponent(r.orgRef)}`, body: { decision: 'APPROVED', connectionId: id } }); }
       catch (e) { throw new ApiError(503, 'CLINIC_NOTIFY_FAILED', 'Kiorly could not be told about the approval; nothing changed, retry Go live', { cause: e instanceof KiorlyHttpError ? `HTTP_${e.status}` : 'UNREACHABLE' }); }
       void this.catalog.syncOnce().catch(() => undefined);
     }
@@ -336,6 +338,6 @@ export class PartnerOnboardingService {
   }
   private async pushToClinic(r: { id: string; kind: string; orgRef: string }, decision: string, reason?: string) {
     if (r.kind !== 'CLINIC' && r.kind !== 'NURSE') return;
-    await this.kiorly.request({ method: 'PUT', path: `/marketplace/v1/connection/${encodeURIComponent(r.orgRef)}`, body: { decision, connectionId: r.id, ...(reason ? { reasonCode: 'OPS_NOTE' } : {}) } });
+    await this.kiorly.request({ method: 'PUT', path: `/connection/${encodeURIComponent(r.orgRef)}`, body: { decision, connectionId: r.id, ...(reason ? { reasonCode: 'OPS_NOTE' } : {}) } });
   }
 }
