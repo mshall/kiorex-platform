@@ -23,6 +23,8 @@ const HomeGatePage = lazy(() => import("@/pages/HomeGatePage"));
 const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
+const PartnerOnboardingPage = lazy(() => import("@/pages/PartnerOnboardingPage"));
+const PartnerOnboardingDetailPage = lazy(() => import("@/pages/PartnerOnboardingDetailPage"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
 const client = makeQueryClient();
@@ -51,6 +53,8 @@ export function AppRoutes() {
           <Route path="flags" element={<FlagsPage />} />
           <Route path="onboarding" element={<OnboardingPage />} />
           <Route path="onboarding/:id" element={<OnboardingBatchPage />} />
+          <Route path="partner-onboarding" element={<PartnerOnboardingPage />} />
+          <Route path="partner-onboarding/:id" element={<PartnerOnboardingDetailPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>
       </Routes>

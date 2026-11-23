@@ -1154,3 +1154,38 @@ model PolicySetting {
 
   @@unique([key, scope, scopeId])
 }
+
+// ───────────────────────── Partner onboarding (connect a standalone organisation, ADR-040) ─────────────────────────
+
+/// A standalone Kiorly organisation (Clinic, Nurse, Pharmacy, Lab) asking to join the Kiorex marketplace. PHI-free by construction:
+/// `readiness` holds counts and booleans only, never names of patients or documents. `secretsEnc` is wiped once the PartnerRegistry holds the credentials.
+model PartnerConnection {
+  id              String    @id // pc_<id>
+  kind            String // CLINIC | NURSE | PHARMACY | LAB
+  orgRef          String // the partner product's own organisation id
+  name            String
+  nameAr          String?
+  market          String    @default("EG")
+  contactEmail    String?
+  baseUrl         String? // PHARMACY | LAB: host of the partner API
+  clientKey       String?
+  secretsEnc      String? // AES-GCM {clientSecret, webhookSecret}; deleted once registered
+  pendingSecretsEnc String? // credential rotation awaiting handshake + ops apply
+  statusTokenHash String
+  status          String    @default("SUBMITTED") // SUBMITTED | IN_REVIEW | CHANGES_REQUESTED | AWAITING_APPROVAL | APPROVED | LIVE | PAUSED | REJECTED
+  readiness       Json      @default("{}")
+  checks          Json      @default("{}")
+  human           Json      @default("{}")
+  registrationId  String?
+  decisionReason  String?
+  requestedBy     String? // asked for approval (two-person rule: approver must differ)
+  approvedBy      String?
+  approvedAt      DateTime?
+  liveAt          DateTime?
+  checksRunAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([kind, orgRef])
+  @@index([status])
+}

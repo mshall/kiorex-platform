@@ -19,7 +19,8 @@
     "held": "Held deposits",
     "homeGate": "Home-visit gate",
     "onboarding": "Onboarding imports",
-    "policy": "Market policy"
+    "policy": "Market policy",
+    "partnerOnboarding": "Partner onboarding"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -600,5 +601,199 @@
     "saved": "Policy saved",
     "cleared": "Override removed",
     "superAdminOnly": "Only a super admin can change policies."
+  },
+  "pob": {
+    "title": "Partner onboarding",
+    "hint": "Standalone clinics, nurses, pharmacies and labs asking to join Kiorex. Automated checks run themselves; steps that need a person are highlighted.",
+    "none": "No connection requests yet",
+    "partner": "Partner",
+    "status": "Status",
+    "progress": "Progress",
+    "humanNeeded": "Needs a person",
+    "created": "Requested",
+    "kind": {
+      "CLINIC": "Clinic",
+      "NURSE": "Nurse",
+      "PHARMACY": "Pharmacy",
+      "LAB": "Lab"
+    },
+    "st": {
+      "SUBMITTED": "Submitted",
+      "IN_REVIEW": "In review",
+      "CHANGES_REQUESTED": "Changes requested",
+      "AWAITING_APPROVAL": "Awaiting approval",
+      "APPROVED": "Approved",
+      "LIVE": "Live",
+      "PAUSED": "Paused",
+      "REJECTED": "Rejected"
+    },
+    "state": {
+      "DONE": "Done",
+      "FAILED": "Failed",
+      "WARN": "Check",
+      "PENDING": "Not run yet",
+      "ACTION": "Action needed",
+      "LOCKED": "Locked"
+    },
+    "human": "Human",
+    "auto": "Automatic",
+    "actionNeeded": "Action needed",
+    "autoSection": "Automated checks",
+    "humanSection": "Human steps",
+    "humanBanner": "{{n}} step(s) need a person before this partner can go live.",
+    "rerun": "Run automated checks again",
+    "checksDone": "Checks finished",
+    "lastRun": "Last run {{at}}",
+    "note": "Note (optional)",
+    "licenceRef": "Licence / registration reference",
+    "saved": "Saved",
+    "fees": {
+      "standard": "Standard fee policy",
+      "override": "Organisation override set on the Policy page"
+    },
+    "openPolicy": "Open Policy",
+    "gateNote": "Gate evidence is human-only and is never recorded by this wizard.",
+    "openFlags": "Open Feature flags",
+    "gateOk": "Evidence recorded",
+    "gateOpen": "Evidence needed",
+    "requestApproval": "Request approval",
+    "requested": "Sent for approval",
+    "approve": "Approve",
+    "approved": "Approved",
+    "twoPerson": "A different super admin must approve (two-person rule).",
+    "goLive": "Go live",
+    "liveDone": "Partner is live",
+    "blockers": "Still blocking Go live",
+    "blocker": {
+      "NOT_APPROVED": "Not approved",
+      "STEP_APPROVAL": "Approval",
+      "STEP_REVIEW_DOCUMENTS": "Review documents",
+      "STEP_VERIFY_LICENCE": "Verify licence",
+      "STEP_FEES": "Confirm fees",
+      "STEP_LAUNCH_GATE": "Launch-gate evidence",
+      "STEP_CREDENTIALS": "Credentials",
+      "STEP_HANDSHAKE": "Signed handshake",
+      "STEP_SYNC_DRY_RUN": "Dry run",
+      "STEP_FLAGS": "Flags",
+      "STEP_MARKET_PACK": "Market",
+      "STEP_DUPLICATES": "Duplicates",
+      "STEP_DOCUMENTS": "Documents"
+    },
+    "reason": "Reason",
+    "reasonLabel": "Reason",
+    "requestChanges": "Request changes",
+    "reject": "Reject",
+    "pause": "Pause",
+    "resume": "Resume",
+    "rotationPending": "The partner submitted new credentials. Apply them after the signed handshake passes.",
+    "applyRotation": "Apply rotation",
+    "tab": {
+      "steps": "Steps",
+      "audit": "Audit"
+    },
+    "step": {
+      "credentials": {
+        "title": "Credentials",
+        "hint": "Partner API address and HMAC client credentials were submitted (secrets are stored encrypted and never shown)."
+      },
+      "handshake": {
+        "title": "Signed handshake",
+        "hint": "Kiorex sends a signed ping to the partner API to prove the credentials work end to end."
+      },
+      "sync_dry_run": {
+        "title": "Catalogue / provider dry run",
+        "hint": "Counts what Kiorex would list. Nothing is imported or published."
+      },
+      "flags": {
+        "title": "Feature flags and launch gates",
+        "hint": "Effective flag state per feature. Launch-locked flags need human gate evidence, never automatic."
+      },
+      "market_pack": {
+        "title": "Market and pack",
+        "hint": "The market is live and configured."
+      },
+      "duplicates": {
+        "title": "Duplicate detection",
+        "hint": "Looks for an existing provider, registration or request for the same organisation."
+      },
+      "documents": {
+        "title": "Required documents and terms",
+        "hint": "The partner product reports licence/credential documents and accepted terms. Only statuses reach Kiorex."
+      },
+      "review_documents": {
+        "title": "Review documents",
+        "hint": "Open the partner's licence and credential evidence and confirm it is complete and matches the organisation.",
+        "action": "Mark documents reviewed"
+      },
+      "verify_licence": {
+        "title": "Verify licence",
+        "hint": "Check the licence or registration with the issuing authority and record its reference.",
+        "action": "Record verification"
+      },
+      "fees": {
+        "title": "Confirm fees",
+        "hint": "The standard fee policy applies unless a policy override is set for this organisation on the Policy page.",
+        "action": "Confirm fees"
+      },
+      "launch_gate": {
+        "title": "Record launch-gate evidence",
+        "hint": "This feature is launch-locked. Only a human super admin records gate evidence on the Flags page.",
+        "action": "Open flags"
+      },
+      "approval": {
+        "title": "Approval (two people)",
+        "hint": "One person prepares and requests; a different super admin approves.",
+        "action": "Approve"
+      },
+      "go_live": {
+        "title": "Go live",
+        "hint": "Activates credentials, flags and listings. Opens only when every step is green.",
+        "action": "Go live"
+      }
+    },
+    "code": {
+      "SIGNED_PING_OK": "Signed ping accepted",
+      "SIGNED_PING_OK_FLAG_OFF": "Signature accepted; the partner feature flag is off",
+      "SIGNATURE_REJECTED": "The partner rejected our signature: check the client key and secret",
+      "PARTNER_UNREACHABLE": "The partner API could not be reached",
+      "NO_CREDENTIALS": "No credentials to test",
+      "CREDENTIALS_PRESENT": "Credentials present",
+      "CREDENTIALS_MISSING": "API address or credentials missing",
+      "SIGNED_INTAKE_VERIFIED": "Signed request verified",
+      "CATALOGUE_READY": "Catalogue is ready",
+      "EMPTY_CATALOGUE": "The partner catalogue is empty: add priced items first",
+      "FLAG_OFF_COUNT_UNKNOWN": "Count unavailable while the partner flag is off",
+      "LISTINGS_READY": "Bookable listings are ready",
+      "NO_READY_LISTINGS": "No listing is ready to go live yet",
+      "ORG_NOT_RECOGNISED": "The clinic system does not recognise this organisation",
+      "CLINIC_UNREACHABLE": "The clinic system could not be reached",
+      "NO_HANDSHAKE": "Needs a passing handshake first",
+      "AWAITING_GATE": "A launch gate is waiting for human evidence",
+      "FLAGS_READY": "Flags are ready",
+      "MARKET_LIVE": "Market is live",
+      "MARKET_NOT_LIVE": "The market is not live",
+      "NO_DUPLICATES": "No duplicates",
+      "SIMILAR_NAME": "Another request has the same name: check it is not a duplicate",
+      "ALREADY_LISTED": "This organisation already has live listings",
+      "REGISTRY_DUPLICATE": "A partner registration already uses this key or address",
+      "DOCUMENTS_MISSING": "Required documents or terms are missing",
+      "DOCUMENTS_PRESENT": "Documents and terms present",
+      "NEEDS_DOCUMENTS_CHECK": "Waiting for the documents check",
+      "AWAITING_SECOND_PERSON": "Waiting for a second person to approve",
+      "FLAG_OFF_GLOBAL": "The feature is switched off globally",
+      "FLAG_OFF_MARKET": "The feature is switched off for this market",
+      "FLAG_OFF_ORG": "The feature is switched off for this organisation",
+      "FLAG_DEPENDENCY_OFF": "A flag this feature depends on is off"
+    },
+    "err": {
+      "generic": "Something went wrong",
+      "TWO_PERSON_RULE": "A different person must approve",
+      "GO_LIVE_BLOCKED": "Go live is blocked: finish every step first",
+      "STEPS_OPEN": "Finish every check and human step first",
+      "DOCUMENTS_CHECK_REQUIRED": "The documents check must pass first",
+      "LICENCE_REFERENCE_REQUIRED": "Enter the licence reference",
+      "CLINIC_NOTIFY_FAILED": "The clinic system could not be told; nothing changed. Retry.",
+      "ROTATION_HANDSHAKE_FAILED": "The new credentials failed the handshake; the current ones stay active"
+    }
   }
 }
