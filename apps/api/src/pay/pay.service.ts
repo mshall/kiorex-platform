@@ -116,8 +116,8 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Verified PSP webhook → idempotent capture / failure / refund settlement. */
-  async handlePspWebhook(psp: string, rawBody: string, headers: Record<string, unknown>): Promise<{ status: string }> {
-    const ev = pspAdapter(psp).verifyWebhook(rawBody, headers);
+  async handlePspWebhook(psp: string, rawBody: string, headers: Record<string, unknown>, query: Record<string, unknown> = {}): Promise<{ status: string }> {
+    const ev = pspAdapter(psp).verifyWebhook(rawBody, headers, query);
     if (!ev) throw badRequest('INVALID_PSP_SIGNATURE', 'PSP signature rejected');
     const dup = await this.prisma.webhookReceipt.findUnique({ where: { eventId: `psp:${ev.eventId}` } });
     if (dup) return { status: 'DUPLICATE' };

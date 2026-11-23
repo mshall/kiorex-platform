@@ -67,7 +67,7 @@ describe('provider env + fail-fast', () => {
   });
   it('startup also guards SAFETY_DELIVERY_MODE=real', () => {
     expect(() => verifyProviderStartup({ SAFETY_DELIVERY_MODE: 'real' })).toThrow(/SMS_MODE=real/);
-    expect(verifyProviderStartup({})).toEqual(['SMS=mock', 'EMAIL=mock', 'WHATSAPP=mock', 'PAYMENT=mock']);
+    expect(verifyProviderStartup({})).toEqual(['sms=mock', 'email=mock', 'whatsapp=mock', 'push=mock', 'payment=mock', 'video=mock', 'maps=mock', 'ai=mock']);
   });
 });
 

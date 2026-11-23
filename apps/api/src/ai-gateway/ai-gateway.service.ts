@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { cfg } from '../common/config';
+import { aiProblems as _ap } from '../common/providers/problems';
 import { outboundFetch } from '../common/outbound-http';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PatientService } from '../patient/patient-public';
@@ -10,6 +11,8 @@ export const PROMPT_VERSION = 'nav-v1';
 
 export interface AiProvider { name: string; classify(redactedText: string): Promise<SpecialtyCode[]> }
 
+export const aiProblems = _ap;
+
 /** Deterministic provider (default locally, AI_PROVIDER=fake). */
 export class FakeAiProvider implements AiProvider {
   name = 'fake';
@@ -19,11 +22,12 @@ export class FakeAiProvider implements AiProvider {
 /** OpenAI EU endpoint (ADR-016). Needs OPENAI_EU_BASE_URL + key (NEEDS_HUMAN: DPA, key). Output constrained to the specialty enum. */
 export class OpenAiEuProvider implements AiProvider {
   name = 'openai-eu';
+  constructor(private readonly fetchImpl: typeof outboundFetch = outboundFetch, private readonly env: Record<string, string | undefined> = process.env) {}
   async classify(t: string): Promise<SpecialtyCode[]> {
-    const c = cfg();
-    const res = await outboundFetch(`${c.openaiBase.replace(/\/$/, '')}/chat/completions`, {
+    const c = { openaiBase: this.env.OPENAI_EU_BASE_URL ?? cfg().openaiBase, openaiKey: this.env.OPENAI_EU_API_KEY ?? cfg().openaiKey };
+    const res = await this.fetchImpl(`${c.openaiBase.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${c.openaiKey}` }, signal: AbortSignal.timeout(10_000),
-      body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: `Map the patient's text to at most 3 medical specialty codes from: ${SPECIALTY_CODES.join(', ')}. Reply JSON {"specialties":[...]}. Never diagnose.` }, { role: 'user', content: t }] }),
+      body: JSON.stringify({ model: this.env.OPENAI_EU_MODEL || 'gpt-4o-mini', temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: `Map the patient's text to at most 3 medical specialty codes from: ${SPECIALTY_CODES.join(', ')}. Reply JSON {"specialties":[...]}. Never diagnose.` }, { role: 'user', content: t }] }),
     });
     if (!res.ok) throw new Error(`provider HTTP ${res.status}`);
     const j: any = await res.json();

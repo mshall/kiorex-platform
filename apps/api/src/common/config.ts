@@ -26,6 +26,8 @@ export const cfg = () => ({
   pspFakeSecret: env('PSP_FAKE_WEBHOOK_SECRET', 'psp_fake_secret_change_me'),
   payLinkBase: env('KIOREX_PAY_LINK_BASE_URL', 'http://localhost:4000/api/v1/pay/links'),
   publicBaseUrl: env('PUBLIC_BASE_URL', 'http://localhost:4000'),
+  /** Patient web origin: PSP return URLs (vendor payments). */
+  webBaseUrl: env('WEB_BASE_URL', 'http://localhost:5180').replace(/\/+$/, ''),
   /** NEEDS_HUMAN (KX-12): PSP fee rate and deposit amount are never invented; 0 = unset. */
   pspFeeBps: num('PSP_FEE_BPS', 0),
   depositDefaultMinor: num('DEPOSIT_DEFAULT_MINOR', 0),
@@ -92,6 +94,9 @@ export const cfg = () => ({
   /** NEEDS_HUMAN: VAT is config on Kiorex's OWN fee statements only (never reported to any authority). */
   feeStatementVatBps: num('FEE_STATEMENT_VAT_BPS', 0),
   deliveryFeeMinor: num('PHARMACY_DELIVERY_FEE_MINOR', 0),
+  /** Market used to resolve policies for vertical orders (the partner's market is not carried on the order yet). Policy values: PolicyService, PROPOSED_DEFAULT delegated by founder 23 Nov 2026. */
+  defaultMarket: env('DEFAULT_MARKET', 'EG').toUpperCase(),
+  policyCacheSeconds: num('POLICY_CACHE_SECONDS', 30),
   analyticsMaxBatch: num('ANALYTICS_MAX_BATCH', 20),
   aiProvider: env('AI_PROVIDER', 'fake'),
   aiDailyQuota: num('AI_DAILY_QUOTA', 20),

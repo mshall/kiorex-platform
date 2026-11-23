@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
+import { mapsProblems as _mp } from '../common/providers/problems';
+import { outboundFetch } from '../common/outbound-http';
+import { amazonGeocodeBody, amazonSigner, parseAmazonGeocode } from '../common/providers/vendors/maps-amazon';
 
 /**
  * Maps / geocoding adapter (Amazon Location in the target architecture, KX-08 C4). MODE=mock|real, default mock (CLAUDE.md provider rule):
@@ -30,4 +33,25 @@ export class UnconfiguredMapsAdapter implements MapsAdapter {
   }
 }
 
-export const mapsAdapter = (): MapsAdapter => (cfg().mapsMode === 'mock' ? new MockMapsAdapter() : new UnconfiguredMapsAdapter());
+type Env = Record<string, string | undefined>;
+export const mapsProblems = _mp;
+
+/** MAPS_MODE=real: Amazon Location Places v2 geocode over HTTPS (API key or SigV4; no SDK). Falls back to nothing: a failure surfaces as an error to the caller. */
+export class AmazonMapsAdapter implements MapsAdapter {
+  readonly mode = 'real' as const;
+  constructor(private readonly env: Env = process.env, private readonly fetchImpl: typeof outboundFetch = outboundFetch) {}
+  async geocode(q: { governorate: string; district: string; street?: string }): Promise<GeocodeResult> {
+    const base = (this.env.MAPS_API_URL ?? '').replace(/\/+$/, '');
+    const key = this.env.MAPS_API_KEY;
+    const url = `${base}/v2/geocode${key ? `?key=${encodeURIComponent(key)}` : ''}`;
+    const body = JSON.stringify(amazonGeocodeBody(q, this.env.MAPS_COUNTRY ?? 'EGY'));
+    const sign = !key && this.env.MAPS_ACCESS_KEY_ID ? amazonSigner(base, this.env.MAPS_ACCESS_KEY_ID, this.env.MAPS_SECRET_ACCESS_KEY ?? '') : undefined;
+    const res = await this.fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(sign ? sign({ method: 'POST', url, body }) : {}) }, body, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`MAPS_PROVIDER_HTTP_${res.status}`);
+    const g = parseAmazonGeocode(await res.json());
+    if (!g) throw new Error('MAPS_NO_RESULT');
+    return { ...g, provider: 'amazon-location' };
+  }
+}
+
+export const mapsAdapter = (): MapsAdapter => (cfg().mapsMode === 'mock' ? new MockMapsAdapter() : mapsProblems().length ? new UnconfiguredMapsAdapter() : new AmazonMapsAdapter());

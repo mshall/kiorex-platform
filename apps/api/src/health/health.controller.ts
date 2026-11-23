@@ -2,6 +2,7 @@ import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { PrismaService } from '../prisma/prisma.service';
+import { providerStatus } from '../common/providers/startup';
 import { LiveDto, ReadyDto } from './health.dto';
 
 @ApiTags('health')
@@ -16,13 +17,19 @@ export class HealthController {
     return { status: 'ok' };
   }
 
+  /** Active mode of every external provider (mock|real), the vendor in use and whether its required variables are present. Never returns a secret or value. */
+  @Public() @Get('providers')
+  providers() {
+    return { providers: providerStatus() };
+  }
+
   @ApiOkResponse({ type: ReadyDto })
 
   @Public() @Get('ready')
   async ready() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { status: 'ready', db: 'up' };
+      return { status: 'ready', db: 'up', providers: providerStatus() };
     } catch {
       throw new ServiceUnavailableException({ code: 'NOT_READY', message: 'database unavailable' });
     }

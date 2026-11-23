@@ -86,6 +86,7 @@ export function providerProblems(kind: ProviderKind, env: Env = process.env): st
   if (raw !== undefined && raw !== 'mock' && raw !== 'real') out.push(`${kind}_MODE must be mock or real`);
   const p = providerEnv(kind, env);
   if (p.mode !== 'real') return out;
+  if (kind === 'PAYMENT' && (env.PAYMENT_PROVIDER ?? '').trim().toLowerCase() === 'vendor') return out; // per-PSP variables are validated by vendorPspProblems (startup.ts)
   if (!p.apiUrl) out.push(`${kind}_API_URL is required when ${kind}_MODE=real`);
   else {
     try {

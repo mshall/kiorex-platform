@@ -1,5 +1,8 @@
 import { createHash, createHmac } from 'node:crypto';
 import { cfg } from '../common/config';
+import { videoProblems as _vp } from '../common/providers/problems';
+import { outboundFetch } from '../common/outbound-http';
+import { dailyRoomBody, dailyTokenBody } from '../common/providers/vendors/video-daily';
 
 export interface VideoToken { token: string; expiresAt: string; url: string; room: string; role: 'patient' | 'clinician'; provider: string }
 
@@ -32,5 +35,31 @@ export class UnconfiguredVideoAdapter implements VideoAdapter {
   async issueToken(): Promise<never> { throw new Error('NEEDS_HUMAN: video provider not configured'); }
 }
 
+type Env = Record<string, string | undefined>;
+export const videoProblems = _vp;
+
+/** VIDEO_MODE=real, VIDEO_PROVIDER=daily: Daily.co REST. Private rooms, 2 participants, chat and recording OFF, opaque identities (no PHI). */
+export class DailyVideoAdapter implements VideoAdapter {
+  readonly mode = 'real' as const;
+  readonly name = 'daily';
+  constructor(private readonly env: Env = process.env, private readonly fetchImpl: typeof outboundFetch = outboundFetch) {}
+  private async call(path: string, body: unknown): Promise<any> {
+    const res = await this.fetchImpl(`${(this.env.VIDEO_API_URL ?? 'https://api.daily.co/v1').replace(/\/+$/, '')}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${this.env.VIDEO_API_KEY}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`VIDEO_PROVIDER_HTTP_${res.status}`);
+    return res.json();
+  }
+  async createRoom(sessionId: string) {
+    const name = `kx-${sessionId}`.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 64);
+    try { const j = await this.call('/rooms', dailyRoomBody(name, 4 * 3600)); return { roomName: String(j.name ?? name) }; }
+    catch (e) { if ((e as Error).message.endsWith('_400')) return { roomName: name }; throw e; } // room already exists (idempotent on the session id)
+  }
+  async issueToken(i: { roomName: string; identity: string; role: 'patient' | 'clinician'; ttlSeconds: number }): Promise<VideoToken> {
+    const userId = createHash('sha256').update(i.identity).digest('hex').slice(0, 16);
+    const j = await this.call('/meeting-tokens', dailyTokenBody({ roomName: i.roomName, userId, owner: i.role === 'clinician', ttlSeconds: i.ttlSeconds }));
+    if (typeof j.token !== 'string') throw new Error('VIDEO_PROVIDER_BAD_RESPONSE');
+    return { token: j.token, expiresAt: new Date(Date.now() + i.ttlSeconds * 1000).toISOString(), url: `https://${this.env.VIDEO_DOMAIN}/${i.roomName}`, room: i.roomName, role: i.role, provider: 'daily' };
+  }
+}
+
 export const VIDEO = Symbol('KX_VIDEO');
-export const videoAdapter = (): VideoAdapter => (cfg().videoMode === 'real' ? new UnconfiguredVideoAdapter() : new MockVideoAdapter());
+export const videoAdapter = (): VideoAdapter => (cfg().videoMode === 'real' ? (videoProblems().length ? new UnconfiguredVideoAdapter() : new DailyVideoAdapter()) : new MockVideoAdapter());

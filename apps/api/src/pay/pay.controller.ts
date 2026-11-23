@@ -35,7 +35,7 @@ export class PayController {
   @ApiOkResponse({ type: PspWebhookAckDto })
   @Public() @Post('webhooks/:psp') @HttpCode(200)
   webhook(@Param('psp') psp: string, @Req() req: any) {
-    return this.svc.handlePspWebhook(psp, (req.rawBody ?? Buffer.from(JSON.stringify(req.body))).toString('utf8'), req.headers);
+    return this.svc.handlePspWebhook(psp, (req.rawBody ?? Buffer.from(JSON.stringify(req.body))).toString('utf8'), req.headers, req.query ?? {});
   }
 
   // ── pay links (PAY-03) ──
