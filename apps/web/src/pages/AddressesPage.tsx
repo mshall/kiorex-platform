@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { localizeAddressSummary } from "@/lib/districts";
 import { useAddAddress, useAddresses, useConfirmAddress, useDeleteAddress, useHomeDistricts, useUpdateAddress, type Address, type AddressInput } from "@/api/home";
 import { CardSkeleton, EmptyState, ErrorState } from "@/components/states";
 import { ApiError } from "@/api/errors";
@@ -54,7 +55,7 @@ export function AddressForm({ open, onOpenChange, editing }: { open: boolean; on
 }
 
 function Row({ a, onEdit }: { a: Address; onEdit: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [reveal, setReveal] = useState(false);
   const [del, setDel] = useState(false);
   const confirm = useConfirmAddress();
@@ -66,7 +67,7 @@ function Row({ a, onEdit }: { a: Address; onEdit: () => void }) {
         <IconTile tone="info"><MapPin /></IconTile>
         <div className="min-w-0 flex-1 space-y-1">
           <p className="flex flex-wrap items-center gap-2 font-semibold">{a.label}{a.isDefault && <StatusChip tone="info" dot={false}>{t("hv.default")}</StatusChip>}{a.confirmed ? <StatusChip tone="success">{t("hv.confirmedBadge")}</StatusChip> : <StatusChip tone="warning">{t("hv.unconfirmedBadge")}</StatusChip>}</p>
-          <p className="text-sm text-muted-foreground" data-testid="address-summary">{a.summary}</p>
+          <p className="text-sm text-muted-foreground" data-testid="address-summary">{localizeAddressSummary(a.summary, i18n.language)}</p>
           {/* Masked by default: doorstep lines are only revealed on request, never in lists, logs or analytics. */}
           <p className="text-sm" data-testid="address-lines" aria-live="polite">{reveal ? (lines || "—") : "••••••••"}</p>
         </div>

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Bell, ChevronRight, ClipboardList, Laptop, MapPin, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Bell, ChevronRight, ClipboardList, Download, Laptop, LogOut, MapPin, Pencil, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { useAuth } from "@/auth/AuthProvider";
 import { formatDay, formatTime } from "@/lib/format";
 import { downloadJson } from "@/lib/download";
+import { deviceLabel } from "@/lib/device";
+import { useConsentHistory, useExportData, useUpdateProfile } from "@/api/engagement";
 import type { FamilyInput } from "@/api/hooks";
 import { IconTile, PageHeader, StatusChip } from "@/components/kit";
 
@@ -36,7 +38,79 @@ function Profile() {
         <div><dt className="text-sm text-muted-foreground">{t("account.phone")}</dt><dd className="kx-label-num text-lg font-semibold"><bdi dir="ltr">{m.phone}</bdi></dd></div>
       </dl>
     </section>
-    <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden="true" />{t("account.managedBy")}</p></>
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden="true" />{t("account.managedBy")}</p>
+    <div className="flex flex-wrap gap-2"><EditProfile /><DataExport /><SignOut /></div></>
+  );
+}
+
+/** KXM-AC-02: the patient edits their own name, language and e-mail (phone and sign-in stay with Kiorex Passport). */
+function SignOut() {
+  const { t } = useTranslation();
+  const { logout } = useAuth();
+  // visible on phones too: the header button is desktop-only, and the Account tab is where a phone user looks for it
+  return <Button variant="outline" onClick={() => void logout()} data-testid="account-sign-out"><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>;
+}
+
+function EditProfile() {
+  const { t, i18n } = useTranslation();
+  const me = useMe();
+  const update = useUpdateProfile();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ nameEn: "", nameAr: "", email: "", preferredLocale: "ar" as "ar" | "en" });
+  if (!me.data) return null;
+  const start = () => { setF({ nameEn: me.data!.nameEn ?? "", nameAr: me.data!.nameAr ?? "", email: me.data!.email ?? "", preferredLocale: me.data!.locale }); setOpen(true); };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    update.mutate({ nameEn: f.nameEn.trim() || undefined, nameAr: f.nameAr.trim() || undefined, email: f.email.trim() || undefined, preferredLocale: f.preferredLocale }, {
+      onSuccess: () => { toast.success(t("account.profileSaved")); setOpen(false); if (f.preferredLocale !== i18n.language.slice(0, 2)) void i18n.changeLanguage(f.preferredLocale); },
+      onError: () => toast.error(t("account.profileFailed")),
+    });
+  };
+  return (
+    <>
+      <Button variant="outline" onClick={start} data-testid="edit-profile"><Pencil aria-hidden="true" />{t("account.editProfile")}</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("account.editProfile")}</DialogTitle><DialogDescription>{t("account.managedBy")}</DialogDescription></DialogHeader>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2"><Label htmlFor="pf-en">{t("account.nameEn")}</Label><Input id="pf-en" value={f.nameEn} maxLength={120} onChange={(e) => setF({ ...f, nameEn: e.target.value })} dir="ltr" /></div>
+            <div className="space-y-2"><Label htmlFor="pf-ar">{t("account.nameAr")}</Label><Input id="pf-ar" value={f.nameAr} maxLength={120} onChange={(e) => setF({ ...f, nameAr: e.target.value })} dir="rtl" /></div>
+            <div className="space-y-2"><Label htmlFor="pf-mail">{t("account.email")}</Label><Input id="pf-mail" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} dir="ltr" /></div>
+            <div className="space-y-2"><Label htmlFor="pf-loc">{t("account.language")}</Label>
+              <select id="pf-loc" value={f.preferredLocale} onChange={(e) => setF({ ...f, preferredLocale: e.target.value as "ar" | "en" })} className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm"><option value="ar">العربية</option><option value="en">English</option></select></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("appointment.keep")}</Button><Button type="submit" disabled={update.isPending}>{t("account.save")}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/** KXM-AC-06: download everything Kiorex holds about the patient without deleting anything. */
+function DataExport() {
+  const { t } = useTranslation();
+  const exp = useExportData();
+  return (
+    <Button variant="outline" disabled={exp.isPending} data-testid="export-data" onClick={() => exp.mutate(undefined, { onSuccess: (r) => { downloadJson("kiorex-data-export.json", r); toast.success(t("account.exportReady")); }, onError: () => toast.error(t("states.errorTitle")) })}><Download aria-hidden="true" />{t("account.exportCta")}</Button>
+  );
+}
+
+function ConsentHistory() {
+  const { t, i18n } = useTranslation();
+  const q = useConsentHistory();
+  if (q.isLoading || q.error || !q.data?.length) return null;
+  return (
+    <section className="space-y-2" aria-labelledby="ch-h" data-testid="consent-history">
+      <h3 id="ch-h" className="text-base font-semibold">{t("consent.history")}</h3>
+      <ul className="divide-y rounded-xl border bg-card text-sm">
+        {q.data.slice(0, 12).map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+            <span>{t(`consent.${c.purpose.toLowerCase()}.title`, { defaultValue: c.purpose })}</span>
+            <span className="flex items-center gap-2 text-muted-foreground"><StatusChip tone={c.granted ? "success" : "neutral"}>{c.granted ? t("p3.consentOn") : t("p3.consentOff")}</StatusChip>{formatDay(c.createdAt, i18n.language)} · {formatTime(c.createdAt, i18n.language)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -89,6 +163,7 @@ function Consents() {
   if (q.isLoading) return <CardSkeleton rows={2} />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   return (
+    <div className="space-y-5">
     <ul className="space-y-3">
       {q.data!.map((c) => (
         <li key={c.type} className="kx-card flex items-start gap-3 p-4">
@@ -99,6 +174,8 @@ function Consents() {
         </li>
       ))}
     </ul>
+    <ConsentHistory />
+    </div>
   );
 }
 
@@ -112,7 +189,7 @@ function Sessions() {
     <ul className="space-y-3">
       {q.data!.map((s) => (
         <li key={s.id} className="kx-card flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-3"><IconTile tone={s.current ? "success" : "neutral"}>{/mobile|android|iphone|ios/i.test(s.device) ? <Smartphone /> : <Laptop />}</IconTile><div><p className="flex flex-wrap items-center gap-2 font-medium">{s.device}{s.current && <StatusChip tone="success">{t("sessions.current")}</StatusChip>}</p>
+          <div className="flex items-center gap-3"><IconTile tone={s.current ? "success" : "neutral"}>{/mobile|android|iphone|ios|app/i.test(s.device) ? <Smartphone /> : <Laptop />}</IconTile><div><p className="flex flex-wrap items-center gap-2 font-medium">{deviceLabel(s.device)}{s.current && <StatusChip tone="success">{t("sessions.current")}</StatusChip>}</p>
             <p className="text-xs text-muted-foreground">{formatDay(s.lastSeenAt, i18n.language)} · {formatTime(s.lastSeenAt, i18n.language)}</p></div></div>
           {!s.current && <Button variant="outline" size="sm" onClick={() => revoke.mutate(s.id)}>{t("sessions.signOut")}</Button>}
         </li>
@@ -154,7 +231,7 @@ export default function AccountPage() {
       <PageHeader title={t("account.title")} />
       <Profile />
       <nav aria-label={t("hv.homeCare")} className="grid gap-3 sm:grid-cols-2">
-        {([["/account/addresses", MapPin, t("hv.addressBook"), t("p3.addressesHint"), "link-addresses"], ["/care-plans", ClipboardList, t("hv.carePlans"), t("p3.plansHint"), "link-care-plans"]] as const).map(([to, Icon, title, hint, id]) => (
+        {([["/account/addresses", MapPin, t("hv.addressBook"), t("p3.addressesHint"), "link-addresses"], ["/care-plans", ClipboardList, t("hv.carePlans"), t("p3.plansHint"), "link-care-plans"], ["/notifications", Bell, t("notifications.title"), t("notifications.linkHint"), "link-notifications"]] as const).map(([to, Icon, title, hint, id]) => (
           <Link key={to} to={to} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid={id}><IconTile><Icon /></IconTile><span className="min-w-0 flex-1"><span className="block font-semibold">{title}</span><span className="block text-sm text-muted-foreground">{hint}</span></span><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></Link>
         ))}
       </nav>

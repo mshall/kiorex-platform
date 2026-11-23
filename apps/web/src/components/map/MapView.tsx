@@ -94,7 +94,9 @@ export default function MapView({ points, selectedId, onSelect, onLocate, classN
         const first = latest.current.points;
         const map = new ml.Map({
           container: host.current, style: c.style, center: first[0] ? [first[0].lng, first[0].lat] : c.defaultCenter, zoom: first.length === 1 ? 15 : 10,
-          attributionControl: false, cooperativeGestures: true, dragRotate: false, pitchWithRotate: false, maxZoom: 18,
+          attributionControl: false, cooperativeGestures: true,
+          // the scroll-hint overlay is English by default; keep it in the patient's language
+          ...(rtl ? { locale: { "CooperativeGesturesHandler.WindowsHelpText": "استخدم Ctrl + التمرير لتكبير الخريطة", "CooperativeGesturesHandler.MacHelpText": "استخدم ⌘ + التمرير لتكبير الخريطة", "CooperativeGesturesHandler.MobileHelpText": "استخدم إصبعين لتحريك الخريطة" } } : {}), dragRotate: false, pitchWithRotate: false, maxZoom: 18,
         });
         map.touchZoomRotate.disableRotation();
         map.addControl(new ml.AttributionControl({ compact: true, customAttribution: c.provider === "osm" ? c.attribution : undefined }), rtl ? "bottom-left" : "bottom-right");

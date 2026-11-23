@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useBooking, useCancelBooking, useDepositCheckout, useRescheduleBooking, useSlots, useVisitType } from "@/api/hooks";
 import { ApiError } from "@/api/errors";
+import { useMyReviews } from "@/api/engagement";
 import type { Slot } from "@/api/types";
 import { ErrorState, LoadingState } from "@/components/states";
 import { StatusTimeline } from "@/components/StatusTimeline";
@@ -16,6 +17,7 @@ import { ClinicMap, directionsUrl } from "@/components/ClinicMap";
 import { SlotButton } from "@/components/SlotButton";
 import { formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { buildIcs, downloadIcs } from "@/lib/ics";
+import { withSandboxReturn } from "@/lib/sandboxPay";
 import { statusVariant } from "./AppointmentsPage";
 import { usePatient } from "@/hooks/usePatient";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ export default function AppointmentPage() {
   const cancel = useCancelBooking();
   const reschedule = useRescheduleBooking();
   const intent = useDepositCheckout();
+  const myReviews = useMyReviews();
   const { nameOf } = usePatient();
   const justBooked = (useLocation().state as { justBooked?: boolean } | null)?.justBooked === true;
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -46,7 +49,9 @@ export default function AppointmentPage() {
   if (q.error || !b) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
 
   const policyMsg = (e: unknown) => {
-    if (e instanceof ApiError && e.code === "CANCELLATION_WINDOW_CLOSED") return t("appointment.windowClosed");
+    if (e instanceof ApiError && (e.code === "CANCELLATION_WINDOW_CLOSED" || e.code === "RESCHEDULE_WINDOW_CLOSED")) return t("appointment.windowClosed");
+    if (e instanceof ApiError && e.code === "RESCHEDULE_LIMIT_REACHED") return t("appointment.rescheduleLimit");
+    if (e instanceof ApiError && e.code === "BOOKING_NOT_CHANGEABLE") return t("appointment.notChangeable");
     if (e instanceof ApiError && e.code === "SLOT_TAKEN") return t("booking.slotTakenTitle");
     return t("appointment.actionFailed");
   };
@@ -56,13 +61,14 @@ export default function AppointmentPage() {
   });
   const onResched = (slot: Slot) => reschedule.mutate({ bookingId: b.id, slot }, {
     onSuccess: () => { setReschedOpen(false); toast.success(t("appointment.rescheduled")); },
-    onError: (e) => toast.error(policyMsg(e)),
+    onError: (e) => { if (e instanceof ApiError && e.code !== "SLOT_TAKEN") setReschedOpen(false); toast.error(policyMsg(e)); },
   });
-  const onPayLink = () => intent.mutate(b.id, { onSuccess: (r) => window.location.assign(b.deposit.payUrl ?? r.checkoutUrl ?? "/"), onError: () => toast.error(t("checkout.depositFailed")) });
+  const onPayLink = () => intent.mutate(b.id, { onSuccess: (r) => window.location.assign(withSandboxReturn(b.deposit.payUrl ?? r.checkoutUrl ?? "/", window.location.origin + `/appointments/${b.id}`)), onError: () => toast.error(t("checkout.depositFailed")) });
 
   const clinicCancelled = b.status === "CANCELLED" && b.cancellation.byClinic && !b.home?.aborted;
   const active = ["PENDING_CLINIC", "CONFIRMED"].includes(b.status);
   const refundable = b.deposit.status === "PAID";
+  const reviewed = b.reviewed || (myReviews.data ?? []).some((r) => r.bookingId === b.id);
   const isHome = b.serviceLocation === "HOME";
   const homeLive = isHome && !!b.home && (["PENDING_CLINIC", "CONFIRMED", "CHECKED_IN", "COMPLETED", "NO_SHOW"].includes(b.status) || !!b.home.aborted); // an unsafe abort ends as CANCELLED but keeps its home sub-state
 
@@ -132,8 +138,8 @@ export default function AppointmentPage() {
         </section>
       )}
 
-      {b.reviewable && !b.reviewed && <Link to={`/appointments/${b.id}/review`} className={cn(buttonVariants({ variant: "pulse", size: "lg" }))} data-testid="leave-review"><Star aria-hidden="true" />{t("appointment.leaveReview")}</Link>}
-      {b.reviewed && <p className="text-sm text-success">{t("appointment.reviewed")}</p>}
+      {b.reviewable && !reviewed && <Link to={`/appointments/${b.id}/review`} className={cn(buttonVariants({ variant: "pulse", size: "lg" }))} data-testid="leave-review"><Star aria-hidden="true" />{t("appointment.leaveReview")}</Link>}
+      {reviewed && <p className="flex flex-wrap items-center gap-3 text-sm text-success">{t("appointment.reviewed")} <Link to={`/appointments/${b.id}/review`} className="text-ocean underline underline-offset-4" data-testid="view-review">{t("review.view")}</Link></p>}
 
       {!isHome && <ClinicMap clinic={b.clinic} />}
 

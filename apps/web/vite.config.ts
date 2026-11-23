@@ -5,6 +5,8 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  // maplibre-gl 6 spawns its ESM worker via import.meta.url: pre-bundling moves the module and breaks that URL ("Worker failed to load", blank map in dev)
+  optimizeDeps: { exclude: ["maplibre-gl"] },
   server: {
     port: 5180,
     strictPort: true,

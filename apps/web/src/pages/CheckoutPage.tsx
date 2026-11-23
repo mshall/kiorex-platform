@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { AlarmClock, CalendarClock, CreditCard, Lock, MapPin, ShieldCheck, UserRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useBooking, useConfirmBooking, useVisitType } from "@/api/hooks";
+import { useBooking, useConfirmBooking, useDepositCheckout, useVisitType } from "@/api/hooks";
+import { withSandboxReturn } from "@/lib/sandboxPay";
 import { ApiError } from "@/api/errors";
 import type { Slot } from "@/api/types";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   const nav = useNavigate();
   const booking = useBooking(bookingId);
   const confirm = useConfirmBooking();
+  const intent = useDepositCheckout();
   const { nameOf } = usePatient();
   const restart = useStartBooking();
   const deposits = useFeature("kiorex.pay_deposits");
@@ -61,7 +63,18 @@ export default function CheckoutPage() {
 
   const onConfirm = () =>
     confirm.mutate({ bookingId: b.id, marketplaceConsent: consentData, remindersConsent: consentReminders }, {
-      onSuccess: (res) => { nav(`/appointments/${res.id}`, { replace: true, state: { justBooked: true } }); },
+      onSuccess: (res) => {
+        const detail = `/appointments/${res.id}`;
+        // "You will pay the deposit right after confirming": go straight to Kiorex Pay; the appointment page keeps a pay button if the patient comes back unpaid.
+        if (hasDeposit && deposits.enabled) {
+          intent.mutate(res.id, {
+            onSuccess: (r) => { if (r.checkoutUrl) window.location.assign(withSandboxReturn(r.checkoutUrl, window.location.origin + detail)); else nav(detail, { replace: true, state: { justBooked: true } }); },
+            onError: () => { toast.error(t("checkout.depositFailed")); nav(detail, { replace: true, state: { justBooked: true } }); },
+          });
+          return;
+        }
+        nav(detail, { replace: true, state: { justBooked: true } });
+      },
       onError: async (e) => {
         if (e instanceof ApiError) {
           track("booking_failed", { code: e.code, providerId: b.doctor.id });

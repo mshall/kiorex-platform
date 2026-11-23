@@ -26,7 +26,7 @@ function Elapsed({ since }: { since: string }) {
 /** The mock video room (VIDEO_MODE=mock): no media leaves the browser. A real provider renders its own room `url` in an iframe. */
 export function TeleRoomPage() {
   const { id = "" } = useParams();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nav = useNavigate();
   const join = useJoinTeleSession();
   const end = useEndTeleSession();
@@ -47,6 +47,8 @@ export function TeleRoomPage() {
   if (join.error || !video) {
     const e = join.error;
     const msg = e instanceof ApiError ? (e.isFeatureDisabled ? t("unavailable.title") : e.status === 403 || e.status === 409 || e.status === 422 ? t("tele.errors.notOpen") : t("tele.errors.generic")) : t("tele.errors.generic");
+    // a closed / ended / not-yet-open room is an expected answer, not a failure: say so plainly instead of a generic "something went wrong" card
+    if (e instanceof ApiError && !e.isFeatureDisabled && (e.status === 403 || e.status === 409 || e.status === 422)) return <div className="mx-auto max-w-md space-y-4 py-10 text-center" data-testid="tele-not-open"><p className="text-lg font-semibold" role="status">{msg}</p><Link className="inline-flex min-h-11 items-center text-ocean underline" to={`/telemedicine/${id}`}>{t("tele.backToSession")}</Link></div>;
     return <div className="space-y-4"><ErrorState error={e} onRetry={() => join.mutate(id, { onSuccess: (r) => { setVideo(r.video); setSession(r.session); setJoined(Date.now()); } })} /><p className="text-center text-sm text-muted-foreground" role="status">{msg}</p><Link className="block text-center text-ocean underline" to={`/telemedicine/${id}`}>{t("tele.backToSession")}</Link></div>;
   }
   const mock = video.provider === "mock";
@@ -74,7 +76,7 @@ export function TeleRoomPage() {
         <Button variant={cam ? "outline" : "secondary"} size="lg" className="rounded-full" aria-pressed={!cam} onClick={() => setCam((c) => !c)} data-testid="tele-cam">{cam ? <Video aria-hidden="true" /> : <VideoOff aria-hidden="true" />}{cam ? t("tele.camOffAction") : t("tele.camOnAction")}</Button>
         <Button variant="destructive" size="lg" className="rounded-full" disabled={end.isPending} data-testid="tele-end" onClick={() => end.mutate(id, { onSuccess: () => { toast.success(t("tele.ended")); nav(`/telemedicine/${id}`, { replace: true }); }, onError: () => toast.error(t("tele.errors.generic")) })}><PhoneOff aria-hidden="true" />{t("tele.end")}</Button>
       </div>
-      <p className="text-center text-xs text-muted-foreground">{session ? t("tele.consultFee", { fee: formatMinor(session.consultFeeMinor, "en") }) : null} {t("tele.privacy")}</p>
+      <p className="text-center text-xs text-muted-foreground">{session && session.consultFeeMinor > 0 ? t("tele.consultFee", { fee: formatMinor(session.consultFeeMinor, i18n.language) }) : null} {t("tele.privacy")}</p>
     </div>
   );
 }

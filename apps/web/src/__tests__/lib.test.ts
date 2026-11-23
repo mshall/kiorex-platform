@@ -25,7 +25,7 @@ describe("emergency routing (KXMDS06)", () => {
 });
 
 describe("format helpers", () => {
-  it("formats the hold countdown", () => { expect(formatCountdown(300_000)).toBe("05:00"); expect(formatCountdown(61_500)).toBe("01:01"); expect(formatCountdown(-5)).toBe("00:00"); });
+  it("formats the hold countdown", () => { expect(formatCountdown(300_000)).toBe("05:00"); expect(formatCountdown(61_500)).toBe("01:01"); expect(formatCountdown(-5)).toBe("00:00"); expect(formatCountdown(3_661_000)).toBe("1:01:01"); expect(formatCountdown(157_490_000)).toBe("43:44:50"); });
   it("picks the language field with fallback", () => {
     expect(pick({ nameAr: "ليلى", nameEn: "Laila" }, "name", "ar")).toBe("ليلى");
     expect(pick({ nameAr: null, nameEn: "Laila" }, "name", "ar")).toBe("Laila");

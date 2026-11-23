@@ -28,7 +28,9 @@ export const pick = (o: object, base: string, lang: string): string => {
 
 export const formatCountdown = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000));
-  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  // an hour or more away (a video visit two days out): H:MM:SS, never "2624:50"
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}` : `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 };
 
 /** Money on the wire is integer minor units (piastres). */

@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User, WifiOff } from "lucide-react";
+import { Bell, CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import { MarketNotLiveBanner, MarketSelector } from "@/components/MarketSelector";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { PulseDivider } from "@/components/PulseLine";
 import { useAuth } from "@/auth/AuthProvider";
+import { useNotifications } from "@/api/engagement";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,18 @@ function OfflineBanner() {
   return <div role="status" className="flex items-center justify-center gap-2 bg-warning-soft px-4 py-2 text-center text-sm font-medium text-warning" data-testid="offline-banner"><WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />{t("p3.offlineBanner")}</div>;
 }
 
+/** Inbox bell with the unread count; polls lightly (KXM-NT-01). */
+function NotificationBell() {
+  const { t } = useTranslation();
+  const q = useNotifications();
+  const unread = (q.data ?? []).filter((n) => !n.readAt).length;
+  return (
+    <Button asChild variant="ghost" size="icon" className="relative" aria-label={unread ? t("notifications.bellUnread", { count: unread }) : t("notifications.title")}>
+      <Link to="/notifications" data-testid="notification-bell"><Bell aria-hidden="true" />{unread > 0 && <span className="absolute end-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pulse px-1 text-[10px] font-semibold leading-none text-white" data-testid="notification-count">{unread > 9 ? "9+" : unread}</span>}</Link>
+    </Button>
+  );
+}
+
 export function AppLayout() {
   const { t } = useTranslation();
   const { status, login, logout } = useAuth();
@@ -67,6 +80,7 @@ export function AppLayout() {
           </nav>
           <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
             <MarketSelector />
+            {signedIn && <NotificationBell />}
             <LanguageSwitcher />
             <ThemeToggle />
             {status !== "loading" && (signedIn ? (

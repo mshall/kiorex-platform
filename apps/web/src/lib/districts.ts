@@ -8,3 +8,11 @@ export const districtLabel = (code: string | null | undefined, lang: string): st
   if (lang.startsWith("ar") && AR_DISTRICTS[code]) return AR_DISTRICTS[code];
   return code.split("-").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
 };
+
+const AR_GOVERNORATES: Record<string, string> = { Cairo: "القاهرة", Giza: "الجيزة", Alexandria: "الإسكندرية", Dakahlia: "الدقهلية", Qalyubia: "القليوبية" };
+/** The API's masked one-line address summary is "<label> · <district-slug> · <governorate>": localise the district and governorate parts, never the user's own label. */
+export const localizeAddressSummary = (summary: string, lang: string): string => {
+  const [label, ...rest] = summary.split(" · ");
+  if (!rest.length) return summary;
+  return [label, ...rest.map((p) => (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p) ? districtLabel(p, lang) : lang.startsWith("ar") ? AR_GOVERNORATES[p] ?? p : p))].join(" · ");
+};

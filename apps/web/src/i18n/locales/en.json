@@ -330,6 +330,8 @@
     "cancel": "Cancel appointment",
     "windowClosed": "The free change window has closed. Please call the clinic for help.",
     "actionFailed": "That didn't work. Please try again or call the clinic.",
+    "rescheduleLimit": "You have reached the number of free reschedules. Please call the clinic.",
+    "notChangeable": "The booking can't be changed any more.",
     "pendingTitle": "Waiting for the clinic to confirm",
     "pendingBody": "This clinic confirms bookings manually. We'll notify you as soon as it does.",
     "pendingDue": "Expected by {{time}}.",
@@ -339,7 +341,7 @@
     "findAlternatives": "Find another time with this doctor",
     "cancelTitle": "Cancel this appointment?",
     "cancelBody": "The clinic will be told and the time will be released.",
-    "cancelRefund": "The clinic will be told and your deposit will be refunded automatically.",
+    "cancelRefund": "The clinic will be told. Your deposit is refunded automatically when you cancel within the free-cancellation window; closer to the visit it is kept (see the cancellation policy).",
     "keep": "Keep it",
     "confirmCancel": "Yes, cancel",
     "cancelled": "Appointment cancelled",
@@ -367,7 +369,13 @@
     "thanks": "Thank you for your review",
     "failed": "Couldn't submit your review",
     "notEligible": "This visit can't be reviewed",
-    "onlyCompleted": "Only completed visits can be reviewed."
+    "onlyCompleted": "Only completed visits can be reviewed.",
+    "updated": "Review updated",
+    "yours": "Your review of {{name}}",
+    "clinicReply": "Reply from the clinic:",
+    "editClosed": "The 7-day window to edit this review has closed.",
+    "update": "Save changes",
+    "view": "View or edit your review"
   },
   "account": {
     "title": "Account",
@@ -388,7 +396,17 @@
     "deleteWord": "DELETE",
     "typeToConfirm": "Type “{{word}}” to confirm",
     "deleteConfirm": "Delete permanently",
-    "deleteRequested": "Deletion requested"
+    "deleteRequested": "Deletion requested",
+    "editProfile": "Edit profile",
+    "nameEn": "Name (English)",
+    "nameAr": "Name (Arabic)",
+    "email": "Email",
+    "language": "Language",
+    "save": "Save",
+    "profileSaved": "Profile updated",
+    "profileFailed": "Could not update your profile. Please try again.",
+    "exportCta": "Download my data",
+    "exportReady": "Your data export was downloaded."
   },
   "consent": {
     "updated": "Updated {{date}}",
@@ -408,7 +426,8 @@
     "record_sharing": {
       "title": "Record sharing",
       "body": "Allow clinics to share visit summaries with your account."
-    }
+    },
+    "history": "History of your choices"
   },
   "sessions": {
     "current": "This device",
@@ -620,7 +639,22 @@
       "revoke": "Turn off and delete copies",
       "revoked": "Sharing turned off."
     },
-    "privacyNote": "Clinical content is encrypted and never used for analytics."
+    "privacyNote": "Clinical content is encrypted and never used for analytics.",
+    "lab": {
+      "ready": "Your lab result is ready",
+      "version": "Report version {{n}}",
+      "hint": "The values stay with the lab that ran your tests. Open the secure link to read or download the signed report.",
+      "open": "Open the secure result",
+      "noLink": "The lab has not shared a link yet. Please check again shortly."
+    },
+    "field": {
+      "summary": "Summary",
+      "doctor": "Doctor",
+      "diagnosis": "Diagnosis",
+      "plan": "Plan",
+      "notes": "Notes",
+      "medications": "Medicines"
+    }
   },
   "pharmacy": {
     "title": "Pharmacy",
@@ -1054,5 +1088,41 @@
     "missing_one": "{{count}} result has no map location. See it in the list.",
     "missing_other": "{{count}} results have no map location. See them in the list.",
     "unsupportedBrowser": "The interactive map needs WebGL, which is not available here. Browse by area instead."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "intro": "Booking confirmations, reminders, waitlist offers and results, all in one place.",
+    "linkHint": "Messages from Kiorex and your channels",
+    "empty": "No notifications yet",
+    "emptyHint": "Confirmations, reminders and results will appear here.",
+    "new": "New",
+    "open": "Open",
+    "markRead": "Mark as read",
+    "bellUnread": "Notifications, {{count}} unread",
+    "prefs": "How we reach you",
+    "prefsHint": "Turn a channel off, or set quiet hours when it stays silent (Cairo time).",
+    "prefSaved": "Preference saved",
+    "none": "None",
+    "quietStart": "Quiet hours start",
+    "quietEnd": "Quiet hours end",
+    "safetyNote": "Safety messages about a visit that is happening now are always delivered, whatever you choose here.",
+    "channel": {
+      "WHATSAPP": "WhatsApp",
+      "PUSH": "Push notifications",
+      "SMS": "Text messages (SMS)",
+      "EMAIL": "Email"
+    },
+    "kind": {
+      "BOOKING_CONFIRMED": "Booking confirmed",
+      "REMINDER_24H": "Appointment tomorrow",
+      "REMINDER_2H": "Appointment soon",
+      "WAITLIST_OFFER": "Waitlist offer",
+      "RECORD_SHARED": "New record in your vault",
+      "FOLLOW_UP_DUE": "Time for a follow-up",
+      "LAB_RESULT_RELEASED": "Lab result ready",
+      "PHARMACY_ORDER_READY": "Pharmacy order ready",
+      "TELEMEDICINE_STARTING": "Video visit starting",
+      "OTHER": "Message from Kiorex"
+    }
   }
 }

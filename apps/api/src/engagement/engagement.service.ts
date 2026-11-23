@@ -12,6 +12,17 @@ export const DEVICE_PLATFORMS = ['IOS', 'ANDROID', 'WEB'] as const;
 
 export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 
+/** Date-times travel through the app as ISO strings; a patient must read them in Cairo time and their own language ("Mon 23 Nov, 6:45 PM"), never "2026-11-23T16:45:00.000Z". */
+export function humanizeTimes(params: Record<string, unknown>, locale: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    out[k] = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) && !Number.isNaN(Date.parse(v))
+      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Africa/Cairo' }).format(new Date(v))
+      : v;
+  }
+  return out;
+}
+
 @Injectable()
 export class EngagementService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
@@ -56,7 +67,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
       const dedupeKey = `${o.dedupeKey}:${channel}`;
       const exists = await this.prisma.message.findUnique({ where: { dedupeKey } });
       if (exists) continue;
-      const m = await this.prisma.message.create({ data: { sub, bookingId: o.bookingId, channel, templateId: t.templateId, locale, params: { kind: o.kind, ...(o.params ?? {}) } as any, scheduledFor: o.scheduledFor ?? new Date(), dedupeKey } });
+      const m = await this.prisma.message.create({ data: { sub, bookingId: o.bookingId, channel, templateId: t.templateId, locale, params: { kind: o.kind, ...humanizeTimes(o.params ?? {}, locale) } as any, scheduledFor: o.scheduledFor ?? new Date(), dedupeKey } });
       created.push(m.id);
       if (m.scheduledFor <= new Date()) await this.deliver(m.id);
     }

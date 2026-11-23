@@ -38,6 +38,7 @@ const TeleRoomPage = lazy(() => import("@/pages/TeleSessionPage").then((m) => ({
 const AddressesPage = lazy(() => import("@/pages/AddressesPage"));
 const CarePlansPage = lazy(() => import("@/pages/CarePlansPage"));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 
 export const makeQueryClient = () =>
   new QueryClient({
@@ -86,6 +87,7 @@ export function AppRoutes() {
           <Route path="telemedicine/:id" element={guard(<TeleSessionPage />)} />
           <Route path="telemedicine/:id/room" element={guard(<TeleRoomPage />)} />
           <Route path="account" element={guard(<AccountPage />)} />
+          <Route path="notifications" element={guard(<NotificationsPage />)} />
           <Route path="account/addresses" element={guard(<AddressesPage />)} />
           <Route path="care-plans" element={guard(<CarePlansPage />)} />
           <Route path="*" element={<NotFoundPage />} />

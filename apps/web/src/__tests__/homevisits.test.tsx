@@ -42,7 +42,7 @@ describe("address book (KXMHV01)", () => {
   it("lists addresses masked by default and reveals doorstep lines only on request", async () => {
     server.use(http.get("/api/v1/me/addresses", () => HttpResponse.json([addr()])));
     renderApp(<AddressesPage />, { lang: "en" });
-    expect(await screen.findByTestId("address-summary")).toHaveTextContent("Home · nasr-city · cairo");
+    expect(await screen.findByTestId("address-summary")).toHaveTextContent("Home · Nasr City · Cairo");
     expect(screen.getByTestId("address-lines")).toHaveTextContent("••••");
     expect(screen.queryByText(/Tahrir/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByTestId("reveal-address"));
@@ -197,7 +197,7 @@ describe("care plans (KXMHV08, P3 draft)", () => {
     renderApp(<CarePlansPage />, { lang: "en" });
     await screen.findByRole("option", { name: /Nile Nursing/ });
     await userEvent.selectOptions(screen.getByTestId("plan-provider"), "n1");
-    await screen.findByRole("option", { name: /Home · nasr-city/ });
+    await screen.findByRole("option", { name: /Home · Nasr City/ });
     await userEvent.selectOptions(screen.getByTestId("plan-address"), "a1");
     await userEvent.click(screen.getByTestId("plan-submit"));
     const un = await screen.findByTestId("feature-unavailable");

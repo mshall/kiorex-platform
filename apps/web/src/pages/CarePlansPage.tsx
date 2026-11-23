@@ -1,4 +1,4 @@
-import { districtLabel } from "@/lib/districts";
+import { districtLabel, localizeAddressSummary } from "@/lib/districts";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -53,7 +53,7 @@ export default function CarePlansPage() {
             {nurses.data && nurses.data.items.length === 0 && <p className="text-xs text-muted-foreground">{t("hv.noNurses")}</p>}</div>
           <div className="space-y-1"><Label htmlFor="cp-addr">{t("hv.visitAddress")}</Label>
             <select id="cp-addr" value={addressId} onChange={(e) => setAddressId(e.target.value)} className="h-11 w-full rounded-xl border border-input bg-card px-3 text-sm" data-testid="plan-address">
-              <option value="">{t("hv.choose")}</option>{(addrs.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.label} · {a.summary}</option>)}</select>
+              <option value="">{t("hv.choose")}</option>{(addrs.data ?? []).map((a) => <option key={a.id} value={a.id}>{localizeAddressSummary(a.summary, i18n.language)}</option>)}</select>
             {addrs.data && addrs.data.length === 0 && <Link to="/account/addresses" className="text-xs text-ocean underline underline-offset-4">{t("hv.addAddress")}</Link>}</div>
           <FormField label={t("hv.planStart")}><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></FormField>
           <FormField label={t("hv.planNotes")}><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} /></FormField>

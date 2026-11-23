@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { localizeAddressSummary } from "@/lib/districts";
 import { toast } from "sonner";
 import { MapPin, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ export const covers = (districts: string[], district: string) => districts.lengt
 
 /** KXMHV02/03: choose the visit address from the address book. Only the masked one-line summary is shown here; doorstep lines never leave the address screen. */
 export function HomeVisitPicker({ coverageDistricts, value, onChange }: { coverageDistricts: string[]; value?: string; onChange: (a: Address | undefined) => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useAddresses();
   const confirm = useConfirmAddress();
   const list = useMemo(() => q.data ?? [], [q.data]);
@@ -35,7 +36,7 @@ export function HomeVisitPicker({ coverageDistricts, value, onChange }: { covera
         {list.map((a) => (
           <button key={a.id} type="button" role="radio" aria-checked={a.id === value} onClick={() => onChange(a)} data-testid="address-option"
             className={cn("flex min-h-14 items-start gap-2 rounded-xl border p-3 text-start", a.id === value ? "border-primary bg-accent" : "bg-card hover:bg-accent")}>
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ocean" aria-hidden="true" /><span className="text-sm"><b>{a.label}</b><br /><span className="text-muted-foreground">{a.summary}</span></span>
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ocean" aria-hidden="true" /><span className="text-sm"><b>{a.label}</b><br /><span className="text-muted-foreground">{localizeAddressSummary(a.summary, i18n.language)}</span></span>
           </button>
         ))}
       </div>

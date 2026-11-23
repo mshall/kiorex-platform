@@ -119,3 +119,16 @@ describe('webhooks through the normalized status', () => {
     expect(r).toEqual({ verified: true, applied: 1, ignored: 0 });
   });
 });
+
+import { humanizeTimes } from './engagement.service';
+describe('humanizeTimes (patient-facing date-times)', () => {
+  it('renders ISO date-times in Cairo time and the patient language, leaves everything else alone', () => {
+    const out = humanizeTimes({ doctor: 'د. تامر', time: '2026-11-23T16:45:00.000Z', until: '2026-11-23T17:00:00.000Z', count: 3 }, 'en');
+    expect(out.time).toMatch(/Mon/);
+    expect(out.time).toMatch(/6:45/);
+    expect(out.time).not.toMatch(/2026-11-23T/);
+    expect(out.doctor).toBe('د. تامر');
+    expect(out.count).toBe(3);
+    expect(humanizeTimes({ time: '2026-11-23T16:45:00.000Z' }, 'ar').time).not.toMatch(/T16/);
+  });
+});

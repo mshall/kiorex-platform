@@ -14,7 +14,10 @@ export class AuthSessionService {
   async touch(sub: string, sid: string, meta: { clientId?: string; device?: string; ip?: string }) {
     const existing = await this.prisma.authSession.findUnique({ where: { sid } });
     if (!existing) {
-      await this.prisma.authSession.upsert({ where: { sid }, create: { sid, sub, ...meta }, update: {} });
+      // The first screen fires several authenticated requests at once; upsert is not atomic, so the loser of the race hits P2002.
+      // The session row exists by then, which is all touch() needs, so swallow exactly that error instead of answering 500.
+      try { await this.prisma.authSession.upsert({ where: { sid }, create: { sid, sub, ...meta }, update: {} }); }
+      catch (e) { if ((e as { code?: string }).code !== 'P2002') throw e; }
     } else if (Date.now() - existing.lastSeenAt.getTime() > 60_000) {
       await this.prisma.authSession.update({ where: { sid }, data: { lastSeenAt: new Date() } });
     }
