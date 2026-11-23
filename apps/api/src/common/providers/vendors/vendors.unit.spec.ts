@@ -11,7 +11,7 @@ import { providerProblems, providerEnv } from '../env';
 import { HttpMessagingTransport, messagingMapping } from '../real-adapters';
 import { HttpPspAdapter } from '../../../pay/psp';
 import { PaymobPspAdapter, FawryPspAdapter, vendorPspProblems } from '../../../pay/psp.vendors';
-import { DailyVideoAdapter } from '../../../telemedicine/video';
+import { ClinicP2pVideoAdapter, MockVideoAdapter, videoAdapter } from '../../../telemedicine/video';
 import { AmazonMapsAdapter } from '../../../address/maps.adapter';
 import { OpenAiEuProvider, aiProblems } from '../../../ai-gateway/ai-gateway.service';
 import { providerStatus, verifyProviderStartup } from '../startup';
@@ -295,17 +295,14 @@ describe('InstaPay (acquirer gateway contract)', () => {
   });
 });
 
-describe('Video (Daily), Maps (Amazon Location), AI (OpenAI)', () => {
-  it('Daily: creates a private room (recording off) and mints an owner token for the clinician with an opaque identity', async () => {
-    const f = fake({ json: { name: 'kx-s1' } }, { json: { token: 'dly.tok' } });
-    const a = new DailyVideoAdapter({ VIDEO_MODE: 'real', VIDEO_API_KEY: 'dk', VIDEO_DOMAIN: 'kiorex.daily.co' }, f.fn as never);
-    expect(await a.createRoom('s1')).toEqual({ roomName: 'kx-s1' });
-    const t = await a.issueToken({ roomName: 'kx-s1', identity: 'Dr Real Name', role: 'clinician', ttlSeconds: 600 });
-    expect(t).toMatchObject({ token: 'dly.tok', url: 'https://kiorex.daily.co/kx-s1', provider: 'daily', role: 'clinician' });
-    expect(f.calls[0].body.properties).toMatchObject({ enable_recording: 'none', enable_chat: false, max_participants: 2 });
-    expect(f.calls[1].body.properties).toMatchObject({ room_name: 'kx-s1', is_owner: true, enable_recording: false });
-    expect(JSON.stringify(f.calls[1].body)).not.toContain('Dr Real Name');
-    expect(hdr(f.calls[0], 'authorization')).toBe('Bearer dk');
+describe('Video (no vendor: mock | clinic-p2p), Maps (Amazon Location), AI (OpenAI)', () => {
+  it('Video: only mock and clinic-p2p exist; the Clinic-owned mode never creates rooms or tokens (no media/vendor in Kiorex)', async () => {
+    const p2p = new ClinicP2pVideoAdapter();
+    expect(p2p).toMatchObject({ mode: 'clinic-p2p', name: 'clinic-p2p' });
+    await expect(p2p.createRoom()).rejects.toThrow('CLINIC_OWNS_CALL');
+    await expect(p2p.issueToken()).rejects.toThrow('CLINIC_OWNS_CALL');
+    expect((await new MockVideoAdapter().createRoom('s1')).roomName).toBe('kxmock-s1');
+    expect(videoAdapter().name).toBe('mock');
   });
   it('Amazon Location: geocodes with an API key, falls back to SigV4 with IAM keys', async () => {
     const f = fake({ json: { ResultItems: [{ Position: [31.2357, 30.0444], PlaceType: 'Locality' }] } });
@@ -338,7 +335,7 @@ describe('startup validation + reported modes', () => {
     expect(providerStatus({}).every((s) => s.ready)).toBe(true);
   });
   it.each([
-    [{ PUSH_MODE: 'real' }, 'PUSH_MODE=real needs'], [{ VIDEO_MODE: 'real' }, 'VIDEO_API_KEY'], [{ MAPS_MODE: 'real' }, 'MAPS_API_URL'], [{ AI_PROVIDER: 'openai-eu' }, 'OPENAI_EU_API_KEY'],
+    [{ PUSH_MODE: 'real' }, 'PUSH_MODE=real needs'], [{ VIDEO_MODE: 'real' }, 'VIDEO_MODE must be mock or clinic-p2p'], [{ MAPS_MODE: 'real' }, 'MAPS_API_URL'], [{ AI_PROVIDER: 'openai-eu' }, 'OPENAI_EU_API_KEY'],
     [{ PAYMENT_MODE: 'real', PAYMENT_PROVIDER: 'vendor' }, 'PAYMOB_SECRET_KEY'], [{ WHATSAPP_MODE: 'real', WHATSAPP_PROVIDER: 'meta' }, 'WHATSAPP_SENDER_ID'],
   ])('MODE=real with missing keys fails fast: %j', (env, needle) => {
     expect(() => verifyProviderStartup(env as Record<string, string>)).toThrow(needle);

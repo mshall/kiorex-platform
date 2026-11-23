@@ -54,6 +54,7 @@ export class WebhooksService {
     const data = env.data ?? {};
     const type = env.type;
     if (BOOKING_EVENTS.has(type)) return this.booking.applyEvent({ type, aggregateId: env.aggregateId, data });
+    if (type.toLowerCase().startsWith('telehealth.')) return this.booking.applyTelehealthEvent({ type, aggregateId: env.aggregateId, data }); // Clinic-owned P2P visit; unknown subtypes are ignored inside
     switch (type) {
       case 'SLOTS_CHANGED': // aggregateId = clinicianId
         this.catalog.invalidateSlots(data.clinicianId ?? env.aggregateId);

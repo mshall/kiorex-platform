@@ -58,6 +58,7 @@ const newFeatureDefaults = [
   http.get("/api/v1/lab/bookings", () => HttpResponse.json([])),
   http.get("/api/v1/telemedicine/providers", () => HttpResponse.json({ items: [] })),
   http.get("/api/v1/telemedicine/sessions", () => HttpResponse.json([])),
+  http.get("/api/v1/telemedicine/visits", () => HttpResponse.json([])),
   http.get("/api/v1/care-types", () => HttpResponse.json([
     { code: "DOCTORS", enabled: true, flag: null, labelEn: "Doctors", labelAr: "أطباء", reason: "ON", providerCount: 3 },
     { code: "PHYSIOTHERAPY", enabled: false, flag: "kiorex.category.physiotherapy", labelEn: "Physiotherapy", labelAr: "علاج طبيعي", reason: "AWAITING_GATE", providerCount: 0 },

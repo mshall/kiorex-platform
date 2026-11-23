@@ -11,7 +11,7 @@ export const fk = {
   sharing: ["record-sharing"] as const, prescriptions: ["prescriptions"] as const, followUps: ["follow-ups"] as const,
   pharmacies: ["pharmacies"] as const, rxSearch: (q: string, ph?: string) => ["rx-search", q, ph] as const, cart: ["cart"] as const, pOrders: ["pharmacy-orders"] as const, pOrder: (id: string) => ["pharmacy-order", id] as const,
   labTests: (q: string) => ["lab-tests", q] as const, labSlots: (labId: string, ct: string, tests: string) => ["lab-slots", labId, ct, tests] as const, labBookings: ["lab-bookings"] as const, labBooking: (id: string) => ["lab-booking", id] as const,
-  teleProviders: (q: string) => ["tele-providers", q] as const, teleSessions: ["tele-sessions"] as const, teleSession: (id: string) => ["tele-session", id] as const,
+  teleProviders: (q: string) => ["tele-providers", q] as const, teleSessions: ["tele-sessions"] as const, teleVisits: ["tele-visits"] as const, teleSession: (id: string) => ["tele-session", id] as const,
   markets: ["markets"] as const,
 };
 
@@ -124,6 +124,8 @@ export const useCancelLabBooking = () => {
 
 // ---- telemedicine (MOCK video provider) ----
 export const useTeleProviders = (q: string, enabled = true) => useQuery({ queryKey: fk.teleProviders(q), enabled, queryFn: () => send(api.GET("/api/v1/telemedicine/providers", { params: { query: (q.trim() ? { q: q.trim() } : {}) as { q: string; specialty: string } } })) });
+/** Clinic-owned video visits (bookings that carry a telehealth block): session state, join window and the patient join URL. */
+export const useTeleVisits = (enabled = true) => useQuery({ queryKey: fk.teleVisits, enabled, refetchInterval: 30_000, queryFn: () => send(api.GET("/api/v1/telemedicine/visits")) });
 export const useTeleSessions = (enabled = true) => useQuery({ queryKey: fk.teleSessions, enabled, queryFn: () => send(api.GET("/api/v1/telemedicine/sessions")) });
 export const useTeleSession = (id: string) => useQuery({ queryKey: fk.teleSession(id), enabled: !!id, refetchInterval: 10_000, queryFn: () => send(api.GET("/api/v1/telemedicine/sessions/{id}", { params: { path: { id } } })) });
 export const useCreateTeleSession = () => {

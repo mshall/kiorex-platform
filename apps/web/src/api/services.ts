@@ -20,6 +20,7 @@ export type LabSlot = S["LabSlotDto"];
 export type LabBooking = S["LabBookingDto"];
 export type TeleProvider = S["TeleProviderDto"];
 export type TeleSession = S["TeleSessionDto"];
+export type TeleVisit = S["TeleVisitDto"];
 export type DeliveryInput = S["DeliveryBody"];
 export type LabBookInput = S["LabBookBody"];
 export type ClientEvent = S["ClientEventBody"];
@@ -31,7 +32,7 @@ export const sk = {
   orders: ["pharmacy", "orders"] as const, order: (id: string) => ["pharmacy", "order", id] as const,
   labTests: (q: string, l?: string) => ["lab", "tests", q, l ?? ""] as const, labSlots: (l: string, c: string, f?: string, t?: string, tests?: string) => ["lab", "slots", l, c, f, t, tests] as const,
   labBookings: ["lab", "bookings"] as const, labBooking: (id: string) => ["lab", "booking", id] as const,
-  teleProviders: (s: string, q: string) => ["tele", "providers", s, q] as const, teleSessions: ["tele", "sessions"] as const, teleSession: (id: string) => ["tele", "session", id] as const,
+  teleProviders: (s: string, q: string) => ["tele", "providers", s, q] as const, teleSessions: ["tele", "sessions"] as const, teleVisits: ["tele", "visits"] as const, teleSession: (id: string) => ["tele", "session", id] as const,
   sponsored: ["sponsored"] as const,
 };
 
@@ -151,6 +152,8 @@ export const useCancelLab = () => {
 
 // ───── telemedicine ─────
 export const useTeleProviders = (specialty: string, q: string) => useQuery({ queryKey: sk.teleProviders(specialty, q), retry: 0, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/providers", { params: { query: { ...(specialty ? { specialty } : {}), ...(q ? { q } : {}) } } })) });
+/** Clinic-owned video visits (bookings carrying a telehealth block). The Clinic hosts the call; this is the join state + URL. */
+export const useTeleVisits = () => useQuery({ queryKey: sk.teleVisits, refetchInterval: 30_000, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/visits")) });
 export const useTeleSessions = () => useQuery({ queryKey: sk.teleSessions, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/sessions")) });
 export const useTeleSession = (id: string) => useQuery({ queryKey: sk.teleSession(id), enabled: !!id, refetchInterval: 15_000, queryFn: () => unwrap(api.GET("/api/v1/telemedicine/sessions/{id}", { params: { path: { id } } })) });
 export const useCreateTeleSession = () => {

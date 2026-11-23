@@ -75,6 +75,14 @@ export class HomeBookingDto {
   @ApiProperty({ type: VisitAddressViewDto, description: 'Masked 24 h after the visit (KXMHV10)' }) address!: VisitAddressViewDto;
   @ApiProperty({ type: HomeSafetyInfoDto }) safety!: HomeSafetyInfoDto;
 }
+export class BookingTelehealthDto {
+  @ApiProperty({ description: 'Clinic TelehealthSession id (the Clinic owns the call; Kiorex stores the id only)' }) sessionId!: string;
+  @ApiProperty({ enum: ['SCHEDULED', 'LIVE', 'ENDED', 'MISSED', 'CANCELLED', 'IN_PERSON'], description: 'IN_PERSON = the visit was changed to an in-person visit' }) state!: string;
+  @ApiProperty({ nullable: true, type: String, description: 'Patient join page on the Clinic (https://.../v/<token>). Null once the visit can no longer be joined. Open it in the browser, or in a WebView with camera/microphone permission in the app.' }) joinUrl!: string | null;
+  @ApiProperty({ format: 'date-time', description: 'Join window opens (Clinic value, else 15 min before the booking time)' }) opensAt!: string;
+  @ApiProperty({ format: 'date-time', description: 'Join window closes (Clinic value, else 2 h after the booking time)' }) closesAt!: string;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time', description: 'Previous start time when the visit was moved' }) movedFrom!: string | null;
+}
 export class BookingDto {
   @ApiProperty({ description: 'Kiorex booking id; also the Kiorly Idempotency-Key / externalReference' }) id!: string;
   @ApiProperty({ enum: ['INTENT', 'HELD', 'PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'NO_SHOW', 'CANCELLED', 'EXPIRED'] }) status!: string;
@@ -106,6 +114,7 @@ export class BookingDto {
   @ApiProperty({ nullable: true, type: String, description: 'District code only (KXMHV03: the address itself is under the patient)' }) visitDistrict!: string | null;
   @ApiProperty({ nullable: true, type: Number, description: 'Visit fee (home surcharge is separate, see home.fee)' }) feeMinor!: number | null;
   @ApiProperty({ type: HomeBookingDto, nullable: true, description: 'Present for HOME bookings' }) home!: HomeBookingDto | null;
+  @ApiProperty({ type: BookingTelehealthDto, nullable: true, description: 'Present for Clinic-owned video visits (kiorex.telemedicine)' }) telehealth!: BookingTelehealthDto | null;
 }
 export class DepositCheckoutDto {
   paymentId!: string;

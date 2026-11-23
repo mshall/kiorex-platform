@@ -802,7 +802,41 @@
     "remoteTile": "Doctor video",
     "selfTile": "Your video",
     "roomInfo": "Room",
-    "tokenExpires": "Session token expires {{time}}"
+    "tokenExpires": "Session token expires {{time}}",
+    "visit": {
+      "title": "Video visit",
+      "join": "Join video visit",
+      "opensIn": "You can join in",
+      "opensAt": "Joining opens {{time}}, 15 minutes before the visit.",
+      "opensNow": "The video room is open. Join when you are ready.",
+      "live": "Your doctor has started the visit. Join now.",
+      "closes": "Joining closes {{time}}.",
+      "windowPassed": "The joining window for this visit has passed.",
+      "ended": "This video visit has ended.",
+      "missed": "This video visit was missed. Contact the clinic to book another.",
+      "cancelled": "This video visit was cancelled.",
+      "inPerson": "This visit has been changed to an in-person visit at the clinic. You do not need to join a video call.",
+      "moved": "Moved from {{time}}. Your join link stays the same.",
+      "hint": "The call is private and goes directly between you and your doctor. Allow camera and microphone when asked.",
+      "noLink": "Your join link is not ready yet. It will appear here as soon as the clinic sends it.",
+      "openError": "We could not open the video visit. Please try again.",
+      "unavailable": "This video visit cannot be joined right now. Check the join window on your appointment.",
+      "permissionTitle": "Camera and microphone needed",
+      "permissionBody": "Allow camera and microphone for Kiorex in Settings to join the video visit, or open it in your browser.",
+      "openSettings": "Open settings",
+      "openBrowser": "Open in browser",
+      "phase": {
+        "inPerson": "In person",
+        "cancelled": "Cancelled",
+        "ended": "Ended",
+        "missed": "Missed",
+        "beforeWindow": "Not open yet",
+        "open": "Open now",
+        "live": "In progress",
+        "windowPassed": "Window passed",
+        "noLink": "Link pending"
+      }
+    }
   },
   "careType": {
     "title": "What care do you need?",

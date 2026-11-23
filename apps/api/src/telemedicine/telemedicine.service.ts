@@ -16,7 +16,9 @@ const TOKEN_TTL_S = 3600;
 /**
  * Telemedicine orchestration (KX-03 §08, launch-locked kiorex.telemedicine): matching + video session orchestration only.
  * The clinical record stays in Kiorly Clinic: this module stores session metadata (times, status) and nothing clinical.
- * Video provider sits behind VIDEO_MODE=mock|real; the mock issues fake room tokens.
+ * Video is NOT hosted by Kiorex: VIDEO_MODE=clinic-p2p means the Clinic owns the call (its own P2P WebRTC); Kiorex stores the booking's
+ * `telehealth` block (session id + patient join URL, see booking/telehealth.ts) and shows "Join video visit". VIDEO_MODE=mock (dev) keeps the
+ * Kiorex-owned fake session path below so local dev and e2e work end to end; it is dormant (409 CLINIC_OWNS_CALL) in clinic-p2p mode.
  */
 @Injectable()
 export class TelemedicineService {
@@ -27,8 +29,14 @@ export class TelemedicineService {
     const prov = (p.raw as any)?.provider ?? {};
     const declared = [prov.telemedicine, prov.videoConsultation, ...((prov.fees ?? []) as any[]).map((f) => (f.modality === 'VIDEO' || f.isVideo === true ? true : f.isVideo === false ? false : undefined))].filter((x) => x !== undefined);
     if (declared.length) return declared.some(Boolean);
-    return cfg().videoMode === 'mock';
+    return cfg().videoMode === 'mock'; // clinic-p2p: only doctors the Clinic declares video-capable are matched
   }
+
+  /** The Clinic owns the call: the Kiorex-owned session path (create / join / end) is dormant. Use bookings[].telehealth.joinUrl. */
+  private assertKiorexOwned() { if (this.video.mode === 'clinic-p2p') throw conflict('CLINIC_OWNS_CALL', 'This video visit is hosted by the clinic: open the join link on your booking'); }
+
+  /** Clinic-owned video visits of the patient (bookings carrying a telehealth block). */
+  visits(sub: string) { return this.booking.telehealthVisits(sub); }
 
   async match(q: { specialty?: string; q?: string }) {
     const res: any = await this.catalog.search({ specialty: q.specialty, q: q.q, sort: 'earliest', pageSize: 30 });
@@ -52,6 +60,7 @@ export class TelemedicineService {
 
   /** Create the video session for the patient's own CONFIRMED booking (idempotent per booking). */
   async create(sub: string, bookingId: string) {
+    this.assertKiorexOwned();
     const b = await this.booking.get(sub, bookingId);
     const existing = await this.prisma.teleSession.findUnique({ where: { bookingId } });
     if (existing) return this.present(existing);
@@ -84,6 +93,7 @@ export class TelemedicineService {
   }
 
   async patientJoin(sub: string, id: string): Promise<{ session: ReturnType<TelemedicineService['present']>; video: VideoToken }> {
+    this.assertKiorexOwned();
     const s = await this.owned(sub, id);
     await this.assertJoinable(s, sub);
     const token = await this.video.issueToken({ roomName: s.roomName, identity: `patient:${sub}`, role: 'patient', ttlSeconds: TOKEN_TTL_S });
@@ -92,6 +102,7 @@ export class TelemedicineService {
 
   /** Kiorly Clinic (product-key HMAC) joins by Kiorex booking id (= Kiorly externalReference). */
   async clinicianJoin(bookingId: string) {
+    this.assertKiorexOwned();
     const s = await this.prisma.teleSession.findUnique({ where: { bookingId } });
     if (!s) throw notFound('SESSION_NOT_FOUND', 'No video session for this booking');
     await this.assertJoinable(s);
@@ -109,8 +120,9 @@ export class TelemedicineService {
     const durationSec = s.startedAt ? Math.max(0, Math.round((endedAt.getTime() - s.startedAt.getTime()) / 1000)) : 0;
     return this.present(await this.prisma.teleSession.update({ where: { id: s.id }, data: { status: 'ENDED', endedAt, durationSec } }));
   }
-  async patientEnd(sub: string, id: string) { return this.end(await this.owned(sub, id)); }
+  async patientEnd(sub: string, id: string) { this.assertKiorexOwned(); return this.end(await this.owned(sub, id)); }
   async clinicianEnd(bookingId: string) {
+    this.assertKiorexOwned();
     const s = await this.prisma.teleSession.findUnique({ where: { bookingId } });
     if (!s) throw notFound('SESSION_NOT_FOUND', 'No video session for this booking');
     return this.end(s);

@@ -204,6 +204,11 @@ export class RecordsService implements OnModuleInit {
   static redactEnvelope(env: any) {
     const d = env?.data;
     if (!d) return env;
+    // Clinic telehealth: the patient join URL carries a bearer token: never stored in the receipt
+    if (/^telehealth\./i.test(env.type) || d.telehealth) {
+      const strip = (o: any) => (o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, /^(joinUrl|patientJoinUrl|token)$/i.test(k) && v ? '[REDACTED]' : v])) : o);
+      return { ...env, data: { ...strip(d), ...(d.telehealth ? { telehealth: strip(d.telehealth) } : {}) } };
+    }
     // Rev 2.3: addresses, coordinates and phones never reach the receipt store (the contract schemas forbid them; this is defence in depth)
     if (/^(HOME_VISIT_|SAFETY_ALERT_|CARE_PLAN_)/.test(env.type)) return { ...env, data: Object.fromEntries(Object.entries(d).filter(([k]) => !/^(visitAddress|address|line1|lat|lng|latitude|longitude|geostamp|phone|mobile|email)$/i.test(k))) };
     // KNLAB01: demographics, identifiers and tube labels are relayed to the lab and never stored in the receipt

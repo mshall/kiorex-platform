@@ -2821,8 +2821,25 @@ export interface paths {
         };
         get: operations["TelemedicineController_list"];
         put?: never;
-        /** Create the video session for your confirmed booking (idempotent per booking) */
+        /** DEV/mock only: create a Kiorex-owned mock video session for your confirmed booking (409 CLINIC_OWNS_CALL when VIDEO_MODE=clinic-p2p) */
         post: operations["TelemedicineController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemedicine/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your Clinic-owned video visits (VIDEO_MODE=clinic-p2p): session id, state, join window and the patient join URL */
+        get: operations["TelemedicineController_visits"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4342,6 +4359,32 @@ export interface components {
             address: components["schemas"]["VisitAddressViewDto"];
             safety: components["schemas"]["HomeSafetyInfoDto"];
         };
+        BookingTelehealthDto: {
+            /** @description Clinic TelehealthSession id (the Clinic owns the call; Kiorex stores the id only) */
+            sessionId: string;
+            /**
+             * @description IN_PERSON = the visit was changed to an in-person visit
+             * @enum {string}
+             */
+            state: "SCHEDULED" | "LIVE" | "ENDED" | "MISSED" | "CANCELLED" | "IN_PERSON";
+            /** @description Patient join page on the Clinic (https://.../v/<token>). Null once the visit can no longer be joined. Open it in the browser, or in a WebView with camera/microphone permission in the app. */
+            joinUrl: string | null;
+            /**
+             * Format: date-time
+             * @description Join window opens (Clinic value, else 15 min before the booking time)
+             */
+            opensAt: string;
+            /**
+             * Format: date-time
+             * @description Join window closes (Clinic value, else 2 h after the booking time)
+             */
+            closesAt: string;
+            /**
+             * Format: date-time
+             * @description Previous start time when the visit was moved
+             */
+            movedFrom: string | null;
+        };
         BookingDto: {
             /** @description Kiorex booking id; also the Kiorly Idempotency-Key / externalReference */
             id: string;
@@ -4387,6 +4430,8 @@ export interface components {
             feeMinor: number | null;
             /** @description Present for HOME bookings */
             home: components["schemas"]["HomeBookingDto"] | null;
+            /** @description Present for Clinic-owned video visits (kiorex.telemedicine) */
+            telehealth: components["schemas"]["BookingTelehealthDto"] | null;
             providerId: string;
             clinicId: string;
             typeId: string;
@@ -5599,6 +5644,22 @@ export interface components {
              * @description Join window opens (15 min before the visit)
              */
             joinOpensAt: string;
+        };
+        TeleVisitDoctorDto: {
+            nameEn: string | null;
+            nameAr: string | null;
+            specialty: string | null;
+        };
+        TeleVisitDto: {
+            bookingId: string;
+            /** @enum {string} */
+            status: "INTENT" | "HELD" | "PENDING_CLINIC" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "EXPIRED";
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            doctor: components["schemas"]["TeleVisitDoctorDto"] | null;
+            telehealth: components["schemas"]["BookingTelehealthDto"];
         };
         VideoTokenDto: {
             token: string;
@@ -9954,6 +10015,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeleSessionDto"];
+                };
+            };
+        };
+    };
+    TelemedicineController_visits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeleVisitDto"][];
                 };
             };
         };

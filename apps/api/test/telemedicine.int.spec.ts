@@ -1,3 +1,4 @@
+import { TelemedicineService } from '../src/telemedicine/telemedicine-public';
 import { createCtx, productHeaders, seedProvider, TestCtx } from './harness';
 
 describe('telemedicine orchestration (launch-locked kiorex.telemedicine; MOCK video provider)', () => {
@@ -16,7 +17,7 @@ describe('telemedicine orchestration (launch-locked kiorex.telemedicine; MOCK vi
     await c.http().put('/api/v1/admin/flags/kiorex.telemedicine/gate').set(admin).send({ gateId: 'TEST-FIXTURE-GATE', approver: 'test fixture', approvedOn: '2027-01-01', documentUrl: 'https://example.test/fixture' }).expect(200);
     process.env.QUIET_HOURS_START = '0'; process.env.QUIET_HOURS_END = '0';
   });
-  afterEach(() => { delete process.env.TELE_CONSULT_FEE_MINOR; delete process.env.VIDEO_MODE; });
+  afterEach(() => { delete process.env.TELE_CONSULT_FEE_MINOR; });
   const clinic = (path: string) => productHeaders('kiorly-clinic', path, undefined, 'POST', '');
   const clinicPost = (path: string) => c.http().post(path).set(clinic(path));
 
@@ -73,10 +74,17 @@ describe('telemedicine orchestration (launch-locked kiorex.telemedicine; MOCK vi
     await c.http().post(`/api/v1/telemedicine/sessions/${s.id}/join`).set(auth).expect(409);
   });
 
-  it('VIDEO_MODE=real without a configured provider fails closed (503), mock is the default', async () => {
-    process.env.VIDEO_MODE = 'real'; // adapter is chosen at module init: assert the contract of the placeholder directly
-    const { UnconfiguredVideoAdapter } = await import('../src/telemedicine/video');
-    await expect(new UnconfiguredVideoAdapter().createRoom()).rejects.toThrow(/NEEDS_HUMAN/);
+  it('video has no vendor: VIDEO_MODE real is rejected at startup, clinic-p2p adapter creates no rooms/tokens and the Kiorex-owned path is dormant', async () => {
+    const { ClinicP2pVideoAdapter, videoAdapter } = await import('../src/telemedicine/video');
+    const { verifyProviderStartup } = await import('../src/common/providers/startup');
+    expect(() => verifyProviderStartup({ VIDEO_MODE: 'real' })).toThrow('VIDEO_MODE must be mock or clinic-p2p');
+    expect(verifyProviderStartup({ VIDEO_MODE: 'clinic-p2p' })).toContain('video=real');
+    await expect(new ClinicP2pVideoAdapter().createRoom()).rejects.toThrow(/CLINIC_OWNS_CALL/);
+    expect(videoAdapter().mode).toBe('mock'); // default
+    // dormant in clinic-p2p: the service refuses before touching the adapter
+    const svc = c.get(TelemedicineService) as any;
+    const prev = svc.video; svc.video = new ClinicP2pVideoAdapter();
+    try { await c.http().post('/api/v1/telemedicine/sessions').set(auth).send({ bookingId: bk }).expect(409).expect((r) => expect(r.body.code).toBe('CLINIC_OWNS_CALL')); } finally { svc.video = prev; }
   });
 
   it('flag OFF: no new sessions, existing visit can still be joined/ended', async () => {

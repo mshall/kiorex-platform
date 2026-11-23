@@ -48,6 +48,7 @@ function Shell() {
         <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="visit-status/[token]" options={{ title: t("hv.familyScreenTitle"), headerShown: false }} />
         <Stack.Screen name="telemedicine/room/[id]" options={{ title: t("tele.roomTitle") }} />
+        <Stack.Screen name="telemedicine/join/[bookingId]" options={{ title: t("tele.visit.title") }} />
         <Stack.Screen name="+not-found" options={{ title: t("notFound.title") }} />
       </Stack>
     </>

@@ -244,6 +244,7 @@ async function route(method: string, path: string, url: URL, body: Any): Promise
       if (!t) { t = { id: nid("kx_ts"), bookingId: b.id, providerId: b.providerId, status: "SCHEDULED", scheduledStartsAt: b.startsAt, startedAt: null, endedAt: null, durationSec: null, consultFeeMinor: 0, joinOpensAt: iso(-60_000) /* demo: room already open */ }; feat.tele.push(t); }
       return json(201, t);
     }
+    if (method === "GET" && path === "/telemedicine/visits") return json(200, []); // Clinic-owned visits come from the Clinic; the mock stack uses the mock session path below
     if (method === "GET" && path === "/telemedicine/sessions") return json(200, feat.tele);
     if ((m = path.match(/^\/telemedicine\/sessions\/([^/]+)(?:\/(join|end))?$/))) {
       const t = feat.tele.find((x) => x.id === m![1]); if (!t) return err(404, "SESSION_NOT_FOUND", "Session not found");

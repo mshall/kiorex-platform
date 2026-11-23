@@ -5,14 +5,11 @@ export const PSP_VENDOR_MODE = (env: Env = process.env) => (env.PAYMENT_PROVIDER
 /** PSPs switched on in vendor mode (comma list; default paymob). */
 export const enabledPsps = (env: Env = process.env): PspName[] => ((env.PAYMENT_ENABLED_PSPS ?? 'paymob').split(',').map((s) => s.trim().toLowerCase()).filter((s): s is PspName => s === 'paymob' || s === 'fawry' || s === 'instapay'));
 
+/** Video is never a paid vendor: VIDEO_MODE is mock (dev) or clinic-p2p (the Clinic owns the call). Legacy `real` / vendor keys are rejected so no one wires a paid SDK by accident. */
 export const videoProblems = (env: Env = process.env): string[] => {
-  if (env.VIDEO_MODE !== 'real') return [];
-  const out: string[] = [];
-  if ((env.VIDEO_PROVIDER ?? 'daily').toLowerCase() !== 'daily') out.push('VIDEO_PROVIDER must be daily');
-  for (const k of ['VIDEO_API_KEY', 'VIDEO_DOMAIN']) if (!(env[k] ?? '').trim()) out.push(`${k} is required when VIDEO_MODE=real`);
-  const u = env.VIDEO_API_URL ?? 'https://api.daily.co/v1';
-  try { if (new URL(u).protocol !== 'https:' && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(u)) out.push('VIDEO_API_URL must be https'); } catch { out.push('VIDEO_API_URL is not a valid URL'); }
-  return out;
+  const m = (env.VIDEO_MODE ?? 'mock').trim().toLowerCase();
+  if (m === 'mock' || m === 'clinic-p2p') return [];
+  return [`VIDEO_MODE must be mock or clinic-p2p (got "${env.VIDEO_MODE}"): Kiorex uses no video vendor, the Clinic owns the call`];
 };
 
 export const mapsProblems = (env: Env = process.env): string[] => {

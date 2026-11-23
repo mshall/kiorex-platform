@@ -26,7 +26,7 @@ NestJS 12 + Prisma 7 modular monolith (`apps/api`), PostgreSQL 16+, port 4000, p
 | waitlist | patient waitlist + SLOTS_CHANGED autofill offers | KXM-BK-12 |
 | channels | WhatsApp booking state machine over the messaging hub | KXM-BK-11 |
 | pharmacy / lab | launch-locked verticals: cart/order intent/payment, draft partner HMAC clients, partner events, take-rate ledger | KX-03 §08 |
-| telemedicine | launch-locked session orchestration, `VideoAdapter` (mock) | KX-03 §08 |
+| telemedicine | launch-locked; Clinic-owned P2P video visits (`booking.telehealth`, join link, state events); `VideoAdapter` mock for dev only, no video vendor | KX-03 §08 |
 | outbox | transactional outbox + 5 s dispatcher, backoff, DEAD after 8, replay | KX-09 §01 |
 
 Rule (tested in `module-boundaries.unit.spec.ts`): modules import each other only via `*-public.ts`; shared kernel = `common/`, `prisma/`.

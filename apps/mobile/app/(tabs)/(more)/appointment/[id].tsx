@@ -8,6 +8,7 @@ import { SlotButton, VerifiedBadge } from "@/components/bits";
 import { Icon } from "@/components/Icon";
 import { ChannelBadge } from "@/components/feature";
 import { useCreateTeleSession } from "@/api/features";
+import { TelehealthVisit } from "@/components/TelehealthVisit";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { Badge, Banner, Button, Card, Row, Screen, Sheet, T } from "@/components/ui";
@@ -83,6 +84,8 @@ function AppointmentDetailBody() {
         ) : null}
         {msg ? <Banner tone="warning" body={msg} testID="appointment-message" /> : null}
 
+        {b.telehealth ? <TelehealthVisit bookingId={b.id} telehealth={b.telehealth} /> : null}
+
         {b.depositStatus !== "NONE" ? (
           <Card style={{ gap: 8 }} testID="deposit-card">
             <Row gap={8}><Icon name="card" color={colors.ink2} /><T variant="h2">{t("appointment.deposit")}</T></Row>
@@ -115,7 +118,7 @@ function AppointmentDetailBody() {
           </Row>
         ) : null}
 
-        {b.status === "CONFIRMED" && teleOn.enabled && !home ? <Button testID="video-visit" icon="video" variant="secondary" loading={tele.isPending} title={t("tele.startVideo")} onPress={() => tele.mutate(b.id, { onSuccess: (s) => router.push(`/telemedicine/room/${s.id}`), onError: () => setMsg(t("tele.notVideoVisit")) })} /> : null}
+        {b.status === "CONFIRMED" && teleOn.enabled && !home && !b.telehealth ? <Button testID="video-visit" icon="video" variant="secondary" loading={tele.isPending} title={t("tele.startVideo")} onPress={() => tele.mutate(b.id, { onSuccess: (s) => router.push(`/telemedicine/room/${s.id}`), onError: () => setMsg(t("tele.notVideoVisit")) })} /> : null}
         {b.status === "CONFIRMED" ? <Button testID="reschedule" variant="secondary" title={t("appointment.reschedule")} onPress={() => { setPick1(undefined); setSheet("reschedule"); }} /> : null}
         {active ? <Button testID="cancel-booking" variant="danger" title={t("appointment.cancel")} onPress={() => setSheet("cancel")} /> : null}
         {canReview(b, reviewedIds) && reviewsOn.enabled ? <Button testID="leave-review" icon="star" title={t("appointment.leaveReview")} onPress={() => router.push(`/review/${b.id}`)} /> : null}

@@ -2,6 +2,8 @@ import type { components } from "./schema";
 export type CareType = components["schemas"]["CareTypeDto"]["code"];
 export type ServiceLocation = "IN_CLINIC" | "HOME";
 export type HomeBooking = components["schemas"]["HomeBookingDto"];
+/** Clinic-owned video visit carried by a booking (the Clinic hosts the P2P call; this is only the session id, state, window and patient join URL). */
+export type Telehealth = components["schemas"]["BookingTelehealthDto"];
 // UI view-models (bilingual names, whole-EGP money) built by ./adapters.ts from the GENERATED response types in ./schema.d.ts.
 // These are presentation models, not hand-typed copies of the wire format.
 export interface Specialty { code: string; nameAr: string; nameEn: string }
@@ -36,7 +38,7 @@ export interface Booking {
   deposit: { requiredEgp: number; paidEgp: number; status: DepositStatus; payUrl: string | null };
   cancellation: { reason: string | null; byClinic: boolean; canCancel: boolean; canReschedule: boolean; windowClosesAt: string | null };
   timeline: { status: BookingStatus; at: string; note: string | null }[]; reviewable: boolean; reviewed: boolean;
-  serviceLocation: ServiceLocation; careType: CareType | null; visitDistrict: string | null; home: HomeBooking | null;
+  serviceLocation: ServiceLocation; careType: CareType | null; visitDistrict: string | null; home: HomeBooking | null; telehealth: Telehealth | null;
 }
 export interface SearchResponse { items: DoctorSummary[]; total: number; page: number; pageSize: number; emergency: boolean; noMarketLive?: boolean }
 

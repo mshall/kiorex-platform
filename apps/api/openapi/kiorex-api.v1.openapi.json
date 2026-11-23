@@ -6232,7 +6232,7 @@
             }
           }
         },
-        "summary": "Create the video session for your confirmed booking (idempotent per booking)",
+        "summary": "DEV/mock only: create a Kiorex-owned mock video session for your confirmed booking (409 CLINIC_OWNS_CALL when VIDEO_MODE=clinic-p2p)",
         "tags": [
           "telemedicine"
         ]
@@ -6255,6 +6255,31 @@
             }
           }
         },
+        "tags": [
+          "telemedicine"
+        ]
+      }
+    },
+    "/api/v1/telemedicine/visits": {
+      "get": {
+        "operationId": "TelemedicineController_visits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeleVisitDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Your Clinic-owned video visits (VIDEO_MODE=clinic-p2p): session id, state, join window and the patient join URL",
         "tags": [
           "telemedicine"
         ]
@@ -11154,6 +11179,56 @@
           "safety"
         ]
       },
+      "BookingTelehealthDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Clinic TelehealthSession id (the Clinic owns the call; Kiorex stores the id only)"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "LIVE",
+              "ENDED",
+              "MISSED",
+              "CANCELLED",
+              "IN_PERSON"
+            ],
+            "description": "IN_PERSON = the visit was changed to an in-person visit"
+          },
+          "joinUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Patient join page on the Clinic (https://.../v/<token>). Null once the visit can no longer be joined. Open it in the browser, or in a WebView with camera/microphone permission in the app."
+          },
+          "opensAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Join window opens (Clinic value, else 15 min before the booking time)"
+          },
+          "closesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Join window closes (Clinic value, else 2 h after the booking time)"
+          },
+          "movedFrom": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "Previous start time when the visit was moved"
+          }
+        },
+        "required": [
+          "sessionId",
+          "state",
+          "joinUrl",
+          "opensAt",
+          "closesAt",
+          "movedFrom"
+        ]
+      },
       "BookingDto": {
         "type": "object",
         "properties": {
@@ -11324,6 +11399,16 @@
               }
             ]
           },
+          "telehealth": {
+            "nullable": true,
+            "description": "Present for Clinic-owned video visits (kiorex.telemedicine)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BookingTelehealthDto"
+              }
+            ]
+          },
           "providerId": {
             "type": "string"
           },
@@ -11366,6 +11451,7 @@
           "visitDistrict",
           "feeMinor",
           "home",
+          "telehealth",
           "providerId",
           "clinicId",
           "typeId",
@@ -15765,6 +15851,78 @@
           "durationSec",
           "consultFeeMinor",
           "joinOpensAt"
+        ]
+      },
+      "TeleVisitDoctorDto": {
+        "type": "object",
+        "properties": {
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "specialty": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "nameEn",
+          "nameAr",
+          "specialty"
+        ]
+      },
+      "TeleVisitDto": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "INTENT",
+              "HELD",
+              "PENDING_CLINIC",
+              "CONFIRMED",
+              "CHECKED_IN",
+              "COMPLETED",
+              "NO_SHOW",
+              "CANCELLED",
+              "EXPIRED"
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "doctor": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeleVisitDoctorDto"
+              }
+            ]
+          },
+          "telehealth": {
+            "$ref": "#/components/schemas/BookingTelehealthDto"
+          }
+        },
+        "required": [
+          "bookingId",
+          "status",
+          "startsAt",
+          "endsAt",
+          "doctor",
+          "telehealth"
         ]
       },
       "VideoTokenDto": {

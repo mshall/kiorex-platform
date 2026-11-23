@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BookingTelehealthDto } from '../booking/booking-public';
 
 export class TeleSessionDto {
   @ApiProperty() id!: string;
@@ -29,3 +30,17 @@ export class TeleProviderDto {
   @ApiProperty({ type: 'array', items: { type: 'object', properties: { startsAt: { type: 'string' }, endsAt: { type: 'string' } } }, nullable: true }) nextSlots!: { startsAt: string; endsAt: string }[] | null;
 }
 export class TeleProvidersResultDto { @ApiProperty({ type: [TeleProviderDto] }) items!: TeleProviderDto[] }
+
+export class TeleVisitDoctorDto {
+  @ApiProperty({ nullable: true, type: String }) nameEn!: string | null;
+  @ApiProperty({ nullable: true, type: String }) nameAr!: string | null;
+  @ApiProperty({ nullable: true, type: String }) specialty!: string | null;
+}
+export class TeleVisitDto {
+  @ApiProperty() bookingId!: string;
+  @ApiProperty({ enum: ['INTENT', 'HELD', 'PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'NO_SHOW', 'CANCELLED', 'EXPIRED'] }) status!: string;
+  @ApiProperty({ format: 'date-time' }) startsAt!: string;
+  @ApiProperty({ format: 'date-time' }) endsAt!: string;
+  @ApiProperty({ type: TeleVisitDoctorDto, nullable: true }) doctor!: TeleVisitDoctorDto | null;
+  @ApiProperty({ type: BookingTelehealthDto }) telehealth!: BookingTelehealthDto;
+}

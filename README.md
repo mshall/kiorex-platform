@@ -203,7 +203,8 @@ Full list in [`apps/api/.env.example`](apps/api/.env.example) (values are dev de
 | `OIDC_ISSUER`, `OIDC_AUDIENCE` | Passport issuer and expected audience | local Passport, `kiorex-api` |
 | `KIORLY_BASE_URL`, `KIORLY_CLIENT_KEY/SECRET`, `KIORLY_WEBHOOK_SECRET` | Kiorly marketplace client and webhook secret | dev values from workspace `INTEGRATION.md` |
 | `PSP_MODE` | `sandbox-fake` locally; real PSPs need onboarding | `sandbox-fake` |
-| `MESSAGING_MODE`, `VIDEO_MODE`, `STORAGE_MODE`, `AI_PROVIDER` | Provider adapters | `mock` / `fake` |
+| `MESSAGING_MODE`, `STORAGE_MODE`, `AI_PROVIDER` | Provider adapters | `mock` / `fake` |
+| `VIDEO_MODE` | `mock` (dev) or `clinic-p2p` (the Clinic owns the call; no video vendor or key) | `mock` |
 | `FIELD_ENCRYPTION_KEY` | AES-256-GCM key for national ID at rest | dev only; KMS in production |
 | `DEPOSIT_DEFAULT_MINOR`, `PSP_FEE_BPS`, `*_TAKE_RATE_BPS` | Pricing placeholders (NEEDS_HUMAN) | `0` |
 | `DATABASE_SSL_CA` (or `PGSSLROOTCERT`) | Path to the RDS CA bundle PEM; used with `sslmode=verify-full` in staging/production | unset (no TLS locally) |

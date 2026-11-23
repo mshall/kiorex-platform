@@ -4,7 +4,7 @@ import { IsString } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { forbidden } from '../common/errors';
 import { ProductKeyGuard, RequiresFlag } from '../control-plane/control-plane-public';
-import { TeleProvidersResultDto, TeleSessionDto, VideoTokenDto } from './tele.dto';
+import { TeleProvidersResultDto, TeleSessionDto, TeleVisitDto, VideoTokenDto } from './tele.dto';
 import { TelemedicineService } from './telemedicine.service';
 
 export class CreateSessionBody { @ApiProperty({ description: 'Your CONFIRMED booking id (kx_bk_...) with a video-capable doctor' }) @IsString() bookingId!: string }
@@ -23,9 +23,12 @@ export class TelemedicineController {
   @ApiOkResponse({ type: TeleProvidersResultDto })
   providers(@Query('specialty') specialty?: string, @Query('q') q?: string) { return this.svc.match({ specialty, q }); }
 
-  @Post('telemedicine/sessions') @HttpCode(201) @RequiresFlag('kiorex.telemedicine') @ApiOperation({ summary: 'Create the video session for your confirmed booking (idempotent per booking)' })
+  @Post('telemedicine/sessions') @HttpCode(201) @RequiresFlag('kiorex.telemedicine') @ApiOperation({ summary: 'DEV/mock only: create a Kiorex-owned mock video session for your confirmed booking (409 CLINIC_OWNS_CALL when VIDEO_MODE=clinic-p2p)' })
   @ApiCreatedResponse({ type: TeleSessionDto })
   create(@CurrentUser() u: AuthUser, @Body() b: CreateSessionBody) { return this.svc.create(u.sub, b.bookingId); }
+
+  @Get('telemedicine/visits') @ApiOperation({ summary: 'Your Clinic-owned video visits (VIDEO_MODE=clinic-p2p): session id, state, join window and the patient join URL' })
+  @ApiOkResponse({ type: TeleVisitDto, isArray: true }) visits(@CurrentUser() u: AuthUser) { return this.svc.visits(u.sub); }
 
   @Get('telemedicine/sessions') @ApiOkResponse({ type: TeleSessionDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
   @Get('telemedicine/sessions/:id') @ApiOkResponse({ type: TeleSessionDto }) get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.get(u.sub, id); }

@@ -40,7 +40,7 @@ Vertical payments are `PaymentIntent.purpose = PHARMACY | LAB` with `orderRef`; 
 
 ## Telemedicine
 
-Matching (`GET /telemedicine/providers`) + session orchestration (`POST /telemedicine/sessions` for a CONFIRMED booking; join window opens 15 min before; patient `join`; Kiorly Clinic `POST /telemedicine/clinician/bookings/{bookingId}/token|end` with product-key HMAC). Video provider behind `VideoAdapter` (`VIDEO_MODE=mock` issues fake tokens). Only session metadata is stored; the clinical record stays in Kiorly Clinic.
+Matching (`GET /telemedicine/providers`) + **Clinic-owned video visits**: the Clinic hosts the peer-to-peer call (no media or vendor in Kiorex); a booking whose confirmation or event carries a `telehealth` block (`sessionId`, patient `joinUrl` = Clinic `/v/<token>`, join window) is stored on the booking, exposed as `booking.telehealth` and `GET /telemedicine/visits`, and shown as "Join video visit" (web: new tab; mobile: in-app WebView with camera + microphone). Clinic `telehealth.session.*` events update the state (LIVE / ENDED / MISSED / CANCELLED / IN_PERSON); unknown subtypes are ignored. Dev/mock path (`VIDEO_MODE=mock`): `POST /telemedicine/sessions` for a CONFIRMED booking creates a Kiorex-owned fake session (join window opens 15 min before; patient `join`; Kiorly Clinic `POST /telemedicine/clinician/bookings/{bookingId}/token|end` with product-key HMAC); in `VIDEO_MODE=clinic-p2p` that path answers `409 CLINIC_OWNS_CALL`. Only session metadata is stored; the clinical record stays in Kiorly Clinic.
 
 ## Records & continuity (KXM-RC-01..03)
 

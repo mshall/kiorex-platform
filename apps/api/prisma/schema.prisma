@@ -273,6 +273,7 @@ model BookingIntent {
   arrivedAt             DateTime?
   abortedAt             DateTime?
   carePlanId            String?
+  telehealth            Json? // Clinic-owned video visit (P2P WebRTC): {sessionId, joinUrl, opensAt, closesAt, state, movedFrom}; see src/booking/telehealth.ts. Kiorex mints nothing.
 
   events BookingEvent[]
 

@@ -114,8 +114,18 @@ Selection is by env only; the generic gateway contract above stays the default f
 | SMS | Twilio (form body, `X-Twilio-Signature`) | `SMS_PROVIDER=twilio` | `vendors/twilio-sms.ts`, `sms.twilio.mapping.ts` |
 | PUSH | FCM HTTP v1 + Expo push (by token shape) | `PUSH_MODE=real` | `vendors/push.ts`, `messaging/adapters.ts` `PushAdapter` |
 | PAYMENT | Paymob (intention API, HMAC-SHA512 query), Fawry (FawryPay redirect, callback v2 SHA-256), InstaPay (acquirer gateway contract) | `PAYMENT_PROVIDER=vendor` + `PAYMENT_ENABLED_PSPS` | `vendors/paymob.ts`, `vendors/fawry.ts`, `pay/psp.vendors.ts` |
-| VIDEO | Daily.co REST | `VIDEO_MODE=real` | `vendors/video-daily.ts`, `telemedicine/video.ts` |
+| VIDEO | **None (no vendor).** Clinic-owned peer-to-peer WebRTC: the Clinic hosts the call, Kiorex stores the booking's `telehealth` block (session id + patient join URL) | `VIDEO_MODE=mock` (dev) \| `clinic-p2p` | `telemedicine/video.ts`, `booking/telehealth.ts` |
 | MAPS | Amazon Location Places v2 | `MAPS_MODE=real` | `vendors/maps-amazon.ts`, `address/maps.adapter.ts` |
 | AI | OpenAI-compatible chat completions (EU) | `AI_PROVIDER=openai-eu` | `ai-gateway/ai-gateway.service.ts` |
+
+### Video: Clinic-owned peer-to-peer (no vendor)
+
+Founder decision 23 Nov 2026: video-call cost must be the minimum, so Kiorex uses **no video vendor, SDK or key** (an earlier Daily.co adapter was removed). The call is the Clinic's own peer-to-peer WebRTC (`clinics-management`, branch `feature/telehealth`): the Clinic owns the `TelehealthSession`, signalling and the join page `/v/:token`; media flows directly between patient and doctor and never through our servers.
+
+- `VIDEO_MODE=mock` (default, dev/e2e): the old Kiorex-owned fake session path (`POST /telemedicine/sessions`, `mockvid.*` tokens) still works end to end.
+- `VIDEO_MODE=clinic-p2p`: the Clinic owns the call. Kiorex never creates rooms/tokens (the dormant session endpoints answer `409 CLINIC_OWNS_CALL`); it stores `telehealth {sessionId, joinUrl, opensAt?, closesAt?}` from the booking confirmation/event and shows "Join video visit". Any other `VIDEO_MODE` value (including the removed `real`) refuses to boot. `VIDEO_API_KEY`, `VIDEO_DOMAIN`, `VIDEO_PROVIDER`, `VIDEO_API_URL` no longer exist.
+- **Cost model:** the only thing that costs money is TURN relay traffic for calls that cannot connect directly (strict NAT / corporate networks). Cloudflare Realtime TURN includes the first 1000 GB per month free; STUN is free; most calls are direct and use no relay. Cloudflare TURN credentials are issued by the **Clinic** backend, so Kiorex holds no key. The Cloudflare account/key is a Clinic NEEDS_HUMAN item (the only video item in the go-live checklist).
+- Patient surfaces: web (new tab to the Clinic page) and the Expo app (in-app WebView, `react-native-webview`, with camera/microphone permission handling: iOS `NSCameraUsageDescription` / `NSMicrophoneUsageDescription` + `allowsInlineMediaPlayback`; Android `CAMERA` / `RECORD_AUDIO` requested up front and mapped by the WebView `onPermissionRequest`).
+- Events: Kiorex applies `telehealth.session.created|link_regenerated|rescheduled|started|ended|missed|cancelled|converted` and ignores any other `telehealth.*` type; the join URL is a bearer token and is redacted from the webhook receipt store. The contract schemas are not yet published in `kiorex-contracts`; the code follows `_docs/telehealth/TELEHEALTH_PLAN.md` and is written to tolerate extra or missing fields.
 
 Environment checks live in `common/providers/env.ts` (messaging) and `common/providers/problems.ts` (payment, video, maps, AI); `verifyProviderStartup()` runs both before the server listens and `providerStatus()` feeds `/health/ready` + `/health/providers`. The full variable / secret / console checklist is "Provider go-live checklist" in [NEEDS_HUMAN.md](NEEDS_HUMAN.md).

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useTeleProviders, useTeleSessions } from "@/api/features";
+import { useTeleProviders, useTeleSessions, useTeleVisits } from "@/api/features";
+import { TelehealthVisit } from "@/components/TelehealthVisit";
 import { useAuth } from "@/auth/AuthProvider";
 import { FlagScreen } from "@/components/feature";
 import { Avatar } from "@/components/bits";
@@ -23,9 +24,16 @@ function Body() {
   const emergency = isEmergencyQuery(q);
   const providers = useTeleProviders(emergency ? "" : q);
   const sessions = useTeleSessions(status === "signedIn");
+  const visits = useTeleVisits(status === "signedIn");
   return (
     <Screen testID="telemedicine" style={{ gap: 12 }}>
       <Banner tone="ink" body={t("tele.mockNote")} />
+      {status === "signedIn" && visits.data?.length ? (
+        <View style={{ gap: 8 }} testID="tele-visits">
+          <T variant="h2" accessibilityRole="header">{t("tele.visit.title")}</T>
+          {visits.data.map((v) => <View key={v.bookingId} style={{ gap: 6 }}><T variant="small" muted>{v.doctor ? pick(v.doctor, "name", lang) : ""} · {formatDay(v.startsAt, lang)} {formatTime(v.startsAt, lang)}</T><TelehealthVisit bookingId={v.bookingId} telehealth={v.telehealth} /></View>)}
+        </View>
+      ) : null}
       {status === "signedIn" ? (
         <View style={{ gap: 8 }}>
           <T variant="h2" accessibilityRole="header">{t("tele.mySessions")}</T>

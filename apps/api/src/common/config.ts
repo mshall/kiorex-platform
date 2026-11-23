@@ -48,7 +48,8 @@ export const cfg = () => ({
   homeGateMinProviders: num('HOME_GATE_MIN_PROVIDERS', 50),
   /** Overall mock|real: `real` as soon as ANY of SMS_MODE / EMAIL_MODE / WHATSAPP_MODE (or legacy MESSAGING_MODE) is real. Per-channel modes: providerEnv(kind). See Docs/PROVIDERS.md. */
   messagingMode: (['SMS', 'EMAIL', 'WHATSAPP'].some((k) => providerEnv(k as 'SMS').mode === 'real') || env('MESSAGING_MODE') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
-  videoMode: (env('VIDEO_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
+  /** mock (dev) | clinic-p2p (the Clinic owns the call: P2P WebRTC; Kiorex stores the join link only). No paid video vendor. */
+  videoMode: (env('VIDEO_MODE', 'mock') === 'clinic-p2p' ? 'clinic-p2p' : 'mock') as 'mock' | 'clinic-p2p',
   storageMode: (env('STORAGE_MODE', 'local') === 's3' ? 's3' : 'local') as 'local' | 's3',
   storageLocalDir: env('STORAGE_LOCAL_DIR', '.data/vault'),
   vaultMaxBytes: num('VAULT_MAX_BYTES', 5 * 1024 * 1024),

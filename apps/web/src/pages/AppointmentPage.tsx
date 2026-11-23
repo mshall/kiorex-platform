@@ -26,6 +26,7 @@ import { PageHeader, Stepper } from "@/components/kit";
 import { ConfirmedMoment } from "@/components/ConfirmedMoment";
 import { DateBlock } from "@/components/AppointmentTicket";
 import { DoctorAvatar } from "@/components/DoctorAvatar";
+import { TelehealthVisit } from "@/components/TelehealthVisit";
 
 export default function AppointmentPage() {
   const { id = "" } = useParams();
@@ -113,6 +114,8 @@ export default function AppointmentPage() {
           {active && <Button variant="outline" onClick={() => downloadIcs(`kiorex-${b.id}.ics`, buildIcs({ id: b.id, title: pick(b.doctor, "name", "en"), location: pick(b.clinic, "address", "en"), startsAt: b.startsAt, endsAt: b.endsAt }))}><CalendarPlus aria-hidden="true" />{t("appointment.addToCalendar")}</Button>}
         </div>
       </section>
+
+      {b.telehealth && <TelehealthVisit telehealth={b.telehealth} />}
 
       {b.deposit.status !== "NONE" && (
         <section className="kx-card space-y-2 p-5" data-testid="deposit-status">

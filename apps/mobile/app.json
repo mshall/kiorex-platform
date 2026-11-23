@@ -12,7 +12,9 @@
       "bundleIdentifier": "com.kiorex.app",
       "supportsTablet": true,
       "infoPlist": {
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "NSCameraUsageDescription": "Kiorex uses the camera so your doctor can see you during a video visit. The call is private and not recorded.",
+        "NSMicrophoneUsageDescription": "Kiorex uses the microphone so your doctor can hear you during a video visit. The call is private and not recorded."
       }
     },
     "android": {
@@ -20,7 +22,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#3730A3"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "bundler": "metro",

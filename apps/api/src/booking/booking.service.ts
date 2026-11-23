@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { BookingIntent, Provider } from '../prisma/generated/client';
+import { BookingIntent, Prisma, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';
@@ -15,6 +15,7 @@ import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddressService, VisitAddress } from '../address/address-public';
 import { addressForLog } from '../common/district';
+import { isTelehealthEvent, parseTelehealth, presentTelehealth, safeJoinUrl, TELE_EVENT_STATE, TeleBlock, TeleState } from './telehealth';
 import { BookingStatus, fromKiorlyStatus, HomeState, isHomeEvent, isTerminal, nextHomeState, nextStatus } from './booking-state';
 
 export interface CreateIntentInput {
@@ -107,6 +108,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       timeline, createdAt: b.createdAt,
       serviceLocation: b.serviceLocation, careType: b.careType, visitDistrict: b.visitDistrict, feeMinor: b.feeMinor,
       home: b.serviceLocation === 'HOME' ? await this.presentHome(b, p) : null,
+      telehealth: presentTelehealth((b.telehealth as TeleBlock | null) ?? null, b),
     };
   }
 
@@ -318,7 +320,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const b = await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } });
     const target = fromKiorlyStatus(data.status) ?? 'CONFIRMED';
     if (data.patientId) await this.patients.linkKiorlyPatient({ sub: b.sub, dependantId: b.dependantId ?? undefined, clinicId: b.clinicId, kiorlyPatientId: data.patientId, evidence: o.evidence });
-    const patch = { kiorlyAppointmentId: data.appointmentId ?? b.kiorlyAppointmentId, kiorlyPatientId: data.patientId ?? b.kiorlyPatientId, confirmationDueAt: data.marketplaceConfirmationDueAt ? new Date(data.marketplaceConfirmationDueAt) : null, callState: 'NONE', failureCode: null };
+    const patch = { kiorlyAppointmentId: data.appointmentId ?? b.kiorlyAppointmentId, kiorlyPatientId: data.patientId ?? b.kiorlyPatientId, confirmationDueAt: data.marketplaceConfirmationDueAt ? new Date(data.marketplaceConfirmationDueAt) : null, callState: 'NONE', failureCode: null, ...this.teleFromBookingData(b, data) };
     if (b.status === 'HELD' || b.status === 'INTENT') {
       const moved = await this.move(b, target === 'CONFIRMED' || target === 'PENDING_CLINIC' ? target : 'CONFIRMED', patch);
       if (moved) await this.sideEffects(moved, moved.status === 'CONFIRMED' ? 'APPOINTMENT_CONFIRMED' : 'PENDING', {});
@@ -390,6 +392,11 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     return Promise.all(rows.map((b) => this.present(b)));
   }
   async get(sub: string, id: string) { return this.present(await this.owned(sub, id)); }
+  /** The patient's Clinic-owned video visits (bookings that carry a telehealth block), newest first. */
+  async telehealthVisits(sub: string) {
+    const rows = await this.prisma.bookingIntent.findMany({ where: { sub, telehealth: { not: Prisma.DbNull } }, orderBy: { startsAt: 'desc' }, take: 50 });
+    return Promise.all(rows.map(async (b) => { const p = await this.provider(b); return { bookingId: b.id, status: b.status, startsAt: b.startsAt, endsAt: b.endsAt, doctor: p ? { nameEn: p.nameEn, nameAr: p.nameAr, specialty: p.specialty } : null, telehealth: presentTelehealth((b.telehealth as TeleBlock | null) ?? null, b)! }; }));
+  }
 
   async ics(sub: string, id: string): Promise<string> {
     const b = await this.owned(sub, id);
@@ -408,18 +415,77 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     if (!b) return 'UNKNOWN_BOOKING';
     const meta = { ...(ev.data.metadata ?? {}), ...ev.data };
     if (isHomeEvent(ev.type)) return this.applyHomeEvent(b, ev.type, meta);
+    const beforeTele = b; b = await this.applyTelehealthPayload(b, meta); const teleApplied = b !== beforeTele;
     if (ev.type === 'RESCHEDULED' || ev.type === 'APPOINTMENT_RESCHEDULED') {
       if (b.status !== 'CONFIRMED' && b.status !== 'PENDING_CLINIC') return 'IGNORED';
       const startsAt = meta.startsAt ? new Date(meta.startsAt) : b.startsAt;
       const endsAt = meta.endsAt ? new Date(meta.endsAt) : new Date(startsAt.getTime() + (b.endsAt.getTime() - b.startsAt.getTime()));
-      const upd = await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { startsAt, endsAt, version: { increment: 1 } } });
+      const tb = (b.telehealth as TeleBlock | null) ?? null;
+      const moved = tb && tb.state !== 'IN_PERSON' && startsAt.getTime() !== b.startsAt.getTime() ? { telehealth: { ...tb, movedFrom: tb.movedFrom ?? b.startsAt.toISOString() } as any } : {};
+      const upd = await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { startsAt, endsAt, ...moved, version: { increment: 1 } } });
       await this.ev(b.id, 'WEBHOOK', { type: ev.type, startsAt, endsAt });
       await this.sideEffects(upd, 'RESCHEDULED', {});
       return 'APPLIED';
     }
     const to = nextStatus(b.status as BookingStatus, ev.type);
-    if (!to) { await this.ev(b.id, 'WEBHOOK', { type: ev.type, ignored: true }); return 'IGNORED'; }
+    if (!to) { await this.ev(b.id, 'WEBHOOK', { type: ev.type, ignored: !teleApplied }); return teleApplied ? 'APPLIED' : 'IGNORED'; }
     await this.applyStatus(b, to, ev.type, meta);
+    return 'APPLIED';
+  }
+
+  // ───────────── Clinic-owned telehealth (P2P): store the block the Clinic sends; Kiorex mints nothing ─────────────
+
+  /** `data.telehealth` on a booking read (GET /bookings/:ref) or event. Absent key => no change; null => changed to in-person. */
+  private teleFromBookingData(b: BookingIntent, data: any): { telehealth?: any } {
+    if (!data || typeof data !== 'object' || !('telehealth' in data)) return {};
+    const prev = (b.telehealth as TeleBlock | null) ?? null;
+    if (data.telehealth === null) return prev ? { telehealth: { ...prev, joinUrl: null, state: 'IN_PERSON' } } : {};
+    const nb = parseTelehealth(data.telehealth, prev);
+    return nb ? { telehealth: { ...nb, state: prev && prev.state !== 'IN_PERSON' ? prev.state : 'SCHEDULED' } } : {};
+  }
+
+  private async applyTelehealthPayload(b: BookingIntent, meta: Record<string, any>): Promise<BookingIntent> {
+    let patch = this.teleFromBookingData(b, meta);
+    const prev = (b.telehealth as TeleBlock | null) ?? null;
+    if (!patch.telehealth && prev && prev.state !== 'IN_PERSON' && typeof meta.serviceLocation === 'string' && !['VIDEO', 'TELEHEALTH'].includes(meta.serviceLocation.toUpperCase())) patch = { telehealth: { ...prev, joinUrl: null, state: 'IN_PERSON' } }; // changed to in-person
+    if (!patch.telehealth) return b;
+    await this.ev(b.id, 'TELEHEALTH', { state: patch.telehealth.state, sessionId: patch.telehealth.sessionId }); // never the join URL
+    return this.prisma.bookingIntent.update({ where: { id: b.id }, data: { telehealth: patch.telehealth } });
+  }
+
+  /**
+   * Clinic `telehealth.session.*` events (plan section 4). Unknown event types and unknown bookings are acknowledged and ignored; states only move
+   * forward (a late `started` after `ended` is dropped). The payload may be flat or nested under `telehealth`.
+   */
+  async applyTelehealthEvent(ev: { type: string; aggregateId?: string; data: Record<string, any> }): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_BOOKING'> {
+    const kind = TELE_EVENT_STATE[ev.type.toLowerCase()];
+    if (!kind || !isTelehealthEvent(ev.type)) return 'IGNORED';
+    const d = ev.data ?? {};
+    const sessionId: string | undefined = d.telehealth?.sessionId ?? d.sessionId ?? ev.aggregateId;
+    const ref: string | undefined = d.externalReference ?? d.metadata?.externalReference;
+    let b = ref ? await this.prisma.bookingIntent.findUnique({ where: { id: ref } }) : null;
+    if (!b && d.appointmentId) b = await this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: d.appointmentId } });
+    if (!b && sessionId) b = await this.prisma.bookingIntent.findFirst({ where: { telehealth: { path: ['sessionId'], equals: sessionId } } });
+    if (!b) return 'UNKNOWN_BOOKING';
+    const prev = (b.telehealth as TeleBlock | null) ?? null;
+    const src = d.telehealth && typeof d.telehealth === 'object' ? { ...d, ...d.telehealth } : d;
+    let next: TeleBlock | null = null;
+    if (kind === 'SCHEDULED' || kind === 'WINDOW' || kind === 'LINK') {
+      const pb = parseTelehealth(src, prev);
+      if (!pb) return 'IGNORED';
+      if (prev && prev.state !== 'SCHEDULED' && prev.state !== 'IN_PERSON' && kind !== 'SCHEDULED') return 'IGNORED'; // closed visit: window/link updates are stale
+      const moved = kind === 'WINDOW' && d.startsAt && new Date(d.startsAt).getTime() !== b.startsAt.getTime() ? (prev?.movedFrom ?? b.startsAt.toISOString()) : prev?.movedFrom ?? null;
+      next = { ...pb, state: kind === 'SCHEDULED' && (!prev || prev.state === 'IN_PERSON') ? 'SCHEDULED' : prev?.state ?? 'SCHEDULED', movedFrom: moved };
+      if (kind === 'LINK') next.joinUrl = safeJoinUrl(src.joinUrl ?? src.patientJoinUrl) ?? prev?.joinUrl ?? null;
+    } else {
+      if (!prev) return 'IGNORED'; // a state change for a visit we never saw: wait for `created` / the confirmation
+      const from = prev.state;
+      const ok: Record<TeleState, TeleState[]> = { SCHEDULED: ['LIVE', 'ENDED', 'MISSED', 'CANCELLED', 'IN_PERSON'], LIVE: ['ENDED', 'CANCELLED', 'IN_PERSON'], ENDED: [], MISSED: ['IN_PERSON'], CANCELLED: [], IN_PERSON: [] };
+      if (!ok[from].includes(kind)) { await this.ev(b.id, 'TELEHEALTH', { type: ev.type, ignored: true, from }); return 'IGNORED'; }
+      next = { ...prev, state: kind, joinUrl: kind === 'LIVE' ? prev.joinUrl : null };
+    }
+    await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { telehealth: next as any, version: { increment: 1 } } });
+    await this.ev(b.id, 'TELEHEALTH', { type: ev.type, state: next.state, sessionId: next.sessionId });
     return 'APPLIED';
   }
 
@@ -616,6 +682,8 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
         const { data } = await this.kiorly.getBooking(b.id, b.clinicId);
         const target = fromKiorlyStatus(data.status);
         if (data.appointmentId && !b.kiorlyAppointmentId) await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { kiorlyAppointmentId: data.appointmentId, kiorlyPatientId: data.patientId ?? undefined, callState: 'NONE' } });
+        const tp = this.teleFromBookingData(b, data);
+        if (tp.telehealth) await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { telehealth: tp.telehealth } });
         if (target && target !== b.status) {
           if (b.status === 'HELD') await this.adopt(b.id, data, { evidence: 'PHONE' });
           else await this.applyStatus(b, target, 'RECONCILE', { cancelledBy: data.cancelledBy, cancellationReason: data.cancellationReason, depositRefundable: data.depositRefundable });

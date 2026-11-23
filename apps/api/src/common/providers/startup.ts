@@ -22,7 +22,7 @@ export function providerStatus(env: Env = process.env): ProviderStatus[] {
     msg('SMS'), msg('EMAIL'), msg('WHATSAPP'),
     { provider: 'push', mode: pushMode(env), vendor: pushMode(env) === 'real' ? 'fcm+expo' : 'mock', ready: pushMode(env) === 'mock' || pushProblems(env).length === 0 },
     { provider: 'payment', mode: pay.mode, vendor: pay.mode === 'real' ? (vendorPay ? 'vendor' : 'gateway') : 'mock', ready: pay.mode === 'mock' || (vendorPay ? vendorPspProblems(env).length === 0 : providerProblems('PAYMENT', env).length === 0) },
-    { provider: 'video', mode: env.VIDEO_MODE === 'real' ? 'real' : 'mock', vendor: env.VIDEO_MODE === 'real' ? 'daily' : 'mock', ready: videoProblems(env).length === 0 },
+    { provider: 'video', mode: env.VIDEO_MODE === 'clinic-p2p' ? 'real' : 'mock', vendor: env.VIDEO_MODE === 'clinic-p2p' ? 'clinic-p2p' : 'mock', ready: videoProblems(env).length === 0 },
     { provider: 'maps', mode: env.MAPS_MODE === 'real' ? 'real' : 'mock', vendor: env.MAPS_MODE === 'real' ? 'amazon-location' : 'mock', ready: mapsProblems(env).length === 0 },
     { provider: 'ai', mode: (env.AI_PROVIDER ?? 'fake') === 'fake' ? 'mock' : 'real', vendor: env.AI_PROVIDER ?? 'fake', ready: aiProblems(env).length === 0 },
   ];

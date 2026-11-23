@@ -86,7 +86,7 @@ export function mapBooking(b: S["BookingDto"]): Booking {
     cancellation: { reason: b.cancellationReason ?? null, byClinic: b.cancelledBy === "CLINIC", canCancel: ACTIVE.includes(status), canReschedule: ACTIVE.includes(status), windowClosesAt: null },
     timeline: (b.timeline ?? []).map((e) => ({ status: e.status as BookingStatus, at: iso2(e.at), note: null })),
     reviewable: status === "COMPLETED", reviewed: false,
-    serviceLocation: b.serviceLocation ?? "IN_CLINIC", careType: b.careType ?? null, visitDistrict: b.visitDistrict ?? null, home: b.home ?? null,
+    serviceLocation: b.serviceLocation ?? "IN_CLINIC", careType: b.careType ?? null, visitDistrict: b.visitDistrict ?? null, home: b.home ?? null, telehealth: b.telehealth ?? null,
   };
 }
 const iso2 = (v: unknown) => new Date(v as string).toISOString();

@@ -319,8 +319,9 @@
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/v1/telemedicine/providers` | Matching: video-capable doctors for a specialty/keyword (emergency language returns 123 guidance, no results) |
-| POST | `/api/v1/telemedicine/sessions` | Create the video session for your confirmed booking (idempotent per booking) |
+| POST | `/api/v1/telemedicine/sessions` | DEV/mock only: create a Kiorex-owned mock video session for your confirmed booking (409 CLINIC_OWNS_CALL when VIDEO_MODE=clinic-p2p) |
 | GET | `/api/v1/telemedicine/sessions` |  |
+| GET | `/api/v1/telemedicine/visits` | Your Clinic-owned video visits (VIDEO_MODE=clinic-p2p): session id, state, join window and the patient join URL |
 | GET | `/api/v1/telemedicine/sessions/{id}` |  |
 | POST | `/api/v1/telemedicine/sessions/{id}/join` | Join: issues a room token (MOCK video provider: fake token). Room opens 15 min before the visit |
 | POST | `/api/v1/telemedicine/sessions/{id}/end` |  |

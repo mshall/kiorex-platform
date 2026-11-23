@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { ApiError } from "@/api/errors";
 import { specialtyLabel } from "@/lib/specialties";
 import { useBookings, useSpecialties } from "@/api/hooks";
-import { useCreateTeleSession, useTeleProviders, useTeleSessions, type TeleSession } from "@/api/services";
+import { useCreateTeleSession, useTeleProviders, useTeleSessions, useTeleVisits, type TeleSession } from "@/api/services";
+import { TelehealthVisit } from "@/components/TelehealthVisit";
 import { CardSkeleton, EmptyState, ErrorState, MockNotice, UnavailableState } from "@/components/states";
 import { useFeature } from "@/hooks/useFeature";
 import { formatDateTime, pick } from "@/lib/format";
@@ -32,13 +33,28 @@ export default function TelemedicinePage() {
   const providers = useTeleProviders(specialty, term);
   const sessions = useTeleSessions();
   const bookings = useBookings();
+  const visits = useTeleVisits();
   const create = useCreateTeleSession();
-  const withSession = new Set((sessions.data ?? []).map((s) => s.bookingId));
+  const withSession = new Set([...(sessions.data ?? []).map((s) => s.bookingId), ...(visits.data ?? []).map((v) => v.bookingId)]);
   const eligible = (bookings.data ?? []).filter((b) => b.status === "CONFIRMED" && !withSession.has(b.id));
   return (
     <div className="space-y-6">
       <PageHeader icon={<Video />} title={t("tele.title")} hint={t("tele.intro")} />
       <StatusBanner tone="danger" role="note" icon={<PhoneCall />} data-testid="tele-emergency" className="items-center">{t("tele.emergency")}</StatusBanner>
+
+      {!!visits.data?.length && (
+        <section className="space-y-3" aria-labelledby="visits-h" data-testid="tele-visits">
+          <h2 id="visits-h" className="text-xl">{t("tele.visit.title")}</h2>
+          <ul className="space-y-3">
+            {visits.data.map((v) => (
+              <li key={v.bookingId} className="space-y-2">
+                <Link to={`/appointments/${v.bookingId}`} className="flex items-center gap-2 text-sm text-ocean underline underline-offset-4" data-testid="tele-visit-row"><CalendarCheck className="h-4 w-4" aria-hidden="true" />{pick(v.doctor ?? {}, "name", lang)} · {formatDateTime(v.startsAt, lang)}</Link>
+                <TelehealthVisit telehealth={v.telehealth} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="space-y-3" aria-labelledby="sess-h">
         <h2 id="sess-h" className="text-xl">{t("tele.mySessions")}</h2>
@@ -58,7 +74,7 @@ export default function TelemedicinePage() {
             <h3 className="text-lg">{t("tele.eligibleTitle")}</h3><p className="text-sm text-muted-foreground">{t("tele.eligibleHint")}</p>
             <ul className="space-y-2">{eligible.map((b) => (
               <li key={b.id} className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm"><CalendarCheck className="me-1 inline h-4 w-4" aria-hidden="true" />{pick(b.doctor, "name", lang)} · {formatDateTime(b.startsAt, lang)}</span>
-                <Button size="sm" disabled={create.isPending || !feat.enabled} data-testid="tele-create" onClick={() => create.mutate(b.id, { onSuccess: () => toast.success(t("tele.created")), onError: (e) => toast.error(e instanceof ApiError && e.isFeatureDisabled ? t("unavailable.title") : t("tele.errors.generic")) })}>{t("tele.createSession")}</Button></li>
+                <Button size="sm" disabled={create.isPending || !feat.enabled} data-testid="tele-create" onClick={() => create.mutate(b.id, { onSuccess: () => toast.success(t("tele.created")), onError: (e) => toast.error(e instanceof ApiError && e.isFeatureDisabled ? t("unavailable.title") : e instanceof ApiError && e.code === "CLINIC_OWNS_CALL" ? t("tele.errors.clinicOwned") : t("tele.errors.generic")) })}>{t("tele.createSession")}</Button></li>
             ))}</ul>
           </div>
         )}
