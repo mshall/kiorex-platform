@@ -30,6 +30,13 @@ export const PROFESSION_BADGES: Record<string, { en: string; ar: string }> = {
 };
 const SYNC_CURSOR = 'catalog.sync.cursor';
 
+/** Bounded fan-out: a page of search results asks Kiorly for slots per provider; unbounded parallelism queued behind the clinic's auth and timed out under load. */
+async function mapLimit<T, R>(xs: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(xs.length); let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, xs.length) }, async () => { while (next < xs.length) { const i = next++; out[i] = await fn(xs[i]!); } }));
+  return out;
+}
+
 @Injectable()
 export class CatalogService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('catalog');
@@ -298,7 +305,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       }
       visible.push(r);
     }
-    const items = await Promise.all(visible.map(async (r) => {
+    const items = await mapLimit(visible, 8, async (r) => {
       const loc: ServiceLocation = location ?? (r.serviceLocations.includes('IN_CLINIC') || !r.serviceLocations.length ? 'IN_CLINIC' : 'HOME');
       const { typeId, fee } = this.typeFor(r, loc);
       let nextSlots: Slot[] | null = null;
@@ -321,7 +328,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
         ...(r.serviceLocations.includes('IN_CLINIC') && r.latitude != null && r.longitude != null ? { latitude: r.latitude, longitude: r.longitude } : {}), bookable: marketplaceOn && !!typeId && (loc === 'IN_CLINIC' || homeOn), defaultTypeId: typeId ?? null, defaultServiceLocation: loc, nextSlots, slotsUnavailable, sponsored: false,
         ...(marketplaceOn ? {} : { clinicPhone: (r.raw as any)?.clinic?.phone ?? null }),
       };
-    }));
+    });
     let out = items;
     if (q.nextAvailable) {
       const end = new Date();
