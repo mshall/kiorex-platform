@@ -13,6 +13,10 @@ import { useState } from "react";
 import { IconTile, PageHeader, Row, StatusBanner, StatusChip, type Tone } from "@/components/kit";
 
 const STEPS = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "READY", "DISPENSED"];
+/** Pickup and delivery orders say different things for READY / DISPENSED (ready for pickup vs ready for delivery; collected vs delivered). */
+const statusPrefix = (o: { deliveryMethod: string }) => (o.deliveryMethod === "DELIVERY" ? "pharmacy.statusDelivery" : "pharmacy.statusPickup");
+export const statusKey = (o: { status: string; deliveryMethod: string }) => (STEPS.includes(o.status) ? `${statusPrefix(o)}.${o.status}` : `pharmacy.status.${o.status}`);
+const REJECT_CODES = ["OUT_OF_STOCK", "RX_INVALID", "RX_UNKNOWN", "RX_REVOKED", "RX_NO_LONGER_SHARED", "CANNOT_DELIVER", "PHARMACY_REJECTED", "PHARMACY_EXPIRED", "PHARMACY_CANCELLED", "FEATURE_DISABLED"];
 export const orderTone = (s: string): Tone => (s === "DISPENSED" || s === "READY" || s === "RESULT_RELEASED" ? "success" : s === "REJECTED" || s === "CANCELLED" ? "danger" : s === "PARTIAL_REVIEW" || s === "PENDING_PAYMENT" ? "warning" : "info");
 export const orderVariant = (s: string) => (s === "DISPENSED" || s === "READY" || s === "RESULT_RELEASED" ? "success" : s === "REJECTED" || s === "CANCELLED" ? "destructive" : s === "PARTIAL_REVIEW" ? "warning" : "info") as "success" | "destructive" | "warning" | "info";
 
@@ -30,7 +34,7 @@ export function PharmacyOrdersPage() {
             <li key={o.id}><Link to={`/pharmacy/orders/${o.id}`} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid="order-row">
               <IconTile tone={orderTone(o.status)}>{o.deliveryMethod === "DELIVERY" ? <Truck /> : <Pill />}</IconTile>
               <div className="min-w-0 flex-1 space-y-0.5"><p className="truncate font-semibold">{o.items.map((i) => i.name).slice(0, 2).join("، ")}{o.items.length > 2 ? ` +${o.items.length - 2}` : ""}</p><p className="text-sm text-muted-foreground">{formatDateTime(o.createdAt, i18n.language)} · <span className="kx-label-num">{formatMinor(o.totalMinor, i18n.language)}</span></p></div>
-              <StatusChip tone={orderTone(o.status)}>{t(`pharmacy.status.${o.status}`)}</StatusChip><ChevronRight className="h-4 w-4 shrink-0 rtl-flip text-muted-foreground" aria-hidden="true" />
+              <StatusChip tone={orderTone(o.status)}>{t(statusKey(o))}</StatusChip><ChevronRight className="h-4 w-4 shrink-0 rtl-flip text-muted-foreground" aria-hidden="true" />
             </Link></li>
           ))}
         </ul>
@@ -76,16 +80,16 @@ export default function PharmacyOrderPage() {
       <header className="kx-card flex items-center gap-4 p-5">
         <IconTile tone={orderTone(o.status)} className="h-14 w-14 rounded-2xl [&_svg]:h-7 [&_svg]:w-7"><Hero /></IconTile>
         <div className="min-w-0 flex-1"><h1 className="text-xl md:text-2xl">{t("pharmacy.orderTitle")}</h1><p className="text-sm text-muted-foreground">{formatDateTime(o.createdAt, i18n.language)} · <span className="kx-label-num">{formatMinor(o.totalMinor, i18n.language)}</span></p></div>
-        <StatusChip tone={orderTone(o.status)} data-testid="order-status">{t(`pharmacy.status.${o.status}`)}</StatusChip>
+        <StatusChip tone={orderTone(o.status)} data-testid="order-status">{t(statusKey(o))}</StatusChip>
       </header>
 
-      {o.status === "REJECTED" && <StatusBanner tone="danger" icon={<XCircle />} title={t("pharmacy.rejectedTitle")} data-testid="order-rejected"><p>{o.rejectionReason ?? t("pharmacy.rejectedBody")}</p><p className="flex items-center gap-1.5 font-medium text-foreground"><RotateCcw className="h-4 w-4 text-info" aria-hidden="true" />{t("pharmacy.autoRefund")}</p></StatusBanner>}
+      {o.status === "REJECTED" && <StatusBanner tone="danger" icon={<XCircle />} title={t("pharmacy.rejectedTitle")} data-testid="order-rejected"><p data-testid="reject-reason">{t(`pharmacy.rejectReason.${REJECT_CODES.includes(o.rejectionReason ?? "") ? o.rejectionReason : "OTHER"}`)}</p><p className="flex items-center gap-1.5 font-medium text-foreground"><RotateCcw className="h-4 w-4 text-info" aria-hidden="true" />{t("pharmacy.autoRefund")}</p></StatusBanner>}
       {o.status === "PARTIAL_REVIEW" && <StatusBanner tone="warning" icon={<ScanSearch />} data-testid="order-partial">{t("pharmacy.partialReview")}</StatusBanner>}
       {refunded && o.status === "CANCELLED" && <StatusBanner tone="info" icon={<RotateCcw />} data-testid="order-refunded">{t("pharmacy.refundedNote")}</StatusBanner>}
       {o.rxStatus === "INVALID" && <StatusBanner tone="danger" icon={<ScanSearch />}>{t("pharmacy.rxInvalid")}</StatusBanner>}
-      {(o.status === "READY" || o.status === "DISPENSED") && <StatusBanner tone="success" icon={<Store />} title={t(`pharmacy.status.${o.status}`)}>{o.readyAt && <p>{t("pharmacy.readyAt")} {formatDateTime(o.readyAt, i18n.language)}</p>}</StatusBanner>}
+      {(o.status === "READY" || o.status === "DISPENSED") && <StatusBanner tone="success" icon={<Store />} title={t(statusKey(o))}>{o.readyAt && <p>{t("pharmacy.readyAt")} {formatDateTime(o.readyAt, i18n.language)}</p>}{o.dispensedAt && <p>{t("pharmacy.handedOverAt")} {formatDateTime(o.dispensedAt, i18n.language)}</p>}</StatusBanner>}
 
-      <div className="kx-card p-5 sm:px-6"><ProgressSteps steps={STEPS} current={o.status} failed={failed} i18nPrefix="pharmacy.status" /></div>
+      <div className="kx-card p-5 sm:px-6"><ProgressSteps steps={STEPS} current={o.status} failed={failed} i18nPrefix={statusPrefix(o)} /></div>
       {o.status === "PENDING_PAYMENT" && <PayPanel payment={pay} label={t("pharmacy.pay", { total: formatMinor(o.totalMinor, i18n.language) })} />}
 
       <section className="kx-card space-y-2 p-5" aria-labelledby="items-h">
@@ -93,6 +97,7 @@ export default function PharmacyOrderPage() {
         <ul className="divide-y">{o.items.map((i) => <li key={i.sku} className="flex items-center justify-between gap-3 py-2.5 text-sm"><span className="flex min-w-0 flex-wrap items-center gap-2" ><span className="font-medium">{i.name}</span><span className="text-muted-foreground kx-label-num">× {i.qty}</span>{i.rxRequired && <StatusChip tone="warning" dot={false}>{t("pharmacy.rx")}</StatusChip>}</span><span className="kx-label-num">{formatMinor(i.unitPriceMinor * i.qty, i18n.language)}</span></li>)}</ul>
         <dl className="border-t pt-2">
           <Row label={t("pharmacy.deliveryChoice")}><span className="font-sans">{t(`pharmacy.method.${o.deliveryMethod}`)}</span></Row>
+          {o.deliveryMethod === "DELIVERY" && o.deliveryAddress && <Row label={t("pharmacy.deliverTo")}><span className="font-sans" data-testid="order-address"><bdi>{[o.deliveryAddress.line1, o.deliveryAddress.area, o.deliveryAddress.governorate].filter(Boolean).join(", ")}</bdi></span></Row>}
           <Row label={t("pharmacy.deliveryFee")}>{o.deliveryFeeMinor ? formatMinor(o.deliveryFeeMinor, i18n.language) : t("p3.free")}</Row>
           {o.rxStatus !== "NOT_REQUIRED" && <Row label={t("pharmacy.rxStatus")}><span className="font-sans">{t(`pharmacy.rxState.${o.rxStatus}`)}</span></Row>}
           <Row label={t("pharmacy.total")} strong>{formatMinor(o.totalMinor, i18n.language)}</Row>

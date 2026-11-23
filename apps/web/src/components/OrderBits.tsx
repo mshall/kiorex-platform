@@ -40,11 +40,13 @@ export function PayPanel({ payment, label, onOpened }: { payment: OrderPayment |
   const { t } = useTranslation();
   if (!payment?.checkoutUrl) return null;
   const sandbox = payment.checkoutUrl.includes("fake-checkout");
+  // sandbox checkout (dev only): same tab + returnUrl so the patient lands back on this order after paying (the API only honours allow-listed hosts)
+  const href = sandbox ? `${payment.checkoutUrl}${payment.checkoutUrl.includes("?") ? "&" : "?"}returnUrl=${encodeURIComponent(window.location.href)}` : payment.checkoutUrl;
   return (
     <section className="kx-card space-y-3 border-primary/30 bg-accent/40 p-5" data-testid="pay-panel" aria-labelledby="pay-h">
-      <div className="flex items-center gap-3"><IconTile tone="brand"><CreditCard /></IconTile><div><h3 id="pay-h" className="text-lg">{t("orders.payTitle")}</h3><p className="text-sm text-muted-foreground">{t("orders.payHint")}</p></div></div>
+      <div className="flex items-center gap-3"><IconTile tone="brand"><CreditCard /></IconTile><div><h3 id="pay-h" className="text-lg">{t("orders.payTitle")}</h3><p className="text-sm text-muted-foreground">{t(sandbox ? "orders.paySandboxHint" : "orders.payHint")}</p></div></div>
       {sandbox && <MockNotice kind="payment" proven />}
-      <Button asChild size="lg" className="w-full sm:w-auto"><a href={payment.checkoutUrl} target="_blank" rel="noopener noreferrer" onClick={onOpened} data-testid="pay-link">{label}</a></Button>
+      <Button asChild size="lg" className="w-full sm:w-auto"><a href={href} {...(sandbox ? {} : { target: "_blank", rel: "noopener noreferrer" })} onClick={onOpened} data-testid="pay-link">{label}</a></Button>
       <p className="text-xs text-muted-foreground" aria-live="polite">{t("orders.payWaiting")}</p>
     </section>
   );

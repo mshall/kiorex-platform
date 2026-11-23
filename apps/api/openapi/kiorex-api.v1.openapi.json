@@ -13887,6 +13887,29 @@
           "checkoutUrl"
         ]
       },
+      "PharmacyOrderAddressDto": {
+        "type": "object",
+        "properties": {
+          "line1": {
+            "type": "string"
+          },
+          "area": {
+            "type": "string"
+          },
+          "governorate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line1"
+        ]
+      },
       "PharmacyOrderDto": {
         "type": "object",
         "properties": {
@@ -13941,6 +13964,16 @@
               "PENDING",
               "VALID",
               "INVALID"
+            ]
+          },
+          "deliveryAddress": {
+            "nullable": true,
+            "description": "DELIVERY orders only: the address the patient gave",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PharmacyOrderAddressDto"
+              }
             ]
           },
           "rejectionReason": {

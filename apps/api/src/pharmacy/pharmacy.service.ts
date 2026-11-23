@@ -137,11 +137,17 @@ export class PharmacyService implements OnModuleInit {
     return this.present(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id } }));
   }
 
+  /** The patient's own delivery address, as given (drops internal fields such as the cached fee). */
+  private publicAddress(a: unknown): Address | null {
+    const { line1, area, governorate, notes, phone } = (a ?? {}) as Partial<Address>;
+    return line1 ? { line1, ...(area && { area }), ...(governorate && { governorate }), ...(notes && { notes }), ...(phone && { phone }) } : null;
+  }
+
   async present(o: PharmacyOrder) {
     const p = o.paymentId ? await this.pay.getIntent(o.paymentId) : null;
     return {
       id: o.id, status: o.status, pharmacyId: o.pharmacyId, items: o.items as unknown as Line[], subtotalMinor: o.subtotalMinor, deliveryFeeMinor: o.deliveryFeeMinor, totalMinor: o.totalMinor, currency: o.currency, deliveryMethod: o.deliveryMethod,
-      rxStatus: o.rxStatus, rejectionReason: o.rejectionReason, readyAt: o.readyAt?.toISOString() ?? null, dispensedAt: o.dispensedAt?.toISOString() ?? null,
+      rxStatus: o.rxStatus, deliveryAddress: o.deliveryMethod === 'DELIVERY' ? this.publicAddress(o.deliveryAddress) : null, rejectionReason: o.rejectionReason, readyAt: o.readyAt?.toISOString() ?? null, dispensedAt: o.dispensedAt?.toISOString() ?? null,
       payment: p ? { paymentId: p.id, status: p.status, checkoutUrl: p.status === 'CREATED' ? p.checkoutUrl : null } : null, createdAt: o.createdAt.toISOString(),
     };
   }

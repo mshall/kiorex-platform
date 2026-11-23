@@ -42,6 +42,13 @@ export class OrderPaymentDto {
   @ApiProperty() status!: string;
   @ApiProperty({ nullable: true, type: String }) checkoutUrl!: string | null;
 }
+export class PharmacyOrderAddressDto {
+  @ApiProperty() line1!: string;
+  @ApiPropertyOptional() area?: string;
+  @ApiPropertyOptional() governorate?: string;
+  @ApiPropertyOptional() notes?: string;
+  @ApiPropertyOptional() phone?: string;
+}
 export class PharmacyOrderDto {
   @ApiProperty() id!: string;
   @ApiProperty({ enum: ['PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'READY', 'DISPENSED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED'] }) status!: string;
@@ -53,6 +60,7 @@ export class PharmacyOrderDto {
   @ApiProperty() currency!: string;
   @ApiProperty({ enum: ['PICKUP', 'DELIVERY'] }) deliveryMethod!: string;
   @ApiProperty({ enum: ['NOT_REQUIRED', 'PENDING', 'VALID', 'INVALID'] }) rxStatus!: string;
+  @ApiPropertyOptional({ type: PharmacyOrderAddressDto, nullable: true, description: 'DELIVERY orders only: the address the patient gave' }) deliveryAddress?: PharmacyOrderAddressDto | null;
   @ApiProperty({ nullable: true, type: String }) rejectionReason!: string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) readyAt!: string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) dispensedAt!: string | null;

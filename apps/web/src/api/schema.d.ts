@@ -4814,6 +4814,13 @@ export interface components {
             status: string;
             checkoutUrl: string | null;
         };
+        PharmacyOrderAddressDto: {
+            line1: string;
+            area?: string;
+            governorate?: string;
+            notes?: string;
+            phone?: string;
+        };
         PharmacyOrderDto: {
             id: string;
             /** @enum {string} */
@@ -4828,6 +4835,8 @@ export interface components {
             deliveryMethod: "PICKUP" | "DELIVERY";
             /** @enum {string} */
             rxStatus: "NOT_REQUIRED" | "PENDING" | "VALID" | "INVALID";
+            /** @description DELIVERY orders only: the address the patient gave */
+            deliveryAddress?: components["schemas"]["PharmacyOrderAddressDto"] | null;
             rejectionReason: string | null;
             /** Format: date-time */
             readyAt: string | null;

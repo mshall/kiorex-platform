@@ -11,8 +11,9 @@ const mac = (recordId: string, signedAt: string) => createHmac('sha256', cfg().r
 export function rxToken(recordId: string, signedAt: Date): string {
   return `kxrx1.${recordId}.${mac(recordId, signedAt.toISOString())}`;
 }
+/** Record ids are `kx_rec_*` for vault records and seed ids such as `demo_rec_*` for demo data: the HMAC, not the id shape, is what authenticates a token. */
 export function parseRxToken(token: string): { recordId: string; mac: string } | null {
-  const m = /^kxrx1\.(kx_rec_[A-Za-z0-9]+)\.([A-Za-z0-9_-]{24})$/.exec(token ?? '');
+  const m = /^kxrx1\.([A-Za-z0-9_-]{3,64})\.([A-Za-z0-9_-]{24})$/.exec(token ?? '');
   return m ? { recordId: m[1], mac: m[2] } : null;
 }
 export const rxTokenValid = (recordId: string, signedAt: Date, given: string) => safeEqual(mac(recordId, signedAt.toISOString()), given);

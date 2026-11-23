@@ -53,6 +53,18 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
       await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'DELIVERY' }).expect(400);
     });
 
+    it('DELIVERY order: the patient sees the address they gave (no internal fee field), pickup orders carry none', async () => {
+      await cart([{ sku: 'PARA500', qty: 1 }]);
+      await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'DELIVERY', address: { line1: '1 Nile St', area: 'Maadi', phone: '+201000001001' } }).expect(200);
+      const o = (await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body;
+      expect(o).toMatchObject({ deliveryMethod: 'DELIVERY', deliveryFeeMinor: 3000, deliveryAddress: { line1: '1 Nile St', area: 'Maadi', phone: '+201000001001' } });
+      expect(JSON.stringify(o)).not.toContain('_feeMinor');
+      expect((await c.http().get(`/api/v1/pharmacy/orders/${o.id}`).set(auth)).body.deliveryAddress).toMatchObject({ line1: '1 Nile St' });
+      await cart([{ sku: 'PARA500', qty: 1 }]);
+      await c.http().put('/api/v1/pharmacy/cart/delivery').set(auth).send({ method: 'PICKUP' }).expect(200);
+      expect((await c.http().post('/api/v1/pharmacy/orders').set(auth).send({}).expect(201)).body.deliveryAddress).toBeNull();
+    });
+
     it('OTC golden path: intent -> Kiorex Pay -> order sent to Pharmacy (Idempotency-Key = order id) -> OrderReady -> DispenseCompleted releases funds with the take', async () => {
       process.env.PHARMACY_TAKE_RATE_BPS = '400'; // test-only value; real rate is NEEDS_HUMAN
       await cart([{ sku: 'PARA500', qty: 2 }]);

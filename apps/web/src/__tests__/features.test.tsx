@@ -152,14 +152,28 @@ describe("pharmacy", () => {
     expect(await screen.findByTestId("order-status")).toHaveTextContent("Awaiting payment");
     expect(screen.getByTestId("pay-panel")).toBeInTheDocument();
     expect(screen.getByTestId("mock-notice")).toHaveAttribute("data-kind", "payment"); // sandbox checkout is called out honestly
-    expect(screen.getByTestId("pay-link")).toHaveAttribute("target", "_blank");
+    // sandbox checkout stays in this tab and carries a returnUrl so the patient lands back on the order
+    expect(screen.getByTestId("pay-link")).not.toHaveAttribute("target");
+    expect(screen.getByTestId("pay-link").getAttribute("href")).toContain("returnUrl=");
   });
 
   const orderState = (over: object) => http.get("/api/v1/pharmacy/orders/po2", () => HttpResponse.json({ id: "po2", status: "REJECTED", pharmacyId: "ph_1", items: [], subtotalMinor: 0, deliveryFeeMinor: 0, totalMinor: 0, currency: "EGP", deliveryMethod: "PICKUP", rxStatus: "NOT_REQUIRED", rejectionReason: "OUT_OF_STOCK", readyAt: null, dispensedAt: null, payment: { paymentId: "p", status: "REFUNDED", checkoutUrl: null }, createdAt: "2026-11-20T10:00:00Z", ...over }));
+  it("delivery order shows the address and delivery wording (ready for delivery / delivered); pickup says collected", async () => {
+    server.use(orderState({ status: "READY", deliveryMethod: "DELIVERY", deliveryAddress: { line1: "12 Road 9", area: "Maadi" }, rejectionReason: null, readyAt: "2026-11-23T10:00:00Z" }));
+    const a = renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "en" });
+    expect(await screen.findByTestId("order-status")).toHaveTextContent("Ready for delivery");
+    expect(screen.getByTestId("order-address")).toHaveTextContent("12 Road 9, Maadi");
+    a.unmount();
+    server.use(orderState({ status: "DISPENSED", deliveryMethod: "PICKUP", rejectionReason: null, dispensedAt: "2026-11-23T11:00:00Z" }));
+    renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "ar" });
+    expect(await screen.findByTestId("order-status")).toHaveTextContent("تم الاستلام");
+    expect(screen.queryByTestId("order-address")).not.toBeInTheDocument();
+  });
+
   it("rejected order explains the automatic refund; cancelled shows the refund note", async () => {
     server.use(orderState({}));
     const a = renderApp(<Routes><Route path="/pharmacy/orders/:id" element={<PharmacyOrderPage />} /></Routes>, { route: "/pharmacy/orders/po2", lang: "en" });
-    expect(await screen.findByTestId("order-rejected")).toHaveTextContent("OUT_OF_STOCK");
+    expect(await screen.findByTestId("order-rejected")).toHaveTextContent("out of stock at the pharmacy"); // reason code is localised, never shown raw
     expect(screen.getByTestId("order-rejected")).toHaveTextContent(/refunded automatically/);
     expect(screen.queryByTestId("cancel-order")).not.toBeInTheDocument();
     a.unmount();

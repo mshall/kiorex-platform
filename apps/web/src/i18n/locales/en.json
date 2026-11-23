@@ -471,7 +471,8 @@
     "progress": "Order progress",
     "payTitle": "Pay to place your order",
     "payHint": "Payment opens in a new tab. Come back here when you are done; this page updates by itself.",
-    "payWaiting": "Waiting for payment confirmation…"
+    "payWaiting": "Waiting for payment confirmation…",
+    "paySandboxHint": "The sandbox payment page opens here and brings you back to this order when you are done."
   },
   "waitlist": {
     "title": "Waitlist",
@@ -712,7 +713,42 @@
     "cancelUnpaid": "You have not paid yet, so nothing is charged.",
     "cancelConfirm": "Cancel order",
     "cancelled": "Order cancelled.",
-    "cancelTooLate": "The pharmacy already started preparing this order, so it can no longer be cancelled."
+    "cancelTooLate": "The pharmacy already started preparing this order, so it can no longer be cancelled.",
+    "statusPickup": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "SUBMITTED": "Sent to pharmacy",
+      "READY": "Ready for pickup",
+      "DISPENSED": "Collected",
+      "PARTIAL_REVIEW": "Under review",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "statusDelivery": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "SUBMITTED": "Sent to pharmacy",
+      "READY": "Ready for delivery",
+      "DISPENSED": "Delivered",
+      "PARTIAL_REVIEW": "Under review",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "deliverTo": "Delivery address",
+    "rejectReason": {
+      "OUT_OF_STOCK": "An item is out of stock at the pharmacy.",
+      "RX_INVALID": "The prescription could not be verified.",
+      "RX_NO_LONGER_SHARED": "The prescription is no longer shared with Kiorex.",
+      "CANNOT_DELIVER": "The pharmacy cannot deliver to your address.",
+      "PHARMACY_REJECTED": "The pharmacy could not fulfil this order.",
+      "PHARMACY_EXPIRED": "The pharmacy did not respond in time.",
+      "PHARMACY_CANCELLED": "The pharmacy cancelled this order.",
+      "FEATURE_DISABLED": "Pharmacy orders are temporarily unavailable.",
+      "OTHER": "The pharmacy could not fulfil this order.",
+      "RX_UNKNOWN": "The prescription is unknown to Kiorex.",
+      "RX_REVOKED": "The prescription was withdrawn by the clinic or the patient."
+    },
+    "handedOverAt": "Handed over"
   },
   "lab": {
     "title": "Lab tests",
