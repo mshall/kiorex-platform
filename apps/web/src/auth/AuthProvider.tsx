@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import i18n from "@/i18n";
 import { configureApi } from "@/api/client";
 import { getManager, toAuthUser, type AuthUser } from "./oidc";
 
@@ -38,6 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (u && !u.expired) { setUser(toAuthUser(u)); setStatus("signedIn"); } else { setStatus("signedOut"); }
       m.events.addUserLoaded((nu) => { setUser(toAuthUser(nu)); setStatus("signedIn"); });
       m.events.addUserUnloaded(() => { setUser(null); if (!signingOut.current) setStatus("signedOut"); });
+      // The refresh token stopped working (revoked from another device, or expired): say so before the next request fails, and offer a one-click sign-in that returns here.
+      m.events.addSilentRenewError(() => {
+        toast.warning(i18n.t("session.renewFailed"), { id: "session-renew", duration: Infinity, action: { label: i18n.t("nav.signIn"), onClick: () => { sessionStorage.setItem(RETURN_KEY, window.location.pathname + window.location.search); void m.signinRedirect(); } } });
+      });
     })().catch(() => alive && setStatus("signedOut"));
     return () => { alive = false; };
   }, []);

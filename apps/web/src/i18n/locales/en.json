@@ -1124,5 +1124,8 @@
       "TELEMEDICINE_STARTING": "Video visit starting",
       "OTHER": "Message from Kiorex"
     }
+  },
+  "session": {
+    "renewFailed": "Your session is about to end. Sign in again to keep your place."
   }
 }
