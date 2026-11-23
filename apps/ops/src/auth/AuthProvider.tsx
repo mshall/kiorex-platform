@@ -17,6 +17,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<AuthUser | null>(null);
   const userRef = useRef<AuthUser | null>(null);
+  // true while the RP-initiated logout navigation to Passport /session/end is in flight (see logout())
+  const signingOut = useRef(false);
   // layout effect: runs before any child's passive effect, so a request fired right after sign-in sees the new token
   useLayoutEffect(() => { userRef.current = user; }, [user]);
 
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       if (u && !u.expired) { setUser(toAuthUser(u)); setStatus("signedIn"); } else { setStatus("signedOut"); }
       m.events.addUserLoaded((nu) => { setUser(toAuthUser(nu)); setStatus("signedIn"); });
-      m.events.addUserUnloaded(() => { setUser(null); setStatus("signedOut"); });
+      m.events.addUserUnloaded(() => { setUser(null); if (!signingOut.current) setStatus("signedOut"); });
     })().catch(() => alive && setStatus("signedOut"));
     return () => { alive = false; };
   }, []);
@@ -46,7 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await getManager().signoutRedirect();
+    // signoutRedirect() drops the local user first. If that flipped status to "signedOut", RequireOps would immediately
+    // start a new sign-in redirect, cancelling the /session/end navigation: the Passport session would survive and the
+    // user would be signed straight back in. Stay in "loading" until the browser leaves for Passport.
+    signingOut.current = true;
+    setStatus("loading");
+    try {
+      await getManager().signoutRedirect();
+    } catch (e) {
+      signingOut.current = false;
+      setUser(null);
+      setStatus("signedOut");
+      throw e;
+    }
   }, []);
 
   const completeLogin = useCallback(async () => {
