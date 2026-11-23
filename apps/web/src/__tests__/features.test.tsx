@@ -217,13 +217,22 @@ describe("telemedicine room (mock video provider)", () => {
 });
 
 describe("market selector (market.<cc>.live)", () => {
-  it("lists live markets as selectable and gated ones as coming soon", async () => {
+  it("is hidden while only one market is live (Egypt launch), even if others are gated", async () => {
     server.use(http.get("/api/v1/markets", () => HttpResponse.json([{ code: "EG", live: true, flag: "market.eg.live", state: "LIVE" }, { code: "SA", live: false, flag: "market.sa.live", state: "AWAITING_GATE" }])));
+    const { container } = renderApp(<MarketSelector />, { lang: "en" });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByTestId("market-select")).toBeNull();
+    expect(screen.queryByText(/country|market/i)).toBeNull();
+    expect(container.querySelector("label")).toBeNull();
+  });
+
+  it("is visible once two markets are live; gated markets are listed as coming soon", async () => {
+    server.use(http.get("/api/v1/markets", () => HttpResponse.json([{ code: "EG", live: true, flag: "market.eg.live", state: "LIVE" }, { code: "SA", live: true, flag: "market.sa.live", state: "LIVE" }, { code: "AE", live: false, flag: "market.ae.live", state: "AWAITING_GATE" }])));
     renderApp(<MarketSelector />, { lang: "en" });
     const sel = await screen.findByTestId("market-select");
-    await waitFor(() => expect(within(sel).getAllByRole("option")).toHaveLength(2));
-    const sa = within(sel).getAllByRole("option")[1] as HTMLOptionElement;
-    expect(sa).toBeDisabled(); expect(sa.textContent).toMatch(/soon/);
+    await waitFor(() => expect(within(sel).getAllByRole("option")).toHaveLength(3));
+    const ae = within(sel).getAllByRole("option")[2] as HTMLOptionElement;
+    expect(ae).toBeDisabled(); expect(ae.textContent).toMatch(/soon/);
   });
 });
 

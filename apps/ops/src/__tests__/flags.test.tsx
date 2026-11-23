@@ -119,3 +119,17 @@ describe("Console pages map the real /admin wire shapes", () => {
   it("moderation queue", async () => { renderOps(<ModerationPage />); expect(await screen.findAllByText("PHI")).not.toHaveLength(0); });
   it("liquidity shows rates", async () => { renderOps(<LiquidityPage />); expect(await screen.findByTestId("liquidity-tiles")).toHaveTextContent("8.4%"); });
 });
+
+describe("market filter visibility (Egypt-only launch)", () => {
+  it("is hidden with one live market and shown with two", async () => {
+    server.use(http.get("/api/v1/markets", () => HttpResponse.json([{ code: "EG", live: true }, { code: "SA", live: false }])));
+    renderOps(<FlagsPage />); await screen.findByTestId("toggle-kiorex.marketplace");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByLabelText(/market/i)).toBeNull();
+  });
+  it("shows the market filter when two markets are live", async () => {
+    server.use(http.get("/api/v1/markets", () => HttpResponse.json([{ code: "EG", live: true }, { code: "SA", live: true }])));
+    renderOps(<FlagsPage />); await screen.findByTestId("toggle-kiorex.marketplace");
+    expect(await screen.findByLabelText(/market/i)).toBeInTheDocument();
+  });
+});

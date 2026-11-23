@@ -54,3 +54,17 @@ describe("real-API adapters", () => {
     expect(p.summary.feeFromEgp).toBe(500);
   });
 });
+
+import { fixedMarket, shouldShowMarketSelector } from "@/lib/marketVisibility";
+describe("market selector rule (more than one live market)", () => {
+  it("hides with zero or one live market and shows with two", () => {
+    expect(shouldShowMarketSelector(undefined)).toBe(false);
+    expect(shouldShowMarketSelector([])).toBe(false);
+    expect(shouldShowMarketSelector([{ code: "EG", live: true }, { code: "SA", live: false }])).toBe(false);
+    expect(shouldShowMarketSelector([{ code: "EG", live: true }, { code: "SA", live: true }])).toBe(true);
+  });
+  it("fixes the value to the only live market, defaulting to EG", () => {
+    expect(fixedMarket(undefined)).toBe("EG");
+    expect(fixedMarket([{ code: "EG", live: true }, { code: "SA", live: false }])).toBe("EG");
+  });
+});

@@ -79,3 +79,7 @@ export const useModerate = () => {
   return useMutation({ mutationFn: (v: { id: string; resolution: "RESTORED" | "KEPT_HIDDEN" }) => unwrap(api.POST("/api/v1/admin/moderation/{id}/resolve", { params: { path: { id: v.id } }, body: { resolution: v.resolution } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["ops", "moderation"] }) });
 };
 export const useLiquidity = () => useQuery({ queryKey: ["ops", "liquidity"], queryFn: async () => mapLiquidity(await unwrap(api.GET("/api/v1/admin/liquidity"))) });
+
+/** Markets (GET /markets?all=true). Used only to decide whether any country/market selector is shown (lib/marketVisibility). */
+export const useMarketList = () =>
+  useQuery({ queryKey: ["markets", "all"], staleTime: 300_000, retry: 0, queryFn: () => unwrapAs<{ code: string; live: boolean }[]>(api.GET("/api/v1/markets", { params: { query: { all: "true" } } })) });

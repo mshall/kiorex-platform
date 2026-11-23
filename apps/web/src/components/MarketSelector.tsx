@@ -1,21 +1,27 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Globe } from "lucide-react";
 import { useMarkets } from "@/api/services";
 import { getMarket, setMarket, subscribeMarket } from "@/lib/market";
+import { fixedMarket, shouldShowMarketSelector } from "@/lib/marketVisibility";
 
 export const regionName = (code: string, lang: string) => { try { return new Intl.DisplayNames([lang], { type: "region" }).of(code.toUpperCase()) ?? code; } catch { return code; } };
 
 export const useMarket = () => useSyncExternalStore(subscribeMarket, getMarket, getMarket);
 
-/** Country picker driven by GET /markets?all=true. A market is selectable only when market.<cc>.live is effective (launch-locked, ADR-024). */
+/** Country picker driven by GET /markets?all=true. A market is selectable only when market.<cc>.live is effective (launch-locked, ADR-024).
+ *  Hidden (renders nothing, no label, no gap) unless more than one market is live; with one market the value is fixed (see lib/marketVisibility). */
 export function MarketSelector() {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const market = useMarket();
   const { data } = useMarkets();
   const markets = data?.length ? data : [{ code: "EG", live: true, flag: "market.eg.live", state: "LIVE" }];
+  const show = shouldShowMarketSelector(markets);
+  const fixed = fixedMarket(markets);
+  useEffect(() => { if (!show && data && market !== fixed) setMarket(fixed); }, [show, data, market, fixed]);
+  if (!show) return null;
   const options = markets.some((m) => m.code === market) ? markets : [...markets, { code: market, live: false, flag: `market.${market.toLowerCase()}.live`, state: "AWAITING_GATE" }];
   return (
     <label className="inline-flex min-h-11 items-center gap-1.5 text-sm">

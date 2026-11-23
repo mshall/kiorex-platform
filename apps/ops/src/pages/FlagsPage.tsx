@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGateBoard, useRecordGateAll } from "@/api/home";
-import { downloadAuditCsv, useDecideRequest, useFlagAudit, useFlagRequests, useFlags, usePropagation, useRecordGate, useRevokeGate, useSetFlag, type FlagRow } from "@/api/hooks";
+import { downloadAuditCsv, useDecideRequest, useFlagAudit, useFlagRequests, useFlags, useMarketList, usePropagation, useRecordGate, useRevokeGate, useSetFlag, type FlagRow } from "@/api/hooks";
+import { shouldShowMarketSelector } from "@/lib/marketVisibility";
 import { ApiError } from "@/api/errors";
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { DataTable } from "@/components/DataTable";
@@ -33,6 +34,7 @@ const errMsg = (e: unknown, fallback: string) => (e instanceof ApiError ? `${e.c
 function ToggleDialog({ flag, market, onClose }: { flag: FlagRow | null; market: string; onClose: () => void }) {
   const { t } = useTranslation();
   const set = useSetFlag();
+  const showMarkets = shouldShowMarketSelector(useMarketList().data);
   const [scope, setScope] = useState("GLOBAL");
   const [scopeId, setScopeId] = useState(market);
   const [value, setValue] = useState<"ON" | "OFF">("OFF");
@@ -56,7 +58,7 @@ function ToggleDialog({ flag, market, onClose }: { flag: FlagRow | null; market:
             <div className="space-y-1"><Label htmlFor="tg-value">{t("flags.value")}</Label><select id="tg-value" className={`${sel} w-full`} value={value} onChange={(e) => setValue(e.target.value as "ON" | "OFF")}><option value="OFF">OFF</option><option value="ON">ON ({t("flags.clearOverride")})</option></select></div>
             <div className="space-y-1"><Label htmlFor="tg-scope">{t("flags.scope")}</Label><select id="tg-scope" className={`${sel} w-full`} value={scope} onChange={(e) => setScope(e.target.value)}>{flag.scopes.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          {scope !== "GLOBAL" && <div className="space-y-1"><Label htmlFor="tg-sid">{scope === "MARKET" ? t("flags.marketCode") : t("flags.orgId")}</Label><Input id="tg-sid" value={scopeId} onChange={(e) => setScopeId(e.target.value)} required dir="ltr" /></div>}
+          {scope !== "GLOBAL" && (scope !== "MARKET" || showMarkets) && <div className="space-y-1"><Label htmlFor="tg-sid">{scope === "MARKET" ? t("flags.marketCode") : t("flags.orgId")}</Label><Input id="tg-sid" value={scopeId} onChange={(e) => setScopeId(e.target.value)} required dir="ltr" /></div>}
           <div className="space-y-1"><Label htmlFor="tg-reason">{t("flags.reason")} *</Label><Input id="tg-reason" value={reason} onChange={(e) => setReason(e.target.value)} required maxLength={500} /></div>
           <div className="space-y-1"><Label htmlFor="tg-ticket">{t("flags.ticket")} *</Label><Input id="tg-ticket" value={ticket} onChange={(e) => setTicket(e.target.value)} required dir="ltr" placeholder="OPS-123" /></div>
           <div className="grid grid-cols-2 gap-3">
@@ -112,6 +114,7 @@ function FlagsTab({ canAct }: { canAct: boolean }) {
   const { t, i18n } = useTranslation();
   const [market, setMarket] = useState("EG"); const [product, setProduct] = useState(""); const [cls, setCls] = useState(""); const [state, setState] = useState(""); const [q, setQ] = useState("");
   const flags = useFlags(market, product);
+  const showMarkets = shouldShowMarketSelector(useMarketList().data);
   const [toggle, setToggle] = useState<FlagRow | null>(null); const [gate, setGate] = useState<FlagRow | null>(null);
   const rows = useMemo(() => (flags.data ?? []).filter((f) => (!cls || f.class === cls) && (!state || f.state === state) && (!q || f.key.includes(q.toLowerCase()))), [flags.data, cls, state, q]);
   return (
@@ -121,7 +124,7 @@ function FlagsTab({ canAct }: { canAct: boolean }) {
         <div className="space-y-1"><Label htmlFor="f-p">{t("flags.product")}</Label><select id="f-p" className={sel} value={product} onChange={(e) => setProduct(e.target.value)}><option value="">{t("common.all")}</option>{PRODUCTS.map((p) => <option key={p}>{p}</option>)}</select></div>
         <div className="space-y-1"><Label htmlFor="f-c">{t("flags.class")}</Label><select id="f-c" className={sel} value={cls} onChange={(e) => setCls(e.target.value)}><option value="">{t("common.all")}</option>{CLASSES.map((p) => <option key={p}>{p}</option>)}</select></div>
         <div className="space-y-1"><Label htmlFor="f-s">{t("flags.state")}</Label><select id="f-s" className={sel} value={state} onChange={(e) => setState(e.target.value)}><option value="">{t("common.all")}</option><option>ON</option><option>OFF</option><option value="ON_AWAITING_GATE">{t("flags.onAwaitingGate")}</option></select></div>
-        <div className="space-y-1"><Label htmlFor="f-m">{t("flags.market")}</Label><Input id="f-m" value={market} onChange={(e) => setMarket(e.target.value.toUpperCase().slice(0, 2))} className="w-20" dir="ltr" maxLength={2} /></div>
+        {showMarkets && <div className="space-y-1"><Label htmlFor="f-m">{t("flags.market")}</Label><Input id="f-m" value={market} onChange={(e) => setMarket(e.target.value.toUpperCase().slice(0, 2))} className="w-20" dir="ltr" maxLength={2} /></div>}
       </div>
       {flags.isLoading ? <CardSkeleton rows={2} /> : flags.error ? <ErrorState error={flags.error} onRetry={() => void flags.refetch()} /> : (
         <DataTable caption={t("flags.title")} rows={rows} rowKey={(f) => f.key} empty={t("common.empty")} columns={[
