@@ -62,7 +62,7 @@ describe('module boundaries', () => {
     const app = readFileSync(join(SRC, 'app.module.ts'), 'utf8');
     for (const [dir, cls] of [['growth', 'GrowthModule'], ['public-site', 'PublicSiteModule'], ['widget', 'WidgetModule']] as const) {
       expect(readdirSync(join(SRC, dir))).toContain(`${dir}-public.ts`);
-      expect(app).toContain(`${cls} } from './${dir}/${dir}-public'`);
+      expect(app).toMatch(new RegExp(`import \\{[^}]*\\b${cls}\\b[^}]*\\} from './${dir}/${dir}-public'`)); // the import list grows by one name per package; the module is imported from its façade only
       expect(app).toMatch(new RegExp(`imports: \\[[^\\]]*\\b${cls}\\b`));
     }
     // nothing outside the growth family imports growth internals (only growth-public); the family never reaches into booking/pay internals
