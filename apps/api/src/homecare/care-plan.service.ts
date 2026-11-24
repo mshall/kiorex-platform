@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { PRODUCT_GROWTH, type ProductGrowthPort } from '../growth/growth-ports-public';
 import { CarePlanBooking } from '../prisma/generated/client';
 import { encryptField } from '../common/crypto';
 import { badRequest, conflict, notFound, unavailable } from '../common/errors';
@@ -19,9 +20,9 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class CarePlanService {
-  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly catalog: CatalogService, private readonly addresses: AddressService, private readonly patients: PatientService, private readonly booking: BookingService, private readonly engagement: EngagementService) {}
+  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly catalog: CatalogService, private readonly addresses: AddressService, private readonly patients: PatientService, private readonly booking: BookingService, private readonly engagement: EngagementService, @Optional() @Inject(PRODUCT_GROWTH) private readonly growth?: ProductGrowthPort) {} // GRW-P4-B2/P4-A: product decision (optional: absent = exactly as before)
 
-  async request(sub: string, i: { providerId: string; typeId?: string; addressId: string; preferredStartDate?: string; notes?: string }) {
+  async request(sub: string, i: { providerId: string; typeId?: string; addressId: string; preferredStartDate?: string; notes?: string }, via: { continuityId?: string | null } = {}) {
     await this.flags.assertEnabled('kiorex.home_visits', { market: 'EG' });
     await this.flags.assertEnabled('nurse.care_plans', { market: 'EG' });
     const p = await this.catalog.getRow(i.providerId);
@@ -32,6 +33,8 @@ export class CarePlanService {
     const identity = await this.patients.bookingIdentity(sub);
     const id = newId('kx_cp');
     const plan = await this.prisma.carePlanBooking.create({ data: { id, sub, providerId: p.id, clinicId: p.clinicId, typeId: i.typeId, visitDistrict: row.district, visitAddressId: row.id, preferredStartDate: i.preferredStartDate ? new Date(i.preferredStartDate) : null, notesEnc: i.notes ? encryptField(i.notes) : null } });
+    // GRW-P4-B2 / GRW-P4-A: one decision after the care-plan booking exists, never blocking it (the port swallows and counts failures). The Nurse edition has no partner `acquisition` block in the contract yet: the decision is Kiorex-side only.
+    await this.growth?.decide({ product: 'NURSE', factKind: 'CARE_PLAN_BOOKING', factId: id, sub, orgRef: p.tenantId ?? null, createdAt: plan.createdAt, continuity: { entryId: via.continuityId ?? null } });
     try {
       await this.kiorly.createCarePlanRequest({ requestRef: id, clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, preferredStartDate: i.preferredStartDate, notes: i.notes, visitAddress: visit, patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn } });
     } catch (e) {

@@ -1179,5 +1179,35 @@
     "amount": "Sponsored discount, minus {{amount}}",
     "note": "{{sponsor}} pays this discount. It is not a Kiorex discount. If you cancel, it is not refunded to you as cash or credit.",
     "youPay": "Deposit after the discount"
+  },
+  "continuity": {
+    "title": "Continue your care",
+    "intro": "Optional shortcuts after a visit. Kiorex sends nothing: these cards live only in your account.",
+    "rx": {
+      "title": "Send your prescription to a pharmacy",
+      "body": "Your prescription is in your records. Choose a pharmacy and place the order when you are ready.",
+      "cta": "Choose a pharmacy"
+    },
+    "lab": {
+      "title": "Book your lab test",
+      "body": "A lab test was ordered for you. Pick a lab and a collection time.",
+      "cta": "Book the test"
+    },
+    "home": {
+      "title": "Book a home visit",
+      "body": "Need a nurse or a home visit after your appointment? You can request one here.",
+      "cta": "Book a home visit"
+    },
+    "consent": {
+      "label": "Keep my visit and this order connected",
+      "help": "Lets Kiorex count how care continues from a visit to a pharmacy, lab or home visit. It never shares what is in your prescription or tests, it never earns a reward and it never changes a price. Turn it off any time.",
+      "draft": "Draft wording, pending legal review.",
+      "on": "Connected",
+      "off": "Not connected"
+    },
+    "dismiss": "Not now",
+    "dismissLabel": "Hide this card: {{title}}",
+    "listLabel": "Continue your care",
+    "privacy": "Cards only appear for your own account and only when the service is available."
   }
 }

@@ -1,0 +1,134 @@
+{
+  "en": {
+    "growth": {
+      "sections": {
+        "cross-product": {
+          "nav": "Cross-product journeys",
+          "title": "Cross-product journeys",
+          "hint": "Clinic visit to pharmacy, lab and home visit: aggregate measurement only."
+        }
+      },
+      "crossProduct": {
+        "tabs": "Cross-product views",
+        "tab": {
+          "overview": "Overview",
+          "funnel": "Funnel"
+        },
+        "status": "Package status",
+        "on": "Effective",
+        "off": "Off or awaiting gate",
+        "statusHint": "growth.cross_product is launch-locked: effective only with gate evidence recorded by a human.",
+        "visits": "Clinic visits completed",
+        "visitsHint": "Where the funnel starts (patients' own visits, no dependants, no specialty).",
+        "rewards": "Rewards created",
+        "none": "None",
+        "rewardsHint": "A downstream order never creates a reward and never counts as a referral qualification.",
+        "commission": "Commission link of products",
+        "inert": "Inert",
+        "commissionHint": "The origin is recorded; no charge exists for pharmacy, lab or home visits.",
+        "rulesTitle": "Rules in force (ADR-056, proposed)",
+        "rules": [
+          "A downstream order or booking is decided on its own evidence first.",
+          "Through a Kiorex continuity card of the patient's own clinic booking, the origin is CROSS_PRODUCT with the clinic decision as parent, so the first acquisition is never counted twice.",
+          "If the first booking was provider-led, that is remembered as the parent origin; no rate or charge is computed.",
+          "No reward and no referral qualification is ever created by a downstream fact.",
+          "The tables hold only the product pair, keyed hashes, decision ids, origins and time to continue: no item, test name, diagnosis, specialty or clinic."
+        ],
+        "needsHuman": "NEEDS_HUMAN: the consent wording and the in-app card copy are draft text and need counsel review before the flag can be unlocked; ADR-056 is Proposed until the founder signs.",
+        "funnelCaption": "Funnel from prompt to continued order, by product",
+        "col": {
+          "step": "Journey",
+          "offered": "Prompts offered",
+          "dismissed": "Dismissed",
+          "continued": "Continued",
+          "notContinued": "Not continued"
+        },
+        "entry": {
+          "RX_TO_PHARMACY": "Prescription to pharmacy",
+          "LAB_ORDER_TO_LAB": "Lab order to lab",
+          "CARE_PLAN_TO_HOME_VISIT": "Visit to home visit"
+        },
+        "kNote": "Counts under 10 are shown as <10, and the smallest visible cell next to a hidden one is hidden too. Not continued is hidden when any count it rests on is hidden.",
+        "bySource": "By source of the first booking",
+        "timeToContinue": "Time to continue",
+        "origin": {
+          "PROVIDER_LED": "Provider-led",
+          "MARKETPLACE": "Marketplace",
+          "UNATTRIBUTED": "Unattributed"
+        },
+        "lag": {
+          "LT_24H": "Under 24 hours",
+          "D1_3": "1 to 3 days",
+          "D3_7": "3 to 7 days",
+          "GT_7D": "Over 7 days"
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "sections": {
+        "cross-product": {
+          "nav": "رحلات عبر المنتجات",
+          "title": "رحلات عبر المنتجات",
+          "hint": "من زيارة العيادة إلى الصيدلية والمعمل والزيارة المنزلية: قياس مجمّع فقط."
+        }
+      },
+      "crossProduct": {
+        "tabs": "عروض الرحلات عبر المنتجات",
+        "tab": {
+          "overview": "نظرة عامة",
+          "funnel": "القمع"
+        },
+        "status": "حالة الحزمة",
+        "on": "مفعّلة",
+        "off": "متوقفة أو بانتظار البوابة",
+        "statusHint": "المفتاح growth.cross_product مقفل حتى الإطلاق: لا يعمل إلا بعد تسجيل شخص لدليل البوابة.",
+        "visits": "زيارات العيادة المكتملة",
+        "visitsHint": "نقطة بداية القمع (زيارات المريض نفسه، بدون المعالين وبدون التخصص).",
+        "rewards": "المكافآت المُنشأة",
+        "none": "لا شيء",
+        "rewardsHint": "الطلب اللاحق لا ينشئ مكافأة أبدًا ولا يُحسب تأهيلًا لإحالة.",
+        "commission": "رابط العمولة للمنتجات",
+        "inert": "معطّل",
+        "commissionHint": "يُسجَّل المصدر فقط؛ لا توجد رسوم على الصيدلية أو المعمل أو الزيارة المنزلية.",
+        "rulesTitle": "القواعد السارية (ADR-056، مقترح)",
+        "rules": [
+          "يُحدَّد مصدر الطلب أو الحجز اللاحق بأدلته الخاصة أولًا.",
+          "عبر بطاقة المتابعة في كيوركس لحجز العيادة الخاص بالمريض، يكون المصدر CROSS_PRODUCT مع قرار العيادة أصلًا له، فلا يُحسب الاكتساب الأول مرتين.",
+          "إذا كان الحجز الأول من مقدّم الخدمة يُحفظ ذلك كمصدر الأصل؛ ولا يُحتسب أي سعر أو رسوم.",
+          "لا ينشئ أي واقعة لاحقة مكافأة ولا تأهيل إحالة.",
+          "تحوي الجداول زوج المنتج ومراجع مُجزّأة بمفتاح ومعرّفات القرارات والمصادر وزمن المتابعة فقط: لا أصناف ولا أسماء تحاليل ولا تشخيص ولا تخصص ولا عيادة."
+        ],
+        "needsHuman": "يحتاج إلى بشر: صياغة الموافقة ونص البطاقات مسودة وتحتاج مراجعة قانونية قبل فتح المفتاح؛ وADR-056 مقترح حتى يوقّعه المؤسس.",
+        "funnelCaption": "القمع من العرض إلى الطلب المُتابَع، حسب المنتج",
+        "col": {
+          "step": "الرحلة",
+          "offered": "العروض",
+          "dismissed": "المُخفاة",
+          "continued": "المُتابَعة",
+          "notContinued": "غير المتابعة"
+        },
+        "entry": {
+          "RX_TO_PHARMACY": "من الوصفة إلى الصيدلية",
+          "LAB_ORDER_TO_LAB": "من طلب التحليل إلى المعمل",
+          "CARE_PLAN_TO_HOME_VISIT": "من الزيارة إلى الزيارة المنزلية"
+        },
+        "kNote": "الأعداد الأقل من 10 تظهر <10، وتُخفى أصغر خلية ظاهرة بجانب خلية مخفية. وتُخفى «غير المتابعة» إذا كان أي رقم تعتمد عليه مخفيًا.",
+        "bySource": "حسب مصدر الحجز الأول",
+        "timeToContinue": "الزمن حتى المتابعة",
+        "origin": {
+          "PROVIDER_LED": "من مقدّم الخدمة",
+          "MARKETPLACE": "من السوق",
+          "UNATTRIBUTED": "غير منسوب"
+        },
+        "lag": {
+          "LT_24H": "أقل من 24 ساعة",
+          "D1_3": "من يوم إلى 3 أيام",
+          "D3_7": "من 3 إلى 7 أيام",
+          "GT_7D": "أكثر من 7 أيام"
+        }
+      }
+    }
+  }
+}

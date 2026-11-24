@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
@@ -7,6 +7,7 @@ import { badRequest } from '../common/errors';
 import { RequiresFlag } from '../control-plane/control-plane-public';
 import { LabBookingDto, LabSlotsResultDto, LabTestsResultDto } from './lab.dto';
 import { LabService } from './lab.service';
+import { CONTINUITY_HEADER, continuityIdFrom } from '../growth/growth-ports-public';
 
 export class LabSlotBody { @IsDateString() startsAt!: string; @IsDateString() endsAt!: string }
 export class LabAddressBody {
@@ -46,7 +47,7 @@ export class LabController {
   @Post('lab/bookings') @HttpCode(201) @RequiresFlag('kiorex.lab_bookings')
   @ApiOperation({ summary: 'Book tests + collection slot; returns the booking with a Kiorex Pay checkout. After payment the order is sent to Kiorly Lab' })
   @ApiCreatedResponse({ type: LabBookingDto })
-  book(@CurrentUser() u: AuthUser, @Body() b: LabBookBody) { return this.svc.book(u.sub, b); }
+  book(@CurrentUser() u: AuthUser, @Body() b: LabBookBody, @Headers(CONTINUITY_HEADER) cont?: string) { return this.svc.book(u.sub, b, { continuityId: continuityIdFrom(cont) }); }
 
   @Get('lab/bookings') @ApiOkResponse({ type: LabBookingDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
   @Get('lab/bookings/:id') @ApiOkResponse({ type: LabBookingDto }) get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.get(u.sub, id); }

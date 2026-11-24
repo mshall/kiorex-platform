@@ -140,7 +140,7 @@ export class PharmacyService implements OnModuleInit {
 
   // ───────────── order intent + payment ─────────────
 
-  async createOrder(sub: string, o: { prescriptionRecordId?: string }) {
+  async createOrder(sub: string, o: { prescriptionRecordId?: string }, via: { continuityId?: string | null } = {}) {
     const cart = await this.prisma.pharmacyCart.findUnique({ where: { sub } });
     const items = (cart?.items ?? []) as Line[];
     if (!cart?.pharmacyId || !items.length) throw badRequest('CART_EMPTY', 'Your cart is empty');
@@ -167,7 +167,7 @@ export class PharmacyService implements OnModuleInit {
     await this.prisma.pharmacyOrder.update({ where: { id }, data: { paymentId: p.id } });
     await this.prisma.pharmacyCart.delete({ where: { sub } });
     // GRW-P4-B2: one decision after the order exists, never blocking it (the port swallows and counts failures; submit decides lazily and a repair job retries)
-    await this.growth?.decide({ product: 'PHARMACY', factKind: 'ORDER', factId: id, sub, orgRef: await this.policyOrgOrNull(order.registrationId), createdAt: order.createdAt });
+    await this.growth?.decide({ product: 'PHARMACY', factKind: 'ORDER', factId: id, sub, orgRef: await this.policyOrgOrNull(order.registrationId), createdAt: order.createdAt, continuity: { entryId: via.continuityId ?? null, recordId: rxId ?? null } }); // GRW-P4-A: the prescription attached here (or the card the patient used) is the continuity entry point; consent and ownership are checked inside
     return this.present(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id } }));
   }
 

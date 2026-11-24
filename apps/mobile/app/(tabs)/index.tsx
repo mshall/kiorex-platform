@@ -26,6 +26,7 @@ import { mapKeywordToSpecialty, track } from "@/lib/analytics";
 import { space, useTheme } from "@/theme";
 import { usePatient } from "@/hooks/usePatient";
 import { SignOutSheet } from "@/components/SignOutSheet";
+import { ContinuityCards } from "@/modules/continuity/ContinuityCards"; // GRW-P4-A
 
 function Tile({ icon, label, flag, href, testID }: { icon: IconName; label: string; flag: string; href: string; testID: string }) {
   const { t } = useTranslation();
@@ -111,6 +112,8 @@ export default function Home() {
         <Field testID="search-input" label={t("search.label")} value={q} onChangeText={setQ} placeholder={t("home.searchPlaceholder")} returnKeyType="search" onSubmitEditing={submit} />
         {emergency ? <EmergencyBanner /> : <Button testID="search-submit" title={t("search.submit")} icon="search" onPress={submit} disabled={!q.trim()} />}
       </View>
+
+      {signedIn ? <ContinuityCards /> : null}
 
       {careTypes.data?.length ? (
         <View style={{ gap: 10 }} testID="care-types">

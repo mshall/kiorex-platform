@@ -1,4 +1,4 @@
-import { BadgePercent, BarChart3, Building2, Code2, FileText, FlaskConical, Gift, Globe, HeartHandshake, LayoutDashboard, Mail, Megaphone, MessageCircle, Percent, Plug, Radio, Scale, ScrollText, Search, ShieldAlert, Users, Wallet, Award, GitBranch, ClipboardCheck, Bot, Lightbulb, Briefcase, Crown, LineChart, Layers, ListChecks, Rocket, type LucideIcon } from "lucide-react";
+import { BadgePercent, BarChart3, Building2, Code2, FileText, FlaskConical, Gift, Globe, HeartHandshake, LayoutDashboard, Mail, Megaphone, MessageCircle, Percent, Plug, Radio, Scale, ScrollText, Search, ShieldAlert, Users, Wallet, Award, GitBranch, Shuffle, ClipboardCheck, Bot, Lightbulb, Briefcase, Crown, LineChart, Layers, ListChecks, Rocket, type LucideIcon } from "lucide-react";
 
 /** The Growth & Patient Acquisition navigation (founder's order). `live` pages work in Phase 1; `planned` pages show an honest Planned: Phase N state and nothing else. */
 export interface GrowthSection { key: string; to: string; icon: LucideIcon; status: "live" | "planned"; phase?: 2 | 3 | 4; pkg?: string }
@@ -31,6 +31,7 @@ export const GROWTH_SECTIONS: readonly GrowthSection[] = [
   { key: "markets", to: "/growth/markets", icon: Globe, status: "live" },
   { key: "onboarding", to: "/growth/onboarding", icon: Rocket, status: "planned", phase: 3, pkg: "GRW-P3-G" },
   { key: "recommendations", to: "/growth/recommendations", icon: Lightbulb, status: "planned", phase: 3, pkg: "GRW-P3-E" },
+  { key: "cross-product", to: "/growth/cross-product", icon: Shuffle, status: "live", phase: 4, pkg: "GRW-P4-A" },
   { key: "corporate", to: "/growth/corporate", icon: Briefcase, status: "planned", phase: 4, pkg: "GRW-P4-C" },
   { key: "loyalty", to: "/growth/loyalty", icon: Crown, status: "planned", phase: 4, pkg: "GRW-P4-D" },
   { key: "integrations", to: "/growth/integrations", icon: Plug, status: "live" },

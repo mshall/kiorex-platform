@@ -58,7 +58,7 @@ function CartPanel({ pharmacy }: { pharmacy?: Pharmacy }) {
   const deliv = usePutDelivery();
   const order = useCreateOrder();
   const rx = usePrescriptions();
-  const [rxId, setRxId] = useState("");
+  const [rxId, setRxId] = useState(() => { try { return new URLSearchParams(window.location.search).get("rx") ?? ""; } catch { return ""; } }); // GRW-P4-A: a continuity card opens the flow with the patient's own prescription chosen
   const [addr, setAddr] = useState({ line1: "", area: "", governorate: "", notes: "", phone: "" });
   const c = cart.data;
   if (cart.isLoading) return <CardSkeleton rows={1} />;

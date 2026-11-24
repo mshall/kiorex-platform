@@ -2724,3 +2724,43 @@ model SponsoredPromotionReview {
   @@index([promotionId, promotionVersion], map: "SponsoredPromotionReview_promotion_idx")
   @@index([decision, createdAt], map: "SponsoredPromotionReview_decision_idx")
 }
+
+// ───────────────────────── GRW-P4-A cross-product journeys (wave 8 lane A3) ─────────────────────────
+
+/// Append-only measurement link clinic booking -> downstream fact (pharmacy order, lab booking, care-plan booking) created through a Kiorex continuity entry point.
+/// Keyed hashes of the two fact ids, the two decision ids and origins, the lag in hours. NO person, clinic, specialty or clinical content (guard test: cross-product-no-clinical-data).
+model CrossProductContinuity {
+  id               String   @id @default(cuid())
+  market           String   @default("EG")
+  fromProduct      String   @default("CLINIC")
+  toProduct        String // PHARMACY LAB NURSE
+  entryPoint       String // RX_TO_PHARMACY LAB_ORDER_TO_LAB CARE_PLAN_TO_HOME_VISIT
+  fromFactRef      String // keyed hash of the clinic booking id (32 hex)
+  toFactRef        String // keyed hash of the downstream fact id (32 hex)
+  decisionId       String // GrowthProductDecision.id of the downstream fact
+  parentDecisionId String? // GrowthAttributionDecision.id of the clinic booking
+  parentOrigin     String? // PROVIDER_LED MARKETPLACE UNATTRIBUTED: how the first booking was acquired (a future rate may exempt PROVIDER_LED; no charge exists today)
+  toOrigin         String // origin of the downstream decision (CROSS_PRODUCT unless its own evidence was PROVIDER_LED)
+  lagHours         Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  @@unique([toProduct, toFactRef], map: "CrossProductContinuity_to_key")
+  @@index([market, toProduct, createdAt])
+}
+
+/// The patient's own in-app prompt state for one continuity card (short lived, erased with the subject). Kind and keyed hash only, never content.
+model CrossProductEntryPoint {
+  id              String    @id @default(cuid())
+  market          String    @default("EG")
+  sub             String
+  kind            String // RX_TO_PHARMACY LAB_ORDER_TO_LAB CARE_PLAN_TO_HOME_VISIT
+  factRef         String // keyed hash of the clinical fact id (encounter id, order id) or of the clinic booking id
+  parentBookingId String? // the patient's own clinic booking (BookingIntent.id), resolved by the server
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  dismissedAt     DateTime?
+
+  @@unique([sub, kind, factRef], map: "CrossProductEntryPoint_sub_kind_fact_key")
+  @@index([sub, expiresAt])
+}

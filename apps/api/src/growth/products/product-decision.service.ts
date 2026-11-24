@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AttributionPolicyResolver, type AttributionPolicyPayload } from '../attribution/policy';
@@ -7,7 +7,8 @@ import type { DecisionTouch } from '../attribution/decide';
 import { applyKAnonymity } from '../analytics/kanon';
 import { GROWTH_FAILURE, recordGrowthFailure } from '../growth-failures';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
-import type { ProductAcquisitionBlockOut, ProductGrowthFactKind, ProductGrowthPort, ProductGrowthProduct } from '../growth-ports-public';
+import type { ContinuityHint, ProductAcquisitionBlockOut, ProductGrowthFactKind, ProductGrowthPort, ProductGrowthProduct } from '../growth-ports-public';
+import { CrossProductService } from '../cross-product/continuity.service';
 import { FACT_KIND_PRODUCT, continuityHash, decideProductFact, policyForProduct } from './product-decision';
 
 type Fact = { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date };
@@ -25,9 +26,9 @@ const asTouch = (t: { id: string; kind: string; providerOrgRef: string | null; o
 @Injectable()
 export class GrowthProductBookingService implements ProductGrowthPort {
   private readonly log = new Logger('product-growth');
-  constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly policies: AttributionPolicyResolver, private readonly attribution: AttributionService) {}
+  constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly policies: AttributionPolicyResolver, private readonly attribution: AttributionService, @Optional() private readonly cross?: CrossProductService) {}
 
-  async decide(f: Fact & { visitorKey?: string | null; continuityParentBookingId?: string | null }, market = GROWTH_DEFAULT_MARKET): Promise<{ id: string; origin: string; created: boolean } | null> {
+  async decide(f: Fact & { visitorKey?: string | null; continuityParentBookingId?: string | null; continuity?: ContinuityHint | null }, market = GROWTH_DEFAULT_MARKET): Promise<{ id: string; origin: string; created: boolean } | null> {
     try { return await this.decideOrThrow(f, market); }
     catch (e) {
       recordGrowthFailure(GROWTH_FAILURE.PRODUCT_DECISION);
@@ -37,29 +38,33 @@ export class GrowthProductBookingService implements ProductGrowthPort {
   }
 
   /** Throws on infrastructure failure; returns null when the flag is OFF. Idempotent. */
-  async decideOrThrow(f: Fact & { visitorKey?: string | null; continuityParentBookingId?: string | null }, market = GROWTH_DEFAULT_MARKET) {
+  async decideOrThrow(f: Fact & { visitorKey?: string | null; continuityParentBookingId?: string | null; continuity?: ContinuityHint | null }, market = GROWTH_DEFAULT_MARKET) {
     if (FACT_KIND_PRODUCT[f.factKind] !== f.product) throw new TypeError('fact kind does not belong to the product');
     // a flag-check ERROR is not "flag OFF" (same rule as the clinic path): it propagates to the caller's catch, which counts and logs it
     if (!(await this.flags.isEnabled(GROWTH_FLAG.ATTRIBUTION, { market, ...(f.orgRef ? { orgId: f.orgRef } : {}) }))) return null;
     const { policy, payload } = await this.policies.decisionPolicy(market, f.createdAt);
+    const cont = f.continuity && this.cross ? await this.cross.resolve({ product: f.product, sub: f.sub, createdAt: f.createdAt }, f.continuity, market).catch(() => null) : null; // GRW-P4-A: consent, flag, ownership and expiry are checked inside
+    const parentBookingId = f.continuityParentBookingId ?? cont?.parentBookingId ?? null;
     const existing = await this.prisma.growthProductDecision.findFirst({ where: { factKind: f.factKind, factId: f.factId, policyVersionId: policy.versionId, supersedesId: null } });
-    if (existing) return { id: existing.id, origin: existing.origin, created: false };
+    if (existing) {
+      const parent = cont ? await this.parentDecision(parentBookingId, f.sub) : null;
+      if (cont && parent) await this.cross!.recordLink({ cont, product: f.product, factId: f.factId, factCreatedAt: f.createdAt, decision: existing, parent: { decisionId: parent.id, origin: parent.origin }, market }); // idempotent: a link that failed the first time is written now
+      return { id: existing.id, origin: existing.origin, created: false };
+    }
 
     const fact = { product: f.product, factKind: f.factKind, factId: f.factId, orgRef: f.orgRef ?? '', createdAt: iso(f.createdAt) };
     const touches = await this.touchesOfProduct(f, policy, market);
     const d = decideProductFact(fact, touches.map(asTouch), policyForProduct(policy, payload as AttributionPolicyPayload & { products?: never }, f.product));
     let origin: string = d.origin; let reason: string = d.reasonCode; let parentDecisionId: string | null = null; let inputsHash = d.inputsHash;
     // ADR-056 (proposed): a fact created through a Kiorex continuity entry point of a clinic booking is CROSS_PRODUCT, linked to the clinic decision. Own evidence still wins for PROVIDER_LED.
-    if (f.continuityParentBookingId && d.origin !== 'PROVIDER_LED') {
-      const parent = await this.prisma.growthAttributionDecision.findFirst({ where: { bookingId: f.continuityParentBookingId, supersedesId: null }, orderBy: { createdAt: 'desc' } });
-      const parentBooking = parent ? await this.prisma.bookingIntent.findUnique({ where: { id: f.continuityParentBookingId }, select: { sub: true } }) : null;
-      if (parent && parentBooking?.sub === f.sub) { // the parent must be the same person's booking: a forged parent id cannot link someone else's decision
-        origin = 'CROSS_PRODUCT'; reason = 'CONTINUITY_ENTRY_POINT'; parentDecisionId = parent.id;
-        inputsHash = continuityHash(fact, parent.id, parent.origin, policy.versionId);
-      }
+    const parent = await this.parentDecision(parentBookingId, f.sub); // the parent must be the same person's booking: a forged parent id cannot link someone else's decision
+    if (parent && d.origin !== 'PROVIDER_LED') {
+      origin = 'CROSS_PRODUCT'; reason = 'CONTINUITY_ENTRY_POINT'; parentDecisionId = parent.id;
+      inputsHash = continuityHash(fact, parent.id, parent.origin, policy.versionId);
     }
     try {
       const row = await this.prisma.growthProductDecision.create({ data: { market, product: f.product, factKind: f.factKind, factId: f.factId, origin, reasonCode: reason, policyVersionId: policy.versionId, inputsHash, evidenceTouchIds: d.consideredTouchIds, parentDecisionId } });
+      if (cont && parent) await this.cross!.recordLink({ cont, product: f.product, factId: f.factId, factCreatedAt: f.createdAt, decision: row, parent: { decisionId: parent.id, origin: parent.origin }, market }); // never throws: counted and logged inside
       return { id: row.id, origin: row.origin, created: true };
     } catch (e) {
       if ((e as { code?: string }).code === 'P2002') { // a concurrent request wrote it first
@@ -68,6 +73,15 @@ export class GrowthProductBookingService implements ProductGrowthPort {
       }
       throw e;
     }
+  }
+
+  /** The newest clinic decision of a booking that belongs to this person (null for a missing, foreign or undecided booking). */
+  private async parentDecision(bookingId: string | null, sub: string) {
+    if (!bookingId) return null;
+    const parent = await this.prisma.growthAttributionDecision.findFirst({ where: { bookingId, supersedesId: null }, orderBy: { createdAt: 'desc' } });
+    if (!parent) return null;
+    const booking = await this.prisma.bookingIntent.findUnique({ where: { id: bookingId }, select: { sub: true } });
+    return booking?.sub === sub ? parent : null;
   }
 
   /** Touches of the person, restricted to provider-owned evidence of THIS product (the clinic's own touch rules still apply: revoked codes dropped, withdrawal respected). */
@@ -89,7 +103,8 @@ export class GrowthProductBookingService implements ProductGrowthPort {
       const winner = d.origin === 'PROVIDER_LED' && d.evidenceTouchIds.length ? await this.winningLinkCode(d.evidenceTouchIds, f) : undefined;
       // CROSS_PRODUCT is a Kiorex-side reporting origin; the partner contract knows three origins and a continuity fact is chargeable-class like marketplace (no charge exists today)
       const origin = d.origin === 'CROSS_PRODUCT' ? 'MARKETPLACE' : (d.origin as ProductAcquisitionBlockOut['origin']);
-      return { origin, decisionId: d.id, policyVersion: d.policyVersionId, reason: d.reasonCode, evidenceHash: d.inputsHash, ...(winner ? { linkCode: winner } : {}), product: f.product };
+      const reason = d.origin === 'CROSS_PRODUCT' ? 'MARKETPLACE_TOUCH' : d.reasonCode; // the partner never learns that a continuity entry point exists (GRW-P4-A): a Kiorex-side reporting detail
+      return { origin, decisionId: d.id, policyVersion: d.policyVersionId, reason, evidenceHash: d.inputsHash, ...(winner ? { linkCode: winner } : {}), product: f.product };
     } catch (e) { this.log.warn(`acquisition block for ${f.factKind}=${f.factId} failed (sent without it): ${(e as Error).message}`); return null; }
   }
 

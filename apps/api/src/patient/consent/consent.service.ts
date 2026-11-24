@@ -7,7 +7,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 /** Consent purposes. The first five are the Rev 2.2 consent centre; the rest are the growth additions (ARCH section 9). */
 export const CORE_CONSENT_PURPOSES = ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING', 'VISIT_STATUS_SHARING'] as const;
 export const MARKETING_CONSENT_PURPOSES = ['MARKETING_WHATSAPP', 'MARKETING_SMS', 'MARKETING_EMAIL', 'MARKETING_PUSH'] as const;
-export const GROWTH_CONSENT_PURPOSES = ['ANALYTICS_MEASUREMENT', ...MARKETING_CONSENT_PURPOSES] as const;
+/** GRW-P4-A adds CROSS_PRODUCT_CONTINUITY: linking a clinic visit with a later pharmacy, lab or home-visit order for measurement (wording NEEDS_HUMAN). The event contract's purpose field is open (`or a purpose added later`). */
+export const GROWTH_CONSENT_PURPOSES = ['ANALYTICS_MEASUREMENT', ...MARKETING_CONSENT_PURPOSES, 'CROSS_PRODUCT_CONTINUITY'] as const;
 export const ALL_CONSENT_PURPOSES = [...CORE_CONSENT_PURPOSES, ...GROWTH_CONSENT_PURPOSES] as const;
 export type AnyConsentPurpose = (typeof ALL_CONSENT_PURPOSES)[number];
 export const CONSENT_SOURCES = ['web', 'app', 'whatsapp', 'widget', 'ops-import'] as const;
