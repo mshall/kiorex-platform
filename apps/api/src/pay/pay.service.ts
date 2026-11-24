@@ -1,11 +1,12 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PaymentIntent, Prisma } from '../prisma/generated/client';
+import { PayLink, PaymentIntent, Prisma } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { badRequest, conflict, notFound } from '../common/errors';
 import { newId, toMajor } from '../common/ids';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
 import { OutboxService } from '../outbox/outbox-public';
+import { MARKET_FACTS } from '../market/market-public';
 import { PrismaService, Tx } from '../prisma/prisma.service';
 import { assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundFromReview, refundRequest, refundSettle, release, releaseFromReview, releaseOrder } from './ledger';
 import { FakePspAdapter, pspAdapter, PspWebhookEvent } from './psp';
@@ -17,6 +18,17 @@ const isoWeek = (d: Date) => {
   const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
   return `${t.getUTCFullYear()}-W${String(Math.ceil(((t.getTime() - y0.getTime()) / 86400000 + 1) / 7)).padStart(2, '0')}`;
 };
+
+/** Largest amount a PaymentIntent / PayLink / Refund column (PostgreSQL int4) can hold. Anything above is a client error (400), never a 500. */
+export const MAX_AMOUNT_MINOR = 2_147_483_647;
+/** Currencies Kiorex Pay can charge: the ISO currency of every market in the registry. */
+export const PAYABLE_CURRENCIES: readonly string[] = [...new Set(Object.values(MARKET_FACTS).map((m) => m.currency))];
+export function assertPayableAmount(amountMinor: unknown): asserts amountMinor is number {
+  if (typeof amountMinor !== 'number' || !Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > MAX_AMOUNT_MINOR) throw badRequest('INVALID_AMOUNT', `amount must be a whole number of minor units between 1 and ${MAX_AMOUNT_MINOR}`);
+}
+export function assertPayableCurrency(currency: unknown): asserts currency is string {
+  if (typeof currency !== 'string' || !PAYABLE_CURRENCIES.includes(currency)) throw badRequest('UNSUPPORTED_CURRENCY', `currency must be one of ${PAYABLE_CURRENCIES.join(', ')} (uppercase ISO 4217)`);
+}
 
 @Injectable()
 export class PayService implements OnModuleInit, OnModuleDestroy {
@@ -62,13 +74,17 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   /** Idempotent per booking: returns the existing open intent. Caller (booking) gates on kiorex.pay_deposits. */
   async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string }): Promise<PaymentIntent> {
-    const existing = await this.prisma.paymentIntent.findFirst({ where: { bookingId: i.bookingId, status: { in: ['CREATED', 'CAPTURED'] } } });
-    if (existing) return existing;
-    if (!Number.isInteger(i.amountMinor) || i.amountMinor <= 0) throw badRequest('INVALID_AMOUNT', 'amount must be positive');
-    const id = newId('pay');
-    const adapter = pspAdapter(i.psp ?? 'paymob');
-    const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
-    return this.prisma.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+    assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
+    // Two concurrent checkouts of one booking (double click, two tabs) must not create two charges: serialise per booking, then re-read.
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`deposit-intent:${i.bookingId}`}))`;
+      const existing = await tx.paymentIntent.findFirst({ where: { bookingId: i.bookingId, status: { in: ['CREATED', 'CAPTURED'] } } });
+      if (existing) return existing;
+      const id = newId('pay');
+      const adapter = pspAdapter(i.psp ?? 'paymob');
+      const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
+      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+    }, { timeout: 20_000 });
   }
 
   /** Vertical modules subscribe to captured payments of their purpose (delivered through the outbox: retried with backoff). */
@@ -76,13 +92,16 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   /** Vertical order payment (pharmacy / lab). `partnerId` is the ledger sub-account owner (e.g. ph:<pharmacyId>). Idempotent per order. */
   async createOrderIntent(i: { orderRef: string; purpose: 'PHARMACY' | 'LAB'; sub: string; partnerId: string; amountMinor: number; currency: string; psp?: string }): Promise<PaymentIntent> {
-    const existing = await this.prisma.paymentIntent.findFirst({ where: { orderRef: i.orderRef, purpose: i.purpose, status: { in: ['CREATED', 'CAPTURED'] } } });
-    if (existing) return existing;
-    if (!Number.isInteger(i.amountMinor) || i.amountMinor <= 0) throw badRequest('INVALID_AMOUNT', 'amount must be positive');
-    const id = newId('pay');
-    const adapter = pspAdapter(i.psp ?? 'paymob');
-    const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
-    return this.prisma.paymentIntent.create({ data: { id, orderRef: i.orderRef, purpose: i.purpose, sub: i.sub, clinicId: i.partnerId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+    assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`order-intent:${i.purpose}:${i.orderRef}`}))`;
+      const existing = await tx.paymentIntent.findFirst({ where: { orderRef: i.orderRef, purpose: i.purpose, status: { in: ['CREATED', 'CAPTURED'] } } });
+      if (existing) return existing;
+      const id = newId('pay');
+      const adapter = pspAdapter(i.psp ?? 'paymob');
+      const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
+      return tx.paymentIntent.create({ data: { id, orderRef: i.orderRef, purpose: i.purpose, sub: i.sub, clinicId: i.partnerId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+    }, { timeout: 20_000 });
   }
 
   /**
@@ -123,20 +142,35 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.paymentIntent.findFirst({ where: { bookingId }, orderBy: { createdAt: 'desc' } });
   }
 
-  /** Verified PSP webhook → idempotent capture / failure / refund settlement. */
+  /**
+   * Verified PSP webhook → idempotent capture / failure / refund settlement.
+   * The receipt is the idempotency record: it is claimed FIRST (a unique-violation means another delivery of the same event owns it, so a concurrent
+   * duplicate answers DUPLICATE instead of a 500) and it is RELEASED when processing fails, so the PSP's retry of that event is processed instead of
+   * being dropped as a duplicate (a capture that failed once, e.g. unknown payment or a transient error, must never be lost).
+   */
   async handlePspWebhook(psp: string, rawBody: string, headers: Record<string, unknown>, query: Record<string, unknown> = {}): Promise<{ status: string }> {
-    const ev = pspAdapter(psp).verifyWebhook(rawBody, headers, query);
+    let ev: PspWebhookEvent | null;
+    try { ev = pspAdapter(psp).verifyWebhook(rawBody, headers, query); } catch { throw badRequest('INVALID_PSP_PAYLOAD', 'PSP payload could not be parsed'); }
     if (!ev) throw badRequest('INVALID_PSP_SIGNATURE', 'PSP signature rejected');
-    const dup = await this.prisma.webhookReceipt.findUnique({ where: { eventId: `psp:${ev.eventId}` } });
-    if (dup) return { status: 'DUPLICATE' };
-    await this.prisma.webhookReceipt.create({ data: { eventId: `psp:${ev.eventId}`, source: `psp:${psp}`, type: ev.type, aggregateId: ev.paymentId ?? ev.pspRef, payload: JSON.parse(rawBody), status: 'PROCESSED', processedAt: new Date() } });
-    if (ev.type === 'payment.captured') return { status: await this.capturePayment(ev) };
-    if (ev.type === 'payment.failed') {
-      await this.prisma.paymentIntent.updateMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' }, data: { status: 'FAILED' } });
-      return { status: 'FAILED_RECORDED' };
+    if (!ev || typeof ev !== 'object' || typeof ev.eventId !== 'string' || !ev.eventId || !['payment.captured', 'payment.failed', 'refund.settled'].includes(ev.type) || !Number.isSafeInteger(ev.amountMinor) || ev.amountMinor < 0) throw badRequest('INVALID_PSP_PAYLOAD', 'PSP event is missing eventId, type or a whole-number amountMinor');
+    const eventId = `psp:${ev.eventId}`;
+    try {
+      await this.prisma.webhookReceipt.create({ data: { eventId, source: `psp:${psp}`, type: ev.type, aggregateId: ev.paymentId ?? ev.pspRef, payload: JSON.parse(rawBody), status: 'PROCESSED', processedAt: new Date() } });
+    } catch (e) {
+      if ((e as { code?: string }).code === 'P2002') return { status: 'DUPLICATE' };
+      throw e;
     }
-    if (ev.type === 'refund.settled') return { status: await this.settleRefundFromWebhook(ev) };
-    return { status: 'IGNORED' };
+    try {
+      if (ev.type === 'payment.captured') return { status: await this.capturePayment(ev) };
+      if (ev.type === 'payment.failed') {
+        await this.prisma.paymentIntent.updateMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' }, data: { status: 'FAILED' } });
+        return { status: 'FAILED_RECORDED' };
+      }
+      return { status: await this.settleRefundFromWebhook(ev) };
+    } catch (e) {
+      await this.prisma.webhookReceipt.delete({ where: { eventId } }).catch(() => undefined); // keep the event retryable
+      throw e;
+    }
   }
 
   /** Money path: idempotency key (payment id) + ledger entry + outbox events in ONE transaction. */
@@ -148,10 +182,15 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       await this.prisma.auditLog.create({ data: { actor: 'psp', action: 'pay.amount_mismatch', resource: 'PaymentIntent', resourceId: p.id, metadata: { expected: p.amountMinor, got: ev.amountMinor } } });
       throw conflict('AMOUNT_MISMATCH', 'Captured amount does not match intent');
     }
+    if (ev.currency && ev.currency !== p.currency) {
+      await this.prisma.auditLog.create({ data: { actor: 'psp', action: 'pay.currency_mismatch', resource: 'PaymentIntent', resourceId: p.id, metadata: { expected: p.currency, got: ev.currency } } });
+      throw conflict('CURRENCY_MISMATCH', 'Captured currency does not match intent');
+    }
     const fee = ev.feeMinor ?? Math.round((p.amountMinor * cfg().pspFeeBps) / 10000); // NEEDS_HUMAN: PSP_FEE_BPS placeholder 0
     await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.paymentIntent.updateMany({ where: { id: p.id, status: { in: ['CREATED', 'FAILED'] } }, data: { status: 'CAPTURED', capturedAt: new Date(ev.occurredAt), feeMinor: fee } });
       if (!claimed.count) return;
+      if (p.payLinkToken) await tx.payLink.updateMany({ where: { token: p.payLinkToken }, data: { status: 'PAID' } }); // a real PSP capture (not only the sandbox page) closes the link
       await this.postLedger(tx, { key: `capture:${p.id}`, kind: 'CAPTURE', postings: capture(p.clinicId, p.amountMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
       if (fee > 0) await this.postLedger(tx, { key: `fee:${p.id}`, kind: 'PSP_FEE', postings: pspFee(fee), paymentId: p.id, clinicId: p.clinicId });
       if (p.purpose !== 'DEPOSIT') {
@@ -190,6 +229,8 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       const p = rows[0];
       if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
       if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status)) throw conflict('NOT_REFUNDABLE', `Payment is ${p.status}`);
+      // Released (completed visit / forfeited deposit / fulfilled order) money is owed to the partner, no longer HELD: refunding it here would drive the HELD account negative.
+      if (p.releasedAt) throw conflict('ALREADY_RELEASED', 'Payment was already released to the provider; a refund needs a payout reversal, not a refund request');
       const remaining = p.amountMinor - p.refundedMinor;
       const amount = o.amountMinor ?? remaining;
       if (amount <= 0 || amount > remaining) throw badRequest('REFUND_EXCEEDS_CAPTURE', 'Refund exceeds remaining captured amount', { remaining });
@@ -362,9 +403,22 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── pay links (KXM-PAY-03) ─────────────
 
-  async createPayLink(i: { token: string; clinicId: string; amountMinor: number; currency?: string; externalRef?: string; expiresAt?: Date }) {
-    if (!i.token || i.amountMinor <= 0) throw badRequest('INVALID_LINK', 'token and positive amount required');
-    return this.prisma.payLink.upsert({ where: { token: i.token }, create: { token: i.token, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency ?? 'EGP', externalRef: i.externalRef, expiresAt: i.expiresAt ?? new Date(Date.now() + 7 * 86400_000) }, update: {} });
+  async createPayLink(i: { token: string; clinicId: string; amountMinor: number; currency?: string; externalRef?: string; expiresAt?: Date }): Promise<PayLink> {
+    if (!i.token) throw badRequest('INVALID_LINK', 'token required');
+    assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency ?? 'EGP');
+    const currency = i.currency ?? 'EGP';
+    const existing = await this.prisma.payLink.findUnique({ where: { token: i.token } });
+    if (existing) {
+      // idempotent for the SAME link; a different amount / clinic / currency under a known token is a conflict, never a silent no-op
+      if (existing.clinicId !== i.clinicId || existing.amountMinor !== i.amountMinor || existing.currency !== currency) throw conflict('PAY_LINK_CONFLICT', 'A pay link with this token already exists with different values');
+      return existing;
+    }
+    try {
+      return await this.prisma.payLink.create({ data: { token: i.token, clinicId: i.clinicId, amountMinor: i.amountMinor, currency, externalRef: i.externalRef, expiresAt: i.expiresAt ?? new Date(Date.now() + 7 * 86400_000) } });
+    } catch (e) {
+      if ((e as { code?: string }).code === 'P2002') return this.createPayLink(i); // concurrent registration of the same token: re-read and compare
+      throw e;
+    }
   }
   async payLink(token: string) {
     const l = await this.prisma.payLink.findUnique({ where: { token } });
@@ -373,15 +427,23 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
   async payLinkCheckout(token: string) {
     await this.flags.assertEnabled('kiorex.pay_deposits', { market: 'EG' });
-    const l = await this.prisma.payLink.findUnique({ where: { token } });
-    if (!l || l.status !== 'OPEN' || l.expiresAt < new Date()) throw conflict('LINK_NOT_PAYABLE', 'Pay link is not payable');
-    if (l.paymentIntentId) return this.getIntent(l.paymentIntentId);
-    const id = newId('pay');
-    const a = pspAdapter('paymob');
-    const co = await a.createCheckout({ paymentId: id, amountMinor: l.amountMinor, currency: l.currency });
-    const intent = await this.prisma.paymentIntent.create({ data: { id, payLinkToken: token, clinicId: l.clinicId, amountMinor: l.amountMinor, currency: l.currency, psp: a.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
-    await this.prisma.payLink.update({ where: { token }, data: { paymentIntentId: id } });
-    return intent;
+    // One link, one live intent: concurrent checkouts are serialised on the link, and an intent that FAILED (PSP declined / timed out) is replaced by a new one
+    // so the patient can retry; a CAPTURED link is closed (never charged twice).
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pay-link:${token}`}))`;
+      const l = await tx.payLink.findUnique({ where: { token } });
+      if (!l || l.status !== 'OPEN' || l.expiresAt < new Date()) throw conflict('LINK_NOT_PAYABLE', 'Pay link is not payable');
+      if (l.paymentIntentId) {
+        const cur = await tx.paymentIntent.findUnique({ where: { id: l.paymentIntentId } });
+        if (cur && cur.status !== 'FAILED') return cur;
+      }
+      const id = newId('pay');
+      const a = pspAdapter('paymob');
+      const co = await a.createCheckout({ paymentId: id, amountMinor: l.amountMinor, currency: l.currency });
+      const intent = await tx.paymentIntent.create({ data: { id, payLinkToken: token, clinicId: l.clinicId, amountMinor: l.amountMinor, currency: l.currency, psp: a.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+      await tx.payLink.update({ where: { token }, data: { paymentIntentId: id } });
+      return intent;
+    }, { timeout: 20_000 });
   }
 
   // ───────────── fake hosted checkout (sandbox only) ─────────────
@@ -392,7 +454,6 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const ev: PspWebhookEvent = { eventId: newId('pspev'), type: outcome === 'pay' ? 'payment.captured' : 'payment.failed', pspRef: p.pspRef ?? '', paymentId: p.id, amountMinor: p.amountMinor, feeMinor: Math.round((p.amountMinor * cfg().pspFeeBps) / 10000), occurredAt: new Date().toISOString() };
     const raw = JSON.stringify(ev);
     const r = await this.handlePspWebhook(p.psp, raw, { 'x-psp-signature': FakePspAdapter.sign(raw) });
-    if (p.payLinkToken && outcome === 'pay') await this.prisma.payLink.update({ where: { token: p.payLinkToken }, data: { status: 'PAID' } });
     return r;
   }
 

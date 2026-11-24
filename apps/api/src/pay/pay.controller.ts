@@ -2,7 +2,7 @@ import { Body, Controller, Get, Header, Headers, HttpCode, Param, Post, Query, R
 import type { Response } from 'express';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { cfg } from '../common/config';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min, MinLength, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { forbidden, notFound } from '../common/errors';
 import { ProductKeyGuard, RequiresFlag } from '../control-plane/control-plane-public';
@@ -10,9 +10,9 @@ import { PayService } from './pay.service';
 import { PayIntentDto, PayLinkCheckoutDto, PayLinkDto, PspWebhookAckDto } from './pay.dto';
 
 class PayLinkBody {
-  @IsString() token!: string;
-  @IsString() clinicId!: string;
-  @IsInt() @Min(1) amountMinor!: number;
+  @IsString() @MinLength(1) @MaxLength(200) token!: string;
+  @IsString() @MinLength(1) @MaxLength(200) clinicId!: string;
+  @IsInt() @Min(1) @Max(2_147_483_647) amountMinor!: number;
   @IsOptional() @IsString() currency?: string;
   @IsOptional() @IsString() externalRef?: string;
 }

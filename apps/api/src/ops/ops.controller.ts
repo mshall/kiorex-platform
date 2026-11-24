@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { SafetyService } from '../homecare/homecare-public';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
@@ -17,7 +17,7 @@ import { PayService } from '../pay/pay-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 
-class RefundBody { @IsString() paymentId!: string; @IsString() reason!: string; @IsOptional() @IsInt() @Min(1) amountMinor?: number }
+class RefundBody { @IsString() paymentId!: string; @IsString() @MinLength(3) @MaxLength(300) reason!: string; @IsOptional() @IsInt() @Min(1) @Max(2_147_483_647) amountMinor?: number }
 class PaymentReviewBody { @IsString() reason!: string }
 class SimulateBody { @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED' }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }

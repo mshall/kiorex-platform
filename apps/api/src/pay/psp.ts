@@ -17,6 +17,8 @@ export interface PspWebhookEvent {
   paymentId?: string;
   amountMinor: number;
   feeMinor?: number;
+  /** Optional ISO currency the PSP charged; when present it must equal the intent's currency (CURRENCY_MISMATCH otherwise). */
+  currency?: string;
   occurredAt: string;
 }
 
@@ -38,7 +40,8 @@ export class FakePspAdapter implements PspAdapter {
   verifyWebhook(raw: string, headers: Record<string, unknown>): PspWebhookEvent | null {
     const sig = String(headers['x-psp-signature'] ?? '');
     if (!sig || !safeEqual(sig, FakePspAdapter.sign(raw))) return null;
-    return JSON.parse(raw) as PspWebhookEvent;
+    const ev = JSON.parse(raw) as PspWebhookEvent;
+    return ev && typeof ev === 'object' && !Array.isArray(ev) ? ev : null;
   }
   async refund(i: { refundId: string }) { return { pspRefundRef: `fake_rf_${i.refundId}` }; }
 }
