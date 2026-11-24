@@ -23,3 +23,14 @@ describe("i18n", () => {
     expect([...used].filter((k) => !E.has(k) || !A.has(k))).toEqual([]);
   });
 });
+
+describe("i18n merge of namespaced catalogues", () => {
+  it("adds keys, deep-merges objects, never overwrites or reorders the main catalogue", async () => {
+    const { merge } = await import("@/i18n");
+    const main = { a: "main", nested: { x: "1", y: "2" }, list: ["m"] };
+    const out = merge(main, { a: "other", b: "new", nested: { y: "no", z: "3" }, list: ["o"] }, { c: "c" });
+    expect(out).toEqual({ a: "main", nested: { x: "1", y: "2", z: "3" }, list: ["m"], b: "new", c: "c" });
+    expect(Object.keys(out).slice(0, 3)).toEqual(["a", "nested", "list"]);
+    expect(main).toEqual({ a: "main", nested: { x: "1", y: "2" }, list: ["m"] });
+  });
+});

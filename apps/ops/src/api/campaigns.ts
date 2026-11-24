@@ -45,15 +45,15 @@ export const useApprovals = (status: "pending" | "decided" | undefined) => useQu
 
 export function useCampaignActions() {
   const qc = useQueryClient();
-  const m = <V, R = unknown>(fn: (v: V) => Promise<R>) => useMutation({ mutationFn: fn, onSuccess: () => inv(qc) });
+  const useAction = <V, R = unknown>(fn: (v: V) => Promise<R>) => useMutation({ mutationFn: fn, onSuccess: () => inv(qc) });
   return {
-    create: m((b: CreateBody) => rawApi<Campaign>("POST", B, b)),
-    update: m((v: { id: string; version: number } & Partial<CreateBody>) => { const { id, ...body } = v; return rawApi<Campaign>("PATCH", `${B}/${id}`, body); }),
-    transition: m((v: { id: string; to: CampaignStatus; reason?: string; reasonCode?: string }) => rawApi<Campaign>("POST", `${B}/${v.id}/transition`, { to: v.to, reason: v.reason, reasonCode: v.reasonCode })),
-    requestApproval: m((v: { id: string; kind: Approval["kind"]; budgetTotalMinor?: number; budgetDailyMinor?: number; note?: string }) => { const { id, ...body } = v; return rawApi<Approval>("POST", `${B}/${id}/approvals`, body); }),
-    decide: m((v: { id: string; decision: "APPROVED" | "REJECTED"; snapshotHash: string; reason?: string }) => { const { id, ...body } = v; return rawApi<Approval>("POST", `${B}/approvals/${id}/decide`, body); }),
-    addCreative: m((v: { id: string; kind: string; assetRef: string; locale?: string }) => { const { id, ...body } = v; return rawApi<Creative>("POST", `${B}/${id}/creatives`, body); }),
-    addSpend: m((v: { id: string; day: string; amountMinor: number; note?: string }) => { const { id, ...body } = v; return rawApi<SpendRow>("POST", `${B}/${id}/spend`, body); }),
-    runScheduler: m(() => rawApi<Record<string, number>>("POST", `${B}/scheduler/run`)),
+    create: useAction((b: CreateBody) => rawApi<Campaign>("POST", B, b)),
+    update: useAction((v: { id: string; version: number } & Partial<CreateBody>) => { const { id, ...body } = v; return rawApi<Campaign>("PATCH", `${B}/${id}`, body); }),
+    transition: useAction((v: { id: string; to: CampaignStatus; reason?: string; reasonCode?: string }) => rawApi<Campaign>("POST", `${B}/${v.id}/transition`, { to: v.to, reason: v.reason, reasonCode: v.reasonCode })),
+    requestApproval: useAction((v: { id: string; kind: Approval["kind"]; budgetTotalMinor?: number; budgetDailyMinor?: number; note?: string }) => { const { id, ...body } = v; return rawApi<Approval>("POST", `${B}/${id}/approvals`, body); }),
+    decide: useAction((v: { id: string; decision: "APPROVED" | "REJECTED"; snapshotHash: string; reason?: string }) => { const { id, ...body } = v; return rawApi<Approval>("POST", `${B}/approvals/${id}/decide`, body); }),
+    addCreative: useAction((v: { id: string; kind: string; assetRef: string; locale?: string }) => { const { id, ...body } = v; return rawApi<Creative>("POST", `${B}/${id}/creatives`, body); }),
+    addSpend: useAction((v: { id: string; day: string; amountMinor: number; note?: string }) => { const { id, ...body } = v; return rawApi<SpendRow>("POST", `${B}/${id}/spend`, body); }),
+    runScheduler: useAction(() => rawApi<Record<string, number>>("POST", `${B}/scheduler/run`)),
   };
 }

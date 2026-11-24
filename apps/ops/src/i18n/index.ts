@@ -8,9 +8,14 @@ import growthStubs from "./growth.stubs.json";
 import growthCampaigns from "./growth.campaigns.json";
 
 /** Deep merge: the namespaced per-package files (GRW-P2-X1: `growth.<pkg>.json`, shape {en,ar}) add keys and never reorder or overwrite the main catalogue. */
-const merge = (base: Record<string, any>, ...extra: Array<Record<string, any>>): Record<string, any> => {
-  const out: Record<string, any> = { ...base };
-  for (const e of extra) for (const [k, v] of Object.entries(e)) out[k] = v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" ? merge(out[k], v) : out[k] === undefined ? v : out[k];
+type Tree = { [key: string]: unknown };
+const isTree = (v: unknown): v is Tree => !!v && typeof v === "object" && !Array.isArray(v);
+export const merge = (base: Tree, ...extra: Tree[]): Tree => {
+  const out: Tree = { ...base };
+  for (const e of extra) for (const [k, v] of Object.entries(e)) {
+    const cur = out[k];
+    out[k] = isTree(v) && isTree(cur) ? merge(cur, v) : cur === undefined ? v : cur;
+  }
   return out;
 };
 
