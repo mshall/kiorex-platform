@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RefreshControl, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { TabFrame } from "@/components/BrandHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthProvider";
 import { useBookings } from "@/api/hooks";
@@ -12,11 +13,12 @@ import { Badge, Button, Card, Chip, Row, Screen, T } from "@/components/ui";
 import { isUpcoming } from "@/lib/booking-state";
 import { formatDayLong, formatTime, pick } from "@/lib/format";
 import type { Booking } from "@/api/types";
-import { useTheme } from "@/theme";
+import { space, useTheme } from "@/theme";
 
 const tone = (s: Booking["status"]) => (s === "CONFIRMED" || s === "COMPLETED" || s === "CHECKED_IN" ? "success" : s === "CANCELLED" || s === "NO_SHOW" ? "danger" : "warning");
 
-export default function Appointments() {
+export default function Appointments() { return <TabFrame><AppointmentsInner /></TabFrame>; }
+function AppointmentsInner() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const router = useRouter();
@@ -26,9 +28,9 @@ export default function Appointments() {
   const q = useBookings(status === "signedIn");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
 
-  if (status === "loading") return <Screen style={{ paddingTop: insets.top }}><LoadingState /></Screen>;
+  if (status === "loading") return <Screen underHeader style={{ paddingTop: space[2] }}><LoadingState /></Screen>;
   if (status !== "signedIn") {
-    return <Screen style={{ paddingTop: insets.top }}><EmptyState icon="calendar" title={t("states.notSignedIn")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} /></Screen>;
+    return <Screen underHeader style={{ paddingTop: space[2] }}><EmptyState icon="calendar" title={t("states.notSignedIn")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} /></Screen>;
   }
   const all = (q.data ?? []).filter((b) => b.status !== "EXPIRED" && b.status !== "INTENT");
   const upcoming = all.filter((b) => isUpcoming(b) || (b.status === "HELD" && b.holdExpiresAt != null && new Date(b.holdExpiresAt) > new Date())).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -36,7 +38,7 @@ export default function Appointments() {
   const list = tab === "upcoming" ? upcoming : past;
 
   return (
-    <Screen title={t("appointments.title")} style={{ paddingTop: insets.top + 12, gap: 14 }} refresh={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.ink} />} testID="appointments">
+    <Screen underHeader title={t("appointments.title")} style={{ paddingTop: space[2], gap: 14 }} refresh={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.ink} />} testID="appointments">
       <Row gap={8} style={{ flexWrap: "wrap" }}>
         <Chip testID="waitlist-link" icon="clock" label={t("waitlist.title")} onPress={() => router.push("/waitlist")} />
         <Chip testID="tab-upcoming" label={t("appointments.upcoming")} selected={tab === "upcoming"} onPress={() => setTab("upcoming")} />

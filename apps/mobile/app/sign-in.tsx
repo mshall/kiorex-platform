@@ -1,14 +1,15 @@
 import { useEffect } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth/AuthProvider";
-import { Lockup } from "@/components/Logo";
+import { BrandHeader } from "@/components/BrandHeader";
+import { LanguageMenu } from "@/components/LanguageMenu";
 import { PulseLine } from "@/components/Pulse";
 import { Button, T } from "@/components/ui";
-import { useTheme } from "@/theme";
+import { layeredShadow, radii, space, useTheme } from "@/theme";
 import { config } from "@/lib/config";
 import { Icon } from "@/components/Icon";
 
@@ -27,27 +28,32 @@ export default function SignIn() {
   const go = async () => { await login(); };
   useEffect(() => { if (status === "signedIn") router.replace((next as never) ?? "/(tabs)"); }, [status, next, router]);
 
+  const tint = scheme === "dark" ? "rgba(139,133,240,0.14)" : "rgba(55,48,163,0.07)";
   return (
     <View style={{ flex: 1, backgroundColor: colors.ground }}>
-      <LinearGradient colors={scheme === "dark" ? ["#161835", "#0B2A3D"] : ["#3730A3", "#0369A1"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 40, paddingBottom: 44, paddingHorizontal: 24, alignItems: "center", gap: 20, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 }}>
-        <Lockup height={44} light />
-        <View style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
-          <T variant="display" color="#FFFFFF" style={{ textAlign: "center" }} accessibilityRole="header">{t("signIn.title")}</T>
-          <T color="#DCDBEF" style={{ textAlign: "center", maxWidth: 340 }}>{t("signIn.subtitle")}</T>
+      {/* the only decoration: a whisper of indigo at the very top of the screen, fading to the ground colour (no banner) */}
+      <LinearGradient pointerEvents="none" aria-hidden colors={[tint, "rgba(0,0,0,0)"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 280 }} />
+      <BrandHeader><LanguageMenu testID="language-menu" /></BrandHeader>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space[5] }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: 24, paddingTop: space[5], paddingBottom: space[4], gap: space[2] }}>
+          <T variant="display" accessibilityRole="header" testID="signin-title">{t("signIn.title")}</T>
+          <T color={colors.muted} testID="signin-subtitle">{t("signIn.subtitle")}</T>
+          <View style={{ marginTop: space[2] }}><PulseLine width={96} loop={false} /></View>
         </View>
-        <PulseLine width={150} loop={false} color="#F08A75" />
-      </LinearGradient>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 14 }} keyboardShouldPersistTaps="handled">
-        {error ? <T testID="sign-in-error" color={colors.danger} style={{ textAlign: "center" }} accessibilityRole="alert">{t(error)}</T> : null}
-        <Button testID="continue-passport" title={t("signIn.cta")} icon="shield" loading={busy} onPress={go} />
-        <Button testID="browse-doctors" variant="secondary" title={t("signIn.browse")} icon="search" onPress={() => router.replace("/(tabs)")} />
-        <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingTop: 4 }}>
-          <Icon name="shield" size={16} color={colors.muted} />
-          <T variant="caption" muted style={{ flex: 1 }}>{t("signIn.passportNote")}</T>
+        <View style={{ marginHorizontal: space[4], padding: space[5], gap: space[3], borderRadius: radii.xl, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...layeredShadow(scheme) }} testID="signin-card">
+          {error ? <T testID="sign-in-error" color={colors.danger} style={{ textAlign: "center" }} accessibilityRole="alert">{t(error)}</T> : null}
+          <Button testID="continue-passport" title={t("signIn.cta")} icon="shield" loading={busy} onPress={go} />
+          <Button testID="browse-doctors" variant="secondary" title={t("signIn.browse")} icon="search" onPress={() => router.replace("/(tabs)")} />
+          <View style={{ flexDirection: "row", gap: space[2], alignItems: "flex-start", paddingTop: space[1] }}>
+            <Icon name="shield" size={16} color={colors.muted} />
+            <T variant="caption" muted style={{ flex: 1 }}>{t("signIn.passportNote")}</T>
+          </View>
         </View>
-        {DevTestUsers ? <DevTestUsers busy={busy} onPick={(phone) => void login(phone)} /> : null}
-        {config.mock ? <T variant="caption" color={colors.pulse} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
-        <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
+        <View style={{ paddingHorizontal: space[4], paddingTop: space[4], gap: space[3] }}>
+          {DevTestUsers ? <DevTestUsers busy={busy} onPick={(phone) => void login(phone)} /> : null}
+          {config.mock ? <T variant="caption" color={colors.pulse} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
+          <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
+        </View>
       </ScrollView>
     </View>
   );

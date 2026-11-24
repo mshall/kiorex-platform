@@ -75,6 +75,23 @@ export const theme = {
       "950": "#260E23"
     }
   },
+  "products": {
+    "clinic": {
+      "graphic": "#0D9488",
+      "text": "#0F766E",
+      "dark": "#2DD4BF"
+    },
+    "lab": {
+      "graphic": "#7C3AED",
+      "text": "#6D28D9",
+      "dark": "#A78BFA"
+    },
+    "pharmacy": {
+      "graphic": "#16A34A",
+      "text": "#15803D",
+      "dark": "#4ADE80"
+    }
+  },
   "light": {
     "bg": "#F4F6FC",
     "bgSubtle": "#EBEEF8",
@@ -98,6 +115,7 @@ export const theme = {
     "accent": "#E8735E",
     "accentSoft": "#FDEDE9",
     "link": "#0369A1",
+    "input": "#7D86A6",
     "focus": "#E8735E",
     "overlay": "rgba(15,16,36,0.48)",
     "success": "#15803D",
@@ -132,6 +150,7 @@ export const theme = {
     "accent": "#F08A75",
     "accentSoft": "#3A211F",
     "link": "#38BDF8",
+    "input": "#6A71A3",
     "focus": "#F08A75",
     "overlay": "rgba(0,0,10,0.62)",
     "success": "#4ADE80",
@@ -205,7 +224,7 @@ export const theme = {
       "tracking": -0.035
     }
   },
-  "arabicLineMultiplier": 1.15,
+  "arabicLineHeight": 1.7,
   "space": {
     "0": 0,
     "1": 4,

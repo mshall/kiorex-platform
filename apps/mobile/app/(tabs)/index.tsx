@@ -12,8 +12,9 @@ import { EmergencyBanner } from "@/components/EmergencyBanner";
 import { FamilySwitcher } from "@/components/FamilySwitcher";
 import { Icon } from "@/components/Icon";
 import { KeyboardForm } from "@/components/KeyboardForm";
-import { Wordmark } from "@/components/Logo";
-import { Badge, Button, Card, Chip, Field, Row, T } from "@/components/ui";
+import { BrandHeader } from "@/components/BrandHeader";
+import { LanguageMenu } from "@/components/LanguageMenu";
+import { Badge, Button, Card, Chip, Field, IconButton, Row, T } from "@/components/ui";
 import { MarketGateBanner } from "@/components/feature";
 import { useFeature } from "@/hooks/useFeature";
 import type { IconName } from "@/components/Icon";
@@ -22,7 +23,7 @@ import { isUpcoming } from "@/lib/booking-state";
 import { formatDayLong, formatTime, pick } from "@/lib/format";
 import { getRecent, type RecentDoctor } from "@/lib/recent";
 import { mapKeywordToSpecialty, track } from "@/lib/analytics";
-import { useTheme } from "@/theme";
+import { space, useTheme } from "@/theme";
 import { usePatient } from "@/hooks/usePatient";
 import { SignOutSheet } from "@/components/SignOutSheet";
 
@@ -95,19 +96,15 @@ export default function Home() {
     .sort((a, b) => pick(a, "name", lang).localeCompare(pick(b, "name", lang), lang));
 
   return (
-    <KeyboardForm style={{ backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 20, gap: 18, paddingBottom: 32 }} testID="home">
-      <Row style={{ justifyContent: "space-between" }} gap={12}>
-        <View style={{ gap: 2, flex: 1 }}>
-          <Wordmark size={16} />
-          <T variant="display" accessibilityRole="header">{signedIn && name ? t("home.greeting", { name }) : t("home.greetingAnon")}</T>
-        </View>
-        {signedIn ? (
-          <Pressable testID="open-account-menu" accessibilityRole="button" accessibilityLabel={t("signOutDlg.menu")} onPress={() => setMenuOpen(true)}
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="logout" color={colors.ink} mirror />
-          </Pressable>
-        ) : null}
-      </Row>
+    <View style={{ flex: 1, backgroundColor: colors.ground }}>
+    <BrandHeader>
+      <LanguageMenu testID="language-menu" />
+      {signedIn ? <IconButton icon="logout" mirror label={t("signOutDlg.menu")} testID="open-account-menu" onPress={() => setMenuOpen(true)} /> : null}
+    </BrandHeader>
+    <KeyboardForm style={{ backgroundColor: colors.ground }} contentContainerStyle={{ padding: 16, paddingTop: space[2], gap: 18, paddingBottom: 32 }} testID="home">
+      <View style={{ paddingHorizontal: space[1] }}>
+        <T variant="display" accessibilityRole="header">{signedIn && name ? t("home.greeting", { name }) : t("home.greetingAnon")}</T>
+      </View>
       <SignOutSheet visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <View style={{ gap: 10 }}>
@@ -174,5 +171,6 @@ export default function Home() {
       </View>
       <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
     </KeyboardForm>
+    </View>
   );
 }

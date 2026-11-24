@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { TabFrame } from "@/components/BrandHeader";
 import { ApiError } from "@/api/errors";
 import { usePrescriptions, useUploadRecord, useVault } from "@/api/features";
 import { useAuth } from "@/auth/AuthProvider";
@@ -13,6 +14,7 @@ import { Banner, Button, Chip, Field, Row, Screen, Sheet, T } from "@/components
 import { useFeature } from "@/hooks/useFeature";
 import { track } from "@/lib/analytics";
 import { pickDocument, pickPhoto, type PickedFile } from "@/lib/files";
+import { space } from "@/theme";
 
 const FILTERS: (VaultKind | "ALL")[] = ["ALL", "PRESCRIPTION", "LAB_RESULT", "VISIT_SUMMARY", "UPLOAD"];
 
@@ -72,11 +74,12 @@ function Vault() {
   );
 }
 
-export default function RecordsTab() {
+export default function RecordsTab() { return <TabFrame><RecordsTabInner /></TabFrame>; }
+function RecordsTabInner() {
   const insets = useSafeAreaInsets();
   const { status } = useAuth();
   return (
-    <Screen testID="records" style={{ paddingTop: insets.top + 12, gap: 14 }}>
+    <Screen underHeader testID="records" style={{ paddingTop: space[2], gap: 14 }}>
       {status === "signedIn" ? <Vault /> : <RequireAuth><View /></RequireAuth>}
     </Screen>
   );

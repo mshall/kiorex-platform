@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { Alert, Platform, Pressable, Switch, View } from "react-native";
+import { Pressable, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import Constants from "expo-constants";
+import { Lockup } from "@/components/Logo";
+import { TabFrame } from "@/components/BrandHeader";
+import { LanguageMenu } from "@/components/LanguageMenu";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthProvider";
 import { useDevices, useMe } from "@/api/hooks";
@@ -10,8 +14,7 @@ import { disablePush, enablePush, pushEnabledLocally, pushSupported } from "@/li
 import { EmptyState, LoadingState } from "@/components/states";
 import { Icon, type IconName } from "@/components/Icon";
 import { Button, Card, Chip, Row, Screen, T, useToast } from "@/components/ui";
-import { setLanguage, type Lang } from "@/i18n";
-import { useTheme, type ThemePref } from "@/theme";
+import { space, useTheme, type ThemePref } from "@/theme";
 import { pick } from "@/lib/format";
 import { SignOutSheet } from "@/components/SignOutSheet";
 
@@ -68,7 +71,8 @@ function PushCard() {
   );
 }
 
-export default function Account() {
+export default function Account() { return <TabFrame><AccountInner /></TabFrame>; }
+function AccountInner() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -77,29 +81,22 @@ export default function Account() {
   const { pref, setPref } = useTheme();
   const me = useMe(status === "signedIn");
 
-  const switchLang = async (l: Lang) => {
-    if (i18n.language === l) return;
-    const restart = await setLanguage(l);
-    if (restart && Platform.OS !== "web") Alert.alert(t("settings.language"), t("settings.restart"));
-  };
-
   const settings = (
     <Card style={{ gap: 12 }}>
       <T variant="h2">{t("account.more")}</T>
-      <View style={{ gap: 8 }}><T variant="label">{t("settings.language")}</T>
-        <Row><Chip testID="lang-ar" label={t("settings.ar")} selected={i18n.language === "ar"} onPress={() => void switchLang("ar")} /><Chip testID="lang-en" label={t("settings.en")} selected={i18n.language === "en"} onPress={() => void switchLang("en")} /></Row></View>
+      <LanguageMenu variant="row" testID="settings-language" />
       <View style={{ gap: 8 }}><T variant="label">{t("settings.theme")}</T>
         <Row style={{ flexWrap: "wrap" }}>{(["light", "dark", "system"] as ThemePref[]).map((p) => <Chip key={p} testID={`theme-${p}`} label={t(`settings.${p}`)} selected={pref === p} onPress={() => setPref(p)} />)}</Row></View>
     </Card>
   );
 
-  if (status === "loading") return <Screen style={{ paddingTop: insets.top + 12 }}><LoadingState /></Screen>;
+  if (status === "loading") return <Screen underHeader style={{ paddingTop: space[2] }}><LoadingState /></Screen>;
   if (status !== "signedIn") {
-    return <Screen style={{ paddingTop: insets.top + 12, gap: 16 }}><EmptyState icon="user" title={t("account.signedOutTitle")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} />{settings}</Screen>;
+    return <Screen underHeader style={{ paddingTop: space[2], gap: 16 }}><EmptyState icon="user" title={t("account.signedOutTitle")} action={<Button title={t("signIn.cta")} icon="shield" onPress={() => router.push("/sign-in")} />} />{settings}</Screen>;
   }
   const name = me.data ? pick(me.data, "name", i18n.language) : user?.name ?? "";
   return (
-    <Screen title={t("account.title")} style={{ paddingTop: insets.top + 12, gap: 16 }} testID="account">
+    <Screen underHeader title={t("account.title")} style={{ paddingTop: space[2], gap: 16 }} testID="account">
       <Card style={{ gap: 4 }}>
         <T variant="label" muted>{t("account.name")}</T><T testID="account-name" weight="semibold">{name || "—"}</T>
         <T variant="label" muted style={{ marginTop: 8 }}>{t("account.phone")}</T><T style={{ writingDirection: "ltr", textAlign: i18n.language === "ar" ? "right" : "left" }}>{me.data?.phone ?? user?.phone ?? "—"}</T>
@@ -122,6 +119,10 @@ export default function Account() {
       {settings}
       <Card style={{ paddingVertical: 4 }}>
         <NavRow testID="nav-delete" icon="trash" danger label={t("account.deleteTitle")} onPress={() => router.push("/settings/delete")} />
+      </Card>
+      <Card style={{ gap: 8 }} testID="account-about">
+        <Lockup height={40} />
+        <T variant="caption" muted forceLatin>v{Constants.expoConfig?.version ?? "1.0.0"}</T>
       </Card>
       <Button testID="sign-out" variant="danger" icon="logout" title={t("account.signOut")} accessibilityLabel={t("account.signOut")} onPress={() => setSignOutOpen(true)} />
       <SignOutSheet visible={signOutOpen} onClose={() => setSignOutOpen(false)} />
