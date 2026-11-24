@@ -9,6 +9,8 @@ export class FakeKiorly {
   port = 0;
   providers: any[] = [];
   slots: { startsAt: string; endsAt: string }[] = [];
+  /** clinicianId -> slots (overrides `slots` for in-clinic queries): lets a test give each provider a different earliest slot. */
+  slotsByClinician = new Map<string, { startsAt: string; endsAt: string }[]>();
   bookings = new Map<string, any>();
   holds = new Map<string, any>();
   calls: { method: string; path: string; body: any; headers: Record<string, any> }[] = [];
@@ -46,7 +48,7 @@ export class FakeKiorly {
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
-    this.providers = []; this.slots = []; this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
+    this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined;
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
@@ -81,7 +83,8 @@ export class FakeKiorly {
         if (this.slotsMode === '422-coverage' || (covered.length && !covered.includes(district))) return send(422, { statusCode: 422, code: 'OUT_OF_COVERAGE', message: 'District is not covered', district, alternatives: [] });
         return send(200, { slots: this.slots.map((s) => ({ ...s, serviceLocation: 'HOME', district })) });
       }
-      return send(200, { slots: this.slots.map((s) => ({ ...s, serviceLocation: 'IN_CLINIC', district: null })) });
+      const own = this.slotsByClinician.get(url.searchParams.get('clinicianId') ?? '');
+      return send(200, { slots: (own ?? this.slots).map((s) => ({ ...s, serviceLocation: 'IN_CLINIC', district: null })) });
     }
     if (m === 'POST' && path === '/holds') {
       if (this.holdMode === '409') return send(409, { code: 'SLOT_TAKEN', message: 'Slot not available', alternatives: this.slots.slice(1, 4) });

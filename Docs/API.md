@@ -223,40 +223,40 @@
 | Method | Path | Summary |
 |---|---|---|
 | POST | `/api/v1/admin/onboarding/imports` | Create an import batch for a target organization |
-| GET | `/api/v1/admin/onboarding/imports` |  |
-| GET | `/api/v1/admin/onboarding/imports/{id}` |  |
+| GET | `/api/v1/admin/onboarding/imports` | Import batches, newest first (max 100) |
+| GET | `/api/v1/admin/onboarding/imports/{id}` | One batch with its staged files |
 | POST | `/api/v1/admin/onboarding/imports/{id}/files` | Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name= |
-| POST | `/api/v1/admin/onboarding/imports/{id}/rescan` |  |
-| GET | `/api/v1/admin/onboarding/imports/{id}/tasks` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve` |  |
-| GET | `/api/v1/admin/onboarding/imports/{id}/patients` |  |
-| GET | `/api/v1/admin/onboarding/imports/{id}/dry-run` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/request-commit` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/approve` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/reject` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/commit` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/rollback` |  |
-| POST | `/api/v1/admin/onboarding/imports/{id}/purge-staging` |  |
-| GET | `/api/v1/admin/onboarding/imports/{id}/audit` |  |
+| POST | `/api/v1/admin/onboarding/imports/{id}/rescan` | Re-run the deterministic analysis |
+| GET | `/api/v1/admin/onboarding/imports/{id}/tasks` | Resolution queue (paged, filter by status/severity/type) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many` | Apply one resolution to up to 500 tasks |
+| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve` | Resolve one task |
+| GET | `/api/v1/admin/onboarding/imports/{id}/patients` | Staged patient lookup for the merge / assign pickers (max 20) |
+| GET | `/api/v1/admin/onboarding/imports/{id}/dry-run` | Dry-run report: what a commit would create, blockers and the report hash to approve |
+| POST | `/api/v1/admin/onboarding/imports/{id}/request-commit` | Ask for approval (two-person rule step 1) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/approve` | SA: approve the exact report hash (not the requester or creator) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/reject` | SA: reject the commit request with a reason |
+| POST | `/api/v1/admin/onboarding/imports/{id}/commit` | SA: commit the approved batch into the target clinic (idempotent items) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/rollback` | SA: roll back a committed batch |
+| POST | `/api/v1/admin/onboarding/imports/{id}/purge-staging` | SA: delete the quarantined files and staging rows |
+| GET | `/api/v1/admin/onboarding/imports/{id}/audit` | Audit trail of the batch (ids and counts only) |
 | GET | `/api/v1/admin/onboarding/enrolments` | OP: enrolment codes (never the code itself) |
 | POST | `/api/v1/admin/onboarding/enrolments` | OP: create a one-time enrolment code; the code is in this response only |
 | DELETE | `/api/v1/admin/onboarding/enrolments/{id}` | OP: revoke an unused enrolment code |
-| GET | `/api/v1/admin/onboarding/partners` |  |
-| GET | `/api/v1/admin/onboarding/partners/{id}` |  |
-| GET | `/api/v1/admin/onboarding/partners/{id}/audit` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/run-checks` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/steps/review_documents` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/steps/verify_licence` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/steps/fees` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/request-changes` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/reject` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/request-approval` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/approve` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/go-live` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/pause` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/resume` |  |
-| POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` |  |
+| GET | `/api/v1/admin/onboarding/partners` | OP: connection requests (queue) |
+| GET | `/api/v1/admin/onboarding/partners/{id}` | OP: one connection request with its computed steps and go-live blockers |
+| GET | `/api/v1/admin/onboarding/partners/{id}/audit` | OP: audit trail of the request |
+| POST | `/api/v1/admin/onboarding/partners/{id}/run-checks` | OP: run the automatic checks now |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/review_documents` | OP: mark the documents reviewed |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/verify_licence` | OP: record the licence verification reference |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/fees` | OP: confirm the fee mode (standard or org override) |
+| POST | `/api/v1/admin/onboarding/partners/{id}/request-changes` | OP: send the request back to the partner with a reason |
+| POST | `/api/v1/admin/onboarding/partners/{id}/reject` | OP: reject the request with a reason |
+| POST | `/api/v1/admin/onboarding/partners/{id}/request-approval` | OP: ask a super admin to approve (two-person rule) |
+| POST | `/api/v1/admin/onboarding/partners/{id}/approve` | SA: approve (never the requester or the licence verifier) |
+| POST | `/api/v1/admin/onboarding/partners/{id}/go-live` | OP: register the partner and switch it live (idempotent) |
+| POST | `/api/v1/admin/onboarding/partners/{id}/pause` | OP: pause a live partner with a reason |
+| POST | `/api/v1/admin/onboarding/partners/{id}/resume` | OP: resume a paused partner |
+| POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` | OP: apply a pending credential rotation after a passing handshake |
 
 ## partner-connections
 

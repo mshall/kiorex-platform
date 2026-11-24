@@ -8,7 +8,7 @@ NestJS 12 + Prisma 7 modular monolith (`apps/api`), PostgreSQL 16+, port 4000, p
 |---|---|---|
 | auth | Passport JWT (JWKS via jose), roles from `kx_roles`, sessions, back-channel logout | KXM-AC-01/05, KA05/07 |
 | patient | profile (national ID AES-256-GCM + blind index), dependants, consent centre, export/deletion, Kiorly link rule | KXM-AC-02..07 |
-| catalog | provider projection from Kiorly sync (5 min + events), trigram/FTS search, slots cache (60 s), analytics, profile-view push | KXM-DS-01..08, PR-01..05 |
+| catalog | provider projection from Kiorly sync (5 min + events), trigram/FTS search, slots cache (60 s), the `earliest` index (`Provider.nextSlotAt` + `slotIndexedAt`: whole-catalogue SQL ordering by next in-clinic slot, 5-minute TTL, lazy refresh of stale rows within a 6 s deadline plus a 60 s warmer, org listing gate resolved in SQL so pagination and `total` stay exact, deterministic `id` tie-break), analytics, profile-view push | KXM-DS-01..08, PR-01..05 |
 | booking | intent/hold/confirm state machine (KX-03 §05), cancel/reschedule, nightly reconciliation, circuit breaker via kiorly client | KXM-BK-01..10 |
 | kiorly | HMAC client (@kiorex/contracts), typed commands, per-clinic circuit breaker | KX-09 §02–03 |
 | webhooks | `POST /webhooks/kiorly` HMAC verify, eventId dedupe, routing | KX-09 §04 |

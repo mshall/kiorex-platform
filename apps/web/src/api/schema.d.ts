@@ -1918,6 +1918,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Import batches, newest first (max 100) */
         get: operations["OnboardingImportController_list"];
         put?: never;
         /** Create an import batch for a target organization */
@@ -1935,6 +1936,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** One batch with its staged files */
         get: operations["OnboardingImportController_get"];
         put?: never;
         post?: never;
@@ -1970,6 +1972,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Re-run the deterministic analysis */
         post: operations["OnboardingImportController_rescan"];
         delete?: never;
         options?: never;
@@ -1984,6 +1987,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Resolution queue (paged, filter by status/severity/type) */
         get: operations["OnboardingImportController_tasks"];
         put?: never;
         post?: never;
@@ -2002,6 +2006,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Apply one resolution to up to 500 tasks */
         post: operations["OnboardingImportController_resolveMany"];
         delete?: never;
         options?: never;
@@ -2018,6 +2023,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Resolve one task */
         post: operations["OnboardingImportController_resolve"];
         delete?: never;
         options?: never;
@@ -2032,6 +2038,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Staged patient lookup for the merge / assign pickers (max 20) */
         get: operations["OnboardingImportController_patients"];
         put?: never;
         post?: never;
@@ -2048,6 +2055,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Dry-run report: what a commit would create, blockers and the report hash to approve */
         get: operations["OnboardingImportController_dryRun"];
         put?: never;
         post?: never;
@@ -2066,6 +2074,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Ask for approval (two-person rule step 1) */
         post: operations["OnboardingImportController_request"];
         delete?: never;
         options?: never;
@@ -2082,6 +2091,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** SA: approve the exact report hash (not the requester or creator) */
         post: operations["OnboardingImportController_approve"];
         delete?: never;
         options?: never;
@@ -2098,6 +2108,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** SA: reject the commit request with a reason */
         post: operations["OnboardingImportController_reject"];
         delete?: never;
         options?: never;
@@ -2114,6 +2125,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** SA: commit the approved batch into the target clinic (idempotent items) */
         post: operations["OnboardingImportController_commit"];
         delete?: never;
         options?: never;
@@ -2130,6 +2142,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** SA: roll back a committed batch */
         post: operations["OnboardingImportController_rollback"];
         delete?: never;
         options?: never;
@@ -2146,6 +2159,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** SA: delete the quarantined files and staging rows */
         post: operations["OnboardingImportController_purge"];
         delete?: never;
         options?: never;
@@ -2160,9 +2174,334 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Audit trail of the batch (ids and counts only) */
         get: operations["OnboardingImportController_audit"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partners/v1/connection-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef) */
+        post: operations["PartnerConnectionPublicController_intake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partners/v1/connection-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Partner polls its own status with the status token returned at creation */
+        get: operations["PartnerConnectionPublicController_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: enrolment codes (never the code itself) */
+        get: operations["PartnerEnrolmentController_list"];
+        put?: never;
+        /** OP: create a one-time enrolment code; the code is in this response only */
+        post: operations["PartnerEnrolmentController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/enrolments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** OP: revoke an unused enrolment code */
+        delete: operations["PartnerEnrolmentController_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: connection requests (queue) */
+        get: operations["PartnerOnboardingController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: one connection request with its computed steps and go-live blockers */
+        get: operations["PartnerOnboardingController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: audit trail of the request */
+        get: operations["PartnerOnboardingController_audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/run-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: run the automatic checks now */
+        post: operations["PartnerOnboardingController_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/steps/review_documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: mark the documents reviewed */
+        post: operations["PartnerOnboardingController_docs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/steps/verify_licence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: record the licence verification reference */
+        post: operations["PartnerOnboardingController_lic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/steps/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: confirm the fee mode (standard or org override) */
+        post: operations["PartnerOnboardingController_fees"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/request-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: send the request back to the partner with a reason */
+        post: operations["PartnerOnboardingController_changes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: reject the request with a reason */
+        post: operations["PartnerOnboardingController_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/request-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: ask a super admin to approve (two-person rule) */
+        post: operations["PartnerOnboardingController_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** SA: approve (never the requester or the licence verifier) */
+        post: operations["PartnerOnboardingController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/go-live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: register the partner and switch it live (idempotent) */
+        post: operations["PartnerOnboardingController_live"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: pause a live partner with a reason */
+        post: operations["PartnerOnboardingController_pause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: resume a paused partner */
+        post: operations["PartnerOnboardingController_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/onboarding/partners/{id}/apply-rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: apply a pending credential rotation after a passing handshake */
+        post: operations["PartnerOnboardingController_rotate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5068,6 +5407,101 @@ export interface components {
             orgName: string;
             label?: string;
         };
+        ImportBatchDto: {
+            id: string;
+            /** @description Target Kiorly Clinic organisation id */
+            orgId: string;
+            orgName: string;
+            label?: string | null;
+            /** @enum {string} */
+            status: "DRAFT" | "NEEDS_REVIEW" | "READY" | "AWAITING_APPROVAL" | "APPROVED" | "COMMITTING" | "COMMIT_FAILED" | "COMMITTED" | "ROLLING_BACK" | "ROLLED_BACK";
+            createdBy: string;
+            requestedBy?: string | null;
+            approvedBy?: string | null;
+            /** @description sha256 of the dry-run report the approver signed off */
+            reportHash?: string | null;
+            /** @description Last analysis: classification, mappings, stats (no row data) */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** @description Per-entity committed counts, last error code */
+            progress: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        ImportFileViewDto: {
+            id: string;
+            name: string;
+            kind: string;
+            rejectReason?: string | null;
+            size: number;
+            sha256: string;
+            meta: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
+        };
+        ImportBatchDetailDto: {
+            id: string;
+            /** @description Target Kiorly Clinic organisation id */
+            orgId: string;
+            orgName: string;
+            label?: string | null;
+            /** @enum {string} */
+            status: "DRAFT" | "NEEDS_REVIEW" | "READY" | "AWAITING_APPROVAL" | "APPROVED" | "COMMITTING" | "COMMIT_FAILED" | "COMMITTED" | "ROLLING_BACK" | "ROLLED_BACK";
+            createdBy: string;
+            requestedBy?: string | null;
+            approvedBy?: string | null;
+            /** @description sha256 of the dry-run report the approver signed off */
+            reportHash?: string | null;
+            /** @description Last analysis: classification, mappings, stats (no row data) */
+            summary: {
+                [key: string]: unknown;
+            } | null;
+            /** @description Per-entity committed counts, last error code */
+            progress: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
+            updatedAt: string;
+            files: components["schemas"]["ImportFileViewDto"][];
+        };
+        ImportUploadResultDto: {
+            id: string;
+            /** @description File class, or REJECTED with rejectReason */
+            kind: string;
+            rejectReason?: string;
+        };
+        ImportRescanDto: {
+            ok: boolean;
+            stats: {
+                [key: string]: unknown;
+            } | null;
+        };
+        ImportTaskCountDto: {
+            status: string;
+            severity: string;
+            count: number;
+        };
+        ImportTaskDto: {
+            id: string;
+            /** @enum {string} */
+            status: "OPEN" | "RESOLVED" | "IGNORED";
+            resolvedBy?: string | null;
+            /** @description The task payload (type, severity, entity, options); never row values */
+            type: string;
+            /** @enum {string} */
+            severity: "BLOCKER" | "WARNING" | "INFO";
+        };
+        ImportTaskPageDto: {
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: components["schemas"]["ImportTaskCountDto"][];
+            items: components["schemas"]["ImportTaskDto"][];
+        };
         OnbResolveManyBody: {
             ids: string[];
             /** @enum {string} */
@@ -5077,6 +5511,11 @@ export interface components {
             };
             reason?: string;
         };
+        ImportResolveManyDto: {
+            ok: boolean;
+            /** @description Tasks resolved */
+            resolved: number;
+        };
         OnbResolveBody: {
             /** @enum {string} */
             action: "MAP_TABLE" | "MAP_COLUMN" | "EDIT_VALUE" | "SKIP_ROW" | "MERGE" | "KEEP_BOTH" | "ASSIGN_PATIENT" | "ASSIGN_FILE" | "SKIP_FILE" | "ACCEPT_REPAIR" | "CHOOSE_DATE_FORMAT" | "IGNORE";
@@ -5085,10 +5524,229 @@ export interface components {
             };
             reason?: string;
         };
+        ImportResolveDto: {
+            ok: boolean;
+            /** @description Open tasks left */
+            open: number;
+        };
+        ImportPatientHitDto: {
+            sourceKey: string;
+            name?: string | null;
+            phone?: string | null;
+        };
+        ImportTaskBreakdownDto: {
+            type: string;
+            status: string;
+            count: number;
+        };
+        ImportDryRunDto: {
+            batchId: string;
+            status: string;
+            orgId?: string;
+            orgName?: string;
+            /** @description sha256 of the report: what the approver signs off */
+            reportHash?: string;
+            canCommit?: boolean;
+            /** @description Rows per entity that would be created */
+            willCreate?: {
+                [key: string]: unknown;
+            };
+            filesToAttach?: number;
+            mergedPatients?: number;
+            skippedFiles?: number;
+            openBlockers?: number;
+            openWarnings?: number;
+            ignoredWithReason?: number;
+            taskBreakdown?: components["schemas"]["ImportTaskBreakdownDto"][];
+            targetMode?: string;
+            /** @description Committed batches only: the per-entity progress */
+            progress?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        ImportRequestedDto: {
+            ok: boolean;
+            reportHash?: string;
+            committed?: {
+                [key: string]: unknown;
+            };
+            removed?: number;
+        };
         OnbApproveBody: {
             reportHash: string;
         };
         OnbReasonBody: {
+            reason: string;
+        };
+        ImportAuditLineDto: {
+            id: string;
+            actor: string;
+            action: string;
+            resource: string;
+            resourceId?: string | null;
+            /** @description Ids and counts only */
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
+        };
+        IntakeResultDto: {
+            /** @example pc_ab12cd34 */
+            id: string;
+            status: string;
+            /** @description true on the first submission, false on a re-submit */
+            created: boolean;
+            /** @description Status-poll token, shown once on creation (not returned when the partner supplied its own) */
+            statusToken?: string;
+            /** @description Intake key kxi_..., shown once: on creation and after a recovery re-enrolment */
+            intakeKey?: string;
+        };
+        PartnerPublicStepDto: {
+            key: string;
+            /** @enum {string} */
+            type: "AUTO" | "HUMAN";
+            state: string;
+        };
+        PartnerPublicStatusDto: {
+            id: string;
+            kind: string;
+            status: string;
+            decisionReason?: string | null;
+            progress: number;
+            /** @description key, type and state only (no internal detail) */
+            steps: components["schemas"]["PartnerPublicStepDto"][];
+            liveAt?: string | null;
+            updatedAt: string;
+        };
+        EnrolmentViewDto: {
+            /** @example kxe_ab12cd34 */
+            id: string;
+            /** @enum {string} */
+            kind: "CLINIC" | "NURSE" | "PHARMACY" | "LAB";
+            orgRef?: string | null;
+            label: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "USED" | "REVOKED" | "EXPIRED";
+            expiresAt: string;
+            createdBy: string;
+            revokedBy?: string | null;
+            revokedAt?: string | null;
+            usedAt?: string | null;
+            connectionId?: string | null;
+            createdAt: string;
+        };
+        EnrolmentBody: {
+            /** @enum {string} */
+            kind: "CLINIC" | "NURSE" | "PHARMACY" | "LAB";
+            label: string;
+            orgRef?: string;
+            ttlHours?: number;
+        };
+        EnrolmentCreatedDto: {
+            /** @example kxe_ab12cd34 */
+            id: string;
+            /** @enum {string} */
+            kind: "CLINIC" | "NURSE" | "PHARMACY" | "LAB";
+            orgRef?: string | null;
+            label: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "USED" | "REVOKED" | "EXPIRED";
+            expiresAt: string;
+            createdBy: string;
+            revokedBy?: string | null;
+            revokedAt?: string | null;
+            usedAt?: string | null;
+            connectionId?: string | null;
+            createdAt: string;
+            /** @description The one-time enrolment code (kxe_<id>.<secret>); only ever present in this response */
+            code: string;
+            /** @example true */
+            shownOnce: boolean;
+        };
+        PartnerConnectionRowDto: {
+            id: string;
+            kind: string;
+            name: string;
+            nameAr?: string | null;
+            market: string;
+            status: string;
+            /** @description Percent of steps done (0-100) */
+            progress: number;
+            /** @description Human step keys waiting for ops */
+            humanActions: string[];
+            createdAt: string;
+            updatedAt: string;
+        };
+        PartnerStepDto: {
+            key: string;
+            /** @enum {string} */
+            type: "AUTO" | "HUMAN";
+            /** @enum {string} */
+            state: "DONE" | "FAILED" | "WARN" | "PENDING" | "ACTION" | "LOCKED";
+            code?: string;
+            detail?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description HUMAN steps: who may act
+             * @enum {string}
+             */
+            actor?: "ops_admin" | "super_admin";
+            link?: string;
+        };
+        PartnerConnectionDto: {
+            id: string;
+            kind: string;
+            name: string;
+            nameAr?: string | null;
+            market: string;
+            status: string;
+            /** @description Percent of steps done (0-100) */
+            progress: number;
+            /** @description Human step keys waiting for ops */
+            humanActions: string[];
+            createdAt: string;
+            updatedAt: string;
+            orgRef: string;
+            baseUrl?: string | null;
+            clientKey?: string | null;
+            decisionReason?: string | null;
+            /** @description The partner's own readiness answers (no secrets) */
+            readiness: {
+                [key: string]: unknown;
+            };
+            checksRunAt?: string | null;
+            requestedBy?: string | null;
+            approvedBy?: string | null;
+            liveAt?: string | null;
+            rotationPending: boolean;
+            steps: components["schemas"]["PartnerStepDto"][];
+            /** @description Reasons go-live is still blocked */
+            blockers: string[];
+        };
+        PartnerAuditLineDto: {
+            id: string;
+            actor: string;
+            /** @description e.g. submitted, approved, go_live */
+            action: string;
+            /** @description Ids and codes only */
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
+        };
+        PartnerNoteBody: {
+            note?: string;
+        };
+        LicenceBody: {
+            reference: string;
+        };
+        FeesBody: {
+            /** @enum {string} */
+            mode: "STANDARD" | "ORG_OVERRIDE";
+            note?: string;
+        };
+        PartnerReasonBody: {
             reason: string;
         };
         VaultItemDto: {
@@ -5331,6 +5989,8 @@ export interface components {
         };
         PharmacyDto: {
             id: string;
+            /** @description Registration (partner) id that owns this pharmacy; pass it as partnerId when the same pharmacy id could be offered by two partners */
+            partnerId?: string | null;
             name: string;
             pickup: boolean;
             deliveryEnabled: boolean;
@@ -5339,6 +5999,8 @@ export interface components {
         };
         CatalogueItemDto: {
             pharmacyId: string;
+            /** @description Registration (partner) that owns this pharmacy */
+            partnerId?: string | null;
             sku: string;
             name: string;
             /** @description Arabic brand name when the pharmacy holds one; fall back to `name`. Search matches Arabic and English. */
@@ -5371,6 +6033,8 @@ export interface components {
         };
         CartDto: {
             pharmacyId: string | null;
+            /** @description Registration (partner) that owns the cart pharmacy */
+            partnerId?: string | null;
             items: components["schemas"]["CartLineDto"][];
             /** @enum {string|null} */
             deliveryMethod: "PICKUP" | "DELIVERY" | null;
@@ -5387,6 +6051,7 @@ export interface components {
         };
         CartBody: {
             pharmacyId: string;
+            partnerId?: string;
             items: components["schemas"]["CartItemBody"][];
             prescriptionRecordId?: string;
         };
@@ -5461,6 +6126,8 @@ export interface components {
              */
             status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "READY" | "OUT_FOR_DELIVERY" | "DISPENSED" | "PARTIALLY_FULFILLED" | "PARTIAL_REVIEW" | "REJECTED" | "CANCELLED";
             pharmacyId: string;
+            /** @description Registration (partner) that owns the pharmacy and receives this order */
+            partnerId?: string | null;
             items: components["schemas"]["CartLineDto"][];
             subtotalMinor: number;
             deliveryFeeMinor: number;
@@ -5495,6 +6162,8 @@ export interface components {
         };
         LabTestDto: {
             labId: string;
+            /** @description Registration (partner) id that owns this lab; pass it as partnerId when the same lab id could be offered by two partners */
+            partnerId?: string | null;
             labName: string;
             code: string;
             name: string;
@@ -5520,6 +6189,7 @@ export interface components {
         };
         LabSlotsResultDto: {
             labId: string;
+            partnerId?: string | null;
             /** @enum {string} */
             collectionType: "HOME" | "WALK_IN";
             slots: components["schemas"]["LabSlotDto"][];
@@ -5537,6 +6207,7 @@ export interface components {
         };
         LabBookBody: {
             labId: string;
+            partnerId?: string;
             testCodes: string[];
             /** @enum {string} */
             collectionType: "HOME" | "WALK_IN";
@@ -5560,6 +6231,8 @@ export interface components {
             /** @enum {string} */
             status: "PENDING_PAYMENT" | "PAID" | "SUBMITTED" | "RESULT_RELEASED" | "REJECTED" | "CANCELLED";
             labId: string;
+            /** @description Registration (partner) that owns the lab and receives this booking */
+            partnerId?: string | null;
             tests: components["schemas"]["LabBookingTestDto"][];
             /** @enum {string} */
             collectionType: "HOME" | "WALK_IN";
@@ -5593,6 +6266,8 @@ export interface components {
             active: boolean;
             /** @description Contract path appended to baseUrl */
             apiPath: string;
+            /** @description lab_nurse only: the lab registration (same lab tenant) this nurse client belongs to */
+            labRegistrationId: string | null;
             createdAt: string;
             updatedAt: string;
         };
@@ -5605,6 +6280,8 @@ export interface components {
             /** @description Write-only */
             webhookSecret?: string;
             active?: boolean;
+            /** @description lab_nurse only: id of the lab registration this nurse client belongs to (routes Nurse lab orders to the lab that owns them); empty string clears */
+            labRegistrationId?: string;
         };
         TeleProviderDto: {
             id: string;
@@ -5906,6 +6583,9 @@ export interface components {
             /** @description All required variables for the active mode are present */
             ready: boolean;
         };
+        ProvidersDto: {
+            providers: components["schemas"]["ProviderStatusDto"][];
+        };
         ReadyDto: {
             /** @example ready */
             status: string;
@@ -6043,11 +6723,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description The hub.challenge echoed back as plain text (real mode only; otherwise 403 INVALID_VERIFY_TOKEN) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/plain": string;
+                };
             };
         };
     };
@@ -8654,7 +9337,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDto"][];
+                };
             };
         };
     };
@@ -8675,7 +9360,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDto"];
+                };
             };
         };
     };
@@ -8694,7 +9381,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDetailDto"];
+                };
             };
         };
     };
@@ -8715,7 +9404,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportUploadResultDto"];
+                };
             };
         };
     };
@@ -8734,7 +9425,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRescanDto"];
+                };
             };
         };
     };
@@ -8759,7 +9452,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportTaskPageDto"];
+                };
             };
         };
     };
@@ -8782,7 +9477,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportResolveManyDto"];
+                };
             };
         };
     };
@@ -8806,7 +9503,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportResolveDto"];
+                };
             };
         };
     };
@@ -8827,7 +9526,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportPatientHitDto"][];
+                };
             };
         };
     };
@@ -8846,7 +9547,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportDryRunDto"];
+                };
             };
         };
     };
@@ -8865,7 +9568,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8888,7 +9593,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8911,7 +9618,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8930,7 +9639,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8953,7 +9664,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8972,7 +9685,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportRequestedDto"];
+                };
             };
         };
     };
@@ -8991,7 +9706,461 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ImportAuditLineDto"][];
+                };
+            };
+        };
+    };
+    PartnerConnectionPublicController_intake: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorly-signature": string;
+                "x-kiorly-timestamp": string;
+                "x-kiorex-enrolment": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntakeResultDto"];
+                };
+            };
+        };
+    };
+    PartnerConnectionPublicController_status: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-connection-token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerPublicStatusDto"];
+                };
+            };
+        };
+    };
+    PartnerEnrolmentController_list: {
+        parameters: {
+            query?: {
+                kind?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentViewDto"][];
+                };
+            };
+        };
+    };
+    PartnerEnrolmentController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentBody"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentCreatedDto"];
+                };
+            };
+        };
+    };
+    PartnerEnrolmentController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrolmentViewDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                kind?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionRowDto"][];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_audit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAuditLineDto"][];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_docs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerNoteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_lic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenceBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_fees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeesBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_changes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_pause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerReasonBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerOnboardingController_rotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
             };
         };
     };
@@ -9422,7 +10591,9 @@ export interface operations {
     };
     PharmacyController_pharmacies: {
         parameters: {
-            query?: never;
+            query?: {
+                partnerId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9444,6 +10615,7 @@ export interface operations {
             query?: {
                 q?: string;
                 pharmacyId?: string;
+                partnerId?: string;
             };
             header?: never;
             path?: never;
@@ -9633,6 +10805,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string;
+                partnerId?: string;
             };
             header?: never;
             path?: never;
@@ -9711,6 +10884,7 @@ export interface operations {
             query?: {
                 q?: string;
                 labId?: string;
+                partnerId?: string;
             };
             header?: never;
             path?: never;
@@ -9735,6 +10909,7 @@ export interface operations {
                 from?: string;
                 to?: string;
                 tests?: string;
+                partnerId?: string;
             };
             header?: never;
             path?: never;
@@ -9840,6 +11015,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string;
+                partnerId?: string;
             };
             header?: never;
             path?: never;
@@ -10589,7 +11765,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProvidersDto"];
+                };
             };
         };
     };

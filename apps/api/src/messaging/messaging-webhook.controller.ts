@@ -21,6 +21,7 @@ export class MessagingWebhookController {
   /** Vendor subscription handshake (Meta: hub.mode / hub.verify_token / hub.challenge -> echo the challenge). */
   @Public() @Get(':channel')
   @ApiOperation({ summary: 'Provider webhook verification handshake (Meta WhatsApp hub.challenge)' })
+  @ApiOkResponse({ description: 'The hub.challenge echoed back as plain text (real mode only; otherwise 403 INVALID_VERIFY_TOKEN)', content: { 'text/plain': { schema: { type: 'string', example: '1158201444' } } } })
   handshake(@Param('channel') channel: string, @Query() q: Record<string, unknown>) {
     const kind = messagingKindOf(channel.toUpperCase());
     const challenge = kind && providerEnv(kind).mode === 'real' ? messagingMapping(kind).verifyChallenge?.(q, process.env.WHATSAPP_VERIFY_TOKEN ?? '') : null;

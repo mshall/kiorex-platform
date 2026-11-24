@@ -42,6 +42,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('catalog');
   private slotCache = new Map<string, { at: number; slots: Slot[] }>();
   private timer?: NodeJS.Timeout;
+  private warmTimer?: NodeJS.Timeout;
   constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, private readonly markets: MarketService, private readonly policy: PolicyService) {}
 
   onModuleInit() {
@@ -49,8 +50,11 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     // KXM-DS-07: every 5 minutes
     this.timer = setInterval(() => void this.syncOnce().catch((e) => this.log.warn(`provider sync failed: ${e.message}`)), 5 * 60_000);
     this.timer.unref();
+    // keep the "earliest" index warm so a search never pays the cold fan-out
+    this.warmTimer = setInterval(() => void this.warmSlotIndex().catch((e) => this.log.warn(`slot index warm failed: ${e.message}`)), 60_000);
+    this.warmTimer.unref();
   }
-  onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
+  onModuleDestroy() { if (this.timer) clearInterval(this.timer); if (this.warmTimer) clearInterval(this.warmTimer); }
 
   // ───────────── sync (KXM-DS-07) ─────────────
 
@@ -83,8 +87,52 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   }
 
   invalidateSlots(clinicianId?: string) {
+    // the persisted "earliest" index goes stale with the cache: re-index on the next search / warmer tick
+    void this.prisma.provider.updateMany({ where: clinicianId ? { clinicianId } : {}, data: { slotIndexedAt: null } }).catch(() => undefined);
     if (!clinicianId) return void this.slotCache.clear();
     for (const k of this.slotCache.keys()) if (k.includes(`|${clinicianId}|`)) this.slotCache.delete(k);
+  }
+
+  /**
+   * "Earliest" index. Slots live in Kiorly, so ordering the whole catalogue by next availability needs a cached per-provider value:
+   * `Provider.nextSlotAt` (in-clinic, 7-day horizon) + `slotIndexedAt`. A row is stale when never indexed, older than SLOT_INDEX_TTL_MS or its slot is in the past.
+   * Stale rows are re-indexed (8 at a time, oldest first, within a deadline) before the SQL ORDER BY runs; a 60 s warmer keeps the index warm so searches normally refresh nothing.
+   */
+  async refreshSlotIndex(staleWhere: Prisma.Sql | null, o: { deadlineMs?: number; limit?: number } = {}): Promise<{ refreshed: number; stale: number }> {
+    const ttl = cfg().slotIndexTtlMs;
+    const stale = Prisma.sql`(p."slotIndexedAt" IS NULL OR p."slotIndexedAt" < ${new Date(Date.now() - ttl)} OR (p."nextSlotAt" IS NOT NULL AND p."nextSlotAt" < now()))`;
+    const w = staleWhere ? Prisma.sql`${staleWhere} AND ${stale}` : stale;
+    const rows = await this.prisma.$queryRaw<Provider[]>(Prisma.sql`SELECT p.* FROM "Provider" p WHERE p.status = 'LIVE' AND ${w} ORDER BY p."slotIndexedAt" ASC NULLS FIRST, p.id LIMIT ${o.limit ?? 500}`);
+    if (!rows.length) return { refreshed: 0, stale: 0 };
+    const marketplaceOn = await this.flags.isEnabled('kiorex.marketplace', { market: 'EG' });
+    const deadline = Date.now() + (o.deadlineMs ?? cfg().slotIndexDeadlineMs);
+    let refreshed = 0;
+    await mapLimit(rows, 8, async (r) => {
+      if (Date.now() > deadline) return;
+      const { typeId } = this.typeFor(r, 'IN_CLINIC');
+      const homeOnly = r.serviceLocations.length > 0 && !r.serviceLocations.includes('IN_CLINIC');
+      let next: Date | null = null;
+      if (marketplaceOn && typeId && !homeOnly) {
+        try {
+          const from = new Date();
+          const slots = await this.slots(r, typeId, from, new Date(from.getTime() + 7 * 86400_000), { serviceLocation: 'IN_CLINIC' });
+          const first = slots.map((s) => new Date(s.startsAt).getTime()).filter((t) => t >= Date.now()).sort((a, b) => a - b)[0];
+          next = first !== undefined ? new Date(first) : null;
+        } catch {
+          // transient failure: keep the old value and retry in ~30 s instead of hammering a struggling clinic
+          await this.prisma.provider.updateMany({ where: { id: r.id }, data: { slotIndexedAt: new Date(Date.now() - ttl + 30_000) } }).catch(() => undefined);
+          return;
+        }
+      }
+      await this.prisma.provider.updateMany({ where: { id: r.id }, data: { nextSlotAt: next, slotIndexedAt: new Date() } });
+      refreshed++;
+    });
+    return { refreshed, stale: rows.length };
+  }
+
+  /** Background warmer (every 60 s): re-index every stale LIVE provider, in bounded batches. */
+  async warmSlotIndex() {
+    for (let i = 0; i < 20; i++) { const r = await this.refreshSlotIndex(null, { limit: 200, deadlineMs: 30_000 }); if (r.stale < 200) break; }
   }
 
   // ───────────── reads ─────────────
@@ -286,25 +334,38 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       : Prisma.sql`NULL::float`;
     if (hasGeo && q.maxDistanceKm) where.push(Prisma.sql`p.latitude IS NOT NULL AND ${dist} <= ${q.maxDistanceKm}`);
     const sort = q.sort ?? 'earliest';
-    const order = sort === 'distance' && hasGeo ? Prisma.sql`distance ASC NULLS LAST` : sort === 'rating' ? Prisma.sql`p."ratingAvg" DESC, p."ratingCount" DESC` : sort === 'fee' ? Prisma.sql`p."minFeeMinor" ASC NULLS LAST` : Prisma.sql`p."ratingAvg" DESC, p."ratingCount" DESC`;
+    // Org-level listing gate (clinic.kiorex_listing) is applied IN SQL so total + pagination stay exact: resolve it per matching tenant first.
+    const tenants = await this.prisma.$queryRaw<{ t: string; m: string }[]>(Prisma.sql`SELECT DISTINCT p."tenantId" t, p.market m FROM "Provider" p WHERE p."tenantId" IS NOT NULL AND ${Prisma.join(where, ' AND ')}`);
+    const hidden: string[] = [];
+    for (const t of tenants) { const d = await this.flags.evaluate('clinic.kiorex_listing', { market: t.m, orgId: t.t }); if (!(d.effective || d.reason === 'DEPENDENCY_OFF')) hidden.push(t.t); }
+    if (hidden.length) where.push(Prisma.sql`(p."tenantId" IS NULL OR p."tenantId" NOT IN (${Prisma.join(hidden)}))`);
     const whereSql = Prisma.join(where, ' AND ');
-    const slotSort = sort === 'earliest' || !!q.nextAvailable;
-    const limit = slotSort ? 60 : pageSize;
-    const offset = slotSort ? 0 : (page - 1) * pageSize;
-    const rows = await this.prisma.$queryRaw<(Provider & { distance: number | null })[]>(Prisma.sql`SELECT p.*, ${dist} AS distance FROM "Provider" p WHERE ${whereSql} ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`);
-    const totalRow = await this.prisma.$queryRaw<{ c: bigint }[]>(Prisma.sql`SELECT count(*)::bigint c FROM "Provider" p WHERE ${whereSql}`);
+    const wantsSlots = sort === 'earliest' || !!q.nextAvailable;
+    // Indexed path: in-clinic searches order/filter by the persisted next-slot index (whole catalogue, unrated included, SQL pagination).
+    // HOME searches are district-specific (never cached globally) and the matching set is the in-zone providers only: bounded in-memory path.
+    const indexed = wantsSlots && location !== 'HOME';
+    const memorySlotSort = wantsSlots && !indexed;
+    let slotWhere = whereSql;
+    if (indexed) {
+      await this.refreshSlotIndex(whereSql);
+      if (q.nextAvailable) {
+        const end = new Date(); end.setUTCHours(23, 59, 59, 999);
+        if (q.nextAvailable === 'tomorrow') end.setUTCDate(end.getUTCDate() + 1);
+        if (q.nextAvailable === 'week') end.setUTCDate(end.getUTCDate() + 7);
+        slotWhere = Prisma.sql`${whereSql} AND p."nextSlotAt" >= now() AND p."nextSlotAt" <= ${end}`;
+      }
+    }
+    const tie = Prisma.sql`, p.id ASC`; // deterministic order => stable pagination
+    const earliestOrder = Prisma.sql`(CASE WHEN p."nextSlotAt" >= now() THEN p."nextSlotAt" END) ASC NULLS LAST, p."ratingAvg" DESC, p."ratingCount" DESC${tie}`;
+    const order = sort === 'distance' && hasGeo ? Prisma.sql`distance ASC NULLS LAST${tie}` : sort === 'rating' ? Prisma.sql`p."ratingAvg" DESC, p."ratingCount" DESC${tie}` : sort === 'fee' ? Prisma.sql`p."minFeeMinor" ASC NULLS LAST${tie}` : indexed ? earliestOrder : Prisma.sql`p."ratingAvg" DESC, p."ratingCount" DESC${tie}`;
+    const limit = memorySlotSort ? 120 : pageSize;
+    const offset = memorySlotSort ? 0 : (page - 1) * pageSize;
+    const rows = await this.prisma.$queryRaw<(Provider & { distance: number | null })[]>(Prisma.sql`SELECT p.*, ${dist} AS distance FROM "Provider" p WHERE ${slotWhere} ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`);
+    const totalRow = await this.prisma.$queryRaw<{ c: bigint }[]>(Prisma.sql`SELECT count(*)::bigint c FROM "Provider" p WHERE ${slotWhere}`);
     let total = Number(totalRow[0]?.c ?? 0);
+    const visible = rows;
 
     const marketplaceOn = await this.flags.isEnabled('kiorex.marketplace', { market: 'EG' });
-    const orgOk = new Map<string, boolean>();
-    const visible: typeof rows = [];
-    for (const r of rows) {
-      if (r.tenantId) {
-        if (!orgOk.has(r.tenantId)) { const d = await this.flags.evaluate('clinic.kiorex_listing', { market: r.market, orgId: r.tenantId }); orgOk.set(r.tenantId, d.effective || d.reason === 'DEPENDENCY_OFF'); }
-        if (!orgOk.get(r.tenantId)) { total--; continue; }
-      }
-      visible.push(r);
-    }
     const items = await mapLimit(visible, 8, async (r) => {
       const loc: ServiceLocation = location ?? (r.serviceLocations.includes('IN_CLINIC') || !r.serviceLocations.length ? 'IN_CLINIC' : 'HOME');
       const { typeId, fee } = this.typeFor(r, loc);
@@ -330,7 +391,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       };
     });
     let out = items;
-    if (q.nextAvailable) {
+    if (q.nextAvailable && memorySlotSort) {
       const end = new Date();
       end.setUTCHours(23, 59, 59, 999);
       if (q.nextAvailable === 'tomorrow') end.setUTCDate(end.getUTCDate() + 1);
@@ -338,8 +399,8 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
       out = out.filter((i) => i.nextSlots?.[0] && new Date(i.nextSlots[0].startsAt) <= end);
       total = out.length;
     }
-    if (slotSort) {
-      out.sort((a, b) => (a.nextSlots?.[0] ? new Date(a.nextSlots[0].startsAt).getTime() : Infinity) - (b.nextSlots?.[0] ? new Date(b.nextSlots[0].startsAt).getTime() : Infinity));
+    if (memorySlotSort) {
+      out.sort((a, b) => (a.nextSlots?.[0] ? new Date(a.nextSlots[0].startsAt).getTime() : Infinity) - (b.nextSlots?.[0] ? new Date(b.nextSlots[0].startsAt).getTime() : Infinity) || (b.rating.average - a.rating.average) || (b.rating.count - a.rating.count) || (a.id < b.id ? -1 : 1));
       out = out.slice((page - 1) * pageSize, page * pageSize);
     }
     await this.track('results_viewed', { code: q.q ? 'keyword' : 'browse', specialtyCode: specialty ?? mapped[0], careType, serviceLocation: location, district });

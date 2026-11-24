@@ -11,9 +11,9 @@ import { PartnerRegistry } from '../partners/partners-public';
 @Injectable()
 export class NurseLabClient {
   constructor(private readonly registry: PartnerRegistry) {}
-  private conn() { return this.registry.conn('LAB_NURSE'); }
-  async createOrder(key: string, body: NurseLabOrderIntent) { return partnerRequest<{ orderId: string; orderNumber?: string; status: string; created?: boolean }>(await this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
-  async custody(sourceRef: string) { return partnerRequest<LabCustodyDto>(await this.conn(), { method: 'GET', path: `/orders/${encodeURIComponent(sourceRef)}/custody` }); }
+  private conn(registrationId?: string | null) { return this.registry.conn('LAB_NURSE', registrationId); }
+  async createOrder(key: string, body: NurseLabOrderIntent, registrationId?: string | null) { return partnerRequest<{ orderId: string; orderNumber?: string; status: string; created?: boolean }>(await this.conn(registrationId), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
+  async custody(sourceRef: string, registrationId?: string | null) { return partnerRequest<LabCustodyDto>(await this.conn(registrationId), { method: 'GET', path: `/orders/${encodeURIComponent(sourceRef)}/custody` }); }
 }
 
 export interface NurseLabOrderIntent {

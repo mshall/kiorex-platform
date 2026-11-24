@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { PARTNER_API_PATH, deriveIntakeSigningKey, generateIntakeKey, verifyIntakeSignature } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { decryptField, encryptField } from '../common/crypto';
 import { ApiError, badRequest, conflict, forbidden, notFound } from '../common/errors';
-import { SlidingWindowLimiter } from '../common/rate-limit';
+import { PgRateLimiter, SlidingWindowLimiter, type RateLimiter } from '../common/rate-limit';
 import { newId } from '../common/ids';
 import { verifyWebhook } from '../common/hmac';
 import { PartnerHttpError, PartnerTransientError, partnerRequest, type PartnerConn } from '../common/partner-http';
@@ -22,9 +22,10 @@ import { KIND_FLAGS, computeSteps, goLiveBlockers, needsHandshakeCreds, progress
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const eq = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 export type { IntakeBody };
-let limiter = new SlidingWindowLimiter();
+/** Shared across API instances (Postgres). Memory only when RATE_LIMIT_STORE=memory (unit tests / throw-away runs); replaced by the Pg limiter when the service starts. */
+let limiter: RateLimiter = new SlidingWindowLimiter();
 /** Tests only: forget every intake counter. */
-export const resetIntakeLimits = () => { limiter = new SlidingWindowLimiter(); };
+export const resetIntakeLimits = async () => { await limiter.reset(); };
 const tooMany = (retryAfterSec: number) => new ApiError(429, 'RATE_LIMITED', 'Too many requests, try again later', { retryAfterSec });
 const UNAUTHORIZED = () => new ApiError(401, 'INTAKE_UNAUTHORIZED', 'Request could not be authenticated');
 const DUMMY_KEY = deriveIntakeSigningKey('kiorex-intake-dummy');
@@ -38,12 +39,23 @@ const MSG: Record<string, { en: string; ar: string }> = {
 };
 
 @Injectable()
-export class PartnerOnboardingService {
+export class PartnerOnboardingService implements OnModuleInit, OnModuleDestroy {
+  private sweepTimer?: NodeJS.Timeout;
   private readonly log = new Logger('partner-onboarding');
   constructor(
     private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly registry: PartnerRegistry, private readonly kiorly: KiorlyClient,
     private readonly catalog: CatalogService, private readonly hub: MessagingHub, private readonly markets: MarketService,
-  ) {}
+  ) {
+    limiter = process.env.RATE_LIMIT_STORE === 'memory' ? new SlidingWindowLimiter() : new PgRateLimiter(prisma as any);
+  }
+  onModuleInit() {
+    if (!cfg().jobsEnabled || !(limiter instanceof PgRateLimiter)) return;
+    const pg = limiter;
+    this.sweepTimer = setInterval(() => void pg.sweep().catch((e) => this.log.warn(`rate-limit sweep failed: ${e.message}`)), 10 * 60_000);
+    this.sweepTimer.unref();
+    void this.prisma.partnerIntakeNonce.deleteMany({ where: { seenAt: { lt: new Date(Date.now() - 3_600_000) } } }).catch(() => undefined);
+  }
+  onModuleDestroy() { if (this.sweepTimer) clearInterval(this.sweepTimer); }
 
   private audit(actor: string, action: string, id: string, metadata?: object) { return this.prisma.auditLog.create({ data: { actor, action: `partner_onboarding.${action}`, resource: 'PartnerConnection', resourceId: id, metadata: metadata as any } }); }
   private async row(id: string) { const r = await this.prisma.partnerConnection.findUnique({ where: { id } }); if (!r) throw notFound('PARTNER_CONNECTION_NOT_FOUND', 'Connection request not found'); return r; }
@@ -70,11 +82,11 @@ export class PartnerOnboardingService {
    */
   async intake(raw: string, h: { signature?: string; timestamp?: string; enrolment?: string; ip?: string }) {
     const c = cfg(); const ip = h.ip ?? 'unknown';
-    const blockedFails = limiter.blocked(`fail:${ip}`, c.intakeFailedPer10Min, 600_000);
+    const blockedFails = await limiter.blocked(`fail:${ip}`, c.intakeFailedPer10Min, 600_000);
     if (!blockedFails.ok) throw tooMany(blockedFails.retryAfterSec);
-    const ipHit = limiter.hit(`post:${ip}`, c.intakeIpPerMin, 60_000); if (!ipHit.ok) throw tooMany(ipHit.retryAfterSec);
+    const ipHit = await limiter.hit(`post:${ip}`, c.intakeIpPerMin, 60_000); if (!ipHit.ok) throw tooMany(ipHit.retryAfterSec);
     const b = parseIntakeBody(raw);
-    const orgHit = limiter.hit(`org:${b.kind}:${b.orgRef}`, c.intakeOrgPerHour, 3_600_000); if (!orgHit.ok) throw tooMany(orgHit.retryAfterSec);
+    const orgHit = await limiter.hit(`org:${b.kind}:${b.orgRef}`, c.intakeOrgPerHour, 3_600_000); if (!orgHit.ok) throw tooMany(orgHit.retryAfterSec);
     const existing = await this.prisma.partnerConnection.findUnique({ where: { kind_orgRef: { kind: b.kind, orgRef: b.orgRef } } });
     const auth = await this.authenticateIntake(b, raw, h, existing, ip);
     const market = (b.market ?? 'EG').toUpperCase().slice(0, 2);
@@ -138,10 +150,10 @@ export class PartnerOnboardingService {
       if (Math.random() < 0.02) void this.prisma.partnerIntakeNonce.deleteMany({ where: { seenAt: { lt: new Date(Date.now() - 3_600_000) } } }).catch(() => undefined);
     }
     if (reason !== 'OK') {
-      limiter.hit(`fail:${ip}`, 1_000_000, 600_000);
+      await limiter.hit(`fail:${ip}`, 1_000_000, 600_000);
       // audit the attempt only when it names a real enrolment or connection, and cap the lines so it cannot be used to flood the log
       const target = enrId ?? existing?.id;
-      if (target && limiter.hit(`audit:${target}`, 10, 3_600_000).ok) await this.audit('partner', 'intake_rejected', existing?.id ?? target, { reason, enrolmentId: enrId }).catch(() => undefined);
+      if (target && (await limiter.hit(`audit:${target}`, 10, 3_600_000)).ok) await this.audit('partner', 'intake_rejected', existing?.id ?? target, { reason, enrolmentId: enrId }).catch(() => undefined);
       throw UNAUTHORIZED();
     }
     return { enrolmentId };
@@ -156,8 +168,8 @@ export class PartnerOnboardingService {
 
   /** Partner polls with its status token (shown once at creation). Only coarse, non-internal information is returned. */
   async partnerStatus(id: string, token: string | undefined, ip = 'unknown') {
-    const c = cfg(); const a = limiter.hit(`get:${ip}`, c.intakeStatusIpPerMin, 60_000); if (!a.ok) throw tooMany(a.retryAfterSec);
-    const b = limiter.hit(`get-id:${id.slice(0, 64)}`, 60, 60_000); if (!b.ok) throw tooMany(b.retryAfterSec);
+    const c = cfg(); const a = await limiter.hit(`get:${ip}`, c.intakeStatusIpPerMin, 60_000); if (!a.ok) throw tooMany(a.retryAfterSec);
+    const b = await limiter.hit(`get-id:${id.slice(0, 64)}`, 60, 60_000); if (!b.ok) throw tooMany(b.retryAfterSec);
     const r = await this.prisma.partnerConnection.findUnique({ where: { id } });
     if (!r || !token || !eq(r.statusTokenHash, sha(token))) throw notFound('PARTNER_CONNECTION_NOT_FOUND', 'Connection request not found');
     const steps = computeSteps(this.input(r));

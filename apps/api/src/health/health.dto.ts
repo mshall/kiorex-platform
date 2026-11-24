@@ -12,3 +12,4 @@ export class ReadyDto {
   @ApiProperty({ example: 'up' }) db!: string;
   @ApiProperty({ type: [ProviderStatusDto] }) providers!: ProviderStatusDto[];
 }
+export class ProvidersDto { @ApiProperty({ type: [ProviderStatusDto] }) providers!: ProviderStatusDto[] }

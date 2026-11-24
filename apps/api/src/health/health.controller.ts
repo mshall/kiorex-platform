@@ -3,7 +3,7 @@ import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { providerStatus } from '../common/providers/startup';
-import { LiveDto, ReadyDto } from './health.dto';
+import { LiveDto, ProvidersDto, ReadyDto } from './health.dto';
 
 @ApiTags('health')
 @Controller('health')
@@ -18,6 +18,7 @@ export class HealthController {
   }
 
   /** Active mode of every external provider (mock|real), the vendor in use and whether its required variables are present. Never returns a secret or value. */
+  @ApiOkResponse({ type: ProvidersDto })
   @Public() @Get('providers')
   providers() {
     return { providers: providerStatus() };

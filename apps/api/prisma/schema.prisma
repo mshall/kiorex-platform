@@ -194,7 +194,11 @@ model Provider {
   assignsClinician   Boolean   @default(false) // agencies: clinician assigned after booking (HOME_VISIT_ASSIGNED)
   verificationRegister String?
   homeSurchargeMinor Int? // home surcharge (BR56) of the cheapest home fee; outside S and C
+  // Search "earliest" index: the start of the provider's next in-clinic slot (7-day horizon), refreshed lazily + by a warmer. NULL = no slot / never indexed.
+  nextSlotAt       DateTime?
+  slotIndexedAt    DateTime?
 
+  @@index([status, nextSlotAt])
   @@index([careType, status])
   @@index([status, specialty])
   @@index([clinicId, clinicianId])
@@ -901,6 +905,8 @@ model PartnerRegistration {
   clientSecretEnc  String
   webhookSecretEnc String
   active           Boolean  @default(true)
+  /// LAB_NURSE only: the LAB registration (same lab tenant) this nurse client belongs to; routes a Nurse lab order to the lab that owns it.
+  labRegistrationId String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -1040,6 +1046,8 @@ model NurseLabRelay {
   clinicId       String
   patientRef     String
   partnerOrderId String?
+  /// the LAB_NURSE registration that owns this order (custody / status calls go to it); null = env default
+  registrationId String?
   labOrderNumber String?
   /// SUBMITTED | REFUSED | CANCELLED | RESULT_RELEASED
   status         String
@@ -1217,6 +1225,17 @@ model PartnerEnrolment {
   createdAt   DateTime  @default(now())
 
   @@index([status, expiresAt])
+}
+
+/// Shared rate-limit counters (PgRateLimiter): one row per (key|windowMs, aligned window). Expired rows are swept by a job.
+model RateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int
+  expiresAt   DateTime
+
+  @@id([key, windowStart])
+  @@index([expiresAt])
 }
 
 /// Replay protection for the partner intake: one row per accepted nonce (id = sha256(kind|orgRef|nonce)); swept after an hour.

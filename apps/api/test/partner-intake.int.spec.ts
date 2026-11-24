@@ -15,7 +15,7 @@ describe('partner connection intake: enrolment code, issued key, replay, rate li
 
   beforeAll(async () => { c = await createCtx(); ops = await c.as('ops_int', { roles: ['ops_admin'] }); });
   afterAll(async () => { await c.close(); });
-  beforeEach(() => { resetIntakeLimits(); for (const k of ['INTAKE_RATE_IP_PER_MIN', 'INTAKE_RATE_ORG_PER_HOUR', 'INTAKE_RATE_FAILED_PER_10MIN']) delete process.env[k]; });
+  beforeEach(async () => { await resetIntakeLimits(); for (const k of ['INTAKE_RATE_IP_PER_MIN', 'INTAKE_RATE_ORG_PER_HOUR', 'INTAKE_RATE_FAILED_PER_10MIN']) delete process.env[k]; });
 
   it('ops creates a code that is shown once, stored hashed, listed without the code, and audited', async () => {
     const e = await enrol({ label: 'Nile Clinic onboarding' });
@@ -88,11 +88,11 @@ describe('partner connection intake: enrolment code, issued key, replay, rate li
     const e = await enrol(); const body = clinicBody(org()); let last: any;
     for (let i = 0; i < 4; i++) last = await post(body, signed(body, 'x', e.code));
     expect(last.status).toBe(429); expect(last.body.code).toBe('RATE_LIMITED'); expect(Number(last.headers['retry-after'])).toBeGreaterThan(0);
-    resetIntakeLimits(); delete process.env.INTAKE_RATE_IP_PER_MIN; process.env.INTAKE_RATE_ORG_PER_HOUR = '2';
+    await resetIntakeLimits(); delete process.env.INTAKE_RATE_IP_PER_MIN; process.env.INTAKE_RATE_ORG_PER_HOUR = '2';
     const same = org(); const rs: number[] = [];
     for (let i = 0; i < 3; i++) { const b = clinicBody(same); rs.push((await post(b, signed(b, 'x', e.code))).status); }
     expect(rs).toEqual([401, 401, 429]);
-    resetIntakeLimits(); delete process.env.INTAKE_RATE_ORG_PER_HOUR; process.env.INTAKE_RATE_FAILED_PER_10MIN = '2';
+    await resetIntakeLimits(); delete process.env.INTAKE_RATE_ORG_PER_HOUR; process.env.INTAKE_RATE_FAILED_PER_10MIN = '2';
     const fs: number[] = [];
     for (let i = 0; i < 3; i++) { const b = clinicBody(org()); fs.push((await post(b, signed(b, 'x', e.code))).status); }
     expect(fs).toEqual([401, 401, 429]);

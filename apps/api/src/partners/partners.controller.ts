@@ -9,6 +9,7 @@ export class PartnerDto {
   @ApiProperty({ description: 'Host only, e.g. http://localhost:3100' }) baseUrl!: string; @ApiProperty() clientKey!: string;
   @ApiProperty({ description: 'Always masked' }) clientSecret!: string; @ApiProperty({ description: 'Always masked' }) webhookSecret!: string;
   @ApiProperty() active!: boolean; @ApiProperty({ description: 'Contract path appended to baseUrl' }) apiPath!: string;
+  @ApiProperty({ nullable: true, description: 'lab_nurse only: the lab registration (same lab tenant) this nurse client belongs to' }) labRegistrationId!: string | null;
   @ApiProperty() createdAt!: string; @ApiProperty() updatedAt!: string;
 }
 export class PartnerBody {
@@ -18,6 +19,7 @@ export class PartnerBody {
   @ApiPropertyOptional({ description: 'Write-only' }) @IsOptional() @IsString() @MaxLength(200) clientSecret?: string;
   @ApiPropertyOptional({ description: 'Write-only' }) @IsOptional() @IsString() @MaxLength(200) webhookSecret?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() active?: boolean;
+  @ApiPropertyOptional({ description: 'lab_nurse only: id of the lab registration this nurse client belongs to (routes Nurse lab orders to the lab that owns them); empty string clears' }) @IsOptional() @IsString() @MaxLength(80) labRegistrationId?: string;
 }
 
 /** Ops-editable partner registrations (base URL / keys per partner record). Secrets are write-only. */

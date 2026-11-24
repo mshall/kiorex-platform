@@ -7,7 +7,7 @@ import { PartnerConn } from '../common/partner-http';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type PartnerKind = 'PHARMACY' | 'LAB' | 'LAB_NURSE';
-export interface PartnerInput { name?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; active?: boolean }
+export interface PartnerInput { labRegistrationId?: string; name?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; active?: boolean }
 
 const PATH: Record<PartnerKind, string> = { PHARMACY: PARTNER_API_PATH.pharmacy, LAB: PARTNER_API_PATH.lab, LAB_NURSE: PARTNER_API_PATH.lab };
 const KIND = (k: string): PartnerKind => { const u = k.toUpperCase().replace('-', '_'); if (u !== 'PHARMACY' && u !== 'LAB' && u !== 'LAB_NURSE') throw badRequest('INVALID_PARTNER_KIND', 'kind must be pharmacy, lab or lab_nurse'); return u; };
@@ -60,7 +60,7 @@ export class PartnerRegistry {
   }
 
   /** Active registrations of a kind, oldest first (the order the legacy "first active" rule used). */
-  async activeRegistrations(kind: PartnerKind) { return this.prisma.partnerRegistration.findMany({ where: { kind, active: true }, orderBy: { createdAt: 'asc' }, select: { id: true, kind: true, name: true, clientKey: true } }); }
+  async activeRegistrations(kind: PartnerKind) { return this.prisma.partnerRegistration.findMany({ where: { kind, active: true }, orderBy: { createdAt: 'asc' }, select: { id: true, kind: true, name: true, clientKey: true, labRegistrationId: true } }); }
   async registration(id: string | null | undefined) { return id ? this.prisma.partnerRegistration.findUnique({ where: { id }, select: { id: true, kind: true, name: true, clientKey: true, active: true } }) : null; }
   /** The partner's own organisation id (PartnerConnection.orgRef) behind a registration: org-scope flags and policy overrides are keyed by it. Null for dev/env registrations. */
   async orgRefOf(registrationId: string | null | undefined): Promise<string | null> {
@@ -68,8 +68,8 @@ export class PartnerRegistry {
     return (await this.prisma.partnerConnection.findFirst({ where: { registrationId }, select: { orgRef: true } }))?.orgRef ?? null;
   }
 
-  private present(r: { id: string; kind: string; name: string; baseUrl: string; clientKey: string; active: boolean; createdAt: Date; updatedAt: Date }) {
-    return { id: r.id, kind: r.kind.toLowerCase(), name: r.name, baseUrl: r.baseUrl, clientKey: r.clientKey, clientSecret: '********', webhookSecret: '********', active: r.active, apiPath: PATH[r.kind as PartnerKind], createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() };
+  private present(r: { labRegistrationId?: string | null; id: string; kind: string; name: string; baseUrl: string; clientKey: string; active: boolean; createdAt: Date; updatedAt: Date }) {
+    return { id: r.id, kind: r.kind.toLowerCase(), name: r.name, baseUrl: r.baseUrl, clientKey: r.clientKey, clientSecret: '********', webhookSecret: '********', active: r.active, apiPath: PATH[r.kind as PartnerKind], labRegistrationId: r.labRegistrationId ?? null, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() };
   }
   async list() { return (await this.prisma.partnerRegistration.findMany({ orderBy: [{ kind: 'asc' }, { createdAt: 'asc' }] })).map((r) => this.present(r)); }
 
@@ -80,10 +80,10 @@ export class PartnerRegistry {
     if (id) {
       const cur = await this.prisma.partnerRegistration.findUnique({ where: { id } });
       if (!cur || cur.kind !== kind) throw notFound('PARTNER_NOT_FOUND', 'Partner registration not found');
-      return this.present(await this.prisma.partnerRegistration.update({ where: { id }, data: { name: i.name, baseUrl: i.baseUrl?.replace(/\/+$/, ''), clientKey: i.clientKey, ...(i.clientSecret ? { clientSecretEnc: encryptField(i.clientSecret) } : {}), ...(i.webhookSecret ? { webhookSecretEnc: encryptField(i.webhookSecret) } : {}), active: i.active } }));
+      return this.present(await this.prisma.partnerRegistration.update({ where: { id }, data: { name: i.name, baseUrl: i.baseUrl?.replace(/\/+$/, ''), clientKey: i.clientKey, ...(i.labRegistrationId !== undefined && kind === 'LAB_NURSE' ? { labRegistrationId: i.labRegistrationId || null } : {}), ...(i.clientSecret ? { clientSecretEnc: encryptField(i.clientSecret) } : {}), ...(i.webhookSecret ? { webhookSecretEnc: encryptField(i.webhookSecret) } : {}), active: i.active } }));
     }
     if (!i.name || !i.baseUrl || !i.clientKey || !i.clientSecret || (!i.webhookSecret && kind !== 'LAB_NURSE')) throw badRequest('PARTNER_INCOMPLETE', 'name, baseUrl, clientKey, clientSecret and webhookSecret are required (LAB_NURSE: webhookSecret is not used)');
-    const r = await this.prisma.partnerRegistration.create({ data: { id: `pr_${kind.toLowerCase()}_${Math.random().toString(36).slice(2, 10)}`, kind, name: i.name, baseUrl: i.baseUrl.replace(/\/+$/, ''), clientKey: i.clientKey, clientSecretEnc: encryptField(i.clientSecret), webhookSecretEnc: encryptField(i.webhookSecret ?? ''), active: i.active ?? true } });
+    const r = await this.prisma.partnerRegistration.create({ data: { id: `pr_${kind.toLowerCase()}_${Math.random().toString(36).slice(2, 10)}`, kind, name: i.name, baseUrl: i.baseUrl.replace(/\/+$/, ''), clientKey: i.clientKey, clientSecretEnc: encryptField(i.clientSecret), webhookSecretEnc: encryptField(i.webhookSecret ?? ''), active: i.active ?? true, ...(kind === 'LAB_NURSE' && i.labRegistrationId ? { labRegistrationId: i.labRegistrationId } : {}) } });
     return this.present(r);
   }
 
@@ -94,6 +94,7 @@ export class PartnerRegistry {
     const e = this.envConn(kind);
     const id = `pr_${kind.toLowerCase()}_dev`;
     const data = { kind, name: `Kiorly ${kind === 'PHARMACY' ? 'Pharmacy' : kind === 'LAB_NURSE' ? 'Lab (nurse source)' : 'Lab'} (dev)`, baseUrl: e.baseUrl.replace(/\/+$/, ''), clientKey: e.clientKey, clientSecretEnc: encryptField(e.clientSecret), webhookSecretEnc: encryptField(e.webhookSecret), active: true };
-    await this.prisma.partnerRegistration.upsert({ where: { id }, create: { id, ...data }, update: data });
+    const labRegistrationId = kind === 'LAB_NURSE' ? 'pr_lab_dev' : undefined; // the dev nurse client belongs to the dev lab tenant
+    await this.prisma.partnerRegistration.upsert({ where: { id }, create: { id, ...data, ...(labRegistrationId ? { labRegistrationId } : {}) }, update: { ...data, ...(labRegistrationId ? { labRegistrationId } : {}) } });
   }
 }

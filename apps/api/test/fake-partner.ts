@@ -56,7 +56,9 @@ export class FakePartner {
    * `opts` makes this a SECOND partner of the same kind (another tenant): own client key/secret/webhook secret, own pharmacy / lab ids, and it does not touch the
    * env default connection. The registration for it is created by the test (PartnerRegistry.upsert with baseUrl = `url`).
    */
-  constructor(public readonly kind: PartnerKind, private readonly opts: { clientKey?: string; clientSecret?: string; webhookSecret?: string; pharmacies?: { id: string; name: string }[]; setEnv?: boolean } = {}) {}
+  constructor(public readonly kind: PartnerKind, private readonly opts: { clientKey?: string; clientSecret?: string; webhookSecret?: string; pharmacies?: { id: string; name: string }[]; setEnv?: boolean; nurseClientKey?: string; nurseClientSecret?: string } = {}) {}
+  get nurseKey() { return this.opts.nurseClientKey ?? PARTNER_DEV_DEFAULTS.labNurse.clientKey; }
+  get nurseSecret() { return this.opts.nurseClientSecret ?? PARTNER_DEV_DEFAULTS.labNurse.clientSecret; }
   get url() { return `http://127.0.0.1:${this.port}`; }
   get cfg() { return { ...CFG[this.kind], ...(this.opts.clientKey ? { clientKey: this.opts.clientKey } : {}), ...(this.opts.clientSecret ? { clientSecret: this.opts.clientSecret } : {}), ...(this.opts.webhookSecret ? { webhookSecret: this.opts.webhookSecret } : {}) }; }
   async start() {
@@ -85,7 +87,7 @@ export class FakePartner {
     const url = new URL(req.url!, 'http://x');
     const key = String(req.headers['x-kiorly-client-key'] ?? '');
     // lab: the KIOREX_BOOKING client and (KNLAB01) the KIORLY_NURSE client are two registrations of the same lab
-    const secret = key === this.cfg.clientKey ? this.cfg.clientSecret : this.kind === 'lab' && key === PARTNER_DEV_DEFAULTS.labNurse.clientKey ? PARTNER_DEV_DEFAULTS.labNurse.clientSecret : '';
+    const secret = key === this.cfg.clientKey ? this.cfg.clientSecret : this.kind === 'lab' && key === this.nurseKey ? this.nurseSecret : '';
     const v = verifyKiorlyRequest({ headers: req.headers as any, method: req.method!, path: url.pathname, body: raw, secret });
     const send = (s: number, b: any) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(b)); };
     if (!secret || !v.ok) { this.bad++; return send(401, { code: 'BAD_HMAC' }); }
@@ -122,7 +124,7 @@ export class FakePartner {
       if (m === 'GET' && /^\/labs\/[^/]+\/slots$/.test(path)) { const f = new Date(url.searchParams.get('from')!).getTime(), t = new Date(url.searchParams.get('to')!).getTime(); return send(200, { slots: this.slots.filter((s) => new Date(s.startsAt).getTime() >= f && new Date(s.startsAt).getTime() <= t) }); }
       if (m === 'GET' && /^\/orders\/[^/]+\/custody$/.test(path)) {
         const ref = decodeURIComponent(path.split('/')[2]);
-        if (key !== PARTNER_DEV_DEFAULTS.labNurse.clientKey) return send(404, { code: 'NOT_AVAILABLE_FOR_CLIENT' });
+        if (key !== this.nurseKey) return send(404, { code: 'NOT_AVAILABLE_FOR_CLIENT' });
         const o = this.orders.get(ref);
         if (!o || this.orderClients.get(ref) !== key) return send(404, { code: 'ORDER_NOT_FOUND' });
         const labels = [...new Set(this.custody.map((e) => e.label))];
@@ -130,12 +132,12 @@ export class FakePartner {
       }
       if (m === 'POST' && path === '/orders') {
         if (this.validateOrder && !this.validateOrder(body)) { this.contractViolations.push(JSON.stringify(this.validateOrder.errors?.slice(0, 3))); return send(400, { code: 'VALIDATION_FAILED' }); }
-        if (key === PARTNER_DEV_DEFAULTS.labNurse.clientKey && !body.nurseCollection) return send(400, { code: 'NURSE_COLLECTION_REQUIRED' });
-        if (key !== PARTNER_DEV_DEFAULTS.labNurse.clientKey && body.nurseCollection) return send(400, { code: 'VALIDATION_FAILED' });
+        if (key === this.nurseKey && !body.nurseCollection) return send(400, { code: 'NURSE_COLLECTION_REQUIRED' });
+        if (key !== this.nurseKey && body.nurseCollection) return send(400, { code: 'VALIDATION_FAILED' });
         const key2 = body.sourceRef as string; // the real lab is idempotent on (client, sourceRef) and answers 200 with created:false on replay
         if (this.orders.has(key2)) return send(200, { ...this.orders.get(key2), created: false });
         if (this.orderMode === '5xx') return send(503, {});
-        if (this.orderMode === 'reject') return send(key === PARTNER_DEV_DEFAULTS.labNurse.clientKey ? 422 : 409, { statusCode: 409, code: key === PARTNER_DEV_DEFAULTS.labNurse.clientKey ? 'TWO_IDENTIFIERS_REQUIRED' : 'SLOT_FULL' });
+        if (this.orderMode === 'reject') return send(key === this.nurseKey ? 422 : 409, { statusCode: 409, code: key === this.nurseKey ? 'TWO_IDENTIFIERS_REQUIRED' : 'SLOT_FULL' });
         const o = { orderId: `lbo_${this.orders.size + 1}`, orderNumber: `TL-${this.orders.size + 1}`, status: 'AWAITING_COLLECTION' };
         this.orders.set(key2, o);
         this.orderClients.set(key2, key);

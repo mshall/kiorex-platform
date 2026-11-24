@@ -1,5 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
+import { unavailable } from '../common/errors';
+import { PartnerRegistry } from '../partners/partners-public';
+import { LabClient } from './lab.client';
 import { PartnerHttpError } from '../common/partner-http';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,7 +32,39 @@ const RELAYED = new Set(['COLLECTED', 'IN_LAB', 'PARTIALLY_RESULTED', 'AWAITING_
 @Injectable()
 export class NurseLabRelayService implements OnModuleInit {
   private readonly log = new Logger('nurse-lab');
-  constructor(private readonly prisma: PrismaService, private readonly lab: NurseLabClient, private readonly kiorly: KiorlyClient, private readonly outbox: OutboxService) {}
+  private readonly labIds = new Map<string, { at: number; ids: Set<string> }>();
+  constructor(private readonly prisma: PrismaService, private readonly lab: NurseLabClient, private readonly kiorly: KiorlyClient, private readonly outbox: OutboxService, private readonly registry: PartnerRegistry, private readonly labs: LabClient) {}
+
+  /** Lab ids one LAB registration serves (its test catalogue), cached for a minute; `refresh` bypasses the cache. */
+  private async labIdsOf(labRegistrationId: string, refresh: boolean): Promise<Set<string>> {
+    const hit = this.labIds.get(labRegistrationId);
+    if (hit && !refresh && Date.now() - hit.at < 60_000) return hit.ids;
+    const ids = new Set((await this.labs.tests({}, labRegistrationId)).data.items.map((t) => t.labId));
+    this.labIds.set(labRegistrationId, { at: Date.now(), ids });
+    return ids;
+  }
+
+  /**
+   * Which LAB_NURSE registration serves this order (per-registration routing, like pharmacy and lab). 0 registrations: the env default (null). One nurse client and at most
+   * one lab: that client (unchanged behaviour). Otherwise the order's `preferredLabId` is matched to the LAB registration that owns that lab, and the nurse client
+   * paired with it (`labRegistrationId`) is used; an order that names no lab goes to the oldest nurse client. No owner or no paired client is a definitive refusal code;
+   * a lab system that cannot be asked right now throws (5xx: the clinic redelivers).
+   */
+  async routeFor(preferredLabId?: string): Promise<{ registrationId: string | null } | { refusal: string }> {
+    const nurse = await this.registry.activeRegistrations('LAB_NURSE');
+    if (!nurse.length) return { registrationId: null };
+    const labRegs = await this.registry.activeRegistrations('LAB');
+    if (nurse.length === 1 && labRegs.length <= 1) return { registrationId: nurse[0]!.id };
+    if (!preferredLabId) return { registrationId: nurse[0]!.id };
+    for (const refresh of [false, true]) {
+      const owners: string[] = []; let failed = 0;
+      for (const l of labRegs) { try { if ((await this.labIdsOf(l.id, refresh)).has(preferredLabId)) owners.push(l.id); } catch { failed++; } }
+      if (owners.length > 1) return { refusal: 'AMBIGUOUS_LAB' };
+      if (owners.length === 1) { const n = nurse.find((x) => x.labRegistrationId === owners[0]); return n ? { registrationId: n.id } : { refusal: 'LAB_NURSE_NOT_REGISTERED' }; }
+      if (refresh) { if (failed) throw unavailable('PARTNER_SYSTEM_BUSY', 'A lab system is busy, try again shortly', { retryable: true }); return { refusal: 'LAB_NOT_FOUND' }; }
+    }
+    return { refusal: 'LAB_NOT_FOUND' };
+  }
 
   onModuleInit() { this.outbox.register(PUSH, (e) => this.deliverStatus(e.payload)); }
 
@@ -80,11 +115,13 @@ export class NurseLabRelayService implements OnModuleInit {
     if (refusal) return this.refuse(d, refusal);
     const { vault, revoked } = await this.vaultState(d.patientRef);
     if (revoked) return this.refuse(d, 'CONSENT_REVOKED');
+    const route = await this.routeFor(d.preferredLabId);
+    if ('refusal' in route) return this.refuse(d, route.refusal);
     try {
-      const { data } = await this.lab.createOrder(d.orderId, NurseLabRelayService.toInbound(d, vault));
+      const { data } = await this.lab.createOrder(d.orderId, NurseLabRelayService.toInbound(d, vault), route.registrationId);
       await this.prisma.nurseLabRelay.upsert({
         where: { id: d.orderId },
-        create: { id: d.orderId, clinicId: d.clinicId, patientRef: d.patientRef, partnerOrderId: data.orderId, labOrderNumber: data.orderNumber, status: 'SUBMITTED', lastLabStatus: data.status },
+        create: { id: d.orderId, clinicId: d.clinicId, patientRef: d.patientRef, partnerOrderId: data.orderId, registrationId: route.registrationId, labOrderNumber: data.orderNumber, status: 'SUBMITTED', lastLabStatus: data.status },
         update: {},
       });
       await this.enqueuePush(d.orderId, 'ACCEPTED', { labOrderNumber: data.orderNumber });
@@ -105,10 +142,20 @@ export class NurseLabRelayService implements OnModuleInit {
     return this.prisma.nurseLabRelay.findFirst({ where: { OR: [...(ids.sourceRef ? [{ id: ids.sourceRef }] : []), ...(ids.orderId ? [{ partnerOrderId: ids.orderId }, { id: ids.orderId }] : [])] } });
   }
 
+  /** An event signed by lab registration X must not move an order that belongs to another lab: true (and audited) when the relay's nurse client is paired with a different lab registration. */
+  private async foreign(r: { id: string; registrationId: string | null }, ctx: { registrationId?: string | null }, type: string): Promise<boolean> {
+    if (!ctx.registrationId || !r.registrationId) return false;
+    const owner = (await this.prisma.partnerRegistration.findUnique({ where: { id: r.registrationId }, select: { labRegistrationId: true } }))?.labRegistrationId;
+    if (!owner || owner === ctx.registrationId) return false;
+    await this.prisma.auditLog.create({ data: { actor: 'nurse_lab', action: 'nurse_lab.event_from_other_registration', resource: 'NurseLabRelay', resourceId: r.id, metadata: { type, from: ctx.registrationId, owner } } });
+    return true;
+  }
+
   /** LabOrderStatusChanged (lab). The clinic learns every real step; RELEASED waits for LabResultReleased (it carries the report link). */
-  async onStatusChanged(d: { orderId?: string; sourceRef?: string | null; nextStatus?: string }): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
+  async onStatusChanged(d: { orderId?: string; sourceRef?: string | null; nextStatus?: string }, ctx: { registrationId?: string | null } = {}): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
     const r = await this.relayFor(d);
     if (!r) return 'UNKNOWN_ORDER';
+    if (await this.foreign(r, ctx, 'LabOrderStatusChanged')) return 'IGNORED';
     if (r.status === 'REFUSED' || !d.nextStatus || !RELAYED.has(d.nextStatus)) return 'IGNORED';
     await this.prisma.nurseLabRelay.update({ where: { id: r.id }, data: { lastLabStatus: d.nextStatus, ...(d.nextStatus === 'CANCELLED' ? { status: 'CANCELLED' } : {}) } });
     await this.enqueuePush(r.id, d.nextStatus, {});
@@ -116,9 +163,10 @@ export class NurseLabRelayService implements OnModuleInit {
   }
 
   /** LabResultReleased (lab): the clinic gets the report id + secure link only (never values, KLCRIT03). */
-  async onResultReleased(d: { orderId: string; reportId: string; reportVersion: number; signedAt: string; secureLink: string }): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
+  async onResultReleased(d: { orderId: string; reportId: string; reportVersion: number; signedAt: string; secureLink: string }, ctx: { registrationId?: string | null } = {}): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
     const r = await this.relayFor({ orderId: d.orderId });
     if (!r) return 'UNKNOWN_ORDER';
+    if (await this.foreign(r, ctx, 'LabResultReleased')) return 'IGNORED';
     if (r.status === 'REFUSED') return 'IGNORED';
     await this.prisma.nurseLabRelay.update({ where: { id: r.id }, data: { status: 'RESULT_RELEASED', lastLabStatus: 'RELEASED', reportId: d.reportId } });
     await this.enqueuePush(r.id, 'RELEASED', { reportId: d.reportId, reportVersion: d.reportVersion, signedAt: d.signedAt, secureLink: d.secureLink }, `${d.reportVersion}`);
@@ -137,7 +185,7 @@ export class NurseLabRelayService implements OnModuleInit {
     delete body.orderId;
     if (r.labOrderNumber) body.labOrderNumber = r.labOrderNumber;
     if (p.status !== 'REJECTED_BY_LAB' && r.partnerOrderId) {
-      const c = await this.custody(p.orderId); // transient lab failure throws: the outbox retries
+      const c = await this.custody(p.orderId, r.registrationId); // transient lab failure throws: the outbox retries
       if (c) { body.custody = flatten(c); if (c.orderNumber) body.labOrderNumber = c.orderNumber; }
     }
     try {
@@ -148,8 +196,8 @@ export class NurseLabRelayService implements OnModuleInit {
     }
   }
 
-  private async custody(sourceRef: string): Promise<LabCustodyDto | null> {
-    try { return (await this.lab.custody(sourceRef)).data; } catch (e) {
+  private async custody(sourceRef: string, registrationId?: string | null): Promise<LabCustodyDto | null> {
+    try { return (await this.lab.custody(sourceRef, registrationId)).data; } catch (e) {
       if (e instanceof PartnerHttpError && e.status === 404) return null;
       throw e;
     }
@@ -159,7 +207,7 @@ export class NurseLabRelayService implements OnModuleInit {
   async custodyView(orderId: string) {
     const r = await this.prisma.nurseLabRelay.findUnique({ where: { id: orderId } });
     if (!r?.partnerOrderId) return null;
-    const c = await this.custody(orderId);
+    const c = await this.custody(orderId, r.registrationId);
     return c ? { orderId, status: c.status, orderNumber: c.orderNumber, custody: flatten(c) } : null;
   }
 }

@@ -68,6 +68,50 @@ describe('catalog & search (KXM-DS-01..08, KXM-PR)', () => {
     await c.http().get('/api/v1/search/providers?sort=bogus').expect(400);
   });
 
+  it('default "earliest" sort covers the whole catalogue: unrated providers reachable, SQL pagination stable, no timeout at 130 providers', async () => {
+    const N = 130;
+    for (let i = 0; i < N; i++) {
+      c.kiorly.providers.push(FakeKiorly.provider({ id: `lst_e${i}`, clinicianId: `dr_e${i}`, nameEn: `Dr E${i}` }));
+      // earliest slot: provider i starts at +24h + (N - i) hours, so the LAST seeded (never rated) provider is the earliest
+      c.kiorly.slotsByClinician.set(`dr_e${i}`, [soon(24 + (N - i))]);
+    }
+    await c.get(CatalogService).syncOnce();
+    // only the first 5 are rated: the old 60-best-rated cut would have hidden 125 providers
+    for (let i = 0; i < 5; i++) await c.prisma.provider.update({ where: { id: `lst_e${i}` }, data: { ratingAvg: 4.9, ratingCount: 20 } });
+    const t0 = Date.now();
+    const first = (await c.http().get('/api/v1/search/providers?pageSize=30&page=1').expect(200)).body;
+    expect(Date.now() - t0).toBeLessThan(15_000);
+    expect(first.total).toBe(N);
+    expect(first.sort).toBe('earliest');
+    expect(first.items[0].id).toBe(`lst_e${N - 1}`); // earliest slot wins although unrated
+    const ids: string[] = first.items.map((i: any) => i.id);
+    for (let page = 2; page <= 5; page++) ids.push(...(await c.http().get(`/api/v1/search/providers?pageSize=30&page=${page}`).expect(200)).body.items.map((i: any) => i.id));
+    expect(ids).toHaveLength(N);
+    expect(new Set(ids).size).toBe(N); // no duplicate / missing row across pages
+    expect(ids).toEqual(Array.from({ length: N }, (_, k) => `lst_e${N - 1 - k}`)); // strictly by next slot
+    // the index is warm now: a second search asks the clinic for slots only for its own page (<= 30), not for the catalogue
+    c.kiorly.calls = [];
+    await c.http().get('/api/v1/search/providers?pageSize=10&page=2').expect(200);
+    expect(c.kiorly.callsTo('GET', '/slots').length).toBeLessThanOrEqual(10);
+    // nextAvailable filters in SQL: total reflects it
+    const wk = (await c.http().get('/api/v1/search/providers?nextAvailable=week&pageSize=30').expect(200)).body;
+    expect(wk.total).toBe(N);
+    expect((await c.http().get('/api/v1/search/providers?nextAvailable=today').expect(200)).body.total).toBe(0);
+  });
+
+  it('earliest: providers without slots sort after those with slots (rating then id as tie-break); a booking-side invalidation re-indexes', async () => {
+    c.kiorly.providers.push(FakeKiorly.provider({ id: 'lst_n1', clinicianId: 'dr_n1' }), FakeKiorly.provider({ id: 'lst_n2', clinicianId: 'dr_n2' }), FakeKiorly.provider({ id: 'lst_s', clinicianId: 'dr_s' }));
+    c.kiorly.slotsByClinician.set('dr_n1', []); c.kiorly.slotsByClinician.set('dr_n2', []); c.kiorly.slotsByClinician.set('dr_s', [soon(40)]);
+    await c.get(CatalogService).syncOnce();
+    await c.prisma.provider.update({ where: { id: 'lst_n2' }, data: { ratingAvg: 4.5, ratingCount: 3 } });
+    const ids = async () => (await c.http().get('/api/v1/search/providers').expect(200)).body.items.map((i: any) => i.id);
+    expect(await ids()).toEqual(['lst_s', 'lst_n2', 'lst_n1']);
+    c.kiorly.slotsByClinician.set('dr_n1', [soon(26)]);
+    c.get(CatalogService).invalidateSlots('dr_n1');
+    await new Promise((r) => setTimeout(r, 200));
+    expect(await ids()).toEqual(['lst_n1', 'lst_s', 'lst_n2']);
+  });
+
   it('KXM-DS-06 emergency keywords (EN + AR) return 123 guidance and never results', async () => {
     await seedProvider(c, {});
     for (const q of ['severe chest pain', "I can't breathe", 'ألم في الصدر', 'نزيف شديد', 'عايز اموت']) {

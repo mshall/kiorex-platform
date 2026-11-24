@@ -109,6 +109,9 @@ export const cfg = () => ({
   quietEnd: num('QUIET_HOURS_END', 8),
   tzOffsetHours: num('MARKET_TZ_OFFSET_HOURS', 2),
   slotCacheTtlMs: num('SLOT_CACHE_TTL_MS', 60_000),
+  /** Search "earliest" index: how long a provider's cached next-slot time is trusted, and the per-request refresh deadline for cold providers. */
+  slotIndexTtlMs: num('SLOT_INDEX_TTL_MS', 300_000),
+  slotIndexDeadlineMs: num('SLOT_INDEX_DEADLINE_MS', 6_000),
   holdMinutes: num('HOLD_MINUTES', 5),
   /** Partner connection intake (public, signed): per-IP / per-orgRef / failed-auth limits (in-memory per process) and the body cap. */
   intakeIpPerMin: num('INTAKE_RATE_IP_PER_MIN', 30),

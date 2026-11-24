@@ -186,7 +186,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "The hub.challenge echoed back as plain text (real mode only; otherwise 403 INVALID_VERIFY_TOKEN)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "1158201444"
+                }
+              }
+            }
           }
         },
         "summary": "Provider webhook verification handshake (Meta WhatsApp hub.challenge)",
@@ -4256,7 +4264,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchDto"
+                }
+              }
+            }
           }
         },
         "summary": "Create an import batch for a target organization",
@@ -4269,9 +4284,20 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportBatchDto"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Import batches, newest first (max 100)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4292,9 +4318,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchDetailDto"
+                }
+              }
+            }
           }
         },
+        "summary": "One batch with its staged files",
         "tags": [
           "ops-onboarding"
         ]
@@ -4323,7 +4357,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportUploadResultDto"
+                }
+              }
+            }
           }
         },
         "summary": "Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name=",
@@ -4347,9 +4388,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRescanDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Re-run the deterministic analysis",
         "tags": [
           "ops-onboarding"
         ]
@@ -4410,9 +4459,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportTaskPageDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Resolution queue (paged, filter by status/severity/type)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4443,9 +4500,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResolveManyDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Apply one resolution to up to 500 tasks",
         "tags": [
           "ops-onboarding"
         ]
@@ -4484,9 +4549,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResolveDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Resolve one task",
         "tags": [
           "ops-onboarding"
         ]
@@ -4515,9 +4588,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportPatientHitDto"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Staged patient lookup for the merge / assign pickers (max 20)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4538,9 +4622,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportDryRunDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Dry-run report: what a commit would create, blockers and the report hash to approve",
         "tags": [
           "ops-onboarding"
         ]
@@ -4561,9 +4653,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Ask for approval (two-person rule step 1)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4594,9 +4694,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: approve the exact report hash (not the requester or creator)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4627,9 +4735,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: reject the commit request with a reason",
         "tags": [
           "ops-onboarding"
         ]
@@ -4650,9 +4766,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: commit the approved batch into the target clinic (idempotent items)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4683,9 +4807,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: roll back a committed batch",
         "tags": [
           "ops-onboarding"
         ]
@@ -4706,9 +4838,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRequestedDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: delete the quarantined files and staging rows",
         "tags": [
           "ops-onboarding"
         ]
@@ -4729,9 +4869,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportAuditLineDto"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Audit trail of the batch (ids and counts only)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4768,7 +4919,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResultDto"
+                }
+              }
+            }
           }
         },
         "summary": "Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef)",
@@ -4800,7 +4958,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPublicStatusDto"
+                }
+              }
+            }
           }
         },
         "summary": "Partner polls its own status with the status token returned at creation",
@@ -4832,7 +4997,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnrolmentViewDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "OP: enrolment codes (never the code itself)",
@@ -4855,7 +5030,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentCreatedDto"
+                }
+              }
+            }
           }
         },
         "summary": "OP: create a one-time enrolment code; the code is in this response only",
@@ -4879,7 +5061,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrolmentViewDto"
+                }
+              }
+            }
           }
         },
         "summary": "OP: revoke an unused enrolment code",
@@ -4911,9 +5100,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerConnectionRowDto"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "OP: connection requests (queue)",
         "tags": [
           "ops-onboarding"
         ]
@@ -4934,9 +5134,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: one connection request with its computed steps and go-live blockers",
         "tags": [
           "ops-onboarding"
         ]
@@ -4957,9 +5165,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerAuditLineDto"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "OP: audit trail of the request",
         "tags": [
           "ops-onboarding"
         ]
@@ -4980,9 +5199,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: run the automatic checks now",
         "tags": [
           "ops-onboarding"
         ]
@@ -5013,9 +5240,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: mark the documents reviewed",
         "tags": [
           "ops-onboarding"
         ]
@@ -5046,9 +5281,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: record the licence verification reference",
         "tags": [
           "ops-onboarding"
         ]
@@ -5079,9 +5322,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: confirm the fee mode (standard or org override)",
         "tags": [
           "ops-onboarding"
         ]
@@ -5112,9 +5363,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: send the request back to the partner with a reason",
         "tags": [
           "ops-onboarding"
         ]
@@ -5145,9 +5404,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: reject the request with a reason",
         "tags": [
           "ops-onboarding"
         ]
@@ -5168,9 +5435,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: ask a super admin to approve (two-person rule)",
         "tags": [
           "ops-onboarding"
         ]
@@ -5191,9 +5466,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "SA: approve (never the requester or the licence verifier)",
         "tags": [
           "ops-onboarding"
         ]
@@ -5214,9 +5497,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: register the partner and switch it live (idempotent)",
         "tags": [
           "ops-onboarding"
         ]
@@ -5247,9 +5538,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: pause a live partner with a reason",
         "tags": [
           "ops-onboarding"
         ]
@@ -5270,9 +5569,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: resume a paused partner",
         "tags": [
           "ops-onboarding"
         ]
@@ -5293,9 +5600,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerConnectionDto"
+                }
+              }
+            }
           }
         },
+        "summary": "OP: apply a pending credential rotation after a passing handshake",
         "tags": [
           "ops-onboarding"
         ]
@@ -7694,7 +8009,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvidersDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -14380,6 +14702,338 @@
           "orgName"
         ]
       },
+      "ImportBatchDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Target Kiorly Clinic organisation id"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "NEEDS_REVIEW",
+              "READY",
+              "AWAITING_APPROVAL",
+              "APPROVED",
+              "COMMITTING",
+              "COMMIT_FAILED",
+              "COMMITTED",
+              "ROLLING_BACK",
+              "ROLLED_BACK"
+            ]
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportHash": {
+            "type": "string",
+            "nullable": true,
+            "description": "sha256 of the dry-run report the approver signed off"
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Last analysis: classification, mappings, stats (no row data)"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Per-entity committed counts, last error code"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "orgName",
+          "status",
+          "createdBy",
+          "summary",
+          "progress",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ImportFileViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "rejectReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "size",
+          "sha256",
+          "meta",
+          "createdAt"
+        ]
+      },
+      "ImportBatchDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string",
+            "description": "Target Kiorly Clinic organisation id"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "NEEDS_REVIEW",
+              "READY",
+              "AWAITING_APPROVAL",
+              "APPROVED",
+              "COMMITTING",
+              "COMMIT_FAILED",
+              "COMMITTED",
+              "ROLLING_BACK",
+              "ROLLED_BACK"
+            ]
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportHash": {
+            "type": "string",
+            "nullable": true,
+            "description": "sha256 of the dry-run report the approver signed off"
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Last analysis: classification, mappings, stats (no row data)"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Per-entity committed counts, last error code"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportFileViewDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "orgName",
+          "status",
+          "createdBy",
+          "summary",
+          "progress",
+          "createdAt",
+          "updatedAt",
+          "files"
+        ]
+      },
+      "ImportUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "File class, or REJECTED with rejectReason"
+          },
+          "rejectReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ]
+      },
+      "ImportRescanDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          }
+        },
+        "required": [
+          "ok",
+          "stats"
+        ]
+      },
+      "ImportTaskCountDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "severity",
+          "count"
+        ]
+      },
+      "ImportTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "RESOLVED",
+              "IGNORED"
+            ]
+          },
+          "resolvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "The task payload (type, severity, entity, options); never row values"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "BLOCKER",
+              "WARNING",
+              "INFO"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "type",
+          "severity"
+        ]
+      },
+      "ImportTaskPageDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportTaskCountDto"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportTaskDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "items"
+        ]
+      },
       "OnbResolveManyBody": {
         "type": "object",
         "properties": {
@@ -14420,6 +15074,22 @@
           "action"
         ]
       },
+      "ImportResolveManyDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "resolved": {
+            "type": "number",
+            "description": "Tasks resolved"
+          }
+        },
+        "required": [
+          "ok",
+          "resolved"
+        ]
+      },
       "OnbResolveBody": {
         "type": "object",
         "properties": {
@@ -14453,6 +15123,147 @@
           "action"
         ]
       },
+      "ImportResolveDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "open": {
+            "type": "number",
+            "description": "Open tasks left"
+          }
+        },
+        "required": [
+          "ok",
+          "open"
+        ]
+      },
+      "ImportPatientHitDto": {
+        "type": "object",
+        "properties": {
+          "sourceKey": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "sourceKey"
+        ]
+      },
+      "ImportTaskBreakdownDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "status",
+          "count"
+        ]
+      },
+      "ImportDryRunDto": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "reportHash": {
+            "type": "string",
+            "description": "sha256 of the report: what the approver signs off"
+          },
+          "canCommit": {
+            "type": "boolean"
+          },
+          "willCreate": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Rows per entity that would be created"
+          },
+          "filesToAttach": {
+            "type": "number"
+          },
+          "mergedPatients": {
+            "type": "number"
+          },
+          "skippedFiles": {
+            "type": "number"
+          },
+          "openBlockers": {
+            "type": "number"
+          },
+          "openWarnings": {
+            "type": "number"
+          },
+          "ignoredWithReason": {
+            "type": "number"
+          },
+          "taskBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportTaskBreakdownDto"
+            }
+          },
+          "targetMode": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Committed batches only: the per-entity progress"
+          }
+        },
+        "required": [
+          "batchId",
+          "status"
+        ]
+      },
+      "ImportRequestedDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reportHash": {
+            "type": "string"
+          },
+          "committed": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "removed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
       "OnbApproveBody": {
         "type": "object",
         "properties": {
@@ -14474,6 +15285,207 @@
         },
         "required": [
           "reason"
+        ]
+      },
+      "ImportAuditLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Ids and counts only"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "action",
+          "resource",
+          "metadata",
+          "createdAt"
+        ]
+      },
+      "IntakeResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "pc_ab12cd34"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean",
+            "description": "true on the first submission, false on a re-submit"
+          },
+          "statusToken": {
+            "type": "string",
+            "description": "Status-poll token, shown once on creation (not returned when the partner supplied its own)"
+          },
+          "intakeKey": {
+            "type": "string",
+            "description": "Intake key kxi_..., shown once: on creation and after a recovery re-enrolment"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created"
+        ]
+      },
+      "PartnerPublicStepDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "HUMAN"
+            ]
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "state"
+        ]
+      },
+      "PartnerPublicStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number"
+          },
+          "steps": {
+            "description": "key, type and state only (no internal detail)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerPublicStepDto"
+            }
+          },
+          "liveAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "progress",
+          "steps",
+          "updatedAt"
+        ]
+      },
+      "EnrolmentViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "kxe_ab12cd34"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "NURSE",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "orgRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "USED",
+              "REVOKED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "revokedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "revokedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "usedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "connectionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "status",
+          "expiresAt",
+          "createdBy",
+          "createdAt"
         ]
       },
       "EnrolmentBody": {
@@ -14505,6 +15517,325 @@
         "required": [
           "kind",
           "label"
+        ]
+      },
+      "EnrolmentCreatedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "kxe_ab12cd34"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "NURSE",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "orgRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "USED",
+              "REVOKED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "revokedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "revokedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "usedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "connectionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "The one-time enrolment code (kxe_<id>.<secret>); only ever present in this response"
+          },
+          "shownOnce": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "status",
+          "expiresAt",
+          "createdBy",
+          "createdAt",
+          "code",
+          "shownOnce"
+        ]
+      },
+      "PartnerConnectionRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "market": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Percent of steps done (0-100)"
+          },
+          "humanActions": {
+            "description": "Human step keys waiting for ops",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "market",
+          "status",
+          "progress",
+          "humanActions",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PartnerStepDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "HUMAN"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DONE",
+              "FAILED",
+              "WARN",
+              "PENDING",
+              "ACTION",
+              "LOCKED"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "ops_admin",
+              "super_admin"
+            ],
+            "description": "HUMAN steps: who may act"
+          },
+          "link": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "state"
+        ]
+      },
+      "PartnerConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "market": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Percent of steps done (0-100)"
+          },
+          "humanActions": {
+            "description": "Human step keys waiting for ops",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "orgRef": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "readiness": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The partner's own readiness answers (no secrets)"
+          },
+          "checksRunAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "liveAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "rotationPending": {
+            "type": "boolean"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerStepDto"
+            }
+          },
+          "blockers": {
+            "description": "Reasons go-live is still blocked",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "market",
+          "status",
+          "progress",
+          "humanActions",
+          "createdAt",
+          "updatedAt",
+          "orgRef",
+          "readiness",
+          "rotationPending",
+          "steps",
+          "blockers"
+        ]
+      },
+      "PartnerAuditLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "description": "e.g. submitted, approved, go_live"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Ids and codes only"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "action",
+          "metadata",
+          "createdAt"
         ]
       },
       "PartnerNoteBody": {
@@ -16404,6 +17735,11 @@
             "type": "string",
             "description": "Contract path appended to baseUrl"
           },
+          "labRegistrationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "lab_nurse only: the lab registration (same lab tenant) this nurse client belongs to"
+          },
           "createdAt": {
             "type": "string"
           },
@@ -16421,6 +17757,7 @@
           "webhookSecret",
           "active",
           "apiPath",
+          "labRegistrationId",
           "createdAt",
           "updatedAt"
         ]
@@ -16452,6 +17789,11 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "labRegistrationId": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "lab_nurse only: id of the lab registration this nurse client belongs to (routes Nurse lab orders to the lab that owns them); empty string clears"
           }
         }
       },
@@ -17504,6 +18846,20 @@
           "mode",
           "vendor",
           "ready"
+        ]
+      },
+      "ProvidersDto": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderStatusDto"
+            }
+          }
+        },
+        "required": [
+          "providers"
         ]
       },
       "ReadyDto": {

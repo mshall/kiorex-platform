@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly, Public, SuperAdminOnly } from '../common/auth';
 import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
 import { ApiError } from '../common/errors';
 import { PartnerEnrolmentService } from './partner-enrolment.service';
 import { PartnerOnboardingService } from './partner-onboarding.service';
+import { EnrolmentCreatedDto, EnrolmentViewDto, IntakeResultDto, PartnerAuditLineDto, PartnerConnectionDto, PartnerConnectionRowDto, PartnerPublicStatusDto } from './partner-onboarding.dto';
 
 class PartnerNoteBody { @IsOptional() @IsString() @MaxLength(200) note?: string }
 class LicenceBody { @IsString() @MaxLength(80) reference!: string }
@@ -22,9 +23,9 @@ class EnrolmentBody {
 @Controller('admin/onboarding/enrolments')
 export class PartnerEnrolmentController {
   constructor(private readonly svc: PartnerEnrolmentService) {}
-  @Get() @ApiOperation({ summary: 'OP: enrolment codes (never the code itself)' }) list(@Query('kind') kind?: string, @Query('status') status?: string) { return this.svc.list({ kind, status }); }
-  @Post() @HttpCode(201) @ApiOperation({ summary: 'OP: create a one-time enrolment code; the code is in this response only' }) create(@CurrentUser() u: AuthUser, @Body() b: EnrolmentBody) { return this.svc.create(u.sub, b); }
-  @Delete(':id') @HttpCode(200) @ApiOperation({ summary: 'OP: revoke an unused enrolment code' }) revoke(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.revoke(u.sub, id); }
+  @Get() @ApiOperation({ summary: 'OP: enrolment codes (never the code itself)' }) @ApiOkResponse({ type: EnrolmentViewDto, isArray: true }) list(@Query('kind') kind?: string, @Query('status') status?: string) { return this.svc.list({ kind, status }); }
+  @Post() @HttpCode(201) @ApiOperation({ summary: 'OP: create a one-time enrolment code; the code is in this response only' }) @ApiCreatedResponse({ type: EnrolmentCreatedDto }) create(@CurrentUser() u: AuthUser, @Body() b: EnrolmentBody) { return this.svc.create(u.sub, b); }
+  @Delete(':id') @HttpCode(200) @ApiOperation({ summary: 'OP: revoke an unused enrolment code' }) @ApiOkResponse({ type: EnrolmentViewDto }) revoke(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.revoke(u.sub, id); }
 }
 
 /** Partner products (standalone organisations) ask to join the marketplace and poll their own status. Signed intake, no PHI, secrets never echoed. */
@@ -32,13 +33,13 @@ export class PartnerEnrolmentController {
 @Controller('partners/v1/connection-requests')
 export class PartnerConnectionPublicController {
   constructor(private readonly svc: PartnerOnboardingService) {}
-  @Public() @Post() @HttpCode(200) @ApiOperation({ summary: 'Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef)' })
+  @Public() @Post() @HttpCode(200) @ApiOperation({ summary: 'Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef)' }) @ApiOkResponse({ type: IntakeResultDto })
   intake(@Req() req: { rawBody?: Buffer; ip?: string }, @Headers('x-kiorly-signature') sig?: string, @Headers('x-kiorly-timestamp') ts?: string, @Headers('x-kiorex-enrolment') enrolment?: string) {
     if (!req.rawBody) throw new ApiError(400, 'RAW_BODY_REQUIRED', 'raw body unavailable');
     if (req.rawBody.length > INTAKE_MAX_BODY_BYTES) throw new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Request body is too large');
     return this.svc.intake(req.rawBody.toString('utf8'), { signature: sig, timestamp: ts, enrolment, ip: req.ip });
   }
-  @Public() @Get(':id') @ApiOperation({ summary: 'Partner polls its own status with the status token returned at creation' })
+  @Public() @Get(':id') @ApiOperation({ summary: 'Partner polls its own status with the status token returned at creation' }) @ApiOkResponse({ type: PartnerPublicStatusDto })
   status(@Req() req: { ip?: string }, @Param('id') id: string, @Headers('x-connection-token') token?: string) { return this.svc.partnerStatus(id, token, req.ip); }
 }
 
@@ -48,19 +49,19 @@ export class PartnerConnectionPublicController {
 @Controller('admin/onboarding/partners')
 export class PartnerOnboardingController {
   constructor(private readonly svc: PartnerOnboardingService) {}
-  @Get() list(@Query('status') status?: string, @Query('kind') kind?: string) { return this.svc.list({ status, kind }); }
-  @Get(':id') get(@Param('id') id: string) { return this.svc.get(id); }
-  @Get(':id/audit') audit(@Param('id') id: string) { return this.svc.auditTrail(id); }
-  @Post(':id/run-checks') @HttpCode(200) run(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.runChecks(u.sub, id); }
-  @Post(':id/steps/review_documents') @HttpCode(200) docs(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerNoteBody) { return this.svc.reviewDocuments(u.sub, id, b.note); }
-  @Post(':id/steps/verify_licence') @HttpCode(200) lic(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: LicenceBody) { return this.svc.verifyLicence(u.sub, id, b.reference); }
-  @Post(':id/steps/fees') @HttpCode(200) fees(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FeesBody) { return this.svc.confirmFees(u.sub, id, b.mode, b.note); }
-  @Post(':id/request-changes') @HttpCode(200) changes(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.requestChanges(u.sub, id, b.reason); }
-  @Post(':id/reject') @HttpCode(200) reject(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.reject(u.sub, id, b.reason); }
-  @Post(':id/request-approval') @HttpCode(200) request(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.requestApproval(u.sub, id); }
-  @SuperAdminOnly() @Post(':id/approve') @HttpCode(200) approve(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.approve(u.sub, id); }
-  @Post(':id/go-live') @HttpCode(200) live(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.goLive(u.sub, id); }
-  @Post(':id/pause') @HttpCode(200) pause(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.pause(u.sub, id, b.reason); }
-  @Post(':id/resume') @HttpCode(200) resume(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.resume(u.sub, id); }
-  @Post(':id/apply-rotation') @HttpCode(200) rotate(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.applyRotation(u.sub, id); }
+  @Get() @ApiOperation({ summary: 'OP: connection requests (queue)' }) @ApiOkResponse({ type: PartnerConnectionRowDto, isArray: true }) list(@Query('status') status?: string, @Query('kind') kind?: string) { return this.svc.list({ status, kind }); }
+  @Get(':id') @ApiOperation({ summary: 'OP: one connection request with its computed steps and go-live blockers' }) @ApiOkResponse({ type: PartnerConnectionDto }) get(@Param('id') id: string) { return this.svc.get(id); }
+  @Get(':id/audit') @ApiOperation({ summary: 'OP: audit trail of the request' }) @ApiOkResponse({ type: PartnerAuditLineDto, isArray: true }) audit(@Param('id') id: string) { return this.svc.auditTrail(id); }
+  @Post(':id/run-checks') @HttpCode(200) @ApiOperation({ summary: 'OP: run the automatic checks now' }) @ApiOkResponse({ type: PartnerConnectionDto }) run(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.runChecks(u.sub, id); }
+  @Post(':id/steps/review_documents') @HttpCode(200) @ApiOperation({ summary: 'OP: mark the documents reviewed' }) @ApiOkResponse({ type: PartnerConnectionDto }) docs(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerNoteBody) { return this.svc.reviewDocuments(u.sub, id, b.note); }
+  @Post(':id/steps/verify_licence') @HttpCode(200) @ApiOperation({ summary: 'OP: record the licence verification reference' }) @ApiOkResponse({ type: PartnerConnectionDto }) lic(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: LicenceBody) { return this.svc.verifyLicence(u.sub, id, b.reference); }
+  @Post(':id/steps/fees') @HttpCode(200) @ApiOperation({ summary: 'OP: confirm the fee mode (standard or org override)' }) @ApiOkResponse({ type: PartnerConnectionDto }) fees(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FeesBody) { return this.svc.confirmFees(u.sub, id, b.mode, b.note); }
+  @Post(':id/request-changes') @HttpCode(200) @ApiOperation({ summary: 'OP: send the request back to the partner with a reason' }) @ApiOkResponse({ type: PartnerConnectionDto }) changes(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.requestChanges(u.sub, id, b.reason); }
+  @Post(':id/reject') @HttpCode(200) @ApiOperation({ summary: 'OP: reject the request with a reason' }) @ApiOkResponse({ type: PartnerConnectionDto }) reject(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.reject(u.sub, id, b.reason); }
+  @Post(':id/request-approval') @HttpCode(200) @ApiOperation({ summary: 'OP: ask a super admin to approve (two-person rule)' }) @ApiOkResponse({ type: PartnerConnectionDto }) request(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.requestApproval(u.sub, id); }
+  @SuperAdminOnly() @Post(':id/approve') @HttpCode(200) @ApiOperation({ summary: 'SA: approve (never the requester or the licence verifier)' }) @ApiOkResponse({ type: PartnerConnectionDto }) approve(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.approve(u.sub, id); }
+  @Post(':id/go-live') @HttpCode(200) @ApiOperation({ summary: 'OP: register the partner and switch it live (idempotent)' }) @ApiOkResponse({ type: PartnerConnectionDto }) live(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.goLive(u.sub, id); }
+  @Post(':id/pause') @HttpCode(200) @ApiOperation({ summary: 'OP: pause a live partner with a reason' }) @ApiOkResponse({ type: PartnerConnectionDto }) pause(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.pause(u.sub, id, b.reason); }
+  @Post(':id/resume') @HttpCode(200) @ApiOperation({ summary: 'OP: resume a paused partner' }) @ApiOkResponse({ type: PartnerConnectionDto }) resume(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.resume(u.sub, id); }
+  @Post(':id/apply-rotation') @HttpCode(200) @ApiOperation({ summary: 'OP: apply a pending credential rotation after a passing handshake' }) @ApiOkResponse({ type: PartnerConnectionDto }) rotate(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.applyRotation(u.sub, id); }
 }

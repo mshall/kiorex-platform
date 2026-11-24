@@ -188,6 +188,27 @@ describe('pharmacy orders (launch-locked kiorex.pharmacy_orders; fake Kiorly Pha
         expect(o.items[0]).toMatchObject({ sku: 'PARA500', nameAr: 'باراسيتامول ٥٠٠' });
       });
 
+      it('quiet hours (explicit window, no clock dependence): the out-for-delivery message on external channels is held until the window ends, the in-app inbox still gets it at once; outside the window it is sent', async () => {
+        const T = 'TODO_NEEDS_HUMAN_pharmacy_order_out_for_delivery';
+        const localHour = (new Date().getUTCHours() + 2) % 24; // MARKET_TZ_OFFSET_HOURS default 2; the window starts an hour ago and ends in 2 hours, so it contains now at any minute
+        for (const ch of ['WHATSAPP', 'PUSH']) await c.http().put(`/api/v1/me/notification-preferences/${ch}`).set(auth).send({ quietStart: (localHour + 23) % 24, quietEnd: (localHour + 2) % 24 }).expect(200);
+        const held = await place([{ sku: 'PARA500', qty: 1 }]);
+        await event('OrderReady', { orderId: held.partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });
+        await event('OrderOutForDelivery', { orderId: held.partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() });
+        expect((await c.http().get('/api/v1/me/notifications').set(auth)).body.filter((n: any) => n.kind === 'PHARMACY_ORDER_OUT_FOR_DELIVERY')).toHaveLength(1);
+        const deferred = await c.prisma.message.findMany({ where: { templateId: T, channel: { in: ['WHATSAPP', 'PUSH'] } } });
+        expect(deferred.length).toBeGreaterThan(0);
+        expect(deferred.every((m) => m.status === 'SCHEDULED' && m.reason === 'QUIET_HOURS_DEFERRED' && m.scheduledFor.getTime() > Date.now() + 3_600_000)).toBe(true);
+        // a window that does not contain now (0-0 = no quiet hours): sent at once
+        for (const ch of ['WHATSAPP', 'PUSH']) await c.http().put(`/api/v1/me/notification-preferences/${ch}`).set(auth).send({ quietStart: 0, quietEnd: 0 }).expect(200);
+        const sent = await place([{ sku: 'PARA500', qty: 1 }]);
+        await event('OrderReady', { orderId: sent.partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });
+        await event('OrderOutForDelivery', { orderId: sent.partnerId, pharmacyId: 'ph_1', outForDeliveryAt: NOW() });
+        const now = await c.prisma.message.findMany({ where: { templateId: T, channel: { in: ['WHATSAPP', 'PUSH'] }, id: { notIn: deferred.map((m) => m.id) } } });
+        expect(now.length).toBeGreaterThan(0);
+        expect(now.every((m) => m.status !== 'SCHEDULED' && m.reason !== 'QUIET_HOURS_DEFERRED')).toBe(true);
+      });
+
       it('OUT_FOR_DELIVERY: OrderReady -> OrderOutForDelivery -> DispenseCompleted; patient notified once (AR/EN, mock channel); DispenseCompleted still releases the funds', async () => {
         const { o, partnerId } = await place([{ sku: 'PARA500', qty: 2 }]);
         await event('OrderReady', { orderId: partnerId, pharmacyId: 'ph_1', readyAt: NOW(), pharmacistSignoff: so });

@@ -83,13 +83,13 @@ export class WebhooksService {
         return o === 'APPLIED' || o === 'REFUSED' ? 'APPLIED' : 'IGNORED';
       }
       case 'LabResultReleased': {
-        const nurse = await this.nurseLab.onResultReleased({ orderId: data.orderId, reportId: data.reportId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink });
+        const nurse = await this.nurseLab.onResultReleased({ orderId: data.orderId, reportId: data.reportId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink }, ctx);
         const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels }, ctx); // vault link for a linked Kiorex patient (consented channel only)
         if (nurse === 'APPLIED') return 'APPLIED';
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'LabOrderStatusChanged': {
-        const nurse = await this.nurseLab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
+        const nurse = await this.nurseLab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus }, ctx);
         if (nurse !== 'UNKNOWN_ORDER') return nurse; // a Nurse hand-off: never also a Kiorex booking
         const o = await this.lab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus }, ctx);
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';

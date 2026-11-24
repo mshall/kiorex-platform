@@ -18,7 +18,7 @@ describe('partner routing: several live partners of one kind', () => {
     c = await createCtx();
     phA = await new FakePartner('pharmacy').start(); labA = await new FakePartner('lab').start();
     phB = await new FakePartner('pharmacy', { clientKey: 'kp_tenant_b', clientSecret: 'secret_b', webhookSecret: 'wh_b', pharmacies: [{ id: 'ph_b1', name: 'Tenant B Pharmacy' }], setEnv: false }).start();
-    labB = await new FakePartner('lab', { clientKey: 'kl_tenant_b', clientSecret: 'lsecret_b', webhookSecret: 'lwh_b', setEnv: false }).start();
+    labB = await new FakePartner('lab', { clientKey: 'kl_tenant_b', clientSecret: 'lsecret_b', webhookSecret: 'lwh_b', nurseClientKey: 'kn_tenant_b', nurseClientSecret: 'nsecret_b', setEnv: false }).start();
     phB.catalogue = phB.catalogue.map((i) => ({ ...i, pharmacyId: 'ph_b1', sku: `B-${i.sku}` }));
     labB.labTests = labB.labTests.map((t) => ({ ...t, labId: 'lab_b1', labName: 'Tenant B Lab' }));
   });
@@ -150,5 +150,59 @@ describe('partner routing: several live partners of one kind', () => {
     phA.reset();
     await c.http().post(`/api/v1/pharmacy/orders/${legacy.id}/cancel`).set(auth).expect(200);
     expect(phA.callsTo('POST', '/cancel')).toHaveLength(1);
+  });
+
+  describe('Nurse lab relay (LAB_NURSE) routes per registration too', () => {
+    const placed = (orderId: string, o: Record<string, unknown> = {}) => ({
+      orderId, clinicId: 'cl_n1', patientRef: 'pat_n1', orderingClinicianId: 'usr_nurse', consentToken: 'rsc_0123456789abcdef0123456789abcdef', orderedAt: NOW(),
+      items: [{ code: 'CBC', nameEn: 'Complete blood count' }], originEdition: 'NURSE', identifiersChecked: ['fullName', 'dateOfBirth'],
+      patient: { fullName: 'Amira Samy', dateOfBirth: '1990-04-12', sex: 'F', phone: '+201000000001' },
+      nurseCollection: { visitRef: 'apt_n1', collectorRef: 'usr_nurse', collectedAt: new Date(Date.now() - 1_200_000).toISOString(), temperatureC: 5, samples: [{ label: `NRS-${orderId}`, specimenType: 'BLOOD' }] },
+      ...o,
+    });
+    const place = (orderId: string, o: Record<string, unknown> = {}) => c.webhook('LabOrderPlaced', placed(orderId, o), { aggregateType: 'LabOrder', aggregateId: orderId });
+    let regNurseA: string; let regNurseB: string;
+    beforeEach(async () => {
+      const reg = c.get(PartnerRegistry); const d = PARTNER_DEV_DEFAULTS;
+      regNurseA = (await reg.upsert('lab_nurse', undefined, { name: 'Nurse client A', baseUrl: labA.url, clientKey: d.labNurse.clientKey, clientSecret: d.labNurse.clientSecret, labRegistrationId: regLabA })).id;
+      regNurseB = (await reg.upsert('lab_nurse', undefined, { name: 'Nurse client B', baseUrl: labB.url, clientKey: 'kn_tenant_b', clientSecret: 'nsecret_b', labRegistrationId: regLabB })).id;
+    });
+
+    it('an order for lab B reaches only lab B (its own nurse client), an order for lab A only lab A; the relay row remembers its registration', async () => {
+      expect((await place('ord_b', { preferredLabId: 'lab_b1' })).body.status).toBe('APPLIED');
+      expect((await place('ord_a', { preferredLabId: 'lab_1' })).body.status).toBe('APPLIED');
+      expect(labB.callsTo('POST', '/orders').map((x) => x.body.sourceRef)).toEqual(['ord_b']); expect(labA.callsTo('POST', '/orders').map((x) => x.body.sourceRef)).toEqual(['ord_a']);
+      expect(labB.callsTo('POST', '/orders')[0]!.headers['x-kiorly-client-key']).toBe('kn_tenant_b');
+      expect(labA.callsTo('POST', '/orders')[0]!.headers['x-kiorly-client-key']).toBe(PARTNER_DEV_DEFAULTS.labNurse.clientKey);
+      expect((await c.prisma.nurseLabRelay.findUniqueOrThrow({ where: { id: 'ord_b' } })).registrationId).toBe(regNurseB);
+      expect((await c.prisma.nurseLabRelay.findUniqueOrThrow({ where: { id: 'ord_a' } })).registrationId).toBe(regNurseA);
+      expect(labA.bad + labB.bad).toBe(0);
+      // an order that names no lab goes to the oldest nurse client (the default lab)
+      await place('ord_none'); expect(labA.callsTo('POST', '/orders').map((x) => x.body.sourceRef)).toEqual(['ord_a', 'ord_none']);
+    });
+
+    it('custody and status pushes follow the owning registration; an event from the OTHER lab is ignored and audited', async () => {
+      await place('ord_b', { preferredLabId: 'lab_b1' });
+      await flush(); labA.reset(); labB.reset();
+      labB.custody = [{ label: 'NRS-ord_b', type: 'COLLECTED', occurredAt: NOW(), by: 'NURSE', temperatureC: 5 }];
+      const sourceRef = 'ord_b'; const labOrder = (await c.prisma.nurseLabRelay.findUniqueOrThrow({ where: { id: 'ord_b' } })).partnerOrderId;
+      const change = { orderId: labOrder, sourceRef, source: 'KIORLY_CLINIC', originEdition: 'NURSE', previousStatus: 'AWAITING_COLLECTION', nextStatus: 'COLLECTED' };
+      expect((await send(labA, 'LabOrderStatusChanged', change)).body.status).toBe('IGNORED'); // lab A cannot move lab B's order
+      expect(await c.prisma.auditLog.count({ where: { action: 'nurse_lab.event_from_other_registration', resourceId: 'ord_b' } })).toBe(1);
+      expect((await send(labB, 'LabOrderStatusChanged', change)).body.status).toBe('APPLIED');
+      await flush();
+      expect(labB.callsTo('GET', '/custody')).toHaveLength(1); expect(labB.callsTo('GET', '/custody')[0]!.headers['x-kiorly-client-key']).toBe('kn_tenant_b');
+      expect(labA.callsTo('GET', '/custody')).toHaveLength(0);
+      expect(c.kiorly.labStatusPushes.at(-1)).toMatchObject({ orderId: 'ord_b', body: { status: 'COLLECTED' } });
+    });
+
+    it('an unknown lab, or a lab whose nurse client is not registered, is a definitive REJECTED_BY_LAB; nothing reaches any lab', async () => {
+      expect((await place('ord_x', { preferredLabId: 'lab_nope' })).body.status).toBe('APPLIED');
+      await c.prisma.partnerRegistration.update({ where: { id: regNurseB }, data: { labRegistrationId: null } });
+      expect((await place('ord_y', { preferredLabId: 'lab_b1' })).body.status).toBe('APPLIED');
+      expect((await c.prisma.nurseLabRelay.findUniqueOrThrow({ where: { id: 'ord_x' } })).refusalCode).toBe('LAB_NOT_FOUND');
+      expect((await c.prisma.nurseLabRelay.findUniqueOrThrow({ where: { id: 'ord_y' } })).refusalCode).toBe('LAB_NURSE_NOT_REGISTERED');
+      expect(labA.callsTo('POST', '/orders')).toHaveLength(0); expect(labB.callsTo('POST', '/orders')).toHaveLength(0);
+    });
   });
 });
