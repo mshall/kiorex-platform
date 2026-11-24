@@ -1,5 +1,6 @@
 // Lighthouse audit of the public SSR pages (GRW-P1-E / KX-33). Local lab measurement against a RUNNING site (default the API on :4000, role `all`).
-//   node scripts/lighthouse-audit.mjs [--base http://localhost:4000] [--runs 1] [--only mobile|desktop] [--locales ar,en] [--out .lighthouseci]
+//   node scripts/lighthouse-audit.mjs [--base http://localhost:4000] [--runs 1] [--only mobile|desktop] [--locales ar,en] [--out .lighthouseci] [--throttling simulate|devtools]
+// `--throttling devtools` really slows the browser (applied throttling) instead of modelling it: slower to run, closer to what a phone does, and a cross-check of the default simulated numbers.
 // Budgets come from lighthouserc.json (ci.assert.assertions: categories:* minScore, audits maxNumericValue). Exit 1 when a budget is missed.
 // Lab scores are NOT field data: they use simulated throttling on one machine and a warm local cache. Real-user (CrUX / RUM) p75 for mobile Egypt
 // is the target that counts after launch (LCP 2.5 s, INP 200 ms, CLS 0.1).
@@ -13,6 +14,7 @@ const runs = Number(arg("--runs", "1"));
 const only = arg("--only", "");
 const locales = arg("--locales", "ar,en").split(",");
 const outDir = arg("--out", ".lighthouseci");
+const throttlingMethod = arg("--throttling", "simulate");
 const rc = JSON.parse(readFileSync(new URL("../lighthouserc.json", import.meta.url), "utf8")).ci;
 const slugs = rc.pages ?? { doctor: "mona-fahmy", clinic: "pyramids-heart-care-center-dokki", specialty: "paediatrics", city: "cairo" };
 // the configured slugs are the local demo catalogue; on any other data set a missing page is replaced by the first sitemap entry of that type
@@ -44,7 +46,7 @@ try {
   for (const factor of ["mobile", "desktop"].filter((f) => !only || f === only)) for (const l of locales) for (const [name, path] of Object.entries(pages(l))) {
     const samples = [];
     for (let i = 0; i < runs; i++) {
-      const r = await lighthouse(base + path, { port: chrome.port, output: "json", logLevel: "error", onlyCategories: ["performance", "accessibility", "best-practices", "seo"] }, factor === "desktop" ? desktopConfig : undefined);
+      const r = await lighthouse(base + path, { port: chrome.port, output: "json", logLevel: "error", onlyCategories: ["performance", "accessibility", "best-practices", "seo"], throttlingMethod }, factor === "desktop" ? desktopConfig : undefined);
       samples.push(r.lhr);
     }
     const score = (c) => Math.round(median(samples.map((s) => s.categories[c].score * 100)));
