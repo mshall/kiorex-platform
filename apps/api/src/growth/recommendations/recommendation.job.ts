@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { AI_RECOMMENDATIONS_FLAG } from '../automation/automation-flags';
 import { RecommendationService } from './recommendation.service';
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 
 const INSTANCE = `${process.pid}-${randomUUID().slice(0, 8)}`;
 
@@ -22,7 +23,7 @@ export class RecommendationJob implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 
-  async runOnce(now = new Date(), market = 'EG') {
+  async runOnce(now = new Date(), market = DEFAULT_MARKET) {
     const run = await this.prisma.growthJobRun.create({ data: { job: 'recommendations', instanceId: INSTANCE, startedAt: now } });
     try {
       const expired = await this.svc.expireDue(now);

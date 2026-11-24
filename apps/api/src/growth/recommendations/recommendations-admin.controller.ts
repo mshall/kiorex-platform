@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '../../common/auth';
 import { rolesFor } from '../admin/growth-access';
 import { RecommendationService, type Actor } from './recommendation.service';
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
@@ -27,7 +28,7 @@ export class RecommendationsAdminController {
   get(@Param('id') id: string) { return this.svc.get(id); }
 
   @Roles(...rolesFor('manageCampaigns')) @Post('run') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-E build proposals from the aggregates now (idempotent per open fingerprint; also what the daily job does)' }) @ApiOkResponse(OBJ)
-  async run(@CurrentUser() u: AuthUser, @Body() b: { market?: string }) { const m = mk(b?.market) ?? 'EG'; await this.svc.assertOn(m); return this.svc.generate(actor(u), m); }
+  async run(@CurrentUser() u: AuthUser, @Body() b: { market?: string }) { const m = mk(b?.market) ?? DEFAULT_MARKET; await this.svc.assertOn(m); return this.svc.generate(actor(u), m); }
   @Roles(...rolesFor('manageCampaigns')) @Post(':id/decision') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-E APPROVE (creates at most a DRAFT) or REJECT (reason required) a PROPOSED recommendation' }) @ApiOkResponse(OBJ)
   decide(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { decision?: string; note?: string }) { return this.svc.decide(actor(u), id, b?.decision, b?.note); }
   @Roles(...rolesFor('manageCampaigns')) @Post(':id/feedback') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-E reviewer feedback (USEFUL or NOT_USEFUL), stored for evaluation' }) @ApiOkResponse(OBJ)

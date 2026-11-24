@@ -6,6 +6,7 @@ import { rolesFor } from '../admin/growth-access';
 import { AUTOMATION_FLAG } from './automation-flags';
 import { AutomationJob } from './automation.job';
 import { JourneyDefinitionService, type Actor } from './journey-definition.service';
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
@@ -29,7 +30,7 @@ export class AutomationAdminController {
   @Post('validate') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-E validate and compile an unsaved graph (the builder calls it on every change); writes nothing' }) @ApiOkResponse(OBJ)
   validate(@Body() b: { graph?: unknown; market?: string }) { return this.svc.preview(b?.graph, { market: b?.market && /^[A-Z]{2}$/.test(b.market) ? b.market : undefined }); }
   @Post('dry-run') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-E dry run of an unsaved graph on a synthetic cohort: volumes and gate decisions, nobody is read or sent anything' }) @ApiOkResponse(OBJ)
-  dryRun(@Body() b: { graph?: unknown; market?: string; size?: number; seed?: number }) { return this.svc.dryRunGraph(b?.graph, b?.market && /^[A-Z]{2}$/.test(b.market) ? b.market : 'EG', { size: b?.size === undefined ? undefined : num(b.size, 1000), seed: b?.seed === undefined ? undefined : num(b.seed, 1) }); }
+  dryRun(@Body() b: { graph?: unknown; market?: string; size?: number; seed?: number }) { return this.svc.dryRunGraph(b?.graph, b?.market && /^[A-Z]{2}$/.test(b.market) ? b.market : DEFAULT_MARKET, { size: b?.size === undefined ? undefined : num(b.size, 1000), seed: b?.seed === undefined ? undefined : num(b.seed, 1) }); }
 
   @Get('journeys') @ApiOperation({ summary: 'GRW-P3-E list journey definitions' }) @ApiOkResponse(ARR)
   list(@Query('market') market?: string, @Query('status') status?: string, @Query('take') take?: string) { return this.svc.list({ market: market && /^[A-Z]{2}$/.test(market) ? market : undefined, status, take: take ? num(take, 100) : undefined }); }
