@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
+import { quietWindowEnd } from '../common/market-time';
 import { MessagingAdapter, MessagingHub, MsgChannel } from '../messaging/messaging-public';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PatientService, PreferenceCentreService, SuppressionService, tzOffsetMinutes } from '../patient/patient-public';
@@ -78,17 +79,10 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
 
   setAdapter(a: MessagingAdapter) { this.hub.setAdapter(a); }
 
-  /** Local-hour quiet window check (KXM-NT-02). Returns the end of the window as a Date if inside it. */
+  /** Local-hour quiet window check (KXM-NT-02), market zone with DST. Returns the end of the window as a Date if inside it. */
   quietUntil(at: Date, startH: number, endH: number): Date | null {
-    const off = cfg().tzOffsetHours;
-    const local = new Date(at.getTime() + off * 3600_000);
-    const h = local.getUTCHours();
-    const inside = startH > endH ? h >= startH || h < endH : h >= startH && h < endH;
-    if (!inside) return null;
-    const end = new Date(local);
-    end.setUTCHours(endH, 0, 0, 0);
-    if (end <= local) end.setUTCDate(end.getUTCDate() + 1);
-    return new Date(end.getTime() - off * 3600_000);
+    const end = quietWindowEnd(at.getTime(), startH, endH);
+    return end === null ? null : new Date(end);
   }
 
   async notify(sub: string, o: { kind: NotifyKind; bookingId?: string; params?: Record<string, unknown>; scheduledFor?: Date; dedupeKey: string; channels?: string[] }) {

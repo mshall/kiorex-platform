@@ -1,4 +1,5 @@
 import { cfg } from '../common/config';
+import { marketClock } from '../common/market-time';
 import { SPECIALTY_LABELS, SpecialtyCode } from '../safety/safety-public';
 
 /**
@@ -10,12 +11,7 @@ export type Lang = 'ar' | 'en';
 export const T = (id: string) => `TODO_NEEDS_HUMAN_wa_booking_${id}`;
 
 const num = (i: number) => `${i + 1}`;
-export const fmtTime = (iso: string, lang: Lang) => {
-  const d = new Date(new Date(iso).getTime() + cfg().tzOffsetHours * 3600_000);
-  const day = d.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-  const hm = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-  return `${day} ${hm}`;
-};
+export const fmtTime = (iso: string, lang: Lang) => marketClock(iso, lang); // Africa/Cairo with DST: the old fixed +2 h offset showed every summer time one hour early
 
 export const copy = {
   appLink: (lang: Lang) => (lang === 'ar' ? `يمكنك الحجز من تطبيق كيوريكس: ${cfg().appLinkBase}` : `You can book in the Kiorex app: ${cfg().appLinkBase}`),

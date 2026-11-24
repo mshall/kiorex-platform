@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { marketOffsetMinutes } from '../common/market-time';
 import type { ChannelPreference, Purpose } from '@kiorex/contracts/notify';
 import type { Channel } from '@kiorex/contracts/notify';
 import { OPS_ROLES, type AuthUser } from '../common/auth';
@@ -35,7 +36,7 @@ export class LeadAlertsService implements OnModuleInit, OnModuleDestroy {
       get: async (sub: string, ctx: { channel: Channel; purpose: Purpose }): Promise<ChannelPreference> => {
         const c = await this.prisma.opsStaffContact.findUnique({ where: { sub } });
         const q = cfg();
-        return { consent: !!c?.leadAlerts, optedOut: !c || !c.channels.includes(ctx.channel), quiet: { startHour: q.quietStart, endHour: q.quietEnd, tzOffsetMinutes: q.tzOffsetHours * 60 } };
+        return { consent: !!c?.leadAlerts, optedOut: !c || !c.channels.includes(ctx.channel), quiet: { startHour: q.quietStart, endHour: q.quietEnd, tzOffsetMinutes: marketOffsetMinutes() } };
       },
     });
   }

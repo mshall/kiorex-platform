@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { marketOffsetMinutes } from '../common/market-time';
 import {
   DEFAULT_ROUTING, MemoryDispatchStore, NotificationService, simpleTemplate, TemplateRegistry,
   type AuditRecord, type AuditSink, type ChannelPreference, type DispatchState, type PreferenceStore, type Purpose, type TemplateDefinition,
@@ -67,7 +68,7 @@ export class PlatformPreferenceStore implements PreferenceStore {
     const pref = await this.deps.preference(sub, ctx.channel);
     return {
       consent, optedOut: !!pref && !pref.enabled,
-      quiet: { startHour: pref?.quietStart ?? c.quietStart, endHour: pref?.quietEnd ?? c.quietEnd, tzOffsetMinutes: c.tzOffsetHours * 60 },
+      quiet: { startHour: pref?.quietStart ?? c.quietStart, endHour: pref?.quietEnd ?? c.quietEnd, tzOffsetMinutes: marketOffsetMinutes() },
     };
   }
 }
