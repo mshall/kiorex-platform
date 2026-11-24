@@ -31,6 +31,6 @@ export class PromotionsAdminController {
   detail(@Param('id') id: string, @Query('version') version?: string) { return this.review.detail(id, version ? Number(version) : undefined); }
   @Get(':id/ledger') @ApiOperation({ summary: 'GRW-P2-S the distinct provider-sponsored discount line per booking' }) @ApiOkResponse(OBJ)
   ledgerOf(@Param('id') id: string, @Query('page') page?: string) { return this.ledger.forPromotion(id, page ? Number(page) : 1); }
-  @Roles('super_admin', 'growth_admin') @RequiresFlag(GROWTH_FLAG.SPONSORED_PROMOTIONS) @Post(':id/decisions') @HttpCode(200) @ApiOperation({ summary: 'GRW-P2-S decide a review (not the author; a second approver for HIGH_VALUE)' }) @ApiOkResponse(OBJ)
+  @Roles(...rolesFor('reviewPromotions')) @RequiresFlag(GROWTH_FLAG.SPONSORED_PROMOTIONS) @Post(':id/decisions') @HttpCode(200) @ApiOperation({ summary: 'GRW-P2-S decide a review (not the author; a second approver for HIGH_VALUE)' }) @ApiOkResponse(OBJ)
   decide(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PromotionDecideBody) { return this.review.decide({ sub: u.sub, roles: u.roles }, id, b); }
 }

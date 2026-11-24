@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '../../prisma/generated/client';
 import { conflict, forbidden, notFound, unprocessable } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
+import { rolesFor } from '../admin/growth-access';
 import { GrowthConfigService } from '../config/growth-config.service';
 import { guardTexts } from './promotion-content-guard';
 import { highValueReasons, reviewOutcome, type PromoFacts } from './promotion-math';
@@ -9,7 +10,7 @@ import { PROMOTION_RESERVATION_CLIENT, type PromotionReservationClient } from '.
 
 type Kind = 'CONTENT' | 'SCOPE' | 'HIGH_VALUE';
 export interface ReviewActor { sub: string; roles: string[] }
-const REVIEW_ROLES = ['super_admin', 'growth_admin'];
+const REVIEW_ROLES = rolesFor('reviewPromotions');
 const kindsOf = (hv: boolean): Kind[] => (hv ? ['CONTENT', 'SCOPE', 'HIGH_VALUE'] : ['CONTENT', 'SCOPE']);
 const requesterOf = (orgRef: string) => `org:${orgRef}`;
 

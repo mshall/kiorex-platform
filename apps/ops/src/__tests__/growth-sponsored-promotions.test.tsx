@@ -11,7 +11,8 @@ import PromotionLedgerPage from "@/pages/growth/promotions/PromotionLedgerPage";
 import i18nJson from "@/i18n/growth.sponsoredPromotions.json";
 
 const A = "/api/v1/admin/growth/sponsored-promotions"; const G = "/api/v1/ops/growth";
-const caps = (manage = true) => HttpResponse.json({ roles: ["ops_admin", ...(manage ? ["super_admin"] : [])], capabilities: { read: true, readFinance: false, writeConfig: manage, approveConfig: manage, reviewFraud: false, manage, manageCampaigns: manage } });
+const caps = (manage = true) => HttpResponse.json({ roles: ["ops_admin", ...(manage ? ["super_admin"] : [])], capabilities: { read: true, readFinance: false, writeConfig: manage, approveConfig: manage, reviewFraud: false, manage, manageCampaigns: manage, reviewPromotions: manage } });
+const growthAdminCaps = () => HttpResponse.json({ roles: ["growth_admin"], capabilities: { read: true, readFinance: false, writeConfig: false, approveConfig: false, reviewFraud: false, manage: false, manageCampaigns: false, reviewPromotions: true } });
 const flat = (o: unknown, p = ""): string[] => (o && typeof o === "object" ? Object.entries(o as Record<string, unknown>).flatMap(([k, v]) => flat(v, p ? `${p}.${k}` : k)) : [p]);
 const detail = (o: Record<string, unknown> = {}) => ({ promotionId: "prm_1", version: 1, orgRef: "tn_1", status: "IN_REVIEW", nameAr: "خصم الكشف", nameEn: "Visit discount", patientCopyAr: "خصم على سعر الكشف برعاية العيادة", patientCopyEn: "A discount on the visit fee, sponsored by the clinic", scope: { careTypes: ["IN_CLINIC"] }, discount: { kind: "FIXED_MINOR", value: 5000 }, eligibility: {}, budgetCapMinor: 6_000_000, fundingMode: "WALLET_ONLY", startsAt: "2027-02-01T00:00:00Z", endsAt: "2027-03-01T00:00:00Z", contentHash: "a".repeat(64), highValue: ["BUDGET_AT_OR_ABOVE_THRESHOLD"], guard: { ok: true, hits: [], signal: null, listVersion: "x" }, reviews: [{ id: "r1", kind: "CONTENT", decision: null, reason: null, decidedAt: null }, { id: "r2", kind: "SCOPE", decision: "APPROVED", reason: null, decidedAt: "2027-01-02T10:00:00Z" }, { id: "r3", kind: "HIGH_VALUE", decision: null, reason: null, decidedAt: null }], ...o });
 const page = () => <Routes><Route path="/growth/sponsored-promotions/:id" element={<PromotionReviewPage />} /><Route path="/growth/sponsored-promotions/:id/ledger" element={<PromotionLedgerPage />} /></Routes>;
@@ -57,6 +58,11 @@ describe("Review page (GRW-P2-S)", () => {
     server.use(http.get(`${G}/access`, () => caps(false)), http.get(`${A}/prm_1`, () => HttpResponse.json(detail())));
     renderOps(page(), { route: "/growth/sponsored-promotions/prm_1" });
     expect(await screen.findByTestId("sponsored-readonly")).toBeInTheDocument(); expect(screen.queryByTestId("approve-CONTENT")).toBeNull();
+  });
+  it("a growth_admin (not a super admin) can decide a review", async () => {
+    server.use(http.get(`${G}/access`, () => growthAdminCaps()), http.get(`${A}/prm_1`, () => HttpResponse.json(detail())));
+    renderOps(page(), { route: "/growth/sponsored-promotions/prm_1" });
+    expect(await screen.findByTestId("approve-CONTENT")).toBeInTheDocument(); expect(screen.queryByTestId("sponsored-readonly")).toBeNull();
   });
   it("renders in Arabic and shows an error state with a retry", async () => {
     server.use(http.get(`${G}/access`, () => caps()), http.get(`${A}/prm_1`, () => HttpResponse.json(detail())));

@@ -6,6 +6,8 @@ import ar from "./locales/ar.json";
 import en from "./locales/en.json";
 import referralAr from "./referral.ar.json";
 import referralEn from "./referral.en.json";
+import sponsoredAr from "./sponsored.ar.json";
+import sponsoredEn from "./sponsored.en.json";
 
 export const SUPPORTED = ["ar", "en"] as const;
 export type Lang = (typeof SUPPORTED)[number];
@@ -23,7 +25,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: { ...ar, referral: referralAr } }, en: { translation: { ...en, referral: referralEn } } }, // GRW-P2-B3: namespace referral.* in its own files
+    resources: { ar: { translation: { ...ar, referral: referralAr, sponsored: sponsoredAr } }, en: { translation: { ...en, referral: referralEn, sponsored: sponsoredEn } } }, // GRW-P2-B3: namespace referral.* in its own files
     fallbackLng: "ar",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

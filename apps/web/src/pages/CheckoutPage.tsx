@@ -23,6 +23,8 @@ import { PageHeader, Stepper } from "@/components/kit";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { HoldRing } from "@/components/HoldRing";
 import { DoctorAvatar } from "@/components/DoctorAvatar";
+import { SponsoredDiscountLine } from "@/components/SponsoredDiscountLine";
+import { depositAfterSponsored, useSponsoredQuote } from "@/api/sponsored";
 
 export default function CheckoutPage() {
   const { bookingId = "" } = useParams();
@@ -41,6 +43,7 @@ export default function CheckoutPage() {
   const desktop = useMediaQuery("(min-width: 1024px)");
   const b = booking.data;
   const vt = useVisitType(b);
+  const sponsoredQuote = useSponsoredQuote(bookingId, b?.status === "HELD").data ?? null; // GRW-P2-S: null when flag OFF or nothing applies
   const { remainingMs, expired } = useCountdown(b?.status === "HELD" ? b.holdExpiresAt : null);
 
   // Revisiting a booking that already progressed goes to its appointment page.
@@ -94,7 +97,7 @@ export default function CheckoutPage() {
     });
 
   const feeEgp = vt?.feeEgp;
-  const dueNow = hasDeposit ? b.deposit.requiredEgp : 0;
+  const dueNow = hasDeposit ? (sponsoredQuote ? depositAfterSponsored(b.deposit.requiredEgp, sponsoredQuote.amountMinor) : b.deposit.requiredEgp) : 0;
   const confirmBtn = (
     <Button size="lg" className="w-full" disabled={!canConfirm} onClick={onConfirm} data-testid="confirm-booking">
       {confirm.isPending ? t("states.loading") : t("checkout.confirm")}
@@ -149,6 +152,7 @@ export default function CheckoutPage() {
                 <div className="flex items-baseline justify-between gap-3"><dt>{t("checkout.visitFee")}<span className="block text-xs text-muted-foreground">{t("checkout.payAtClinic")}</span></dt><dd className="kx-label-num font-semibold">{feeEgp != null ? formatMoney(feeEgp, lang) : "…"}</dd></div>
               </dl>
             )}
+            {sponsoredQuote && <SponsoredDiscountLine quote={sponsoredQuote} lang={lang} />}
             {hasDeposit && (
               <div className="space-y-1 rounded-xl border border-warning/50 bg-warning-soft p-3" data-testid="deposit-panel">
                 <p className="flex items-center gap-2 text-sm font-semibold text-warning"><CreditCard className="h-4 w-4" aria-hidden="true" />{t("checkout.depositTitle")}<span className="kx-label-num ms-auto">{formatMoney(b.deposit.requiredEgp, lang)}</span></p>

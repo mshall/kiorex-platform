@@ -1172,5 +1172,12 @@
     "codeOnce": "Write this code down now: it will not be shown again.",
     "alreadyShown": "The code was already shown. Use this voucher from your list at checkout.",
     "revealFailed": "Could not show the code"
+  },
+  "sponsored": {
+    "title": "Sponsored discount",
+    "line": "Discount sponsored by {{sponsor}} until {{date}}",
+    "amount": "Sponsored discount, minus {{amount}}",
+    "note": "{{sponsor}} pays this discount. It is not a Kiorex discount. If you cancel, it is not refunded to you as cash or credit.",
+    "youPay": "Deposit after the discount"
   }
 }

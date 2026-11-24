@@ -199,6 +199,7 @@ export const handlers = [
     return HttpResponse.json(present(b));
   }),
   http.post("/api/v1/bookings/:id/release", ({ params }) => { const b = state.bookings.get(params.id as string); if (b?.status === "HELD") move(b, "EXPIRED"); return HttpResponse.json(b ? present(b) : {}); }),
+  http.get("/api/v1/growth/v1/promotions/quote", () => HttpResponse.json({ quote: null })), // GRW-P2-S: nothing sponsored unless a test says so
   http.post("/api/v1/bookings/:id/deposit-checkout", ({ params }) => {
     const b = state.bookings.get(params.id as string);
     if (!b) return err(404, "BOOKING_NOT_FOUND", "Booking not found");

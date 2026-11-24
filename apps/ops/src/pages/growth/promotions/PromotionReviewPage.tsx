@@ -17,7 +17,7 @@ const btn = "inline-flex h-11 items-center justify-center rounded-xl px-4 text-s
 export default function PromotionReviewPage() {
   const { id = "" } = useParams(); const { t, i18n } = useTranslation(); const q = useSponsoredDetail(id); const dec = useSponsoredDecision(); const access = useGrowthAccess().data?.capabilities;
   const [note, setNote] = useState(""); const [msg, setMsg] = useState<string | null>(null);
-  const d = q.data; const canDecide = !!access?.manage; // Super Admin (manage); a growth admin is allowed by the server as well
+  const d = q.data; const canDecide = !!access?.reviewPromotions; // Super Admin or growth_admin (the server enforces the same list)
   const run = (kind: ReviewKind, decision: ReviewDecisionKey) => { if (!d) return; setMsg(null); dec.mutate({ id, version: d.version, kind, decision, note: note.trim() || undefined }, { onSuccess: () => { toast.success(t(`growth.sponsored.decided.${decision}`)); setNote(""); }, onError: (e) => setMsg(e instanceof ApiError ? t(`growth.sponsored.errors.${(e as { code?: string }).code ?? "generic"}`, { defaultValue: t("growth.sponsored.errors.generic") }) : t("growth.sponsored.errors.generic")) }); };
   return (
     <GrowthPage section="sponsored-promotions">

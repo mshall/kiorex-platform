@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/states";
 import { useAuth } from "./AuthProvider";
 
-export const OPS_ROLES = ["ops_admin", "super_admin"];
+export const OPS_ROLES = ["ops_admin", "super_admin", "growth_admin"];
 export const isOps = (roles: string[]) => roles.some((r) => OPS_ROLES.includes(r));
 export const isSuperAdmin = (roles: string[]) => roles.includes("super_admin");
 
-/** Console is for ops_admin / super_admin only (client kiorex-ops). The API enforces roles too; this is UX. */
+/** Console is for ops_admin / super_admin / growth_admin (GRW-P2-S reviewer) only (client kiorex-ops). The API enforces roles too; this is UX. */
 export function RequireOps({ children }: { children: ReactNode }) {
   const { status, user, login, logout } = useAuth();
   const { t } = useTranslation();

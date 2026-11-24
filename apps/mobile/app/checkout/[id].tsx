@@ -18,6 +18,8 @@ import { bookingLanded, classifyBookingError } from "@/lib/booking-state";
 import { formatCountdown, formatDayLong, formatMoney, formatTime, pick } from "@/lib/format";
 import { homeOf, districtLabel, isHome } from "@/lib/homecare";
 import { RequireAuth } from "@/components/feature";
+import { SponsoredDiscountLine } from "@/modules/sponsored/SponsoredDiscountLine";
+import { depositAfterSponsored, useSponsoredQuote } from "@/modules/sponsored/api";
 import { useTheme } from "@/theme";
 
 function CheckoutBody() {
@@ -42,6 +44,7 @@ function CheckoutBody() {
   const [unavailable, setUnavailable] = useState(false);
   const [pending, setPending] = useState(false);
   const [inFlow, setInFlow] = useState(false); // suppresses the auto-redirect while confirm → deposit is running
+  const sponsored = useSponsoredQuote(id, b?.status === "HELD").data ?? null; // GRW-P2-S: null when the flag is OFF or nothing applies
   const { remainingMs, expired } = useCountdown(b?.status === "HELD" ? b.holdExpiresAt : null);
 
   // A booking that already progressed belongs on its appointment page (unless we just confirmed a pending-clinic booking).
@@ -138,10 +141,12 @@ function CheckoutBody() {
           </Card>
         ) : null}
 
+        {sponsored ? <SponsoredDiscountLine quote={sponsored} /> : null}
         {depositDue ? (
           <Card testID="deposit-panel" style={{ gap: 8, borderColor: colors.warning }}>
             <Row gap={8}><Icon name="card" color={colors.ink2} /><T variant="h2">{t("checkout.depositTitle")}</T></Row>
             <T variant="small" muted>{t(home ? "hv.depositBody" : "checkout.depositBody", { amount: formatMoney(b.depositAmountMinor / 100, lang) })}</T>
+            {sponsored ? <Row style={{ justifyContent: "space-between" }}><T variant="small" weight="bold">{t("sponsored.youPay")}</T><T variant="small" weight="bold" testID="deposit-after-sponsored">{formatMoney(depositAfterSponsored(b.depositAmountMinor, sponsored.amountMinor), lang)}</T></Row> : null}
             {!deposits.enabled ? <UnavailableState featureKey="kiorex.pay_deposits" /> : <T variant="small" color={colors.ink}>{t("checkout.depositAfterConfirm")}</T>}
           </Card>
         ) : null}

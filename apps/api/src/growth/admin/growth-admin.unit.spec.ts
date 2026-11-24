@@ -15,6 +15,11 @@ describe('role matrix', () => {
     expect(can(['ops_admin', 'finance'], 'readFinance')).toBe(true); expect(can(['ops_admin', 'support'], 'readFinance')).toBe(false); expect(can(['ops_admin'], 'readFinance')).toBe(false);
     expect(can(['ops_admin', 'support'], 'reviewFraud')).toBe(true); expect(can(['ops_admin', 'finance'], 'reviewFraud')).toBe(false);
   });
+  it('growth_admin (GRW-P2-S) reads the console and reviews promotions, and cannot write or approve configuration, review fraud or read money', () => {
+    expect(can(['growth_admin'], 'read')).toBe(true); expect(can(['growth_admin'], 'reviewPromotions')).toBe(true);
+    for (const cap of ['writeConfig', 'approveConfig', 'manage', 'manageCampaigns', 'manageExperiments', 'reviewFraud', 'readFinance'] as const) expect(can(['growth_admin'], cap)).toBe(false);
+    expect(can(['ops_admin'], 'reviewPromotions')).toBe(false);
+  });
   it('a patient has no capability at all', () => { expect(Object.values(capabilitiesOf(['patient'])).every((v) => v === false)).toBe(true); });
   it('every capability has a role list', () => { for (const c of GROWTH_CAPABILITIES) expect(GROWTH_ACCESS[c].length).toBeGreaterThan(0); });
 });
