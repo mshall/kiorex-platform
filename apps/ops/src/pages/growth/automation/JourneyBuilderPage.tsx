@@ -23,6 +23,7 @@ export default function JourneyBuilderPage({ id }: { id: string | null }) {
   const j = q.data;
   const [key, setKey] = useState(""); const [name, setName] = useState(""); const [model, setModel] = useState<Model | null>(emptyModel());
   const [loaded, setLoaded] = useState<string | null>(null); const [check, setCheck] = useState<Validation | null>(null); const [msg, setMsg] = useState(""); const [note, setNote] = useState("");
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- load the editor state once when the journey arrives (guarded by `loaded`)
   useEffect(() => { if (j && loaded !== j.id) { setLoaded(j.id); setKey(j.key); setName(j.name); setModel(fromGraph(j.graph)); } }, [j, loaded]);
   const editable = can && (!id || j?.status === "DRAFT") && !!model;
   const graph = useMemo(() => (model ? toGraph(model) : j?.graph ?? null), [model, j]);

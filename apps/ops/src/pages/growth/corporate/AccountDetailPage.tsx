@@ -21,6 +21,7 @@ const MASK = "<10";
 function TermsForm({ a, canManage }: { a: Account; canManage: boolean }) {
   const { t } = useTranslation(); const save = useUpdateTerms(); const frozen = a.status === "ACTIVE" || a.status === "ENDED";
   const [f, setF] = useState({ contractRef: a.contractRef ?? "", ceiling: egp(a.terms.sponsorCeilingMinor), cap: egp(a.terms.perMemberCapMinor), visit: egp(a.terms.perVisitMaxMinor), pct: a.terms.coverBp ? String(a.terms.coverBp / 100) : "", ends: a.endsAt ? a.endsAt.slice(0, 10) : "", domains: a.emailDomains.join(", ") });
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the form follows the server record after a save
   useEffect(() => { setF({ contractRef: a.contractRef ?? "", ceiling: egp(a.terms.sponsorCeilingMinor), cap: egp(a.terms.perMemberCapMinor), visit: egp(a.terms.perVisitMaxMinor), pct: a.terms.coverBp ? String(a.terms.coverBp / 100) : "", ends: a.endsAt ? a.endsAt.slice(0, 10) : "", domains: a.emailDomains.join(", ") }); }, [a]);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((p) => ({ ...p, [k]: e.target.value }));
   const submit = (e: FormEvent) => {
