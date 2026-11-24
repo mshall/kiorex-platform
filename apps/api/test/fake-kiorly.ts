@@ -34,6 +34,8 @@ export class FakeKiorly {
   labStatusMode: undefined | '5xx' | '404';
   /** appointmentId -> visitAddress carried from the hold (Kiorly stores it encrypted; the fake keeps it so tests can assert what was sent). */
   addresses = new Map<string, any>();
+  /** Link registry (contracts 1.11.0): code -> record served at GET /referral-links[/:code]. Empty = every code is unknown (404 REFERRAL_LINK_NOT_FOUND). */
+  referralLinks = new Map<string, { code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>();
   getBookingMode: Mode;
   cancelMode: Mode;
   autoConfirm = true;
@@ -51,7 +53,7 @@ export class FakeKiorly {
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
     this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
-    this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined;
+    this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
@@ -74,6 +76,15 @@ export class FakeKiorly {
       const since = url.searchParams.get('updatedSince');
       const items = this.providers.filter((p) => !since || p.updatedAt >= since);
       return send(200, { items, page: 1, pageSize: 100, total: items.length });
+    }
+    if (m === 'GET' && path === '/referral-links') {
+      const since = url.searchParams.get('updatedSince');
+      const items = [...this.referralLinks.values()].filter((l) => !since || l.updatedAt >= since).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+      return send(200, { items, nextCursor: null });
+    }
+    if (m === 'GET' && /^\/referral-links\/[^/]+$/.test(path)) {
+      const rec = this.referralLinks.get(path.split('/')[2]!.toUpperCase());
+      return rec ? send(200, rec) : send(404, { statusCode: 404, code: 'REFERRAL_LINK_NOT_FOUND', message: 'No referral link with this code' });
     }
     if (m === 'GET' && /^\/clinics\/[^/]+\/slots$/.test(path)) {
       const loc = url.searchParams.get('serviceLocation') ?? 'IN_CLINIC';

@@ -110,6 +110,14 @@ export class KiorlyClient {
   createCarePlanRequest(body: Record<string, unknown> & { clinicId: string; requestRef: string }) {
     return this.request<any>({ method: 'POST', path: '/care-plan-requests', body, clinicId: body.clinicId });
   }
+  /** Link registry (contracts 1.11.0, marketplace 1.5.0): which organisation owns a link code and whether it is still active. 404 REFERRAL_LINK_NOT_FOUND for an unknown code. */
+  referralLink(code: string) {
+    return this.request<{ code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>({ method: 'GET', path: `/referral-links/${encodeURIComponent(code)}` });
+  }
+  /** Link registry reconciliation feed: links changed since a timestamp, oldest first. */
+  referralLinks(q: { updatedSince?: string; limit?: number; cursor?: string }) {
+    return this.request<{ items: Array<{ code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>; nextCursor: string | null }>({ method: 'GET', path: '/referral-links', query: q });
+  }
   rescheduleBooking(ref: string, body: { startsAt: string; endsAt?: string; holdId?: string }, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/reschedule`, body, clinicId });
   }

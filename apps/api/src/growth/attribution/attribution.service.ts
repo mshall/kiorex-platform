@@ -60,8 +60,8 @@ export class AttributionService implements OnModuleInit {
 
     const touches = await this.touchesFor(booking, i.visitorKey ?? null, policy, market);
     const lt = i.ltToken ? verifyAnyLinkToken({ kxl1: linkTokenKey(), provider: providerLinkTouchSecret() }, i.ltToken, booking.createdAt.getTime()) : null;
-    // a verified token proves its organisation; the code-to-organisation registry must not disagree (a code belongs to one organisation)
-    const ltValid = !!(lt && lt.ok && orgId && lt.claims.org === orgId && (await this.links.learn(lt.claims.code, lt.claims.org, market)) !== 'CONFLICT');
+    // a verified token proves its organisation; the code-to-organisation registry must not disagree (a code belongs to one organisation) and the Clinic must not have revoked or paused the code (link registry, contracts 1.11.0)
+    const ltValid = !!(lt && lt.ok && orgId && lt.claims.org === orgId && ['REGISTERED', 'KNOWN'].includes(await this.links.confirm(lt.claims.code, lt.claims.org, market)));
     const input: DecisionBooking = { id: booking.id, orgId, clinicId: booking.clinicId, doctorId: booking.clinicianId, createdAt: iso(booking.createdAt), channel: booking.channel, ltValidForOrg: ltValid };
     const d = decide(input, touches.map(asTouch), policy);
     const row = await this.persist(booking.id, booking.sub, market, input, d, policy, payload, touches);
@@ -76,6 +76,10 @@ export class AttributionService implements OnModuleInit {
       where: { market, OR: or, occurredAt: { lt: b.createdAt, gte: new Date(b.createdAt.getTime() - maxWindowMs(policy)) } },
       orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }], take: 500,
     });
+    // link registry (contracts 1.11.0): a touch of a link the Clinic has since revoked or paused never decides a NEW booking (removal only; written decisions are untouched)
+    const codes = [...new Set(rows.map((t) => t.linkCode).filter((c): c is string => !!c))];
+    const dead = codes.length ? new Set((await this.prisma.growthAcquisitionSource.findMany({ where: { market, sourceKind: 'PROVIDER_LINK', sourceRef: { in: codes }, linkStatus: { not: 'ACTIVE' } }, select: { sourceRef: true } })).map((x) => x.sourceRef)) : new Set<string>();
+    if (dead.size) rows.splice(0, rows.length, ...rows.filter((t) => !(t.linkCode && dead.has(t.linkCode))));
     // withdrawal stops visitor-linked processing: touches recorded before the person's latest analytics WITHDRAWAL are not used
     const last = await this.prisma.consentRecord.findFirst({ where: { sub: b.sub, purpose: 'ANALYTICS_MEASUREMENT' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     return last && !last.granted ? rows.filter((t) => t.occurredAt.getTime() > last.createdAt.getTime()) : rows;

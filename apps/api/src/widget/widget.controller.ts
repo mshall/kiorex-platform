@@ -16,6 +16,8 @@ import { WidgetRegistrationService } from './widget-registration.service';
 import { issueWidgetToken } from './widget-token';
 import { widgetCfg } from './widget.config';
 
+const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
+
 class SessionBody {
   /** The organisation (clinic) slug of the embed URL. */
   @IsString() @MaxLength(80) org!: string;
@@ -34,7 +36,7 @@ export class WidgetController {
 
   @Public() @Post('session') @HttpCode(200)
   @ApiOperation({ summary: 'GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF' })
-  @ApiOkResponse({ description: '{ token, expiresAt, org, slug }' })
+  @ApiOkResponse({ description: '{ token, expiresAt, org, slug }', ...OBJ })
   async session(@Req() req: any, @Body() b: SessionBody) {
     await this.flags.assertEnabled('growth.widgets', { market: 'EG' });
     const self = widgetSelfOrigin(req.protocol, req.headers?.host);
@@ -56,7 +58,7 @@ export class WidgetController {
 
   @Public() @Get('config')
   @ApiOperation({ summary: 'GRW-P1-G widget data: clinic, bookable doctors with visit types and fees (IN_CLINIC only), specialties. Needs X-KX-Widget' })
-  @ApiOkResponse({ description: 'Widget configuration' })
+  @ApiOkResponse({ description: 'Widget configuration', ...OBJ })
   async config(@Req() req: any, @Query('doctor') doctor?: string, @Query('specialty') specialty?: string) {
     const w = req.widget as { org: string } | undefined;
     if (!w) throw new ApiError(401, 'WIDGET_TOKEN_INVALID', 'Widget session is required');
@@ -85,11 +87,11 @@ export class WidgetController {
 
   @OpsOnly() @Get('ops/audit')
   @ApiOperation({ summary: 'GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes (AuditLog resource WidgetRegistration)' })
-  @ApiOkResponse({ description: 'Audit rows, newest first' })
+  @ApiOkResponse({ description: 'Audit rows, newest first', ...OBJ })
   opsAudit(@Query('org') org?: string, @Query('limit') limit?: string) { return this.audit.list({ orgRef: org, limit: limit ? Number(limit) : undefined }); }
 
   @OpsOnly() @Get('ops/registrations')
   @ApiOperation({ summary: 'GRW-P1-G widget registrations (verified origins per clinic, synced from PROVIDER_PROFILE_UPDATED)' })
-  @ApiOkResponse({ description: 'Registrations' })
+  @ApiOkResponse({ description: 'Registrations', ...OBJ })
   async opsRegistrations() { return (await this.regs.list()).map((r) => ({ orgRef: r.orgRef, orgSlug: r.orgSlug, origins: r.origins, status: r.status, syncedAt: r.syncedAt })); }
 }

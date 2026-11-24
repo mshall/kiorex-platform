@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Header, Headers, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Header, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
+import { ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
@@ -47,13 +47,15 @@ export class BookingController {
 
   @ApiCreatedResponse({ type: BookingDto })
 
+  @ApiHeader({ name: 'X-KX-Platform', required: false, description: 'web | ios | android | whatsapp | widget (closed set for the growth stream; read from the request headers, optional)' })
   @Post('bookings') @ApiOperation({ summary: 'KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered' })
-  create(@CurrentUser() u: AuthUser, @Body() b: CreateBody, @Req() req: GrowthReq, @Headers('x-kx-platform') platform?: string) { return this.svc.createIntent(u.sub, b, growthContextOf(req, platform)); }
+  create(@CurrentUser() u: AuthUser, @Body() b: CreateBody, @Req() req: GrowthReq) { return this.svc.createIntent(u.sub, b, growthContextOf(req)); }
 
   @ApiOkResponse({ type: BookingDto })
 
+  @ApiHeader({ name: 'X-KX-Platform', required: false, description: 'web | ios | android | whatsapp | widget (closed set for the growth stream; read from the request headers, optional)' })
   @Post('bookings/:id/confirm') @HttpCode(200) @ApiOperation({ summary: 'KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id)' })
-  confirm(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ConfirmBody, @Req() req: GrowthReq, @Headers('x-kx-platform') platform?: string) { return this.svc.confirm(u.sub, id, b, growthContextOf(req, platform)); }
+  confirm(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ConfirmBody, @Req() req: GrowthReq) { return this.svc.confirm(u.sub, id, b, growthContextOf(req)); }
 
   @ApiOkResponse({ type: BookingDto })
 

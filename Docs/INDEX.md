@@ -10,6 +10,9 @@ Start with the [README](../README.md), then pick a document.
 | [API.md](API.md) | Generated route reference |
 | [GROWTH.md](GROWTH.md) | Growth and acquisition engine data model, SQL functions, flags, default config (Wave 1) |
 | [SEO.md](SEO.md) | Public site: hybrid SSR role, canonical/hreflang, robots, sitemaps, caching, fallbacks, CWV, build and tests (GRW-P1-E) |
+| [ATTRIBUTION.md](ATTRIBUTION.md) | Growth attribution core: pure decision function, decisions, versioned config, touch and events, evidence (GRW-P1-B) |
+| [WIDGET.md](WIDGET.md) | Embeddable booking widget and JS SDK: embed host, per-organisation frame-ancestors, session token, postMessage protocol, SRI, limits, tests (GRW-P1-G) |
+| [CONSENT.md](CONSENT.md) | Consent records, preference centre, suppression, marketing gate and caps, banner (GRW-P1-I) |
 | [PROVIDERS.md](PROVIDERS.md) | SMS / Email / WhatsApp / Payment provider contract: env, neutral payloads, webhooks, mock simulators, go-live |
 | [NEEDS_HUMAN.md](NEEDS_HUMAN.md) | Open decisions and STOP flags |
 | [VERTICALS.md](VERTICALS.md) | Pharmacy, Lab, telemedicine and records design notes |
@@ -18,7 +21,6 @@ Start with the [README](../README.md), then pick a document.
 | [UPGRADE_NOTES.md](UPGRADE_NOTES.md) | Nov 2026 dependency and toolchain upgrade: versions, migration changes, pins and why |
 | [TEST_DATA.md](TEST_DATA.md) | Synthetic QA data (DEV ONLY) |
 | [kiorex-cursor-build-sequence.md](kiorex-cursor-build-sequence.md) | Build sequence and progress tracker |
-| [WIDGET.md](WIDGET.md) | Embeddable booking widget and JS SDK: embed host, per-organisation frame-ancestors, session token, postMessage protocol, SRI, limits, tests (GRW-P1-G) |
 
 Per-folder READMEs: [apps/api](../apps/api/README.md) · [apps/web](../apps/web/README.md) · [apps/ops](../apps/ops/README.md) · [apps/mobile](../apps/mobile/README.md) · [infra](../infra/README.md) · [infra/tofu](../infra/tofu/README.md).
 

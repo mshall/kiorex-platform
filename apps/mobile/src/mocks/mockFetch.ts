@@ -43,6 +43,7 @@ const state = {
   sessions: [{ id: "s1", device: "Kiorex app · demo", lastSeenAt: new Date().toISOString(), current: true }, { id: "s2", device: "Safari · iPhone", lastSeenAt: new Date(Date.now() - 86_400_000).toISOString(), current: false }] as Any[],
   flagsOff: new Set<string>(),
   stoppedLinks: new Set<string>(),
+  prefs: undefined as Any | undefined,
 };
 
 // ---- new patient features (waitlist, vault, pharmacy, lab, telemedicine) ----
@@ -145,6 +146,16 @@ async function route(method: string, path: string, url: URL, body: Any): Promise
   if (method === "DELETE" && (m = path.match(/^\/me\/dependants\/([^/]+)$/))) { state.deps = state.deps.filter((d) => d.id !== m![1]); return json(200, { ok: true }); }
   if (method === "GET" && path === "/me/consents") return json(200, Object.entries(state.consents).map(([purpose, granted]) => ({ purpose, granted, version: 1, updatedAt: new Date().toISOString() })));
   if (method === "PUT" && (m = path.match(/^\/me\/consents\/([^/]+)$/))) { state.consents[m[1]] = !!body.granted; return json(200, { purpose: m[1], granted: !!body.granted }); }
+  if (method === "GET" && path === "/me/preferences") return json(200, prefsView(state));
+  if (method === "PUT" && path === "/me/preferences") {
+    const p = (state.prefs ??= { reminders: false, analytics: false, marketing: {} as Record<string, boolean>, quiet: null as null | { start: number; end: number } });
+    if (typeof body.reminders === "boolean") p.reminders = body.reminders;
+    if (typeof body.analytics === "boolean") p.analytics = body.analytics;
+    if (body.marketing && typeof body.marketing === "object") Object.assign(p.marketing, body.marketing);
+    if (body.quietHours !== undefined) p.quiet = body.quietHours;
+    return json(200, prefsView(state));
+  }
+  if (method === "POST" && path === "/me/preferences/unsubscribe-marketing") { const p = (state.prefs ??= { reminders: false, analytics: false, marketing: {}, quiet: null }); p.marketing = {}; return json(200, prefsView(state)); }
   if (method === "GET" && path === "/me/devices") return json(200, state.devices ?? []);
   if (method === "POST" && path === "/me/devices") { const d = { id: `dev${(state.devices ??= []).length + 1}`, platform: body.platform, appVersion: body.appVersion ?? null, locale: body.locale ?? null, createdAt: new Date().toISOString(), lastSeenAt: new Date().toISOString() }; state.devices.push(d); return json(201, d); }
   if (method === "DELETE" && (m = path.match(/^\/me\/devices\/([^/]+)$/))) { state.devices = (state.devices ?? []).filter((d: Any) => d.id !== m![1]); return json(200, { ok: true }); }
@@ -291,4 +302,18 @@ export async function mockFetch(req: Request): Promise<Response> {
   if (req.method !== "GET" && req.method !== "DELETE") { try { body = await req.json(); } catch { body = {}; } }
   await new Promise((r) => setTimeout(r, 120));
   return route(req.method, path, url, body);
+}
+
+/** GET /me/preferences fixture (GRW-P1-I): service messages required, everything optional OFF until chosen, marketing not available while the flag is locked. */
+function prefsView(state: Any) {
+  const p = state.prefs ?? { reminders: false, analytics: false, marketing: {}, quiet: null };
+  const channels = ["WHATSAPP", "SMS", "EMAIL", "PUSH"].map((channel) => ({ channel, marketingConsent: !!p.marketing[channel], channelEnabled: true, suppressed: false, quietStart: null, quietEnd: null }));
+  return {
+    version: 1, draftWording: true, textVersions: { analytics: "TODO_NEEDS_HUMAN_v0", marketing: "TODO_NEEDS_HUMAN_v0" },
+    serviceMessages: [{ purpose: "TRANSACTIONAL", required: true }, { purpose: "SECURITY", required: true }, { purpose: "CLINICAL", required: true }],
+    reminders: { consent: !!p.reminders, updatedAt: null }, analytics: { consent: !!p.analytics, textVersion: null, updatedAt: null },
+    marketing: { available: false, anyConsent: channels.some((c) => c.marketingConsent), channels },
+    quietHours: { start: p.quiet?.start ?? null, end: p.quiet?.end ?? null, defaultStart: 21, defaultEnd: 9, timezone: "Africa/Cairo" },
+    caps: { perDay: 1, perWeek: 3 }, withdrawalPropagationSeconds: 60,
+  };
 }

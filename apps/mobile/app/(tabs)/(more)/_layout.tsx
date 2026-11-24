@@ -29,6 +29,7 @@ export default function MoreLayout() {
       <Stack.Screen name="review/[id]" options={{ title: t("review.submit") }} />
       <Stack.Screen name="settings/family" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.familyTitle") }} />
       <Stack.Screen name="settings/consents" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.consentsTitle") }} />
+      <Stack.Screen name="settings/preferences" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.prefsTitle") }} />
       <Stack.Screen name="settings/sessions" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("account.sessionsTitle") }} />
       <Stack.Screen name="settings/delete" options={{ title: t("account.deleteTitle") }} />
       <Stack.Screen name="settings/addresses" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("address.title") }} />

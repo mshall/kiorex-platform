@@ -2,7 +2,8 @@
 # One-shot idempotent migrate + seed image for the NON-PRODUCTION Lambdas of kiorex-platform (Q10 Part B; handler demo-seed.handler / index.handler).
 # Compiled seeds only: plain `node dist-seed/prisma/demo/seed-demo.js` at run time, no ts-node/tsx. Build from the repo root:
 #   docker build -f apps/api/Dockerfile.seed -t kiorex-platform-seed .
-# (`@kiorex/contracts` is a file: dependency on the tarball committed in vendor/ until it is published; no extra build context needed.)
+# (There is no `packages/` directory in this repository: the workspaces glob `packages/*` matches nothing, so nothing is copied for it.
+# `@kiorex/contracts` is a file: dependency on the tarball committed in vendor/ until it is published; no extra build context needed.)
 FROM public.ecr.aws/lambda/nodejs:24 AS build
 RUN dnf install -y openssl ca-certificates && dnf clean all
 WORKDIR /repo
@@ -10,7 +11,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/ops/package.json apps/ops/
-COPY packages ./packages
+COPY apps/widget/package.json apps/widget/
 COPY vendor ./vendor
 RUN npm ci && npm install -g prisma@7.10.1
 COPY apps/api ./apps/api
@@ -21,7 +22,6 @@ RUN npx prisma generate && npm run build:seed
 FROM public.ecr.aws/lambda/nodejs:24
 RUN dnf install -y openssl ca-certificates && dnf clean all
 COPY --from=build /repo/node_modules ${LAMBDA_TASK_ROOT}/node_modules
-COPY --from=build /repo/packages ${LAMBDA_TASK_ROOT}/packages
 COPY --from=build /repo/apps/api/prisma ${LAMBDA_TASK_ROOT}/prisma
 COPY --from=build /repo/apps/api/prisma.config.ts ${LAMBDA_TASK_ROOT}/prisma.config.ts
 COPY --from=build /repo/apps/api/dist-seed ${LAMBDA_TASK_ROOT}/dist-seed

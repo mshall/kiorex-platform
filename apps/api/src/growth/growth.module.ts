@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { GrowthAdminController } from './admin/growth-admin.controller';
 import { GrowthAdminService } from './admin/growth-admin.service';
 import { GrowthConfigAdminController } from './admin/growth-config-admin.controller';
-import { GROWTH_OVERVIEW_SOURCE, InternalOverviewSource } from './admin/growth-overview.source';
+import { AnalyticsOverviewSource, GROWTH_OVERVIEW_SOURCE, InternalOverviewSource } from './admin/growth-overview.source';
 import { AttributionPolicyResolver } from './attribution/policy';
 import { AttributionService } from './attribution/attribution.service';
 import { GrowthConfigController } from './config/growth-config.controller';
@@ -24,6 +24,7 @@ import { GrowthRollupService } from './analytics/rollup.service';
 import { GrowthSpendService } from './analytics/spend.service';
 import { BOOKING_GROWTH, GROWTH_FACTS, GROWTH_REVENUE, LINK_REGISTRY } from './growth-ports-public';
 import { BookingGrowthService } from './booking/booking-growth.service';
+import { LinkRegistryJob } from './links/link-registry.job';
 import { LinkRegistryService } from './links/link-registry.service';
 import { FraudSignalService } from './fraud/touch-rules';
 import { GrowthLimiter } from './growth-limiter';
@@ -42,8 +43,8 @@ import { TouchService } from './touch/touch.service';
   controllers: [TouchController, GrowthEventsController, VisitorConsentController, EvidenceController, GrowthConfigController, GrowthConfigAdminController, GrowthAdminController, GrowthAnalyticsOpsController, GrowthAnalyticsProviderController],
   providers: [
     GrowthMaintenanceService, GrowthConfigService, AttributionPolicyResolver, GrowthLimiter, FraudSignalService, TouchService, GrowthEventsService, VisitorConsentService,
-    GrowthAdminService, InternalOverviewSource, { provide: GROWTH_OVERVIEW_SOURCE, useExisting: InternalOverviewSource },
-    AttributionService, EvidenceService, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthRollupJob, GrowthMetricsService, GrowthExportService, GrowthSpendService, SlugService,
+    GrowthAdminService, InternalOverviewSource, AnalyticsOverviewSource, { provide: GROWTH_OVERVIEW_SOURCE, useExisting: AnalyticsOverviewSource },
+    AttributionService, EvidenceService, LinkRegistryService, LinkRegistryJob, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthRollupJob, GrowthMetricsService, GrowthExportService, GrowthSpendService, SlugService,
     { provide: BOOKING_GROWTH, useExisting: BookingGrowthService }, { provide: GROWTH_REVENUE, useExisting: GrowthRevenueService }, { provide: LINK_REGISTRY, useExisting: LinkRegistryService }, { provide: GROWTH_FACTS, useExisting: GrowthEventsService }, RetentionJob, SubjectDeletedConsumer, ConsentWiring,
   ],
   exports: [GROWTH_FACTS, BOOKING_GROWTH, GROWTH_REVENUE, LINK_REGISTRY, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthMetricsService, GrowthSpendService, GrowthMaintenanceService, GrowthConfigService, AttributionService, GrowthEventsService, SlugService, FraudSignalService, AttributionPolicyResolver],

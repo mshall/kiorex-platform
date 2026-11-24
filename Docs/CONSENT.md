@@ -32,6 +32,9 @@ Anonymous visitors: `POST /api/v1/growth/v1/consent` `{analytics, marketing?, te
 ## Web
 `ConsentBanner` (equal-weight Accept and Reject, "Choose what to allow" with unticked analytics and marketing switches, draft chip outside production), `PreferenceCentre` and the page `/preferences` and `/:locale/:cc/preferences` (noindex), a footer link, `lib/consent.ts` (storage with the wording version, `consentHeaders`, `sendTouch`, `touchBodyFrom`). Nothing is stored or sent before a choice; after an accept ONE landing touch is sent after the page has been on screen ~1.2 s (`dwellMs`) with `X-KX-Consent: analytics`. The `kxv` cookie is set by the API only with that header AND the `growth.analytics_visitor` gate satisfied.
 
+## Patient app (Expo)
+`app/(tabs)/(more)/settings/preferences.tsx` ("Messages and privacy choices", linked from Account): the same `GET/PUT /me/preferences` and `POST /me/preferences/unsubscribe-marketing` as the web, with `source: "app"`. Three service messages shown as always on; reminders, measurement and the four marketing channels all OFF until chosen (nothing pre-ticked); quiet hours with an hour stepper (wraps midnight) and "use the default"; one-tap unsubscribe from all marketing; STOP shown per channel; a draft chip in development builds. AR and EN (`prefs.*`), theme tokens only, 44 pt targets. The measurement switch also writes the device-level growth consent (`lib/growthConsent`), so nothing is sent from the device after a withdrawal. The offline mock (`mockFetch`) serves the same contract. Tests: `src/__tests__/preferences.test.tsx` (12 cases incl. AR, wrap-around, unsubscribe).
+
 ## NEEDS_HUMAN
 Consent wording AR/EN (banner, centre, per-channel marketing, WhatsApp opt-in), the regime id and defaults, the marketing licence question and the DPO review. Until then text versions are `TODO_NEEDS_HUMAN_v0` and the UI shows a visible "draft" marker outside production.
 

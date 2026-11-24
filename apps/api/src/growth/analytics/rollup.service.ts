@@ -43,10 +43,18 @@ export class GrowthRollupService {
     const from = dayStart(o.from ?? new Date(to.getTime() - ((o.days ?? 3) - 1) * 86_400_000));
     const end = new Date(to.getTime() + 86_400_000);
     const rows = [...(await this.visitorStream(market, from, end)), ...(await this.bookingFacts(market, from, end)), ...(await this.revenue(market, from, end))];
-    const data = rows.map((r) => ({ market, day: new Date(`${r.day}T00:00:00.000Z`), metric: r.metric, value: Math.min(r.value, 2_147_483_647), sourceKind: r.sourceKind, landingKind: r.landingKind, careType: r.careType, origin: r.origin, city: r.city, district: r.district, specialty: r.specialty, providerRef: r.providerRef, doctorRef: r.doctorRef, branchRef: r.branchRef, campaign: r.campaign, channel: r.channel, platform: r.platform, product: r.product }));
+    const raw = rows.map((r) => ({ market, day: new Date(`${r.day}T00:00:00.000Z`), metric: r.metric, value: Math.min(r.value, 2_147_483_647), sourceKind: r.sourceKind, landingKind: r.landingKind, careType: r.careType, origin: r.origin, city: r.city, district: r.district, specialty: r.specialty, providerRef: r.providerRef, doctorRef: r.doctorRef, branchRef: r.branchRef, campaign: r.campaign, channel: r.channel, platform: r.platform, product: r.product }));
+    // two sources can emit the same key (a NULL and an empty dimension both normalise to ''): the unique key would then abort the whole rollup. Equal keys are summed, never dropped.
+    const merged = new Map<string, (typeof raw)[number]>();
+    for (const r of raw) { const k = JSON.stringify([r.day.toISOString(), r.metric, r.sourceKind, r.landingKind, r.careType, r.origin, r.city, r.district, r.specialty, r.providerRef, r.doctorRef, r.branchRef, r.campaign, r.channel, r.platform, r.product]); const e = merged.get(k); if (e) e.value = Math.min(e.value + r.value, 2_147_483_647); else merged.set(k, { ...r }); }
+    const data = [...merged.values()];
+    // the rows to write decide what must be removed: a row whose day falls just outside [from, to] (a day boundary in another time zone) must not collide with its previous version
+    const days = data.map((d) => d.day.getTime());
+    const delFrom = days.length ? new Date(Math.min(from.getTime(), ...days)) : from;
+    const delTo = days.length ? new Date(Math.max(to.getTime(), ...days)) : to;
     await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('growth_rollup'))`; // two rollups (job and a manual trigger) never interleave their delete and insert
-      await tx.growthMetricDaily.deleteMany({ where: { market, day: { gte: from, lte: to }, metric: { in: [...ROLLUP_METRICS] } } });
+      await tx.growthMetricDaily.deleteMany({ where: { market, day: { gte: delFrom, lte: delTo }, metric: { in: [...ROLLUP_METRICS] } } });
       for (let i = 0; i < data.length; i += 500) await tx.growthMetricDaily.createMany({ data: data.slice(i, i + 500) });
     }, { timeout: 60_000 });
     this.log.log(`rolled up ${data.length} rows for ${from.toISOString().slice(0, 10)}..${to.toISOString().slice(0, 10)}`);

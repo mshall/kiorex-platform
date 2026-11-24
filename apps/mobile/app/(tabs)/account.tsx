@@ -113,6 +113,7 @@ function AccountInner() {
         <NavRow testID="nav-lab-bookings" icon="flask" label={t("lab.myBookings")} onPress={() => router.push("/lab/bookings")} />
         <NavRow testID="nav-followups-acc" icon="bell" label={t("records.followUps")} onPress={() => router.push("/records/follow-ups")} />
         <NavRow testID="nav-consents" icon="shield" label={t("account.consentsTitle")} onPress={() => router.push("/settings/consents")} />
+        <NavRow testID="nav-preferences" icon="bell" label={t("account.prefsTitle")} onPress={() => router.push("/settings/preferences" as never)} />
         <NavRow testID="nav-sessions" icon="device" label={t("account.sessionsTitle")} onPress={() => router.push("/settings/sessions")} />
       </Card>
       <PushCard />

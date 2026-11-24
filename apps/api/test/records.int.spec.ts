@@ -150,7 +150,7 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
     expect(up.body).toMatchObject({ kind: 'UPLOAD', source: 'PATIENT', hasFile: true, mimeType: 'application/pdf', sizeBytes: PDF.length, title: 'My blood test' });
     expect(up.body.fileName).not.toContain('/');
     const row = await c.prisma.sharedRecord.findUniqueOrThrow({ where: { id: up.body.id } });
-    const onDisk = readFileSync(join('.data/test-vault', row.storageKey!));
+    const onDisk = readFileSync(join(process.env.STORAGE_LOCAL_DIR!, row.storageKey!));
     expect(onDisk.includes(Buffer.from('patient-private-content'))).toBe(false); // ciphertext only
     const dl = await c.http().get(`/api/v1/me/vault/${up.body.id}/content`).set(auth).expect(200);
     expect(Buffer.from(dl.body).equals(PDF)).toBe(true);
@@ -160,7 +160,7 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
     process.env.VAULT_MAX_BYTES = '100';
     await c.http().post('/api/v1/me/vault/uploads').set(auth).send({ fileName: 'x.pdf', mimeType: 'application/pdf', contentBase64: PDF.toString('base64') }).expect(400).expect((r) => expect(r.body.code).toBe('FILE_TOO_LARGE'));
     await c.http().delete(`/api/v1/me/vault/${up.body.id}`).set(auth).expect(200);
-    expect(existsSync(join('.data/test-vault', row.storageKey!))).toBe(false);
+    expect(existsSync(join(process.env.STORAGE_LOCAL_DIR!, row.storageKey!))).toBe(false);
     expect((await c.http().get('/api/v1/me/vault').set(auth)).body.items).toHaveLength(0);
   });
 
@@ -168,7 +168,7 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
     const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(3 * 1024 * 1024, 7)]);
     await c.http().post('/api/v1/me/vault/uploads').set(auth).send({ fileName: 'big.pdf', mimeType: 'application/pdf', contentBase64: big.toString('base64') }).expect(201);
     expect((await share()).status).toBe(200);
-  });
+  }, 120_000); // a 4 MB JSON body, AES-GCM at rest and a signed webhook in one test: on a loaded machine (parallel suites, a docker build) it can pass the 30 s default; the assertions are unchanged
 
   it('RC-03 follow-up reminders: doctor interval from the share, patient-set, consent-gated delivery, cancel, revoked record cancels them', async () => {
     await share(summary('enc_f', { followUp: { intervalDays: 14 } }));

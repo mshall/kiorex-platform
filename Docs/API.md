@@ -51,7 +51,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered; optional signed provider-link `lt`, header `X-KX-Visitor` or cookie `kxv` feed the GRW-P1-C attribution decision |
+| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered |
 | GET | `/api/v1/bookings` |  |
 | POST | `/api/v1/bookings/{id}/confirm` | KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id) |
 | POST | `/api/v1/bookings/{id}/release` |  |
@@ -60,6 +60,12 @@
 | POST | `/api/v1/bookings/{id}/deposit-checkout` | KXM-PAY-01 start hosted deposit checkout (flag kiorex.pay_deposits) |
 | GET | `/api/v1/bookings/{id}` |  |
 | GET | `/api/v1/bookings/{id}/calendar.ics` | KXM-BK-09 add to calendar |
+
+## bootstrap
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/bootstrap` | Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location. |
 
 ## catalog
 
@@ -80,6 +86,14 @@
 |---|---|---|
 | POST | `/api/v1/channels/whatsapp/booking-intents` | KXM-BK-11 WhatsApp inbound (normalised, HMAC-signed). Server-to-server; the booking conversation runs from here |
 | GET | `/api/v1/dev/channels/whatsapp/conversation` | DEV: current WhatsApp conversation state for a phone |
+
+## consent
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/me/preferences` | GRW-P1-I preference centre: service messages, reminders, analytics, per-channel marketing consent, quiet hours, caps |
+| PUT | `/api/v1/me/preferences` | GRW-P1-I change preferences; every consent change is an append-only audit row and a PatientConsentUpdated event |
+| POST | `/api/v1/me/preferences/unsubscribe-marketing` | GRW-P1-I one-step opt-out of every marketing channel |
 
 ## control-plane
 
@@ -129,18 +143,27 @@
 | GET | `/api/v1/me/devices` |  |
 | DELETE | `/api/v1/me/devices/{id}` |  |
 
-## health
-
-| Method | Path | Summary |
-|---|---|---|
-| GET | `/api/v1/health/live` |  |
-| GET | `/api/v1/health/providers` |  |
-| GET | `/api/v1/health/ready` |  |
-
 ## growth
 
 | Method | Path | Summary |
 |---|---|---|
+| GET | `/api/v1/ops/growth/seo/overview` | GRW-P1-F SEO overview: page counts and guard reasons, slug coverage, sitemap sizes, search-engine status |
+| GET | `/api/v1/ops/growth/seo/pages` | GRW-P1-F generated pages with guard results (read-only) |
+| GET | `/api/v1/ops/growth/seo/slugs` | GRW-P1-F slugs (read-only) |
+| GET | `/api/v1/ops/growth/seo/redirects` | GRW-P1-F redirect inventory: slug history (301) and delisted providers (301 to the hub or 404 then 410) |
+| GET | `/api/v1/ops/growth/seo/config` | GRW-P1-F resolved SEO configuration with the template catalogue (read-only) |
+| POST | `/api/v1/ops/growth/seo/config/validate` | GRW-P1-F validate SEO extension keys (templates, pagination, review markup, thresholds) before a config version is stored (hook for package K); stores nothing |
+| POST | `/api/v1/ops/growth/seo/rebuild` | GRW-P1-F rebuild the page guard table, drop caches (audited) |
+| POST | `/api/v1/ops/growth/seo/slugs/bootstrap` | GRW-P1-F slug bootstrap and backfill for LIVE providers, clinics, pharmacies and labs (idempotent; dryRun reports only; audited) |
+| GET | `/api/v1/ops/growth/seo/search-engines` | GRW-P1-F Search Console and Bing integration status (mock by default) |
+| GET | `/api/v1/ops/growth/seo/search-engines/performance` | GRW-P1-F performance pull through the integration abstraction (mock rows are labelled sample) |
+| POST | `/api/v1/ops/growth/seo/search-engines/submit-sitemap` | GRW-P1-F submit the sitemap index to the search engines through the adapter (mock by default) |
+| POST | `/api/v1/growth/v1/touch` | GRW-P1-B record a landing touch (consent-gated visitor identity; no IP, no full UA, no full referrer, no search text) |
+| POST | `/api/v1/growth/v1/events` | GRW-P1-B record canonical funnel events (batch of up to 20; idempotent; client-reportable names only; no PHI) |
+| GET | `/api/v1/growth/v1/consent/versions` | GRW-P1-I current consent text version ids (the banner stores the version it showed) |
+| POST | `/api/v1/growth/v1/consent` | GRW-P1-I record an anonymous visitor consent decision (audit row keyed by a random consent id; sets nothing else server-side) |
+| GET | `/api/v1/growth/v1/evidence/{bookingId}` | GRW-P1-B attribution evidence for one booking (ops session or signed partner); facts, never identifiers |
+| GET | `/api/v1/growth/config/resolve` | GRW-P1-B resolved growth config for a kind and market (ACTIVE version, else PROPOSED_DEFAULT) |
 | GET | `/api/v1/ops/growth-analytics/overview` | GRW-P1-J executive overview (k >= 10; GBV is never revenue) |
 | GET | `/api/v1/ops/growth-analytics/funnel` | GRW-P1-J canonical funnel with step and cumulative conversion (k >= 10) |
 | GET | `/api/v1/ops/growth-analytics/channels` | GRW-P1-J channel table: bookings, ANP, spend, CAC, ROAS, LTV to CAC (k >= 10) |
@@ -158,6 +181,53 @@
 | GET | `/api/v1/growth/v1/provider-analytics/channels` | GRW-P1-J provider channel table (own organisation) |
 | GET | `/api/v1/growth/v1/provider-analytics/cohorts` | GRW-P1-J provider cohort retention (own organisation) |
 | GET | `/api/v1/growth/v1/provider-analytics/export/{report}` | GRW-P1-J provider CSV export (same masking) |
+
+## growth-admin
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/ops/growth/config/kinds` | GRW-P1-K editable config kinds with their JSON Schema, PROPOSED_DEFAULT payload and money-policy flag |
+| GET | `/api/v1/ops/growth/config` | GRW-P1-K list config versions (kind, scope, status filters) |
+| POST | `/api/v1/ops/growth/config` | GRW-P1-K create a DRAFT (maker). Validated against the contract schema; secrets by reference only |
+| GET | `/api/v1/ops/growth/config/in-force` | GRW-P1-K the version serving a kind in a market now (ACTIVE, else PROPOSED_DEFAULT), plus what is scheduled |
+| GET | `/api/v1/ops/growth/config/propagation` | GRW-P1-K which readers and instances serve which version of a config (no redeploy needed) |
+| GET | `/api/v1/ops/growth/config/{id}` | GRW-P1-K one config version with its audit trail |
+| PATCH | `/api/v1/ops/growth/config/{id}` | GRW-P1-K edit a DRAFT (its author only) |
+| GET | `/api/v1/ops/growth/config/{id}/diff` | GRW-P1-K field-level diff against another version (default: the one it replaces) |
+| GET | `/api/v1/ops/growth/config/{id}/validate` | GRW-P1-K dry-run: schema, guardrails and money-policy rules; changes nothing |
+| POST | `/api/v1/ops/growth/config/{id}/submit` | GRW-P1-K submit a DRAFT for approval (its author only) |
+| POST | `/api/v1/ops/growth/config/{id}/approve` | GRW-P1-K approve (checker; never the author). Activates at effectiveFrom |
+| POST | `/api/v1/ops/growth/config/{id}/reject` | GRW-P1-K reject a pending version (checker; never the author) |
+| POST | `/api/v1/ops/growth/config/{id}/activate` | GRW-P1-K activate an approved version at its effective date (refused earlier) |
+| POST | `/api/v1/ops/growth/config/rollback` | GRW-P1-K roll back = a NEW version copying an older payload, same approval path |
+| GET | `/api/v1/ops/growth/access` | GRW-P1-K what the signed-in ops user may do in the Growth module |
+| GET | `/api/v1/ops/growth/overview` | GRW-P1-K executive overview: funnel, origins, sources, configuration health |
+| GET | `/api/v1/ops/growth/channels` | GRW-P1-K acquisition sources with touches per channel |
+| PATCH | `/api/v1/ops/growth/channels/{id}` | GRW-P1-K activate, pause or relabel an acquisition source (audited) |
+| GET | `/api/v1/ops/growth/provider-acquisition` | GRW-P1-K provider-owned sources and the organisations that bring visitors |
+| GET | `/api/v1/ops/growth/seo/status` | GRW-P1-K SEO status: thresholds, robots, sitemap, thin pages |
+| GET | `/api/v1/ops/growth/seo/slug-history` | GRW-P1-K slugs with their history |
+| GET | `/api/v1/ops/growth/seo/redirect-history` | GRW-P1-K slug redirects (301) and gone entries |
+| GET | `/api/v1/ops/growth/landing-pages` | GRW-P1-K generated landing pages and their indexability result |
+| GET | `/api/v1/ops/growth/widgets` | GRW-P1-K widget registrations, allowed origins, policy and audit |
+| PATCH | `/api/v1/ops/growth/widgets/{orgRef}` | GRW-P1-K enable or disable one organisation widget registration (audited) |
+| GET | `/api/v1/ops/growth/templates` | GRW-P1-K notification templates with their consent class (read-only) |
+| GET | `/api/v1/ops/growth/integrations` | GRW-P1-K integration mode and readiness with secret references only |
+| GET | `/api/v1/ops/growth/fraud/signals` | GRW-P1-K fraud signals and review queue |
+| GET | `/api/v1/ops/growth/fraud/thresholds` | GRW-P1-K fraud rules and their thresholds (read-only) |
+| POST | `/api/v1/ops/growth/fraud/signals/{id}/review` | GRW-P1-K confirm or dismiss a fraud signal (audited; never changes an attribution decision) |
+| GET | `/api/v1/ops/growth/audit` | GRW-P1-K growth audit events with filters |
+| GET | `/api/v1/ops/growth/markets` | GRW-P1-K per-market configuration summary |
+| GET | `/api/v1/ops/growth/analytics` | GRW-P1-K daily growth events and decisions (raw tables until analytics v1 serves them) |
+| GET | `/api/v1/ops/growth/finance` | GRW-P1-K financial performance: decisions by origin and revenue facts (finance role) |
+
+## health
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/health/live` |  |
+| GET | `/api/v1/health/providers` |  |
+| GET | `/api/v1/health/ready` |  |
 
 ## home-visits
 
@@ -186,12 +256,6 @@
 | POST | `/api/v1/lab/bookings/{id}/cancel` |  |
 | GET | `/api/v1/admin/lab/bookings` | OP: lab bookings (status filter) |
 | POST | `/api/v1/admin/lab/bookings/{id}/resubmit` | OP: re-send a PAID booking to Kiorly Lab (idempotent) |
-
-## bootstrap
-
-| Method | Path | Summary |
-|---|---|---|
-| GET | `/api/v1/bootstrap` | Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location. |
 
 ## market
 
@@ -434,7 +498,5 @@
 |---|---|---|
 | POST | `/api/v1/widget/v1/session` | GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF |
 | GET | `/api/v1/widget/v1/config` | GRW-P1-G widget data: clinic, bookable doctors with visit types and fees (IN_CLINIC only), specialties. Needs X-KX-Widget |
-| GET | `/api/v1/widget/v1/ops/audit` | GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes |
-| GET | `/api/v1/widget/v1/ops/registrations` | GRW-P1-G widget registrations (verified origins per clinic) |
-
-The embed document, SDK and popup return page live at the root of the widget host, not under `/api/v1`: see [WIDGET.md](WIDGET.md).
+| GET | `/api/v1/widget/v1/ops/audit` | GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes (AuditLog resource WidgetRegistration) |
+| GET | `/api/v1/widget/v1/ops/registrations` | GRW-P1-G widget registrations (verified origins per clinic, synced from PROVIDER_PROFILE_UPDATED) |

@@ -124,8 +124,12 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **Fonts**: IBM Plex Sans Arabic and Jost (SIL Open Font License 1.1) were copied from the Kiorly web build assets into `apps/web/src/public/fonts`; confirm the licence notice requirement with counsel.
 - **Arabic public copy** (`apps/web/src/public/locales/ar.json`) is engineering wording and needs CMO/marketing review before launch (FAQ blocks are package F).
 
-## Growth: booking integration and analytics (GRW-P1-C, GRW-P1-J)
-
+## Attribution core and consent (GRW-P1-B, GRW-P1-I): founder and counsel items
+- **Consent wording AR/EN** for the banner, the preference centre, per-channel marketing and the WhatsApp opt-in; the consent regime id (`pdpl-eg-v0`); text version ids are `TODO_NEEDS_HUMAN_v0` and the UI shows a draft marker outside production. Counsel and DPO.
+- **Marketing licence and `growth.marketing_messaging` gate**; the default caps (1 a day, 3 a week) and the 21:00 to 09:00 quiet window are `PROPOSED_DEFAULT` (CMO and counsel).
+- **`growth.analytics_visitor` gate** (visitor key `kxv`): counsel opinion on PDPL for analytics cookies. Until recorded, no visitor key or touchpoint is ever created.
+- **Attribution policy values** (windows 30/30/7 days, precedence `PROVIDER_FIRST`, 1000 ms dwell, retention 13/25 months) are `PROPOSED_DEFAULT`; the first approved `ATTRIBUTION_POLICY` needs two super admins, an announcement for providers (wording is provider-terms text) and an effective date at least 7 days out.
+- **Per-organisation partner credentials** for `GET /growth/v1/evidence/:bookingId`: today one shared Clinic secret signs the request and the organisation is a header claim (CTO).
 - **`GROWTH_LINK_TOKEN_SECRET`** (at least 16 characters): OpenTofu creates the EMPTY Secrets Manager container `/kiorex-platform/<env>/growth-link-token` (`growth_link_token_secret = true`); a human writes the value, then `growth_link_token_secret_inject = true` (CTO, secrets). The Clinic's provider-link token needs no new secret: Kiorex verifies it with the existing Clinic shared secret (`LINK_TOUCH_SIGNING_SECRET`, else `KIORLY_WEBHOOK_SECRET`; keep it equal to the Clinic's `KIOREX_OUTBOX_WEBHOOK_SECRET`).
 - **Growth analytics inputs (GRW-P1-J)**: who owns marketing spend entry and approval (default: two different ops users), the fee, dispute rate and Pay margin used for LTV (PROPOSED_DEFAULT EGP 40, 4 percent, none), and confirmation of the cohort definition (acquisition cohort by first booking month).
 
@@ -136,3 +140,17 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **SDK versions and SRI**: only the current build is in the image; keep every released `sdk.<hash>.js` on the CDN origin so SRI-pinned provider pages keep working after a later release (CTO).
 - **Hold limit and rate ceilings** (3 active widget holds per person, 10 holds per minute per ip hash, 60 slot reads per minute) are `PROPOSED_DEFAULT` (`WIDGET_POLICY` and `WIDGET_RATE_*`).
 - **No CAPTCHA**: bot protection is rate limits plus the sign-in requirement for any hold; adding a CAPTCHA provider is a human product and vendor decision.
+
+## Super Admin growth configuration (GRW-P1-K): founder and CTO items
+- **Who may approve growth configuration**: today every `super_admin` can be the second person (never the author). Whether money-policy changes (attribution windows and precedence) need a named approver or three people is a founder decision.
+- **Finance and support roles**: the console reads the `finance` and `support` claims (demo personas carry them next to `ops_admin`); real Passport role assignment for those people is a CTO task. Finance sees the money views, support reviews fraud signals; nobody except `super_admin` can change configuration.
+- **Guardrail numbers** (an attribution window moves at most x2 or /2 per version, withdrawal propagation at most 300 s, SEO minimum 2 live providers, 10 versions per configuration per day) are `PROPOSED_DEFAULT`; confirm or change them.
+- **Provider announcement wording** for an attribution-policy change (required, 10+ characters) is a legal and commercial text: counsel and the CMO write the real template, AR and EN.
+- **SEO metadata templates** are now optional keys of `SEO.schema.json` (contracts 1.11.0); the wording (AR and EN, per page type) is still a CMO and counsel text: the built-in defaults are `PROPOSED_DEFAULT`.
+- **Arabic copy of the Growth console** is a draft for CMO review (`growth.*` keys in `apps/ops/src/i18n/locales/ar.json`).
+- **Fraud thresholds** are code constants and attribution-policy values; a configurable `FRAUD_THRESHOLDS` kind (Phase 3) needs a decision on who may tune them.
+
+## Growth gap closure (contracts 1.11.0): items that stay human
+- **Partner credentials for the link registry lookup and the evidence endpoint**: both use the Clinic's shared marketplace client key and secret today (one organisation header is a claim by an authenticated Clinic). Per-organisation credentials are a CTO task; until then the lookup only reveals code, organisation, scope, channel and status (no person).
+- **Consent wording on the patient app** is the same draft as the web (`TODO_NEEDS_HUMAN_v0`), AR and EN, awaiting counsel and CMO; a draft chip shows in development builds only.
+- **Docker image publication and the first deploy** stay blocked until the founder says so; the image builds locally.

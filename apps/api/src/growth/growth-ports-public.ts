@@ -22,7 +22,11 @@ export interface BookingGrowthPort {
   onCompleted(bookingId: string): Promise<void>;
 }
 export interface GrowthRevenuePort { recordFromEvent(type: string, data: Record<string, any>, occurredAt?: string): Promise<boolean> }
-export interface LinkRegistryPort { registerFromEvent(data: Record<string, unknown>): Promise<'REGISTERED' | 'KNOWN' | 'CONFLICT' | 'IGNORED'> }
+export interface LinkRegistryPort {
+  registerFromEvent(data: Record<string, unknown>): Promise<'REGISTERED' | 'KNOWN' | 'CONFLICT' | 'REVOKED' | 'IGNORED'>;
+  /** `ReferralLinkRevoked`: the code stops deciding PROVIDER_LED for new bookings. */
+  revokeFromEvent(data: Record<string, unknown>): Promise<'REGISTERED' | 'KNOWN' | 'CONFLICT' | 'REVOKED' | 'IGNORED'>;
+}
 
 /** Server-side canonical fact writer (GrowthEventsService.recordFact). `naturalKey` must never be a person identifier: use a keyed reference (subRefOf) or an internal random id. */
 export interface GrowthFactsPort { recordFact(f: { name: string; naturalKey: string; bookingId?: string; careType?: string; props?: Record<string, unknown>; occurredAt?: Date; market?: string }): Promise<boolean> }

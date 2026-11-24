@@ -53,7 +53,7 @@ export function useConfigAction() {
 
 // ── read models ──
 export interface Overview {
-  source: "internal" | "analytics-v1"; days: number; market: string; since: string; funnel: Array<{ name: string; count: number }>; origins: Array<{ origin: string; count: number }>; reasons: Array<{ reason: string; count: number }>;
+  source: "internal" | "analytics-v1"; days: number; market: string; since: string; funnel: Array<{ name: string; count: number; masked?: boolean }>; origins: Array<{ origin: string; count: number; masked?: boolean }>; reasons: Array<{ reason: string; count: number }>;
   touchesBySource: Array<{ sourceKind: string; count: number }>; providerLedShare: number | null; fraudOpen: number; activeWidgets: number; landingPages: { total: number; indexable: number }; slugs: number;
   config: Array<{ kind: string; source: string; version: number; scope: string; scopeId: string; effectiveFrom: string | null; pending: number; scheduled: number }>;
 }

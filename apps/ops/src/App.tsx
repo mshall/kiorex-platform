@@ -26,6 +26,8 @@ const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
 const PartnerOnboardingPage = lazy(() => import("@/pages/PartnerOnboardingPage"));
 const PartnerLeadsPage = lazy(() => import("@/pages/PartnerLeadsPage"));
 const PartnerOnboardingDetailPage = lazy(() => import("@/pages/PartnerOnboardingDetailPage"));
+const GrowthAnalyticsV1Page = lazy(() => import("@/pages/growth-analytics/GrowthAnalyticsPage"));
+const AcquisitionPage = lazy(() => import("@/pages/growth-analytics/AcquisitionPage"));
 // Growth & Patient Acquisition (GRW-P1-K)
 const GrowthExecutivePage = lazy(() => import("@/pages/growth/GrowthExecutivePage"));
 const GrowthChannelsPage = lazy(() => import("@/pages/growth/GrowthChannelsPage"));
@@ -44,8 +46,6 @@ const GrowthIntegrationsPage = lazy(() => import("@/pages/growth/GrowthIntegrati
 const GrowthAuditPage = lazy(() => import("@/pages/growth/GrowthAuditPage"));
 const GrowthConfigPage = lazy(() => import("@/pages/growth/GrowthConfigPage"));
 const GrowthPlannedPage = lazy(() => import("@/pages/growth/GrowthPlannedPage"));
-const GrowthAnalyticsV1Page = lazy(() => import("@/pages/growth-analytics/GrowthAnalyticsPage"));
-const AcquisitionPage = lazy(() => import("@/pages/growth-analytics/AcquisitionPage"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
 const client = makeQueryClient();

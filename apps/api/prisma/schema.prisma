@@ -11,18 +11,18 @@ datasource db {
 // ───────────────────────── platform: outbox, audit, webhooks ─────────────────────────
 
 model OutboxEvent {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   type          String
   aggregateType String
   aggregateId   String
-  target        String   @default("INTERNAL") // INTERNAL | KIORLY | PRODUCT:<product>
+  target        String    @default("INTERNAL") // INTERNAL | KIORLY | PRODUCT:<product>
   payload       Json
-  status        String   @default("PENDING") // PENDING | SENT | FAILED | DEAD
-  attempts      Int      @default(0)
-  nextAttemptAt DateTime @default(now())
+  status        String    @default("PENDING") // PENDING | SENT | FAILED | DEAD
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
   lastError     String?
-  dedupeKey     String?  @unique
-  createdAt     DateTime @default(now())
+  dedupeKey     String?   @unique
+  createdAt     DateTime  @default(now())
   sentAt        DateTime?
 
   @@index([status, nextAttemptAt])
@@ -30,14 +30,14 @@ model OutboxEvent {
 }
 
 model WebhookReceipt {
-  eventId     String   @id
-  source      String   @default("kiorly")
+  eventId     String    @id
+  source      String    @default("kiorly")
   type        String
   aggregateId String?
   payload     Json
-  status      String   @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
+  status      String    @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
   error       String?
-  receivedAt  DateTime @default(now())
+  receivedAt  DateTime  @default(now())
   processedAt DateTime?
 }
 
@@ -79,22 +79,22 @@ model AuthSession {
 // ───────────────────────── patient (KXM-AC-02..07) ─────────────────────────
 
 model PatientProfile {
-  id               String    @id @default(cuid())
-  sub              String    @unique
-  phone            String?
-  email            String?
-  nameEn           String?
-  nameAr           String?
-  dateOfBirth      DateTime?
-  gender           String?
-  nationalIdEnc    String?
-  nationalIdHash   String?
-  preferredLocale  String    @default("ar")
-  market           String    @default("EG")
-  noShowCount      Int       @default(0)
-  deletedAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  sub             String    @unique
+  phone           String?
+  email           String?
+  nameEn          String?
+  nameAr          String?
+  dateOfBirth     DateTime?
+  gender          String?
+  nationalIdEnc   String?
+  nationalIdHash  String?
+  preferredLocale String    @default("ar")
+  market          String    @default("EG")
+  noShowCount     Int       @default(0)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([nationalIdHash])
 }
@@ -160,47 +160,47 @@ model KiorlyPatientLink {
 // ───────────────────────── catalog (KXM-DS, KXM-PR) ─────────────────────────
 
 model Provider {
-  id               String    @id // Kiorly listingId
-  tenantId         String? // Kiorly org (org-scope flags)
-  clinicId         String
-  clinicianId      String
-  status           String // LIVE | PAUSED | ...
-  sourceVersion    String // Kiorly updatedAt (ISO)
-  market           String    @default("EG")
-  nameEn           String?
-  nameAr           String?
-  clinicNameEn     String?
-  clinicNameAr     String?
-  specialty        String?
-  subSpecialties   String[]
-  languages        String[]
-  gender           String?
-  governorate      String?
-  area             String?
-  latitude         Float?
-  longitude        Float?
-  minFeeMinor      Int?
-  maxFeeMinor      Int?
-  currency         String    @default("EGP")
-  acceptsDeposit   Boolean   @default(false)
-  ratingAvg        Float     @default(0)
-  ratingCount      Int       @default(0)
-  searchText       String    @default("")
-  raw              Json
-  syncedAt         DateTime  @default(now())
-  createdAt        DateTime  @default(now())
+  id                   String    @id // Kiorly listingId
+  tenantId             String? // Kiorly org (org-scope flags)
+  clinicId             String
+  clinicianId          String
+  status               String // LIVE | PAUSED | ...
+  sourceVersion        String // Kiorly updatedAt (ISO)
+  market               String    @default("EG")
+  nameEn               String?
+  nameAr               String?
+  clinicNameEn         String?
+  clinicNameAr         String?
+  specialty            String?
+  subSpecialties       String[]
+  languages            String[]
+  gender               String?
+  governorate          String?
+  area                 String?
+  latitude             Float?
+  longitude            Float?
+  minFeeMinor          Int?
+  maxFeeMinor          Int?
+  currency             String    @default("EGP")
+  acceptsDeposit       Boolean   @default(false)
+  ratingAvg            Float     @default(0)
+  ratingCount          Int       @default(0)
+  searchText           String    @default("")
+  raw                  Json
+  syncedAt             DateTime  @default(now())
+  createdAt            DateTime  @default(now())
   // Rev 2.3 projections (KX-09 §03): profession, home-visit capability, coverage DISTRICTS only (never a provider home address, KXMDS05)
-  profession         String? // PHYSICIAN | DENTIST | PHYSIOTHERAPIST | NURSE (null = legacy doctor)
-  edition            String? // CLINIC | NURSE
-  careType           String    @default("DOCTORS") // DOCTORS | PHYSIOTHERAPY | HOME_NURSING (derived from profession)
-  serviceLocations   String[]  @default([]) // IN_CLINIC | HOME
-  coverageDistricts  String[]  @default([])
-  assignsClinician   Boolean   @default(false) // agencies: clinician assigned after booking (HOME_VISIT_ASSIGNED)
+  profession           String? // PHYSICIAN | DENTIST | PHYSIOTHERAPIST | NURSE (null = legacy doctor)
+  edition              String? // CLINIC | NURSE
+  careType             String    @default("DOCTORS") // DOCTORS | PHYSIOTHERAPY | HOME_NURSING (derived from profession)
+  serviceLocations     String[]  @default([]) // IN_CLINIC | HOME
+  coverageDistricts    String[]  @default([])
+  assignsClinician     Boolean   @default(false) // agencies: clinician assigned after booking (HOME_VISIT_ASSIGNED)
   verificationRegister String?
-  homeSurchargeMinor Int? // home surcharge (BR56) of the cheapest home fee; outside S and C
+  homeSurchargeMinor   Int? // home surcharge (BR56) of the cheapest home fee; outside S and C
   // Search "earliest" index: the start of the provider's next in-clinic slot (7-day horizon), refreshed lazily + by a warmer. NULL = no slot / never indexed.
-  nextSlotAt       DateTime?
-  slotIndexedAt    DateTime?
+  nextSlotAt           DateTime?
+  slotIndexedAt        DateTime?
 
   @@index([status, nextSlotAt])
   @@index([careType, status])
@@ -210,25 +210,25 @@ model Provider {
 
 model ProfileViewDaily {
   providerId String
-  date       DateTime @db.Date
-  views      Int      @default(0)
+  date       DateTime  @db.Date
+  views      Int       @default(0)
   pushedAt   DateTime?
 
   @@id([providerId, date])
 }
 
 model AnalyticsEvent {
-  id            String   @id @default(cuid())
-  name          String
-  specialtyCode String?
-  providerId    String?
-  market        String   @default("EG")
-  code          String?
+  id              String   @id @default(cuid())
+  name            String
+  specialtyCode   String?
+  providerId      String?
+  market          String   @default("EG")
+  code            String?
   /// Rev 2.3 analytics rule: location is DISTRICT level only (never an address, coordinates or free text).
-  district      String?
-  careType      String?
+  district        String?
+  careType        String?
   serviceLocation String?
-  createdAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([name, createdAt])
 }
@@ -311,35 +311,35 @@ model BookingEvent {
 // ───────────────────────── Kiorex Pay (KXM-PAY) ─────────────────────────
 
 model PaymentIntent {
-  id             String    @id // pay_<id>; used as Kiorly paymentRef
-  bookingId      String?
-  payLinkToken   String?
-  sub            String?
-  clinicId       String
-  amountMinor    Int
-  currency       String    @default("EGP")
-  psp            String
-  pspRef         String?   @unique
-  checkoutUrl    String?
-  status         String    @default("CREATED") // CREATED | CAPTURED | FAILED | REFUNDED | PARTIALLY_REFUNDED
-  refundedMinor  Int       @default(0)
-  feeMinor       Int       @default(0)
-  releasedAt     DateTime? // deposit released to clinic payable (completed / forfeited)
-  releaseKind    String? // COMPLETED | FORFEITED
-  payoutId       String?
+  id              String    @id // pay_<id>; used as Kiorly paymentRef
+  bookingId       String?
+  payLinkToken    String?
+  sub             String?
+  clinicId        String
+  amountMinor     Int
+  currency        String    @default("EGP")
+  psp             String
+  pspRef          String?   @unique
+  checkoutUrl     String?
+  status          String    @default("CREATED") // CREATED | CAPTURED | FAILED | REFUNDED | PARTIALLY_REFUNDED
+  refundedMinor   Int       @default(0)
+  feeMinor        Int       @default(0)
+  releasedAt      DateTime? // deposit released to clinic payable (completed / forfeited)
+  releaseKind     String? // COMPLETED | FORFEITED
+  payoutId        String?
   /// DEPOSIT (Kiorly clinic deposit) | PHARMACY | LAB — vertical orders never reach Kiorly clinic payouts.
-  purpose        String    @default("DEPOSIT")
-  orderRef       String?
-  capturedAt     DateTime?
-  kiorlyNotified Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  purpose         String    @default("DEPOSIT")
+  orderRef        String?
+  capturedAt      DateTime?
+  kiorlyNotified  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   /// KXMPAY07: HELD_FOR_REVIEW (unsafe-aborted home visit; never auto-forfeited) | RELEASED_TO_PROVIDER | REFUNDED_TO_PATIENT
-  reviewState    String?
-  reviewReason   String?
+  reviewState     String?
+  reviewReason    String?
   heldForReviewAt DateTime?
-  reviewedBy     String?
-  reviewedAt     DateTime?
+  reviewedBy      String?
+  reviewedAt      DateTime?
 
   refunds Refund[]
 
@@ -399,29 +399,29 @@ model LedgerEntry {
 }
 
 model Payout {
-  id           String   @id // po_<id>
-  payoutRef    String   @unique
-  clinicId     String
-  amountMinor  Int
-  currency     String   @default("EGP")
-  status       String   @default("SENT") // SENT | KIORLY_RECORDED
-  periodKey    String
-  paymentRefs  Json
-  paidAt       DateTime @default(now())
-  createdAt    DateTime @default(now())
+  id          String   @id // po_<id>
+  payoutRef   String   @unique
+  clinicId    String
+  amountMinor Int
+  currency    String   @default("EGP")
+  status      String   @default("SENT") // SENT | KIORLY_RECORDED
+  periodKey   String
+  paymentRefs Json
+  paidAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   @@unique([clinicId, periodKey])
 }
 
 model PspSettlementLine {
-  id         String   @id @default(cuid())
-  psp        String
-  pspRef     String
-  kind       String // CAPTURE | REFUND
+  id          String   @id @default(cuid())
+  psp         String
+  pspRef      String
+  kind        String // CAPTURE | REFUND
   amountMinor Int
-  feeMinor   Int      @default(0)
-  date       DateTime @db.Date
-  matched    Boolean  @default(false)
+  feeMinor    Int      @default(0)
+  date        DateTime @db.Date
+  matched     Boolean  @default(false)
 
   @@unique([psp, pspRef, kind])
 }
@@ -485,8 +485,8 @@ model NotificationPreference {
 // ───────────────────────── trust (KXM-RV) ─────────────────────────
 
 model Review {
-  id                  String    @id @default(cuid())
-  bookingId           String    @unique
+  id                  String   @id @default(cuid())
+  bookingId           String   @unique
   sub                 String
   providerId          String
   clinicId            String
@@ -494,13 +494,13 @@ model Review {
   kiorlyAppointmentId String
   rating              Int
   text                String?
-  status              String    @default("VISIBLE") // VISIBLE | HIDDEN
+  status              String   @default("VISIBLE") // VISIBLE | HIDDEN
   moderationFlags     Json?
   clinicReply         String?
   editableUntil       DateTime
-  syncStatus          String    @default("PENDING") // PENDING | SYNCED | REJECTED
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  syncStatus          String   @default("PENDING") // PENDING | SYNCED | REJECTED
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([providerId, status])
 }
@@ -519,17 +519,17 @@ model ModerationCase {
 }
 
 model Complaint {
-  id        String    @id @default(cuid())
-  sub       String
-  bookingId String?
-  category  String
-  body      String
-  status    String    @default("OPEN")
-  slaDueAt  DateTime
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  sub        String
+  bookingId  String?
+  category   String
+  body       String
+  status     String    @default("OPEN")
+  slaDueAt   DateTime
+  createdAt  DateTime  @default(now())
   resolvedAt DateTime?
   /// KXMOP05: home-visit complaints carry a 1 h SLA.
-  homeVisit Boolean   @default(false)
+  homeVisit  Boolean   @default(false)
 }
 
 // ───────────────────────── control plane (KXM-OP-07..11) ─────────────────────────
@@ -553,18 +553,18 @@ model FlagDefinition {
 }
 
 model FlagValue {
-  id           String    @id @default(cuid())
-  flagKey      String
-  scope        String // GLOBAL | MARKET | ORG
-  scopeId      String    @default("")
-  value        String // OFF | ON (ON == inherit)
-  reason       String?
-  ticket       String?
-  setBy        String?
-  expiresAt    DateTime?
-  startsAt     DateTime? // scheduled activation
-  updatedAt    DateTime  @updatedAt
-  createdAt    DateTime  @default(now())
+  id        String    @id @default(cuid())
+  flagKey   String
+  scope     String // GLOBAL | MARKET | ORG
+  scopeId   String    @default("")
+  value     String // OFF | ON (ON == inherit)
+  reason    String?
+  ticket    String?
+  setBy     String?
+  expiresAt DateTime?
+  startsAt  DateTime? // scheduled activation
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
 
   @@unique([flagKey, scope, scopeId])
 }
@@ -576,29 +576,29 @@ model FlagGateEvidence {
   approvedOn  DateTime
   documentUrl String
   recordedBy  String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   @@id([flagKey, gateId])
 }
 
 model FlagChangeRequest {
-  id           String    @id @default(cuid())
-  flagKey      String
-  scope        String
-  scopeId      String    @default("")
-  value        String
-  reason       String
-  ticket       String
-  expiresAt    DateTime?
-  requestedBy  String
-  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED
-  approvedBy   String?
-  emergency    Boolean   @default(false)
-  reviewDueAt  DateTime?
-  reviewedBy   String?
-  reviewedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  decidedAt    DateTime?
+  id          String    @id @default(cuid())
+  flagKey     String
+  scope       String
+  scopeId     String    @default("")
+  value       String
+  reason      String
+  ticket      String
+  expiresAt   DateTime?
+  requestedBy String
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  approvedBy  String?
+  emergency   Boolean   @default(false)
+  reviewDueAt DateTime?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
 }
 
 model FlagAudit {
@@ -634,8 +634,8 @@ model ProductRegistration {
 }
 
 model ControlState {
-  id      Int      @id @default(1)
-  version Int      @default(1)
+  id        Int      @id @default(1)
+  version   Int      @default(1)
   updatedAt DateTime @default(now())
 }
 
@@ -653,7 +653,6 @@ model AiUsage {
 
   @@index([sub, createdAt])
 }
-
 
 // ───────────────────────── unified messaging (mock adapters, KX-00 provider rules) ─────────────────────────
 
@@ -749,27 +748,27 @@ model WaitlistOffer {
 
 /// A record visible in the patient vault. Clinical content is AES-GCM encrypted (payloadEnc) and NEVER logged.
 model SharedRecord {
-  id           String    @id // kx_rec_<id>
-  sub          String
-  kind         String // VISIT_SUMMARY | PRESCRIPTION | LAB_RESULT | UPLOAD
-  clinicId     String?
+  id              String    @id // kx_rec_<id>
+  sub             String
+  kind            String // VISIT_SUMMARY | PRESCRIPTION | LAB_RESULT | UPLOAD
+  clinicId        String?
   kiorlyPatientId String?
-  dependantId  String? // set when the Kiorly patient link belongs to a dependant (guardian vault)
-  sourceRef    String? // encounterId / reportId; unique per (sub, kind) for idempotent re-delivery
-  sourceEventId String?
-  title        String?
-  payloadEnc   String?
-  signedAt     DateTime?
-  storageKey   String?
-  fileName     String?
-  mimeType     String?
-  sizeBytes    Int?
-  sha256       String?
-  status       String    @default("ACTIVE") // ACTIVE | REVOKED
-  revokedAt    DateTime?
-  revokedReason String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  dependantId     String? // set when the Kiorly patient link belongs to a dependant (guardian vault)
+  sourceRef       String? // encounterId / reportId; unique per (sub, kind) for idempotent re-delivery
+  sourceEventId   String?
+  title           String?
+  payloadEnc      String?
+  signedAt        DateTime?
+  storageKey      String?
+  fileName        String?
+  mimeType        String?
+  sizeBytes       Int?
+  sha256          String?
+  status          String    @default("ACTIVE") // ACTIVE | REVOKED
+  revokedAt       DateTime?
+  revokedReason   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([sub, kind, sourceRef])
   @@index([sub, status, createdAt])
@@ -787,14 +786,14 @@ model RecordShareConsent {
 }
 
 model FollowUpReminder {
-  id        String    @id // kx_fu_<id>
+  id        String   @id // kx_fu_<id>
   sub       String
   recordId  String?
   clinicId  String?
   dueAt     DateTime
-  source    String    @default("PATIENT") // DOCTOR | PATIENT
-  status    String    @default("SCHEDULED") // SCHEDULED | SENT | CANCELLED
-  createdAt DateTime  @default(now())
+  source    String   @default("PATIENT") // DOCTOR | PATIENT
+  status    String   @default("SCHEDULED") // SCHEDULED | SENT | CANCELLED
+  createdAt DateTime @default(now())
 
   @@index([sub, status, dueAt])
 }
@@ -802,16 +801,16 @@ model FollowUpReminder {
 // ───────────────────────── Phase-2/3 verticals (KX-03 §08; launch-locked) ─────────────────────────
 
 model PharmacyCart {
-  id              String   @id @default(cuid())
-  sub             String   @unique
-  pharmacyId      String?
+  id                   String   @id @default(cuid())
+  sub                  String   @unique
+  pharmacyId           String?
   /// PartnerRegistration that owns `pharmacyId` (routing: every outbound call of this cart goes there). NULL = legacy/env default.
-  registrationId  String?
-  items           Json // [{ sku, name, qty, unitPriceMinor, rxRequired }]
-  deliveryMethod  String? // PICKUP | DELIVERY
-  deliveryAddress Json?
+  registrationId       String?
+  items                Json // [{ sku, name, qty, unitPriceMinor, rxRequired }]
+  deliveryMethod       String? // PICKUP | DELIVERY
+  deliveryAddress      Json?
   prescriptionRecordId String?
-  updatedAt       DateTime @updatedAt
+  updatedAt            DateTime @updatedAt
 }
 
 model PharmacyOrder {
@@ -850,29 +849,29 @@ model PharmacyOrder {
 }
 
 model LabBooking {
-  id               String    @id // kx_lb_<id>
-  sub              String
-  labId            String
+  id                 String   @id // kx_lb_<id>
+  sub                String
+  labId              String
   /// PartnerRegistration that owns the lab (slots, quote, order, cancel; only its webhooks apply). NULL = legacy/env default.
-  registrationId   String?
-  tests            Json // [{ code, name, priceMinor }]
-  collectionType   String // HOME | WALK_IN
-  slotStartsAt     DateTime
-  slotEndsAt       DateTime
-  address          Json?
-  status           String // PENDING_PAYMENT PAID SUBMITTED COLLECTED RESULT_RELEASED REJECTED CANCELLED
-  subtotalMinor    Int
-  collectionFeeMinor Int     @default(0)
-  totalMinor       Int
-  currency         String    @default("EGP")
-  paymentId        String?
-  partnerOrderId   String?
-  takeRateBps      Int       @default(0)
-  platformFeeMinor Int       @default(0)
-  rejectionReason  String?
-  resultRecordId   String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  registrationId     String?
+  tests              Json // [{ code, name, priceMinor }]
+  collectionType     String // HOME | WALK_IN
+  slotStartsAt       DateTime
+  slotEndsAt         DateTime
+  address            Json?
+  status             String // PENDING_PAYMENT PAID SUBMITTED COLLECTED RESULT_RELEASED REJECTED CANCELLED
+  subtotalMinor      Int
+  collectionFeeMinor Int      @default(0)
+  totalMinor         Int
+  currency           String   @default("EGP")
+  paymentId          String?
+  partnerOrderId     String?
+  takeRateBps        Int      @default(0)
+  platformFeeMinor   Int      @default(0)
+  rejectionReason    String?
+  resultRecordId     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([sub, status])
   @@index([partnerOrderId])
@@ -904,22 +903,21 @@ model TeleSession {
 /// Vertical partner (Kiorly Pharmacy / Kiorly Lab) registration: base URL host, HMAC client credentials and the per-partner webhook
 /// secret (kiorex-contracts 1.4.0). Secrets are AES-GCM encrypted (FIELD_ENCRYPTION_KEY). Dev defaults are seeded; env is the fallback.
 model PartnerRegistration {
-  id               String   @id // e.g. pr_pharmacy_dev
-  kind             String // PHARMACY | LAB | LAB_NURSE (second Lab registration with the KIORLY_NURSE client source, KNLAB01)
-  name             String
-  baseUrl          String // host only; the contract path prefix is appended (PARTNER_API_PATH)
-  clientKey        String   @unique
-  clientSecretEnc  String
-  webhookSecretEnc String
-  active           Boolean  @default(true)
+  id                String   @id // e.g. pr_pharmacy_dev
+  kind              String // PHARMACY | LAB | LAB_NURSE (second Lab registration with the KIORLY_NURSE client source, KNLAB01)
+  name              String
+  baseUrl           String // host only; the contract path prefix is appended (PARTNER_API_PATH)
+  clientKey         String   @unique
+  clientSecretEnc   String
+  webhookSecretEnc  String
+  active            Boolean  @default(true)
   /// LAB_NURSE only: the LAB registration (same lab tenant) this nurse client belongs to; routes a Nurse lab order to the lab that owns it.
   labRegistrationId String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([kind, active])
 }
-
 
 // ───────────────────────── Rev 2.3 home visits (KXMHV01-10, KXMPAY07, KXMOP12) ─────────────────────────
 
@@ -1072,11 +1070,11 @@ model NurseLabRelay {
 // Quarantined staging only: nothing here is ever a live clinical table. Rows hold PHI -> never logged, ops/super_admin only.
 
 model ImportBatch {
-  id           String    @id @default(cuid())
+  id           String             @id @default(cuid())
   orgId        String // target Kiorly Clinic organization id
   orgName      String
   label        String?
-  status       String    @default("DRAFT") // DRAFT|NEEDS_REVIEW|READY|AWAITING_APPROVAL|APPROVED|COMMITTING|COMMIT_FAILED|COMMITTED|ROLLING_BACK|ROLLED_BACK
+  status       String             @default("DRAFT") // DRAFT|NEEDS_REVIEW|READY|AWAITING_APPROVAL|APPROVED|COMMITTING|COMMIT_FAILED|COMMITTED|ROLLING_BACK|ROLLED_BACK
   createdBy    String
   requestedBy  String?
   requestedAt  DateTime?
@@ -1087,8 +1085,8 @@ model ImportBatch {
   progress     Json? // per-entity committed counts, last error code
   committedAt  DateTime?
   rolledBackAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   files        ImportFile[]
   decisions    ImportDecision[]
   tasks        ImportTask[]
@@ -1183,53 +1181,52 @@ model PolicySetting {
 /// A standalone Kiorly organisation (Clinic, Nurse, Pharmacy, Lab) asking to join the Kiorex marketplace. PHI-free by construction:
 /// `readiness` holds counts and booleans only, never names of patients or documents. `secretsEnc` is wiped once the PartnerRegistry holds the credentials.
 model PartnerConnection {
-  id              String    @id // pc_<id>
-  kind            String // CLINIC | NURSE | PHARMACY | LAB
-  orgRef          String // the partner product's own organisation id
-  name            String
-  nameAr          String?
-  market          String    @default("EG")
-  contactEmail    String?
-  baseUrl         String? // PHARMACY | LAB: host of the partner API
-  clientKey       String?
-  secretsEnc      String? // AES-GCM {clientSecret, webhookSecret}; deleted once registered
+  id                String    @id // pc_<id>
+  kind              String // CLINIC | NURSE | PHARMACY | LAB
+  orgRef            String // the partner product's own organisation id
+  name              String
+  nameAr            String?
+  market            String    @default("EG")
+  contactEmail      String?
+  baseUrl           String? // PHARMACY | LAB: host of the partner API
+  clientKey         String?
+  secretsEnc        String? // AES-GCM {clientSecret, webhookSecret}; deleted once registered
   pendingSecretsEnc String? // credential rotation awaiting handshake + ops apply
-  intakeKeyHash   String? // hex sha256 of the issued intake key (signs later intake requests); the key itself is shown once
-  statusTokenHash String
-  status          String    @default("SUBMITTED") // SUBMITTED | IN_REVIEW | CHANGES_REQUESTED | AWAITING_APPROVAL | APPROVED | LIVE | PAUSED | REJECTED
-  readiness       Json      @default("{}")
-  checks          Json      @default("{}")
-  human           Json      @default("{}")
-  registrationId  String?
-  decisionReason  String?
-  requestedBy     String? // asked for approval (two-person rule: approver must differ)
-  approvedBy      String?
-  approvedAt      DateTime?
-  liveAt          DateTime?
-  checksRunAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  intakeKeyHash     String? // hex sha256 of the issued intake key (signs later intake requests); the key itself is shown once
+  statusTokenHash   String
+  status            String    @default("SUBMITTED") // SUBMITTED | IN_REVIEW | CHANGES_REQUESTED | AWAITING_APPROVAL | APPROVED | LIVE | PAUSED | REJECTED
+  readiness         Json      @default("{}")
+  checks            Json      @default("{}")
+  human             Json      @default("{}")
+  registrationId    String?
+  decisionReason    String?
+  requestedBy       String? // asked for approval (two-person rule: approver must differ)
+  approvedBy        String?
+  approvedAt        DateTime?
+  liveAt            DateTime?
+  checksRunAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@unique([kind, orgRef])
   @@index([status])
 }
 
-
 /// One-time enrolment code per partner (contracts 1.9.0): created by ops, shown once, signs the FIRST intake request. Only the derived signing key is stored.
 model PartnerEnrolment {
-  id          String    @id // kxe_<id> (the public part of the code)
-  kind        String // CLINIC | NURSE | PHARMACY | LAB
-  orgRef      String? // optional: bind the code to one partner organisation
-  label       String // who it is for (ops note, no PHI)
-  signingKey  String // hex sha256 of the full code
-  status      String    @default("ACTIVE") // ACTIVE | USED | REVOKED (EXPIRED is derived from expiresAt)
-  expiresAt   DateTime
-  createdBy   String
-  revokedBy   String?
-  revokedAt   DateTime?
-  usedAt      DateTime?
+  id           String    @id // kxe_<id> (the public part of the code)
+  kind         String // CLINIC | NURSE | PHARMACY | LAB
+  orgRef       String? // optional: bind the code to one partner organisation
+  label        String // who it is for (ops note, no PHI)
+  signingKey   String // hex sha256 of the full code
+  status       String    @default("ACTIVE") // ACTIVE | USED | REVOKED (EXPIRED is derived from expiresAt)
+  expiresAt    DateTime
+  createdBy    String
+  revokedBy    String?
+  revokedAt    DateTime?
+  usedAt       DateTime?
   connectionId String?
-  createdAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([status, expiresAt])
 }
@@ -1340,14 +1337,18 @@ model LeadAlertDelivery {
 
 /// Stable source label (sourceKind, sourceRef), e.g. PROVIDER_LINK:<code>, ORGANIC_SEARCH:google, DIRECT. Taxonomy is config.
 model GrowthAcquisitionSource {
-  id         String   @id @default(cuid())
-  market     String   @default("EG")
-  sourceKind String // PROVIDER_LINK PROVIDER_QR WIDGET ORGANIC_SEARCH DIRECT REFERRAL CAMPAIGN WHATSAPP OFFLINE
-  sourceRef  String   @default("")
-  label      String?
-  ownerOrgRef String? // provider-owned sources: the organisation that owns the link code (from the Clinic projection)
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  id                String    @id @default(cuid())
+  market            String    @default("EG")
+  sourceKind        String // PROVIDER_LINK PROVIDER_QR WIDGET ORGANIC_SEARCH DIRECT REFERRAL CAMPAIGN WHATSAPP OFFLINE
+  sourceRef         String    @default("")
+  label             String?
+  ownerOrgRef       String? // provider-owned sources: the organisation that owns the link code (from the Clinic projection)
+  active            Boolean   @default(true)
+  /// Link registry (contracts 1.11.0): state of a PROVIDER_LINK code as the Clinic reports it (ReferralLinkCreated / ReferralLinkRevoked events, signed lookup). ACTIVE | PAUSED | REVOKED.
+  linkStatus        String    @default("ACTIVE")
+  linkRevokedAt     DateTime?
+  registryCheckedAt DateTime? // last time the Clinic confirmed the state through the signed lookup or the reconciliation feed
+  createdAt         DateTime  @default(now())
 
   touchpoints GrowthTouchpoint[]
 
@@ -1357,29 +1358,29 @@ model GrowthAcquisitionSource {
 
 /// Append-only observation. No IP (keyed hash with daily-rotating salt, blanked after 24 h by growth_purge_expired), no full UA, no full referrer.
 model GrowthTouchpoint {
-  id            String   @id @default(cuid())
-  market        String   @default("EG")
-  visitorKey    String? // only after analytics consent (cookie kxv)
-  sub           String? // Passport sub, linked to earlier touches only with consent
-  sourceId      String
-  kind          String // mirrors GrowthAcquisitionSource.sourceKind at touch time
+  id             String   @id @default(cuid())
+  market         String   @default("EG")
+  visitorKey     String? // only after analytics consent (cookie kxv)
+  sub            String? // Passport sub, linked to earlier touches only with consent
+  sourceId       String
+  kind           String // mirrors GrowthAcquisitionSource.sourceKind at touch time
   providerOrgRef String? // provider-owned touches only
-  linkCode      String?
-  utmSource     String?  @db.VarChar(64)
-  utmMedium     String?  @db.VarChar(64)
-  utmCampaign   String?  @db.VarChar(64)
-  utmContent    String?  @db.VarChar(64)
-  utmTerm       String?  @db.VarChar(64)
-  clickIdKind   String?
-  clickIdHash   String?
-  referrerHost  String?  @db.VarChar(255)
-  landingKind   String
-  localeAt      String   @default("ar")
-  dwellMs       Int?
-  ltTokenId     String?
-  occurredAt    DateTime @default(now())
-  ipHash        String   @default("")
-  uaClass       String   @default("unknown") // browser family and platform class only
+  linkCode       String?
+  utmSource      String?  @db.VarChar(64)
+  utmMedium      String?  @db.VarChar(64)
+  utmCampaign    String?  @db.VarChar(64)
+  utmContent     String?  @db.VarChar(64)
+  utmTerm        String?  @db.VarChar(64)
+  clickIdKind    String?
+  clickIdHash    String?
+  referrerHost   String?  @db.VarChar(255)
+  landingKind    String
+  localeAt       String   @default("ar")
+  dwellMs        Int?
+  ltTokenId      String?
+  occurredAt     DateTime @default(now())
+  ipHash         String   @default("")
+  uaClass        String   @default("unknown") // browser family and platform class only
 
   source GrowthAcquisitionSource @relation(fields: [sourceId], references: [id])
 
@@ -1464,6 +1465,46 @@ model GrowthMetricDaily {
   @@unique([market, day, metric, sourceKind, landingKind, careType, origin, city, district, specialty, providerRef, doctorRef, branchRef, campaign, channel, platform, product], map: "GrowthMetricDaily_dim_key")
   @@index([day])
   @@index([metric, day])
+}
+
+/// Kiorex revenue facts (GRW-P1-J, KX-32 section 04): one row per commission charge event from the Clinic. Never GBV, never deposits or promotional credits.
+model GrowthRevenueFact {
+  id            String   @id @default(cuid())
+  market        String   @default("EG")
+  kind          String // CHARGE | REVERSAL
+  chargeId      String
+  appointmentId String
+  bookingId     String?
+  status        String // charge status at the event: PENDING CONFIRMED DISPUTED REVERSED WAIVED BILLED
+  amountMinor   Int
+  currency      String   @default("EGP")
+  origin        String   @default("")
+  occurredAt    DateTime
+  createdAt     DateTime @default(now())
+
+  @@unique([kind, chargeId, status])
+  @@index([occurredAt])
+  @@index([bookingId])
+}
+
+/// Marketing spend entered by hand (maker-checker; GRW-P1-J). Counts only when APPROVED. Later phases fill the same table from campaign budgets and ad-platform adapters.
+model GrowthSpendEntry {
+  id          String    @id @default(cuid())
+  market      String    @default("EG")
+  day         DateTime  @db.Date
+  campaign    String    @default("")
+  channel     String    @default("")
+  sourceKind  String    @default("")
+  amountMinor Int
+  currency    String    @default("EGP")
+  note        String    @default("")
+  status      String    @default("PENDING") // PENDING APPROVED REJECTED
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  decidedBy   String?
+  decidedAt   DateTime?
+
+  @@index([day, status])
 }
 
 /// Immutable versioned growth configuration (ARCH section 16). Rows are never edited after leaving DRAFT; rollback = a new version copying an older payload.
@@ -1557,15 +1598,15 @@ model WidgetRegistration {
 }
 
 model GrowthFraudSignal {
-  id          String   @id @default(cuid())
-  market      String   @default("EG")
-  ruleId      String
-  subjectHash String // keyed hash; never an identifier
-  score       Int      @default(0)
-  evidenceRef String?
-  createdAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  market       String    @default("EG")
+  ruleId       String
+  subjectHash  String // keyed hash; never an identifier
+  score        Int       @default(0)
+  evidenceRef  String?
+  createdAt    DateTime  @default(now())
   /// GRW-P1-K review queue: OPEN | CONFIRMED | DISMISSED. A review never changes an attribution decision.
-  reviewStatus String   @default("OPEN")
+  reviewStatus String    @default("OPEN")
   reviewedBy   String?
   reviewedAt   DateTime?
   reviewNote   String?
@@ -1621,44 +1662,4 @@ model CommunicationSuppression {
 
   @@unique([market, channel, addressHash])
   @@index([addressHash])
-}
-
-/// Kiorex revenue facts (GRW-P1-J, KX-32 section 04): one row per commission charge event from the Clinic. Never GBV, never deposits or promotional credits.
-model GrowthRevenueFact {
-  id            String   @id @default(cuid())
-  market        String   @default("EG")
-  kind          String // CHARGE | REVERSAL
-  chargeId      String
-  appointmentId String
-  bookingId     String?
-  status        String // charge status at the event: PENDING CONFIRMED DISPUTED REVERSED WAIVED BILLED
-  amountMinor   Int
-  currency      String   @default("EGP")
-  origin        String   @default("")
-  occurredAt    DateTime
-  createdAt     DateTime @default(now())
-
-  @@unique([kind, chargeId, status])
-  @@index([occurredAt])
-  @@index([bookingId])
-}
-
-/// Marketing spend entered by hand (maker-checker; GRW-P1-J). Counts only when APPROVED. Later phases fill the same table from campaign budgets and ad-platform adapters.
-model GrowthSpendEntry {
-  id          String    @id @default(cuid())
-  market      String    @default("EG")
-  day         DateTime  @db.Date
-  campaign    String    @default("")
-  channel     String    @default("")
-  sourceKind  String    @default("")
-  amountMinor Int
-  currency    String    @default("EGP")
-  note        String    @default("")
-  status      String    @default("PENDING") // PENDING APPROVED REJECTED
-  createdBy   String
-  createdAt   DateTime  @default(now())
-  decidedBy   String?
-  decidedAt   DateTime?
-
-  @@index([day, status])
 }

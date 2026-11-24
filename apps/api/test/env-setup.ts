@@ -6,4 +6,5 @@ process.env.PSP_MODE = 'sandbox-fake';
 process.env.KIORLY_TIMEOUT_MS = '400';
 process.env.OIDC_ISSUER = 'http://localhost:4400';
 process.env.OIDC_AUDIENCE = 'kiorex-api';
-process.env.STORAGE_LOCAL_DIR = '.data/test-vault';
+// per-run private vault directory (like the per-run database): two jest runs on one machine must not share encrypted files
+process.env.STORAGE_LOCAL_DIR = `.data/test-vault-${process.pid}`;

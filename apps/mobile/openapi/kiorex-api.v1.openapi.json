@@ -266,6 +266,38 @@
         ]
       }
     },
+    "/api/v1/bootstrap": {
+      "get": {
+        "operationId": "BootstrapController_get",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": false,
+            "in": "query",
+            "description": "Market hint from a link or the signed-in account (ISO alpha-2). Honoured only when that market is live; otherwise the default market is returned.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bootstrap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location.",
+        "tags": [
+          "bootstrap"
+        ]
+      }
+    },
     "/api/v1/admin/policy": {
       "get": {
         "operationId": "PolicyController_describe",
@@ -1487,6 +1519,83 @@
         ]
       }
     },
+    "/api/v1/me/preferences": {
+      "get": {
+        "operationId": "PreferenceCentreController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I preference centre: service messages, reminders, analytics, per-channel marketing consent, quiet hours, caps",
+        "tags": [
+          "consent"
+        ]
+      },
+      "put": {
+        "operationId": "PreferenceCentreController_put",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I change preferences; every consent change is an append-only audit row and a PatientConsentUpdated event",
+        "tags": [
+          "consent"
+        ]
+      }
+    },
+    "/api/v1/me/preferences/unsubscribe-marketing": {
+      "post": {
+        "operationId": "PreferenceCentreController_unsubscribe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I one-step opt-out of every marketing channel",
+        "tags": [
+          "consent"
+        ]
+      }
+    },
     "/api/v1/me/addresses": {
       "get": {
         "operationId": "AddressController_list",
@@ -2622,7 +2731,17 @@
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-KX-Platform",
+            "in": "header",
+            "description": "web | ios | android | whatsapp | widget (closed set for the growth stream; read from the request headers, optional)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2690,6 +2809,15 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-KX-Platform",
+            "in": "header",
+            "description": "web | ios | android | whatsapp | widget (closed set for the growth stream; read from the request headers, optional)",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -3289,6 +3417,539 @@
         "summary": "Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET",
         "tags": [
           "webhooks"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/overview": {
+      "get": {
+        "operationId": "SeoOpsController_overview",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F SEO overview: page counts and guard reasons, slug coverage, sitemap sizes, search-engine status",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/pages": {
+      "get": {
+        "operationId": "SeoOpsController_pagesList",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexable",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F generated pages with guard results (read-only)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/slugs": {
+      "get": {
+        "operationId": "SeoOpsController_slugs",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F slugs (read-only)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/redirects": {
+      "get": {
+        "operationId": "SeoOpsController_redirects",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F redirect inventory: slug history (301) and delisted providers (301 to the hub or 404 then 410)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/config": {
+      "get": {
+        "operationId": "SeoOpsController_config",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F resolved SEO configuration with the template catalogue (read-only)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/config/validate": {
+      "post": {
+        "operationId": "SeoOpsController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F validate SEO extension keys (templates, pagination, review markup, thresholds) before a config version is stored (hook for package K); stores nothing",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/rebuild": {
+      "post": {
+        "operationId": "SeoOpsController_rebuild",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F rebuild the page guard table, drop caches (audited)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/slugs/bootstrap": {
+      "post": {
+        "operationId": "SeoOpsController_slugBootstrap",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F slug bootstrap and backfill for LIVE providers, clinics, pharmacies and labs (idempotent; dryRun reports only; audited)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/search-engines": {
+      "get": {
+        "operationId": "SeoOpsController_searchEngines",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F Search Console and Bing integration status (mock by default)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/search-engines/performance": {
+      "get": {
+        "operationId": "SeoOpsController_performance",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F performance pull through the integration abstraction (mock rows are labelled sample)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/search-engines/submit-sitemap": {
+      "post": {
+        "operationId": "SeoOpsController_submit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-F submit the sitemap index to the search engines through the adapter (mock by default)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/widget/v1/session": {
+      "post": {
+        "operationId": "WidgetController_session",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ token, expiresAt, org, slug }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF",
+        "tags": [
+          "widget"
+        ]
+      }
+    },
+    "/api/v1/widget/v1/config": {
+      "get": {
+        "operationId": "WidgetController_config",
+        "parameters": [
+          {
+            "name": "doctor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specialty",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widget configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G widget data: clinic, bookable doctors with visit types and fees (IN_CLINIC only), specialties. Needs X-KX-Widget",
+        "tags": [
+          "widget"
+        ]
+      }
+    },
+    "/api/v1/widget/v1/ops/audit": {
+      "get": {
+        "operationId": "WidgetController_opsAudit",
+        "parameters": [
+          {
+            "name": "org",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit rows, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes (AuditLog resource WidgetRegistration)",
+        "tags": [
+          "widget"
+        ]
+      }
+    },
+    "/api/v1/widget/v1/ops/registrations": {
+      "get": {
+        "operationId": "WidgetController_opsRegistrations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Registrations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G widget registrations (verified origins per clinic, synced from PROVIDER_PROFILE_UPDATED)",
+        "tags": [
+          "widget"
         ]
       }
     },
@@ -8371,6 +9032,2161 @@
         ]
       }
     },
+    "/api/v1/growth/v1/touch": {
+      "post": {
+        "operationId": "TouchController_touch",
+        "parameters": [
+          {
+            "name": "X-KX-Consent",
+            "required": false,
+            "in": "header",
+            "description": "analytics, only after the person accepted analytics/attribution consent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "landingKind"
+                ],
+                "properties": {
+                  "landingKind": {
+                    "type": "string"
+                  },
+                  "utm": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "clickId": {
+                    "type": "object"
+                  },
+                  "ref": {
+                    "type": "string"
+                  },
+                  "lt": {
+                    "type": "string"
+                  },
+                  "dwellMs": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "visitorKeySet": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B record a landing touch (consent-gated visitor identity; no IP, no full UA, no full referrer, no search text)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/events": {
+      "post": {
+        "operationId": "GrowthEventsController_record",
+        "parameters": [
+          {
+            "name": "x-kx-consent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "occurredAt": {
+                          "type": "string"
+                        },
+                        "careType": {
+                          "type": "string"
+                        },
+                        "landingKind": {
+                          "type": "string"
+                        },
+                        "props": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "integer"
+                    },
+                    "duplicates": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B record canonical funnel events (batch of up to 20; idempotent; client-reportable names only; no PHI)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/consent/versions": {
+      "get": {
+        "operationId": "VisitorConsentController_versions",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I current consent text version ids (the banner stores the version it showed)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/consent": {
+      "post": {
+        "operationId": "VisitorConsentController_record",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "analytics"
+                ],
+                "properties": {
+                  "analytics": {
+                    "type": "boolean"
+                  },
+                  "marketing": {
+                    "type": "boolean"
+                  },
+                  "textVersion": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "app",
+                      "widget"
+                    ]
+                  },
+                  "evidence": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I record an anonymous visitor consent decision (audit row keyed by a random consent id; sets nothing else server-side)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/evidence/{bookingId}": {
+      "get": {
+        "operationId": "EvidenceController_evidence",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B attribution evidence for one booking (ops session or signed partner); facts, never identifiers",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/config/resolve": {
+      "get": {
+        "operationId": "GrowthConfigController_resolve",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "at",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B resolved growth config for a kind and market (ACTIVE version, else PROPOSED_DEFAULT)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/kinds": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_kinds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K editable config kinds with their JSON Schema, PROPOSED_DEFAULT payload and money-policy flag",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_list",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K list config versions (kind, scope, status filters)",
+        "tags": [
+          "growth-admin"
+        ]
+      },
+      "post": {
+        "operationId": "GrowthConfigAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K create a DRAFT (maker). Validated against the contract schema; secrets by reference only",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/in-force": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_inForce",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K the version serving a kind in a market now (ACTIVE, else PROPOSED_DEFAULT), plus what is scheduled",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/propagation": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_propagation",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K which readers and instances serve which version of a config (no redeploy needed)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_one",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K one config version with its audit trail",
+        "tags": [
+          "growth-admin"
+        ]
+      },
+      "patch": {
+        "operationId": "GrowthConfigAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K edit a DRAFT (its author only)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/diff": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_diff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "against",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K field-level diff against another version (default: the one it replaces)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/validate": {
+      "get": {
+        "operationId": "GrowthConfigAdminController_validate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K dry-run: schema, guardrails and money-policy rules; changes nothing",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/submit": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K submit a DRAFT for approval (its author only)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/approve": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K approve (checker; never the author). Activates at effectiveFrom",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/reject": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K reject a pending version (checker; never the author)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/{id}/activate": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_activate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K activate an approved version at its effective date (refused earlier)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/config/rollback": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_rollback",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K roll back = a NEW version copying an older payload, same approval path",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/access": {
+      "get": {
+        "operationId": "GrowthAdminController_access",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K what the signed-in ops user may do in the Growth module",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/overview": {
+      "get": {
+        "operationId": "GrowthAdminController_overview",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K executive overview: funnel, origins, sources, configuration health",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/channels": {
+      "get": {
+        "operationId": "GrowthAdminController_channels",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K acquisition sources with touches per channel",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/channels/{id}": {
+      "patch": {
+        "operationId": "GrowthAdminController_channel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K activate, pause or relabel an acquisition source (audited)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/provider-acquisition": {
+      "get": {
+        "operationId": "GrowthAdminController_providers",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K provider-owned sources and the organisations that bring visitors",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/status": {
+      "get": {
+        "operationId": "GrowthAdminController_seo",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K SEO status: thresholds, robots, sitemap, thin pages",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/slug-history": {
+      "get": {
+        "operationId": "GrowthAdminController_slugs",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K slugs with their history",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/seo/redirect-history": {
+      "get": {
+        "operationId": "GrowthAdminController_redirects",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K slug redirects (301) and gone entries",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/landing-pages": {
+      "get": {
+        "operationId": "GrowthAdminController_landing",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexable",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K generated landing pages and their indexability result",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/widgets": {
+      "get": {
+        "operationId": "GrowthAdminController_widgets",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K widget registrations, allowed origins, policy and audit",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/widgets/{orgRef}": {
+      "patch": {
+        "operationId": "GrowthAdminController_widgetStatus",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K enable or disable one organisation widget registration (audited)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/templates": {
+      "get": {
+        "operationId": "GrowthAdminController_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K notification templates with their consent class (read-only)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/integrations": {
+      "get": {
+        "operationId": "GrowthAdminController_integrations",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K integration mode and readiness with secret references only",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/fraud/signals": {
+      "get": {
+        "operationId": "GrowthAdminController_fraud",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ruleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K fraud signals and review queue",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/fraud/thresholds": {
+      "get": {
+        "operationId": "GrowthAdminController_fraudThresholds",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K fraud rules and their thresholds (read-only)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/fraud/signals/{id}/review": {
+      "post": {
+        "operationId": "GrowthAdminController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K confirm or dismiss a fraud signal (audited; never changes an attribution decision)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/audit": {
+      "get": {
+        "operationId": "GrowthAdminController_audit",
+        "parameters": [
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K growth audit events with filters",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/markets": {
+      "get": {
+        "operationId": "GrowthAdminController_markets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K per-market configuration summary",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/analytics": {
+      "get": {
+        "operationId": "GrowthAdminController_analytics",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K daily growth events and decisions (raw tables until analytics v1 serves them)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/finance": {
+      "get": {
+        "operationId": "GrowthAdminController_finance",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-K financial performance: decisions by origin and revenue facts (finance role)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/overview": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J executive overview (k >= 10; GBV is never revenue)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/funnel": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_funnel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J canonical funnel with step and cumulative conversion (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/channels": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_channels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J channel table: bookings, ANP, spend, CAC, ROAS, LTV to CAC (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/breakdown/{dimension}": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_breakdown",
+        "parameters": [
+          {
+            "name": "dimension",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J breakdown by city, district, specialty, provider, doctor, branch, campaign, channel, platform, careType, sourceKind or origin (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/cohorts": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_cohorts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J acquisition cohort retention at 30, 90 and 180 days (closed windows only; k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/unit-economics": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_unit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J LTV inputs and definitions",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/export/{report}": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_csv",
+        "parameters": [
+          {
+            "name": "report",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV text (cells under k = 10 are <10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J CSV export with the same k >= 10 masking",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_listSpend",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J spend entries (manual; maker-checker)",
+        "tags": [
+          "growth"
+        ]
+      },
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_createSpend",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpendBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J enter a spend line (PENDING until a different ops user approves it)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend/{id}/approve": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J approve a spend line (not the author)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend/{id}/reject": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J reject a spend line (not the author)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/rollup": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_rollup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J recompute the daily rollups for the last N days (idempotent)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/overview": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider overview (own organisation, signed partner, k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/funnel": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_funnel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider booking funnel (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/channels": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_channels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider channel table (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/cohorts": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_cohorts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider cohort retention (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/export/{report}": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_csv",
+        "parameters": [
+          {
+            "name": "report",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV text (cells under k = 10 are <10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider CSV export (same masking)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -8720,6 +11536,133 @@
           "live",
           "flag",
           "state"
+        ]
+      },
+      "BootstrapMarketDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "EG"
+          },
+          "currency": {
+            "type": "string",
+            "example": "EGP"
+          },
+          "phoneCode": {
+            "type": "string",
+            "example": "+20"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ar",
+              "en"
+            ]
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1",
+            "description": "Regional API base for this market (binding), with /api/v1"
+          }
+        },
+        "required": [
+          "code",
+          "currency",
+          "phoneCode",
+          "name",
+          "apiEndpoint"
+        ]
+      },
+      "BootstrapCapabilitiesDto": {
+        "type": "object",
+        "properties": {
+          "deepLinks": {
+            "type": "boolean"
+          },
+          "marketplace": {
+            "type": "boolean"
+          },
+          "homeVisits": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deepLinks",
+          "marketplace",
+          "homeVisits"
+        ]
+      },
+      "BootstrapDto": {
+        "type": "object",
+        "properties": {
+          "defaultMarket": {
+            "type": "string",
+            "example": "EG"
+          },
+          "resolvedMarket": {
+            "type": "string",
+            "example": "EG",
+            "description": "The link or account market when LIVE, else the default. Never derived from IP or device location."
+          },
+          "liveMarkets": {
+            "example": [
+              "EG"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BootstrapMarketDto"
+            }
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          "showMarketSelector": {
+            "type": "boolean",
+            "description": "False unless more than one market is live (founder rule 23 Nov 2026)."
+          },
+          "minAppVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/BootstrapCapabilitiesDto"
+          }
+        },
+        "required": [
+          "defaultMarket",
+          "resolvedMarket",
+          "liveMarkets",
+          "markets",
+          "locales",
+          "showMarketSelector",
+          "apiEndpoint",
+          "capabilities"
         ]
       },
       "PolicyOverrideDto": {
@@ -10427,6 +13370,24 @@
         "properties": {
           "granted": {
             "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "app",
+              "whatsapp",
+              "widget",
+              "ops-import"
+            ]
+          },
+          "textVersion": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 64
           }
         },
         "required": [
@@ -10626,6 +13587,85 @@
           "ok",
           "deleted"
         ]
+      },
+      "ChannelBody": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "WHATSAPP",
+              "SMS",
+              "EMAIL",
+              "PUSH"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "enabled"
+        ]
+      },
+      "QuietHoursBody": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      },
+      "PreferencesBody": {
+        "type": "object",
+        "properties": {
+          "analytics": {
+            "type": "boolean"
+          },
+          "reminders": {
+            "type": "boolean"
+          },
+          "marketing": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelBody"
+            }
+          },
+          "quietHours": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuietHoursBody"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "app"
+            ]
+          }
+        }
       },
       "AddressDto": {
         "type": "object",
@@ -12126,6 +15166,10 @@
           },
           "addressId": {
             "type": "string"
+          },
+          "lt": {
+            "type": "string",
+            "maxLength": 600
           }
         },
         "required": [
@@ -13117,6 +16161,26 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "SessionBody": {
+        "type": "object",
+        "properties": {
+          "org": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "parentOrigin": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "sandbox": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "org",
+          "parentOrigin"
         ]
       },
       "OpsProviderDto": {
@@ -19248,6 +22312,236 @@
           "retried",
           "escalated"
         ]
+      },
+      "CreateConfigDto": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "effectiveFrom": {
+            "type": "string"
+          },
+          "ticket": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "announcement": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ATTRIBUTION_POLICY",
+              "CONSENT_DEFAULTS",
+              "MARKET_GROWTH",
+              "SEO",
+              "WIDGET_POLICY"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "MARKET"
+            ]
+          },
+          "scopeId": {
+            "type": "string",
+            "pattern": "^([A-Z]{2})?$"
+          }
+        },
+        "required": [
+          "payload",
+          "kind",
+          "scope"
+        ]
+      },
+      "UpdateConfigDto": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "effectiveFrom": {
+            "type": "string"
+          },
+          "ticket": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "announcement": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      },
+      "RejectDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "RollbackDto": {
+        "type": "object",
+        "properties": {
+          "toVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "effectiveFrom": {
+            "type": "string"
+          },
+          "ticket": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "announcement": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ATTRIBUTION_POLICY",
+              "CONSENT_DEFAULTS",
+              "MARKET_GROWTH",
+              "SEO",
+              "WIDGET_POLICY"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "MARKET"
+            ]
+          },
+          "scopeId": {
+            "type": "string",
+            "pattern": "^([A-Z]{2})?$"
+          }
+        },
+        "required": [
+          "toVersion",
+          "reason",
+          "kind",
+          "scope"
+        ]
+      },
+      "ChannelPatchDto": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      },
+      "WidgetStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "DISABLED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "FraudReviewDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "DISMISSED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "SpendBody": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000000000
+          },
+          "campaign": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "channel": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sourceKind": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "day",
+          "amountMinor"
+        ]
+      },
+      "RollupBody": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 400
+          }
+        }
       },
       "LiveDto": {
         "type": "object",

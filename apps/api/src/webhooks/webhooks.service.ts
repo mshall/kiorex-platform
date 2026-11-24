@@ -111,8 +111,10 @@ export class WebhooksService {
         await this.prisma.auditLog.create({ data: { actor: 'kiorly', action: `finance.${type.toLowerCase()}`, resource: 'Appointment', resourceId: env.aggregateId, metadata: data as any } });
         await this.revenue.recordFromEvent(type, data, (env as any).occurredAt); // GRW-P1-J: Kiorex revenue facts (charges only, never booking value)
         return 'APPLIED';
-      case 'ReferralLinkCreated': // GRW-P1-C: link code -> organisation mapping from the Clinic (needs the org reference in data)
+      case 'ReferralLinkCreated': // link registry (contracts 1.11.0): code -> organisation mapping from the Clinic, known before the first signed token
         return (await this.linkRegistry.registerFromEvent({ ...data, orgRef: data.orgRef ?? data.tenantId ?? (env as any).tenantId })) === 'IGNORED' ? 'IGNORED' : 'APPLIED';
+      case 'ReferralLinkRevoked': // link registry: a revoked code stops deciding PROVIDER_LED for new bookings (removal only; written decisions are append-only)
+        return (await this.linkRegistry.revokeFromEvent({ ...data, orgRef: data.orgRef ?? data.tenantId ?? (env as any).tenantId })) === 'IGNORED' ? 'IGNORED' : 'APPLIED';
       default:
         return 'IGNORED'; // unknown / v2 events: acknowledge for forward compatibility
     }

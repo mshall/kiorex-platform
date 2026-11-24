@@ -39,9 +39,9 @@ export default function GrowthExecutivePage() {
           </div>
           {a && <p className="text-xs text-muted-foreground" data-testid="overview-raw-note">{t("growth.overview.rawNote")}</p>}
           <div className="grid gap-4 xl:grid-cols-2">
-            <Section title={t("growth.overview.funnel")} id="ov-funnel" hint={t("growth.overview.funnelHint")}><BarList testid="funnel" rows={o.funnel.map((f) => ({ id: f.name, label: t(`growth.events.${f.name}`, f.name), value: f.count }))} /></Section>
+            <Section title={t("growth.overview.funnel")} id="ov-funnel" hint={t("growth.overview.funnelHint")}><BarList testid="funnel" rows={o.funnel.map((f) => ({ id: f.name, label: `${t(`growth.events.${f.name}`, f.name)}${f.masked ? " (<10)" : ""}`, value: f.count }))} /></Section>
             <Section title={t("growth.overview.origins")} id="ov-origins" hint={t("growth.overview.originsHint")}>
-              {o.origins.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.common.noData")}</p> : <BarList testid="origins" tone="ocean" rows={o.origins.map((x) => ({ id: x.origin, label: t(`growth.origin.${x.origin}`, x.origin), value: x.count }))} />}
+              {o.origins.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.common.noData")}</p> : <BarList testid="origins" tone="ocean" rows={o.origins.map((x) => ({ id: x.origin, label: `${t(`growth.origin.${x.origin}`, x.origin)}${x.masked ? " (<10)" : ""}`, value: x.count }))} />}
             </Section>
             <Section title={t("growth.overview.sources")} id="ov-sources">{o.touchesBySource.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.common.noData")}</p> : <BarList testid="sources" tone="pulse" rows={o.touchesBySource.map((x) => ({ label: t(`growth.sourceKind.${x.sourceKind}`, x.sourceKind), value: x.count }))} />}</Section>
             <Section title={t("growth.overview.reasons")} id="ov-reasons">{o.reasons.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.common.noData")}</p> : <BarList testid="reasons" rows={o.reasons.map((x) => ({ label: x.reason, value: x.count }))} />}</Section>
