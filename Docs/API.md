@@ -269,6 +269,38 @@
 | GET | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A spend lines booked against the campaign, with the daily utilisation |
 | POST | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page) |
 
+## growth-corporate
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/corporate/accounts` | GRW-P4-C corporate accounts (company data and terms) |
+| POST | `/api/v1/admin/growth/corporate/accounts` | GRW-P4-C open a corporate account (LEAD) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}` | GRW-P4-C one account |
+| PUT | `/api/v1/admin/growth/corporate/accounts/{id}/terms` | GRW-P4-C edit the commercial terms (LEAD or PAUSED only); the editor cannot activate |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/activate` | GRW-P4-C activate (a second person; terms complete) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/pause` | GRW-P4-C pause |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/end` | GRW-P4-C end the programme (final) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/codes` | GRW-P4-C codes: label, counters, state (never the code or its hash) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes` | GRW-P4-C create a code (the plain code is returned once) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes/{codeId}/revoke` | GRW-P4-C revoke a code |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/report` | GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/statement` | GRW-P4-C invoice basis of one month (finance) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C manual invoice notes |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C record the sponsor spend of a month for manual invoicing |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/hr-lists` | GRW-P4-C HR lists as counts only |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/hr-lists` | GRW-P4-C upload an HR list (phone or e-mail per row; only keyed hashes are stored; a second person approves) |
+| POST | `/api/v1/admin/growth/corporate/hr-lists/{batchId}/decision` | GRW-P4-C approve or reject an HR list (not the uploader) |
+| GET | `/api/v1/admin/growth/corporate/leads` | GRW-P4-C enterprise leads and the pipeline counts |
+| POST | `/api/v1/admin/growth/corporate/leads` | GRW-P4-C add an inbound or outbound lead (company data only) |
+| GET | `/api/v1/admin/growth/corporate/leads/{id}` | GRW-P4-C one lead with its history |
+| POST | `/api/v1/admin/growth/corporate/leads/{id}/transition` | GRW-P4-C move a lead through the pipeline |
+| POST | `/api/v1/admin/growth/corporate/leads/{id}/assign` | GRW-P4-C assign an owner |
+| PUT | `/api/v1/admin/growth/corporate/leads/{id}/notes` | GRW-P4-C replace the company notes |
+| GET | `/api/v1/growth/v1/corporate/me` | GRW-P4-C my programme and my allowance usage |
+| POST | `/api/v1/growth/v1/corporate/join` | GRW-P4-C join with a company code, or with a verified work e-mail when no code is sent |
+| POST | `/api/v1/growth/v1/corporate/leave` | GRW-P4-C leave the programme |
+| GET | `/api/v1/growth/v1/corporate/benefit/quote` | GRW-P4-C what the programme would cover of the deposit of one of MY bookings |
+
 ## growth-credit
 
 | Method | Path | Summary |
@@ -320,6 +352,25 @@
 | GET | `/api/v1/growth/v1/experiments/me/assignments` | GRW-P3-A assignments of the signed-in person for in-product surfaces |
 | POST | `/api/v1/growth/v1/experiments/me/exposures` | GRW-P3-A record that the signed-in person saw its variant (idempotent) |
 
+## growth-fraud
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/fraud/cases` | GRW-P3-D review queue |
+| GET | `/api/v1/admin/growth/fraud/cases/summary` | GRW-P3-D open cases by kind, band and mode, and SLA breaches |
+| GET | `/api/v1/admin/growth/fraud/cases/{id}` | GRW-P3-D evidence viewer: signals, check rows, decision log (hashed references only) |
+| POST | `/api/v1/admin/growth/fraud/cases/bulk-dismiss` | GRW-P3-D bulk dismiss LOW and MEDIUM cases with a reason |
+| POST | `/api/v1/admin/growth/fraud/cases/{id}/assign` | GRW-P3-D assign a case |
+| POST | `/api/v1/admin/growth/fraud/cases/{id}/decision` | GRW-P3-D CONFIRM (reversing reward value needs a second person) or DISMISS |
+| POST | `/api/v1/admin/growth/fraud/cases/{id}/appeal` | GRW-P3-D file an appeal for a confirmed case (support, inside the appeal window) |
+| POST | `/api/v1/admin/growth/fraud/cases/{id}/appeal-decision` | GRW-P3-D decide an appeal (a different reviewer) |
+| POST | `/api/v1/admin/growth/fraud/cases/{id}/identity` | GRW-P3-D account references of a case (DPO role, audited) |
+| GET | `/api/v1/admin/growth/fraud/rules` | GRW-P3-D rules, weights, enforce switches and thresholds (read-only; change through the FRAUD_RULES configuration) |
+| GET | `/api/v1/admin/growth/fraud/shadow-report` | GRW-P3-D precision and volume by rule |
+| GET | `/api/v1/admin/growth/fraud/fairness` | GRW-P3-D weekly HOLD rate by language and city (aggregate, k >= 10) |
+| POST | `/api/v1/admin/growth/fraud/jobs/run` | GRW-P3-D run the hourly job now (SLA sweep, housekeeping, calibration counts) |
+| POST | `/api/v1/admin/growth/fraud/calibration/propose` | GRW-P3-D propose weight changes as a draft (never applied) |
+
 ## growth-integrations
 
 | Method | Path | Summary |
@@ -357,6 +408,29 @@
 | GET | `/api/v1/admin/growth/referrals` | GRW-P2-B1 funnel counts (k >= 10) and the review queue |
 | GET | `/api/v1/admin/growth/referrals/{id}` | GRW-P2-B1 reviewer view: checks, fraud signals, state (no contact data) |
 | POST | `/api/v1/admin/growth/referrals/{id}/decision` | GRW-P2-B1 QUALIFY_OVERRIDE (two people), REJECT or RELEASE_HOLD |
+
+## growth-seo-automation
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/seo-automation/overview` | GRW-P3-F quality overview by template, worst pages, link counts, orphans |
+| GET | `/api/v1/admin/growth/seo-automation/reports` | GRW-P3-F latest quality reports |
+| GET | `/api/v1/admin/growth/seo-automation/config` | GRW-P3-F effective SEO_AUTOMATION configuration (read-only) |
+| GET | `/api/v1/admin/growth/seo-automation/links` | GRW-P3-F computed internal links of one page, or the totals |
+| GET | `/api/v1/admin/growth/seo-automation/vitals` | GRW-P3-F lab and field Core Web Vitals by template with budgets (not measured is said plainly) |
+| GET | `/api/v1/admin/growth/seo-automation/indexation` | GRW-P3-F submitted, excluded and indexed per template group |
+| POST | `/api/v1/admin/growth/seo-automation/run` | GRW-P3-F run the quality gate and the link builder now |
+| POST | `/api/v1/admin/growth/seo-automation/vitals/ingest` | GRW-P3-F ingest the Lighthouse summary (body or file) and the CrUX field rows, then check budgets |
+
+## growth-sponsored-promotions
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/sponsored-promotions` | GRW-P2-S review queue (status IN_REVIEW by default; ACTIVE or ALL) |
+| GET | `/api/v1/admin/growth/sponsored-promotions/{id}` | GRW-P2-S one promotion: public text, scope, rules, automated guard result, high-value reasons, review state |
+| GET | `/api/v1/admin/growth/sponsored-promotions/{id}/ledger` | GRW-P2-S the distinct provider-sponsored discount line per booking |
+| POST | `/api/v1/admin/growth/sponsored-promotions/{id}/decisions` | GRW-P2-S decide a review (not the author; a second approver for HIGH_VALUE) |
+| GET | `/api/v1/growth/v1/promotions/quote` | GRW-P2-S the sponsored discount line for my booking, if any |
 
 ## health
 

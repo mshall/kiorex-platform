@@ -188,7 +188,7 @@ export function negotiateLocale(opts: { cookie?: string | null; acceptLanguage?:
 /** Every authenticated or transactional SPA route prefix. robots.txt disallows these; the SPA also sends noindex. Kept in step with apps/web App.tsx by a test. */
 export const PRIVATE_PATH_PREFIXES = [
   '/api/', '/auth/', '/account', '/appointments', '/checkout/', '/care-plans', '/lab/', '/notifications', '/pharmacy', '/records', '/search',
-  '/telemedicine', '/visit-status/', '/waitlist', '/services', '/rx/', '/dev/', '/referral', '/invite/',
+  '/telemedicine', '/visit-status/', '/waitlist', '/services', '/rx/', '/dev/', '/referral', '/corporate', '/invite/',
 ] as const;
 
 export const isPrivatePath = (pathname: string): boolean => PRIVATE_PATH_PREFIXES.some((p) => pathname === p.replace(/\/$/, '') || pathname.startsWith(p));
