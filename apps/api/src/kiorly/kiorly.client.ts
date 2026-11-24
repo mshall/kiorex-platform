@@ -74,7 +74,8 @@ export class KiorlyClient {
     let data: any;
     try { data = text ? JSON.parse(text) : undefined; } catch { data = { raw: text.slice(0, 200) }; }
     if (res.status >= 500 || res.status === 429) {
-      this.record(r.clinicId, false);
+      // a promotion that is busy with a flood of reserves is not a sick clinic: it must not count toward the circuit breaker that guards bookings (W8 integration)
+      if (!(res.status === 503 && data?.code === 'PROMOTION_RESERVE_BUSY')) this.record(r.clinicId, false);
       throw new KiorlyTransientError(`HTTP ${res.status}`, 'HTTP_5XX', res.status);
     }
     this.record(r.clinicId, true);
