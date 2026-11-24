@@ -51,7 +51,7 @@ function NotificationBell() {
   const unread = (q.data ?? []).filter((n) => !n.readAt).length;
   return (
     <Button asChild variant="ghost" size="icon" className="relative" aria-label={unread ? t("notifications.bellUnread", { count: unread }) : t("notifications.title")}>
-      <Link to="/notifications" data-testid="notification-bell"><Bell aria-hidden="true" />{unread > 0 && <span className="absolute end-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pulse px-1 text-[10px] font-semibold leading-none text-white" data-testid="notification-count">{unread > 9 ? "9+" : unread}</span>}</Link>
+      <Link to="/notifications" data-testid="notification-bell"><Bell aria-hidden="true" />{unread > 0 && <span className="absolute end-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pulse px-1 text-[10px] font-semibold leading-none text-pulse-foreground" data-testid="notification-count">{unread > 9 ? "9+" : unread}</span>}</Link>
     </Button>
   );
 }
@@ -69,7 +69,7 @@ export function AppLayout() {
       <OfflineBanner />
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-3">
-          <Link to="/" aria-label={t("nav.home")} className="shrink-0 rounded-lg"><Logo className="hidden sm:inline-flex" /><Logo wordmark={false} markClassName="h-9" className="sm:hidden" /></Link>
+          <Link to="/" aria-label={t("nav.home")} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 md:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>
@@ -100,7 +100,7 @@ export function AppLayout() {
         <div className="container space-y-4 py-8">
           <PulseDivider />
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-            <Logo markClassName="h-8" />
+            <Logo height={56} />
             <p>{t("footer.tagline")}</p>
             <p>{t("footer.emergency")}</p>
             <Link to="/preferences" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline" data-testid="footer-preferences">{t("consent.banner.preferences")}</Link>

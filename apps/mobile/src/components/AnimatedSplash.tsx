@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
-import Svg, { Path, Polyline } from "react-native-svg";
-import { PULSE_D, useProgress } from "./Pulse";
+import { useProgress } from "./Pulse";
 import { animationsEnabled, nativeDriver, useReducedMotion } from "@/lib/motion";
 import { useTheme } from "@/theme";
-import { Wordmark } from "@/components/Logo";
+import { Lockup } from "@/components/Logo";
 
-/** Brand splash: the two chevrons settle in, then the coral ECG pulse draws across the gap, then the screen fades out.
+/** Brand splash: the KIOREX lockup (waveform bars + coral pulse + wordmark) settles in on Indigo, then the screen fades out.
  *  Mounted above the app once fonts/i18n are ready (the native splash image shows the static mark until then). */
 export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const { scheme } = useTheme();
@@ -26,15 +25,8 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const chev = Math.min(1, p * 2.2);
   return (
     <Animated.View pointerEvents="auto" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[StyleSheet.absoluteFill, { opacity: fade, backgroundColor: scheme === "dark" ? "#0F1024" : "#3730A3", alignItems: "center", justifyContent: "center", zIndex: 1000 }]} testID="splash">
-      <View style={{ opacity: chev, transform: [{ scale: 0.92 + 0.08 * chev }] }}>
-        <Svg width={220} height={150} viewBox="150 190 800 520">
-          <Polyline points="373,237 505,440 373,643" fill="none" stroke="#FFFFFF" strokeWidth={38} />
-          <Polyline points="720,237 588,440 720,643" fill="none" stroke="#7DD3FC" strokeWidth={38} />
-          <Path d={PULSE_D} fill="none" stroke="#F08A75" strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={800} strokeDashoffset={800 * (1 - Math.max(0, (p - 0.2) / 0.8))} />
-        </Svg>
-      </View>
-      {/* the wordmark (_brand outlined KIOREX, X in sky on the indigo ground) settles in with the chevrons */}
-      <View style={{ opacity: chev, marginTop: 28 }} testID="splash-wordmark"><Wordmark size={26} light /></View>
+      {/* the full KIOREX lockup on the flat Indigo ground (Ground bars, Ocean-lift right bars, coral pulse, outlined-free live wordmark) settles in */}
+      <View style={{ opacity: chev, transform: [{ scale: 0.94 + 0.06 * chev }] }} testID="splash-wordmark"><Lockup height={80} light /></View>
     </Animated.View>
   );
 }

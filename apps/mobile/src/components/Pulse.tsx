@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, View, type ViewStyle } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Polyline, Rect } from "react-native-svg";
+import { MASTER } from "@/brand/kiorex-logo/geometry";
 import { useTheme } from "@/theme";
 import { animationsEnabled, useReducedMotion } from "@/lib/motion";
 
-/** The brand ECG pulse path (same geometry as the logo, _brand/shared/logo-scene). */
-export const PULSE_D = "M222 440 H510 L525 428 L540 466 L557 392 L574 460 L588 441 H877";
-const LEN = 800;
+/** The brand ECG pulse (same polyline as the KIOREX logo master, founder spec v2: 24..126 x 51..79). */
+export const PULSE_POINTS = "24,65 64,65 68,61 72.5,51 77,79 81.5,57 85,65 126,65";
+const LEN = 192;
 
 /** Drives a 0..1 progress value as React state (works identically on native and web, no native-driver dependency). */
 export function useProgress(duration: number, loop: boolean, enabled = true): number {
@@ -31,8 +32,8 @@ export function PulseLine({ width = 120, loop = true, color, style }: { width?: 
   const p = useProgress(1400, loop, !reduced);
   return (
     <View style={style} aria-hidden>
-      <Svg width={width} height={width * 0.175} viewBox="206 380 688 120">
-        <Path d={PULSE_D} fill="none" stroke={color ?? colors.pulse} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={LEN} strokeDashoffset={LEN * (1 - p)} />
+      <Svg width={width} height={width * 0.3} viewBox="20 45 110 33">
+        <Polyline points={PULSE_POINTS} fill="none" stroke={color ?? colors.pulse} strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={LEN} strokeDashoffset={LEN * (1 - p)} />
       </Svg>
     </View>
   );
@@ -58,13 +59,13 @@ export function BrandIllustration({ size = 132, tone = "empty" }: { size?: numbe
   const chevron = scheme === "dark" ? 0.6 : 0.22; // dark: the light ink at 0.22 vanished on the dark surface (a visible mark needs about 3:1)
   const pulse = tone === "error" ? colors.danger : colors.pulse;
   return (
-    <View aria-hidden style={{ width: size, height: size * 0.62, alignItems: "center", justifyContent: "center" }}>
-      <Svg width={size} height={size * 0.62} viewBox="150 190 800 520">
-        <Path d="M373 237 L505 440 L373 643" fill="none" stroke={colors.ink} strokeOpacity={chevron} strokeWidth={46} strokeLinejoin="miter" />
-        <Path d="M720 237 L588 440 L720 643" fill="none" stroke={colors.ink2} strokeOpacity={chevron} strokeWidth={46} strokeLinejoin="miter" />
+    <View aria-hidden style={{ width: size, height: size * 0.82, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size * 0.82} viewBox="20 20 110 90">
+        {MASTER.leftBars.map(([x, y, w, h], i) => <Rect key={`l${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink} fillOpacity={chevron} />)}
+        {MASTER.rightBars.map(([x, y, w, h], i) => <Rect key={`r${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink2} fillOpacity={chevron} />)}
         {tone === "offline"
-          ? <Path d="M222 440 H420 M580 440 H877" fill="none" stroke={pulse} strokeWidth={13} strokeLinecap="round" strokeDasharray="1 26" />
-          : <Path d={PULSE_D} fill="none" stroke={pulse} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" />}
+          ? <Polyline points="24,65 62,65 90,65 126,65" fill="none" stroke={pulse} strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeDasharray="0.1 5" />
+          : <Polyline points={PULSE_POINTS} fill="none" stroke={pulse} strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeLinejoin="round" />}
       </Svg>
     </View>
   );

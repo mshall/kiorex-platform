@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { KiorexLogo } from "@/brand/components/web/KiorexLogo";
+import { KiorexLogo } from "@/brand/kiorex-logo/KiorexLogo.web";
 import type { Crumb, FacetLink, PaginationData, ProviderCard, RatingBucket, TemplateCtx } from "../types";
 import type { ImageModel } from "../seo/image";
 import { day, money } from "../format";
@@ -14,7 +14,7 @@ export function PublicLayout({ ctx, children }: { ctx: TemplateCtx; children: Re
       <a className="kxp-skip" href="#main">{ctx.t("skip")}</a>
       <header className="kxp-header">
         <div className="kxp-wrap kxp-header-row">
-          <a href={homePath(ctx)} className="kxp-logo" aria-label={ctx.t("brand")}><KiorexLogo variant="lockup" tone="color" height={36} title="" /></a>
+          <a href={homePath(ctx)} className="kxp-logo" aria-label={ctx.t("brand")}><KiorexLogo variant="full" theme="light" height={64} title="" /></a>
           <nav className="kxp-nav" aria-label="Primary">
             <a href="/search">{ctx.t("nav.search")}</a>
             <a href={switched} hrefLang={other} lang={other} className="kxp-lang">{ctx.t("lang.other")}</a>

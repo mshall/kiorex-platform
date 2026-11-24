@@ -46,7 +46,7 @@ export function composeDocument(i: DocumentInput): { html: string; styleHash: st
     '<meta name="theme-color" content="#3730A3">',
     `<meta property="og:type" content="website"><meta property="og:site_name" content="${escapeHtml(i.siteName)}">`,
     `<meta property="og:title" content="${escapeHtml(i.title)}"><meta property="og:description" content="${escapeHtml(i.description)}">`,
-    `<meta property="og:url" content="${escapeHtml(i.canonical)}"><meta property="og:image" content="${escapeHtml(i.ogImage)}">`,
+    `<meta property="og:url" content="${escapeHtml(i.canonical)}"><meta property="og:image" content="${escapeHtml(i.ogImage)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">`,
     `<meta property="og:locale" content="${ogLocale}"><meta property="og:locale:alternate" content="${altLocale}">`,
     `<meta property="og:image:alt" content="${escapeHtml(i.title)}">`,
     `<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(i.title)}"><meta name="twitter:description" content="${escapeHtml(i.description)}"><meta name="twitter:image" content="${escapeHtml(i.ogImage)}">`,

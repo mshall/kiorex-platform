@@ -6,7 +6,7 @@ import { ApiError } from "@/api/errors";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { VisitStepsTimeline } from "@/components/VisitStepsTimeline";
 import { Icon } from "@/components/Icon";
-import { Wordmark } from "@/components/Logo";
+import { Lockup } from "@/components/Logo";
 import { Badge, Banner, Button, Card, Row, Screen, T, useToast } from "@/components/ui";
 import { formatDayLong, formatTime } from "@/lib/format";
 import { isValidToken } from "@/lib/visitStatus";
@@ -28,7 +28,7 @@ export default function VisitStatusScreen() {
   return (
     <Screen testID="visit-status" style={{ gap: 14 }}>
       <Stack.Screen options={{ title: t("hv.familyScreenTitle"), headerBackVisible: false }} />
-      <View style={{ alignItems: "flex-start" }} accessibilityRole="header" accessibilityLabel="Kiorex"><Wordmark /></View>
+      <View style={{ alignItems: "flex-start" }} accessibilityRole="header" accessibilityLabel="Kiorex"><Lockup height={56} /></View>
       {gone ? <EmptyState icon="clock" title={t("hv.linkGoneTitle")} hint={t("hv.linkGoneBody")} />
         : q.isLoading ? <LoadingState />
         : q.error || !s ? <ErrorState error={q.error} onRetry={() => void q.refetch()} />

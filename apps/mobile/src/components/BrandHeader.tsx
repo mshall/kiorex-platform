@@ -13,7 +13,7 @@ export function BrandHeader({ children, bordered = false, testID = "brand-header
   return (
     <View testID={testID} style={{ paddingTop: insets.top, paddingHorizontal: layout.gutter + 4, borderBottomWidth: bordered ? StyleSheet.hairlineWidth : 0, borderBottomColor: colors.border }}>
       <View style={{ height: layout.headerH, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <View testID="brand-lockup" accessible accessibilityRole="header" accessibilityLabel="Kiorex" style={{ flexShrink: 1 }}><Lockup height={44} /></View>
+        <View testID="brand-lockup" accessible accessibilityRole="header" accessibilityLabel="Kiorex" style={{ flexShrink: 1 }}><Lockup height={64} /></View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}>{children}</View>
       </View>
     </View>

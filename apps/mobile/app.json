@@ -21,6 +21,8 @@
       "package": "com.kiorex.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundImage": "./assets/adaptive-background.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
         "backgroundColor": "#3730A3"
       },
       "permissions": [
@@ -62,7 +64,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 240,
           "resizeMode": "contain",
           "backgroundColor": "#3730A3",
           "dark": {

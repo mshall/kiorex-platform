@@ -1,6 +1,15 @@
 /* GENERATED from tokens.json by scripts/build-tokens.cjs — do not edit. */
 :root {
   color-scheme: light;
+  --kx-brand-indigo: #3730A3;
+  --kx-brand-indigo-lift: #6366F1;
+  --kx-brand-ocean: #0369A1;
+  --kx-brand-ocean-lift: #38BDF8;
+  --kx-brand-coral: #E8735E;
+  --kx-brand-ground: #F4F6FC;
+  --kx-brand-dark-surface: #0F172A;
+  --kx-brand-ink: #0F172A;
+  --kx-brand-coral-text: #8F4944;
   --kx-indigo-50: #F1F1F9;
   --kx-indigo-100: #DCDBEF;
   --kx-indigo-200: #C7C5E5;

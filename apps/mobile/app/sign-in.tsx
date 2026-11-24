@@ -51,7 +51,7 @@ export default function SignIn() {
         </View>
         <View style={{ paddingHorizontal: space[4], paddingTop: space[4], gap: space[3] }}>
           {DevTestUsers ? <DevTestUsers busy={busy} onPick={(phone) => void login(phone)} /> : null}
-          {config.mock ? <T variant="caption" color={colors.pulse} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
+          {config.mock ? <T variant="caption" color={colors.muted} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
           <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
         </View>
       </ScrollView>

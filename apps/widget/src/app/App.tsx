@@ -1,3 +1,4 @@
+import { KiorexLogo } from '../brand/kiorex-logo/KiorexLogo.preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { ApiError, call, get, hasBearer, post, setBearer, setWidgetToken } from './api';
@@ -91,7 +92,7 @@ function Shell({ cfg, boot, lang, online, children }: { cfg: WidgetConfig | null
       </div>
       {!online && <div class="alert warn" role="status">{T('offline')}</div>}
       {children}
-      <div class="foot">{T('brandLine')}</div>
+      <div class="foot"><KiorexLogo variant="mark" height={16} title="" class="foot-mark" /><span>{T('brandLine')}</span></div>
     </div>
   );
 }

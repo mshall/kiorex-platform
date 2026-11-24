@@ -40,7 +40,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @keyframes kx-sh { to { background-position: -200% 0; } }
 .sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .timer { font-variant-numeric: tabular-nums; font-weight: 700; }
-.foot { margin-block-start: 20px; font-size: .78rem; color: var(--muted); text-align: center; }
+.foot { margin-block-start: 20px; font-size: .78rem; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.foot-mark { flex: none; } /* KIOREX micro mark (4 channels, height < 32), decorative: the text names the brand */
 dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
 dt { color: var(--muted); } dd { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

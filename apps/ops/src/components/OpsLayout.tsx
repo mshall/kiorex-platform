@@ -30,7 +30,7 @@ export function OpsLayout() {
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e bg-card p-4 md:flex" aria-label={t("nav.main")}>
-        <Logo className="mb-1" markClassName="h-9" />
+        <Logo className="mb-2" height={56} />
         <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("nav.console")}</p>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" data-testid="sidebar-nav">
           {NAV.map(({ to, icon: Icon, key }) => (

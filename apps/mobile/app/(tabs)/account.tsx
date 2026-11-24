@@ -122,7 +122,7 @@ function AccountInner() {
         <NavRow testID="nav-delete" icon="trash" danger label={t("account.deleteTitle")} onPress={() => router.push("/settings/delete")} />
       </Card>
       <Card style={{ gap: 8 }} testID="account-about">
-        <Lockup height={40} />
+        <Lockup height={56} />
         <T variant="caption" muted forceLatin>v{Constants.expoConfig?.version ?? "1.0.0"}</T>
       </Card>
       <Button testID="sign-out" variant="danger" icon="logout" title={t("account.signOut")} accessibilityLabel={t("account.signOut")} onPress={() => setSignOutOpen(true)} />
