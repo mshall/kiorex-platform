@@ -53,6 +53,9 @@ const GrowthCampaignDetailPage = lazy(() => import("@/pages/growth/campaigns/Cam
 const GrowthPromotionsPage = lazy(() => import("@/pages/growth/promotions/Page"));
 const GrowthReferralsPage = lazy(() => import("@/pages/growth/referrals/Page"));
 const GrowthRewardsPage = lazy(() => import("@/pages/growth/rewards/Page"));
+const GrowthReferralReviewPage = lazy(() => import("@/pages/growth/referrals/ReferralReviewPage")); // GRW-P2-B3
+const GrowthRewardLotPage = lazy(() => import("@/pages/growth/rewards/RewardLotPage"));
+const GrowthRewardsFinancePage = lazy(() => import("@/pages/growth/rewards/RewardsFinancePage"));
 const GrowthWhatsappPage = lazy(() => import("@/pages/growth/whatsapp/Page"));
 const GrowthAssistantPage = lazy(() => import("@/pages/growth/assistant/Page"));
 const GrowthLifecyclePage = lazy(() => import("@/pages/growth/lifecycle/Page"));
@@ -119,7 +122,10 @@ export function AppRoutes() {
           <Route path="growth/approvals" element={<GrowthApprovalsPage />} />
           <Route path="growth/promotions" element={<GrowthPromotionsPage />} />
           <Route path="growth/referrals" element={<GrowthReferralsPage />} />
+          <Route path="growth/referrals/:id" element={<GrowthReferralReviewPage />} />
           <Route path="growth/rewards" element={<GrowthRewardsPage />} />
+          <Route path="growth/rewards/finance" element={<GrowthRewardsFinancePage />} />
+          <Route path="growth/rewards/lots/:id" element={<GrowthRewardLotPage />} />
           <Route path="growth/whatsapp" element={<GrowthWhatsappPage />} />
           <Route path="growth/assistant" element={<GrowthAssistantPage />} />
           <Route path="growth/lifecycle" element={<GrowthLifecyclePage />} />

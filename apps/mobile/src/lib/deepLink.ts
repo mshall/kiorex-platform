@@ -4,7 +4,7 @@
 // carries a token, and resolving a link never signs anyone in, links or merges accounts: routes that show personal data require the existing session.
 // The same rules exist on the server in apps/api/src/market/deep-link-rules.ts.
 
-export type LinkKind = "home" | "doctor" | "clinic" | "referral" | "provider" | "appointment" | "claim" | "auth" | "visit-status";
+export type LinkKind = "home" | "doctor" | "clinic" | "referral" | "provider" | "invite" | "appointment" | "claim" | "auth" | "visit-status";
 export interface LinkRef { kind: "referral" | "provider"; code: string }
 export interface LinkTarget {
   kind: LinkKind;
@@ -115,6 +115,7 @@ function matchPath(pathRaw: string, query: string, o: ResolveOptions, fromScheme
     case "doctor": return SEGMENT_RE.test(arg) ? { kind: "doctor", route: `/doctor/${arg}`, requiresSignIn: false, ...base } : HOME;
     case "clinic": return SEGMENT_RE.test(arg) ? { kind: "clinic", route: `/results?q=${encodeURIComponent(arg.replace(/[-_]+/g, " ").trim())}`, requiresSignIn: false, ...base } : HOME;
     case "r": return REF_CODE_RE.test(arg) ? { kind: "referral", route: `/r/${arg}`, requiresSignIn: false, ref: { kind: "referral", code: arg }, ...base } : HOME;
+    case "invite": { const c = arg.toUpperCase(); return PROVIDER_CODE_RE.test(c) ? { kind: "invite", route: `/invite/${c}`, requiresSignIn: false, ...base } : HOME; } // GRW-P2-B3: patient invite (Crockford, 8 characters); the screen claims it after sign-in, the link itself never does
     case "q": { const code = normalizeProviderCode(arg); return code ? { kind: "provider", route: `/r/${code}?k=p`, requiresSignIn: false, ref: { kind: "provider", code }, ...base } : HOME; }
     case "appointment": case "a": return SEGMENT_RE.test(arg) ? { kind: "appointment", route: `/appointment/${arg}`, requiresSignIn: true, ...base } : HOME;
     default: return HOME;

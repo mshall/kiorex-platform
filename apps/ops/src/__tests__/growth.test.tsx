@@ -37,7 +37,9 @@ describe("Growth navigation", () => {
     expect(items).toHaveLength(GROWTH_SECTIONS.length);
     expect(GROWTH_SECTIONS.filter((s) => s.key !== "config")).toHaveLength(31);
     expect(items.map((a) => a.getAttribute("data-testid"))).toEqual(GROWTH_SECTIONS.map((s) => `growth-nav-${s.key}`));
-    expect(within(screen.getByTestId("growth-nav-referrals")).getByText("P2")).toBeInTheDocument();
+    expect(within(screen.getByTestId("growth-nav-referrals")).queryByText(/^P\d$/)).toBeNull(); // GRW-P2-B3: Referral programs and Rewards are live
+    expect(within(screen.getByTestId("growth-nav-rewards")).queryByText(/^P\d$/)).toBeNull();
+    expect(within(screen.getByTestId("growth-nav-whatsapp")).getByText("P2")).toBeInTheDocument();
     expect(within(screen.getByTestId("growth-nav-campaigns")).queryByText(/^P\d$/)).toBeNull(); // GRW-P2-A: Campaign Management is live
     expect(within(screen.getByTestId("growth-nav-experiments")).getByText("P3")).toBeInTheDocument();
     expect(within(screen.getByTestId("growth-nav-seo")).queryByText(/^P\d$/)).toBeNull();

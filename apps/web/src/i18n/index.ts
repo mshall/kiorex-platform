@@ -4,6 +4,8 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import "./rtl.css";
 import ar from "./locales/ar.json";
 import en from "./locales/en.json";
+import referralAr from "./referral.ar.json";
+import referralEn from "./referral.en.json";
 
 export const SUPPORTED = ["ar", "en"] as const;
 export type Lang = (typeof SUPPORTED)[number];
@@ -21,7 +23,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: ar }, en: { translation: en } },
+    resources: { ar: { translation: { ...ar, referral: referralAr } }, en: { translation: { ...en, referral: referralEn } } }, // GRW-P2-B3: namespace referral.* in its own files
     fallbackLng: "ar",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

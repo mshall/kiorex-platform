@@ -1,4 +1,4 @@
-import GrowthPlannedPage from "@/pages/growth/GrowthPlannedPage";
+import RewardsPage from "./RewardsPage";
 
-/** GRW-P2-X1 route placeholder. The owning package replaces this file (and flips its `status` line in components/growth/sections.ts); nobody else edits it. */
-export default function RewardsPage() { return <GrowthPlannedPage section="rewards" />; }
+/** GRW-P2-B3: Rewards and incentives (replaces the GRW-P2-X1 placeholder). */
+export default function RewardsRoute() { return <RewardsPage />; }

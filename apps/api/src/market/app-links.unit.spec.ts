@@ -22,7 +22,7 @@ describe('app link association files (GRW-P1-H)', () => {
     const comps = buildAppleAppSiteAssociation(resolveAppLinksConfig({})).applinks.details[0]!.components.map((c) => c['/']);
     expect(comps).toEqual([...IOS_APP_LINK_PATHS]);
     expect(comps).not.toContain('/*');
-    for (const p of comps) expect(p).toMatch(/^\/(ar\/\*\/(doctor|clinic)\/\*|en\/\*\/(doctor|clinic)\/\*|r\/\*|q\/\*|appointment\/\*|a\/\*)$/);
+    for (const p of comps) expect(p).toMatch(/^\/(ar\/\*\/(doctor|clinic|invite)\/\*|en\/\*\/(doctor|clinic|invite)\/\*|invite\/\*|r\/\*|q\/\*|appointment\/\*|a\/\*)$/);
   });
   it('mirrors kiorex-account config/domains.json and the template files when the sibling repo is present', () => {
     const dir = join(__dirname, '../../../../../kiorex-account/config');

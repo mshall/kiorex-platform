@@ -60,7 +60,9 @@ export interface ParsedPath {
  * Pages that live inside the public namespace but are client-rendered by the SPA (answered with the SPA shell, `noindex`): the consent preference
  * centre `/{locale}/{cc}/preferences` (GRW-P1-I). A new SPA page under the namespace must be listed here on purpose (App.tsx snapshot test).
  */
-export const SPA_PASSTHROUGH_PAGES = ['preferences'] as const;
+export const SPA_PASSTHROUGH_PAGES = ['preferences', 'invite/:code'] as const;
+/** A pass-through entry may carry `:param` segments (one short token each); the shell is noindex, so a malformed token just shows the app's neutral invalid state. GRW-P2-B3: `/{locale}/{cc}/invite/<code>`. */
+const PASSTHROUGH_RES = SPA_PASSTHROUGH_PAGES.map((p) => ({ page: p as string, re: new RegExp(`^${p.split('/').map((seg) => (seg.startsWith(':') ? '[a-z0-9_:-]{1,64}' : seg)).join('\\/')}$`) }));
 
 export type ParseResult =
   | { kind: 'match'; value: ParsedPath }
@@ -94,7 +96,8 @@ export function parsePublicPath(pathname: string): ParseResult {
   const locale = m[1] as Locale;
   const cc = m[2]!;
   const rest = (m[3] ?? '').replace(/^\//, '');
-  if ((SPA_PASSTHROUGH_PAGES as readonly string[]).includes(rest)) return { kind: 'spa', page: rest };
+  const spa = PASSTHROUGH_RES.find((x) => x.re.test(rest));
+  if (spa) return { kind: 'spa', page: spa.page };
   for (const { def, re, names } of matchers) {
     const r = re.exec(rest);
     if (!r) continue;
@@ -185,7 +188,7 @@ export function negotiateLocale(opts: { cookie?: string | null; acceptLanguage?:
 /** Every authenticated or transactional SPA route prefix. robots.txt disallows these; the SPA also sends noindex. Kept in step with apps/web App.tsx by a test. */
 export const PRIVATE_PATH_PREFIXES = [
   '/api/', '/auth/', '/account', '/appointments', '/checkout/', '/care-plans', '/lab/', '/notifications', '/pharmacy', '/records', '/search',
-  '/telemedicine', '/visit-status/', '/waitlist', '/services', '/rx/', '/dev/',
+  '/telemedicine', '/visit-status/', '/waitlist', '/services', '/rx/', '/dev/', '/referral', '/invite/',
 ] as const;
 
 export const isPrivatePath = (pathname: string): boolean => PRIVATE_PATH_PREFIXES.some((p) => pathname === p.replace(/\/$/, '') || pathname.startsWith(p));

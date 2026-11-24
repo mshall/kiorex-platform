@@ -1,4 +1,4 @@
-import GrowthPlannedPage from "@/pages/growth/GrowthPlannedPage";
+import ReferralsPage from "./ReferralsPage";
 
-/** GRW-P2-X1 route placeholder. The owning package replaces this file (and flips its `status` line in components/growth/sections.ts); nobody else edits it. */
-export default function ReferralsPage() { return <GrowthPlannedPage section="referrals" />; }
+/** GRW-P2-B3: Referral programs (replaces the GRW-P2-X1 placeholder). */
+export default function ReferralsRoute() { return <ReferralsPage />; }

@@ -5,6 +5,8 @@ import { prefs } from "./storage";
 export interface Bootstrap {
   defaultMarket: string; resolvedMarket?: string; liveMarkets: string[]; showMarketSelector: boolean; locales: string[]; minAppVersion?: string | null;
   apiEndpoint?: string; capabilities?: Partial<Record<"deepLinks" | "marketplace" | "homeVisits", boolean>>;
+  /** GRW-P2-B3 (additive): effective growth features. `referral` is true only when growth.patient_referral is on for the market. */
+  features?: { referral?: boolean };
 }
 const KEY = "kx.bootstrap.v1";
 const MAX_AGE_MS = 24 * 3600_000;

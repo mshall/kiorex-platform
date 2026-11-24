@@ -50,6 +50,7 @@ function Shell() {
         <Stack.Screen name="auth/logout" options={{ headerShown: false }} />
         <Stack.Screen name="r/[code]" options={{ headerShown: false }} />
         <Stack.Screen name="claim" options={{ headerShown: false }} />
+        <Stack.Screen name="invite/[code]" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="visit-status/[token]" options={{ title: t("hv.familyScreenTitle"), headerShown: false }} />

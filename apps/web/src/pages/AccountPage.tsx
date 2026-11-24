@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Bell, ChevronRight, ClipboardList, Download, Laptop, LogOut, MapPin, Pencil, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Bell, ChevronRight, ClipboardList, Download, Gift, Laptop, LogOut, MapPin, Pencil, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,7 @@ import { deviceLabel } from "@/lib/device";
 import { useConsentHistory, useExportData, useUpdateProfile } from "@/api/engagement";
 import type { FamilyInput } from "@/api/hooks";
 import { IconTile, PageHeader, StatusChip } from "@/components/kit";
+import { useReferralEnabled } from "@/api/referral";
 
 function Profile() {
   const { t, i18n } = useTranslation();
@@ -226,6 +227,7 @@ function DeleteAccount() {
 
 export default function AccountPage() {
   const { t } = useTranslation();
+  const referral = useReferralEnabled().enabled; // GRW-P2-B3: the entry exists only when the bootstrap says the invite feature is on
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader title={t("account.title")} />
@@ -234,6 +236,7 @@ export default function AccountPage() {
         {([["/account/addresses", MapPin, t("hv.addressBook"), t("p3.addressesHint"), "link-addresses"], ["/care-plans", ClipboardList, t("hv.carePlans"), t("p3.plansHint"), "link-care-plans"], ["/notifications", Bell, t("notifications.title"), t("notifications.linkHint"), "link-notifications"]] as const).map(([to, Icon, title, hint, id]) => (
           <Link key={to} to={to} className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid={id}><IconTile><Icon /></IconTile><span className="min-w-0 flex-1"><span className="block font-semibold">{title}</span><span className="block text-sm text-muted-foreground">{hint}</span></span><ChevronRight className="h-4 w-4 rtl-flip text-muted-foreground" aria-hidden="true" /></Link>
         ))}
+        {referral && <Link to="/referral" className="kx-card kx-card-interactive flex items-center gap-3 p-4" data-testid="link-referral"><IconTile><Gift /></IconTile><span className="min-w-0 flex-1"><span className="block font-semibold">{t("referral.nav")}</span><span className="block text-sm text-muted-foreground">{t("referral.hint")}</span></span><ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden="true" /></Link>}
       </nav>
       <Tabs defaultValue="family">
         <TabsList className="h-auto w-full flex-wrap justify-start sm:w-auto">

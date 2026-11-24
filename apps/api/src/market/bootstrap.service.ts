@@ -20,6 +20,8 @@ export interface Bootstrap {
   apiEndpoint: string;
   /** Effective capability switches for the resolved market (flags), so a client hides what is off without a second call. */
   capabilities: Record<'deepLinks' | 'marketplace' | 'homeVisits', boolean>;
+  /** GRW-P2-B3 (additive): effective growth features for the resolved market. `referral` is true only when growth.patient_referral is ON (a launch-locked flag, so false until the gate evidence is recorded); the apps show the invite entry only then. */
+  features: { referral: boolean };
 }
 
 /** Parses REGIONAL_API_ENDPOINTS (`{"EG":"https://api.example.com/api/v1"}`); entries that are not clean http(s) origins+path are dropped. */
@@ -61,8 +63,8 @@ export class BootstrapService {
     const hint = normalizeCc(hintCc);
     const resolvedMarket = chooseMarket(hint, live, defaultMarket);
     const ctx = { market: resolvedMarket };
-    const [deepLinks, marketplace, homeVisits] = await Promise.all([
-      this.flags.isEnabled(GROWTH_FLAG.DEEP_LINKS, ctx), this.flags.isEnabled('kiorex.marketplace', ctx), this.flags.isEnabled('kiorex.home_visits', ctx),
+    const [deepLinks, marketplace, homeVisits, referral] = await Promise.all([
+      this.flags.isEnabled(GROWTH_FLAG.DEEP_LINKS, ctx), this.flags.isEnabled('kiorex.marketplace', ctx), this.flags.isEnabled('kiorex.home_visits', ctx), this.flags.isEnabled(GROWTH_FLAG.PATIENT_REFERRAL, ctx),
     ]);
     return {
       defaultMarket,
@@ -74,6 +76,7 @@ export class BootstrapService {
       minAppVersion: (process.env.MIN_APP_VERSION ?? '').trim() || null,
       apiEndpoint: endpointFor(resolvedMarket),
       capabilities: { deepLinks, marketplace, homeVisits },
+      features: { referral },
     };
   }
 }

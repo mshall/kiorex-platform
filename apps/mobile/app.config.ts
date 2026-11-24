@@ -25,7 +25,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  */
 export const APP_LINK_HOST_DEFAULT = "kiorex.com";
 /** Android `pathPattern` globs (not regex): `.` any character, `*` repeat. */
-export const ANDROID_PATH_PATTERNS = ["/ar/..*/doctor/.*", "/en/..*/doctor/.*", "/ar/..*/clinic/.*", "/en/..*/clinic/.*", "/r/.*", "/q/.*", "/appointment/.*", "/a/.*"] as const;
+export const ANDROID_PATH_PATTERNS = ["/ar/..*/doctor/.*", "/en/..*/doctor/.*", "/ar/..*/clinic/.*", "/en/..*/clinic/.*", "/ar/..*/invite/.*", "/en/..*/invite/.*", "/invite/.*", "/r/.*", "/q/.*", "/appointment/.*", "/a/.*"] as const;
 
 export function appLinkHost(env: NodeJS.ProcessEnv = process.env): string {
   const h = (env.APP_LINK_HOST ?? APP_LINK_HOST_DEFAULT).trim().toLowerCase();

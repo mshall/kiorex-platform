@@ -6,7 +6,7 @@
  */
 export const PATIENT_IOS_BUNDLE_ID = 'com.kiorex.app';
 export const PATIENT_ANDROID_PACKAGE = 'com.kiorex.app';
-export const IOS_APP_LINK_PATHS = ['/ar/*/doctor/*', '/en/*/doctor/*', '/ar/*/clinic/*', '/en/*/clinic/*', '/r/*', '/q/*', '/appointment/*', '/a/*'] as const;
+export const IOS_APP_LINK_PATHS = ['/ar/*/doctor/*', '/en/*/doctor/*', '/ar/*/clinic/*', '/en/*/clinic/*', '/ar/*/invite/*', '/en/*/invite/*', '/invite/*', '/r/*', '/q/*', '/appointment/*', '/a/*'] as const;
 export const TEAM_ID_PLACEHOLDER = 'TODO_NEEDS_HUMAN_APPLE_TEAM_ID';
 export const FINGERPRINT_PLACEHOLDER = 'TODO_NEEDS_HUMAN_SHA256_CERT_FINGERPRINT';
 

@@ -42,6 +42,9 @@ const CarePlansPage = lazy(() => import("@/pages/CarePlansPage"));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const PreferencesPage = lazy(() => import("@/pages/PreferencesPage")); // GRW-P1-I preference centre
+const ReferralPage = lazy(() => import("@/pages/referral/ReferralPage")); // GRW-P2-B3
+const MyRewards = lazy(() => import("@/pages/referral/MyRewards"));
+const InviteLanding = lazy(() => import("@/pages/referral/InviteLanding"));
 
 export const makeQueryClient = () =>
   new QueryClient({
@@ -93,6 +96,10 @@ export function AppRoutes() {
           <Route path="notifications" element={guard(<NotificationsPage />)} />
           <Route path="preferences" element={<PreferencesPage />} />
           <Route path=":locale/:cc/preferences" element={<PreferencesPage />} />
+          <Route path="referral" element={guard(<ReferralPage />)} />
+          <Route path="referral/rewards" element={guard(<MyRewards />)} />
+          <Route path="invite/:code" element={<InviteLanding />} />
+          <Route path=":locale/:cc/invite/:code" element={<InviteLanding />} />
           <Route path="account/addresses" element={guard(<AddressesPage />)} />
           <Route path="care-plans" element={guard(<CarePlansPage />)} />
           <Route path="*" element={<NotFoundPage />} />
