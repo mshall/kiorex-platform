@@ -20,7 +20,8 @@
     "homeGate": "Home-visit gate",
     "onboarding": "Onboarding imports",
     "policy": "Market policy",
-    "partnerOnboarding": "Partner onboarding"
+    "partnerOnboarding": "Partner onboarding",
+    "partnerLeads": "Partner leads"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -602,6 +603,18 @@
     "saved": "Policy saved",
     "cleared": "Override removed",
     "superAdminOnly": "Only a super admin can change policies."
+  },
+  "leads": {
+    "title": "Partner leads",
+    "hint": "Organisations that pressed Talk to us in a Kiorly product. Contact them within the time they asked for; the status follows their onboarding request automatically.",
+    "none": "No leads yet",
+    "org": "Organisation", "contact": "Contact", "phone": "Phone", "email": "E-mail", "when": "Preferred time", "leadNote": "Their note", "consent": "Consent to be contacted",
+    "status": "Status", "assignee": "Assignee", "assign": "Assign", "created": "Received", "product": "Product", "all": "All",
+    "notes": "Internal notes", "addNote": "Add an internal note", "add": "Add", "noteAdded": "Note added", "saved": "Saved", "failed": "Could not save",
+    "openRequest": "Open the onboarding request", "noRequest": "No onboarding request yet",
+    "time": { "MORNING": "Morning", "AFTERNOON": "Afternoon", "EVENING": "Evening", "ANYTIME": "Any time" },
+    "st": { "NEW": "New", "CONTACTED": "Contacted", "STARTED": "Started", "SUBMITTED": "Submitted", "LIVE": "Live", "CLOSED": "Closed" },
+    "funnel": { "title": "Onboarding funnel", "hint": "Distinct organisations, from privacy-safe counters (organisation id and product only) and real onboarding requests.", "window": "Period", "lastDays": "Last {{count}} days", "interested": "Interested", "started": "Started the wizard", "submitted": "Submitted", "live": "Live", "talk": "{{count}} asked to talk to us", "conv": "{{prev}} of the previous step, {{all}} of interested" }
   },
   "pob": {
     "title": "Partner onboarding",

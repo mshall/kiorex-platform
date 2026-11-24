@@ -1226,3 +1226,39 @@ model PartnerIntakeNonce {
 
   @@index([seenAt])
 }
+
+/// Partner lead (ADR-040 front door): an organisation that asked Kiorex to talk to it from the "Reach more patients" page. Contact details only, never PHI.
+model PartnerLead {
+  id            String   @id // pl_<id>
+  kind          String // CLINIC | NURSE | PHARMACY | LAB
+  orgRef        String // the partner product's own organisation id
+  orgName       String
+  contactName   String
+  contactRole   String?
+  phone         String?
+  email         String?
+  preferredTime String? // MORNING | AFTERNOON | EVENING | ANYTIME
+  note          String?
+  locale        String   @default("en")
+  market        String   @default("EG")
+  consentAt     DateTime
+  status        String   @default("NEW") // NEW | CONTACTED | STARTED | SUBMITTED | LIVE | CLOSED
+  assignee      String?
+  notes         Json     @default("[]") // [{ at, by, text }]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([kind, orgRef])
+  @@index([status, createdAt])
+}
+
+/// Privacy-safe funnel marker: one row per (kind, org, stage), sent by the partner products (org id + kind only). INTERESTED | STARTED (SUBMITTED and LIVE are read from PartnerConnection).
+model PartnerFunnelMark {
+  kind    String
+  orgRef  String
+  stage   String
+  firstAt DateTime @default(now())
+
+  @@id([kind, orgRef, stage])
+  @@index([stage, firstAt])
+}
