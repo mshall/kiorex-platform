@@ -8,7 +8,7 @@ import { KiorlyPromotionReservationClient, PROMOTION_RESERVATION_CLIENT } from '
 import { PromotionReviewService } from './promotion-review.service';
 import { PromotionsAdminController } from './promotions-admin.controller';
 import { PromotionsPublicController } from './promotions-public.controller';
-import { SPONSORED_DISCOUNT_PORT } from '../growth-ports-public';
+import { SPONSORED_DISCOUNT_PORT, SPONSORED_PAY_PORT } from '../growth-ports-public';
 import { SponsoredDiscountService } from './sponsored-discount.service';
 
 /** GRW-P2-S (Kiorex side). Global so the webhook receiver and the booking service reach the projection and the sponsored-discount service by class without importing this folder. */
@@ -16,7 +16,7 @@ import { SponsoredDiscountService } from './sponsored-discount.service';
 @Module({
   imports: [KiorlyModule],
   controllers: [PromotionsAdminController, PromotionsPublicController],
-  providers: [PromotionProjectionService, PromotionQuoteService, PromotionReviewService, PromotionLedgerViewService, PromotionFraudSignals, SponsoredDiscountService, KiorlyPromotionReservationClient, { provide: PROMOTION_RESERVATION_CLIENT, useExisting: KiorlyPromotionReservationClient }, { provide: SPONSORED_DISCOUNT_PORT, useExisting: SponsoredDiscountService }],
-  exports: [PromotionProjectionService, PromotionQuoteService, PromotionReviewService, SponsoredDiscountService, PROMOTION_RESERVATION_CLIENT, SPONSORED_DISCOUNT_PORT],
+  providers: [PromotionProjectionService, PromotionQuoteService, PromotionReviewService, PromotionLedgerViewService, PromotionFraudSignals, SponsoredDiscountService, KiorlyPromotionReservationClient, { provide: PROMOTION_RESERVATION_CLIENT, useExisting: KiorlyPromotionReservationClient }, { provide: SPONSORED_DISCOUNT_PORT, useExisting: SponsoredDiscountService }, { provide: SPONSORED_PAY_PORT, useExisting: SponsoredDiscountService }],
+  exports: [PromotionProjectionService, PromotionQuoteService, PromotionReviewService, SponsoredDiscountService, PROMOTION_RESERVATION_CLIENT, SPONSORED_DISCOUNT_PORT, SPONSORED_PAY_PORT],
 })
 export class SponsoredPromotionsModule {}

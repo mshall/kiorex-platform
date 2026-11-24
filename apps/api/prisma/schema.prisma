@@ -344,6 +344,11 @@ model PaymentIntent {
   /// `rewardPostedMinor` the part of it that sits in the Pay ledger HELD account (patient-refund credit always, promotional credit only when REWARD_RULES.postToPayLedger).
   rewardMinor       Int     @default(0)
   rewardPostedMinor Int     @default(0)
+  /// GRW-P2-S (migration 20270107096000): provider-sponsored discount that reduced this deposit (gross deposit = amountMinor + rewardMinor + sponsoredMinor). `sponsoredPostedMinor` is the part in the
+  /// Pay ledger HELD account (only when REWARD_RULES.postToPayLedger, H-25); `sponsoredVoidedMinor` the cumulative share voided by refunds (never paid to the patient).
+  sponsoredMinor       Int @default(0)
+  sponsoredPostedMinor Int @default(0)
+  sponsoredVoidedMinor Int @default(0)
 
   refunds Refund[]
 

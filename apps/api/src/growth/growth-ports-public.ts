@@ -39,7 +39,7 @@ export const LINK_REGISTRY = 'GROWTH_LINK_REGISTRY_PORT';
 // ───────────── GRW-P2-B2 (wave 6): the pay and booking modules reach the patient reward ledger through these ports only ─────────────
 type TxLike = unknown; // the Prisma transaction client of the caller (kept opaque so this file stays a type-only leaf)
 
-export interface RewardReserveInput { sub: string; bookingId: string; amountMinor: number; currency: string; serviceKind: 'IN_CLINIC' | 'VIDEO' | 'HOME_VISIT'; specialty?: string | null; dependantId?: string | null; couponCode?: string | null; lotId?: string | null }
+export interface RewardReserveInput { sub: string; bookingId: string; /** What is still payable after any sponsored discount (the credit is planned on this). */ amountMinor: number; /** GRW-P2-S: the sponsored discount already taken off the price; only used to compose the shown lines (price = amountMinor + sponsoredMinor). */ sponsoredMinor?: number; currency: string; serviceKind: 'IN_CLINIC' | 'VIDEO' | 'HOME_VISIT'; specialty?: string | null; dependantId?: string | null; couponCode?: string | null; lotId?: string | null }
 export interface RewardReserveResult { appliedMinor: number; lines: Array<{ code: string; amountMinor: number; labelKey: string }>; couponProblem?: 'COUPON_INVALID' | 'NOT_APPLICABLE'; lots: Array<{ lotId: string; minor: number }> }
 export interface RewardRedeemResult { totalMinor: number; patientRefundMinor: number; promoMinor: number; postedMinor: number }
 export interface RewardRestoreResult { restoredMinor: number; patientRefundRestoredMinor: number; promoRestoredMinor: number; postedRestoredMinor: number; lotIds: string[] }
@@ -93,3 +93,15 @@ export interface SponsoredDiscountPort {
   releaseForBooking(bookingId: string, reason?: string): Promise<void>;
 }
 export const SPONSORED_DISCOUNT_PORT = 'SPONSORED_DISCOUNT_PORT';
+
+/**
+ * GRW-P2-S (Kiorex Pay wiring): Pay reaches the sponsored discount of a booking through this port only (Pay never imports growth code). Flag `growth.sponsored_promotions` OFF: every method answers "none"
+ * and Pay behaves exactly as before. Optional dependency of Pay.
+ */
+export interface SponsoredPayPort {
+  /** The sponsored line a deposit checkout may apply: only a line the Clinic confirmed (state APPLIED, or DEBITED once the visit is done). Null when the flag is OFF or nothing applies. */
+  lineForDeposit(bookingId: string): Promise<{ amountMinor: number; currency: string; reservationRef: string } | null>;
+  /** Payout gate: how much of the sponsored amount posted into the Pay ledger may NOT be paid out yet (the Clinic has not written the DEBIT). Fails closed: a posted amount without a line is held. */
+  payoutHoldMinor(bookingId: string, postedMinor: number): Promise<number>;
+}
+export const SPONSORED_PAY_PORT = 'SPONSORED_PAY_PORT';

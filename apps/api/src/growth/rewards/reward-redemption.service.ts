@@ -102,7 +102,8 @@ export class RewardRedemptionService {
   // ───────────── reserve / release (booking deposit checkout) ─────────────
 
   async reserveForDeposit(i: RewardReserveInput): Promise<RewardReserveResult> {
-    const empty: RewardReserveResult = { appliedMinor: 0, lines: composeCheckout({ priceMinor: Math.max(i.amountMinor, 1) }).lines, lots: [] };
+    const spons = i.sponsoredMinor ?? 0; // GRW-P2-S: the shown price is the payable amount plus the sponsored line already taken off
+    const empty: RewardReserveResult = { appliedMinor: 0, lines: composeCheckout({ priceMinor: Math.max(i.amountMinor, 1) + spons, sponsoredMinor: spons }).lines, lots: [] };
     if (i.amountMinor < 1 || !(await this.policy.rewardsOn())) return empty; // switched off: nothing is read, written or materialised
     const pre = await this.snapshot(); // before the transaction: it must not need a second pooled connection while it holds one
     if (!pre.rewardsOn) return empty;
@@ -112,11 +113,11 @@ export class RewardRedemptionService {
       const open = await this.ledger.openReservations(tx, i.bookingId);
       if (open.length) { // idempotent per booking: a second checkout of the same booking reuses its reservation
         const total = open.reduce((s, r) => s + r.minor, 0);
-        return { appliedMinor: total, lines: composeCheckout({ priceMinor: i.amountMinor, creditMinor: total }).lines, lots: open.map((r) => ({ lotId: r.lotId, minor: r.minor })) };
+        return { appliedMinor: total, lines: composeCheckout({ priceMinor: i.amountMinor + spons, sponsoredMinor: spons, creditMinor: total }).lines, lots: open.map((r) => ({ lotId: r.lotId, minor: r.minor })) };
       }
       const plan0 = await this.plan({ ...i, now: new Date() }, tx, pre);
       abuse = plan0.abuseCode;
-      if (!plan0.picks.length) return { ...empty, lines: composeCheckout({ priceMinor: i.amountMinor }).lines, ...(plan0.couponProblem ? { couponProblem: plan0.couponProblem } : {}) };
+      if (!plan0.picks.length) return { ...empty, lines: composeCheckout({ priceMinor: i.amountMinor + spons, sponsoredMinor: spons }).lines, ...(plan0.couponProblem ? { couponProblem: plan0.couponProblem } : {}) };
       await this.ledger.lock(tx, plan0.picks.map((p) => p.lotId)); // serialise concurrent checkouts on the lots, then plan again on the committed state
       const plan = await this.plan({ ...i, now: new Date() }, tx, pre);
       const versionId = pre.versionId;
@@ -127,8 +128,8 @@ export class RewardRedemptionService {
         await this.ledger.refreshStatus(tx, p.lotId);
         total += p.minor; lots.push({ lotId: p.lotId, minor: p.minor });
       }
-      const composed = composeCheckout({ priceMinor: i.amountMinor, creditMinor: total });
-      await tx.rewardCheckoutLine.create({ data: { sub: i.sub, bookingId: i.bookingId, priceMinor: i.amountMinor, lines: composed.lines as unknown as Prisma.InputJsonValue } });
+      const composed = composeCheckout({ priceMinor: i.amountMinor + spons, sponsoredMinor: spons, creditMinor: total });
+      await tx.rewardCheckoutLine.create({ data: { sub: i.sub, bookingId: i.bookingId, priceMinor: i.amountMinor + spons, lines: composed.lines as unknown as Prisma.InputJsonValue } });
       return { appliedMinor: total, lines: composed.lines, lots };
     }, { timeout: 30_000, maxWait: 30_000 }); // concurrent checkouts of one patient queue on the lot rows: they wait for the connection, they do not fail
     if (abuse) await this.recordRedeemAbuse(abuse);

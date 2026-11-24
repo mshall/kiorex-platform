@@ -437,8 +437,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     // GRW-P2-B2: credit first (a coupon on request, credit lots automatically when patient credit is effective), then the card for the rest; with rewards off this is the plain deposit intent
     const r = await this.pay.createDepositIntentWithRewards({ bookingId: b.id, sub, clinicId: b.clinicId, amountMinor: b.depositAmountMinor, currency: b.currency, serviceKind: b.serviceLocation === 'HOME' ? 'HOME_VISIT' : b.telehealth ? 'VIDEO' : 'IN_CLINIC', specialty: prov?.specialty ?? null, dependantId: b.dependantId, couponCode: o.couponCode, lotId: o.lotId });
     const p = r.intent;
-    await this.ev(id, 'PAYMENT', { paymentId: p.id, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor } : {}) });
-    return { paymentId: p.id, checkoutUrl: p.checkoutUrl, amountMinor: p.amountMinor, currency: p.currency, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor, lines: r.lines } : {}), ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
+    await this.ev(id, 'PAYMENT', { paymentId: p.id, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor } : {}), ...(r.sponsoredMinor ? { sponsoredDiscountMinor: r.sponsoredMinor } : {}) });
+    // GRW-P2-S: `sponsoredDiscountMinor` and the ordered `lines` (PRICE, SPONSORED_DISCOUNT, PATIENT_CREDIT, CARD) appear only when a credit or a sponsored discount reduced the deposit; otherwise the answer is unchanged
+    return { paymentId: p.id, checkoutUrl: p.checkoutUrl, amountMinor: p.amountMinor, currency: p.currency, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor } : {}), ...(r.sponsoredMinor ? { sponsoredDiscountMinor: r.sponsoredMinor } : {}), ...(r.rewardMinor || r.sponsoredMinor ? { lines: r.lines } : {}), ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
   }
 
   async list(sub: string, status?: string) {

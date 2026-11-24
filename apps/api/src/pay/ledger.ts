@@ -25,6 +25,8 @@ export const A = {
   patientRefundCredit: 'PATIENT_REFUND_CREDIT',
   /** GRW-P2-B2: promotional credit applied to a deposit, posted only when REWARD_RULES.postToPayLedger is true (finance decision). Debit-normal like an expense: it is Kiorex's marketing cost, never the provider's. */
   promoFunded: 'PROMO_FUNDED:rewards',
+  /** GRW-P2-S: the provider-funded part of a deposit (sponsored discount) posted into HELD, only when REWARD_RULES.postToPayLedger is true (finance H-25, default false). Debit-normal: a receivable settled by the Clinic's wallet DEBIT (Kiorly side), never Kiorex revenue or expense; the payout gate holds it until that DEBIT exists. */
+  sponsorFunded: 'SPONSOR_FUNDED:clinicCredit',
 };
 
 const dr = (account: string, n: number): Posting => ({ account, debit: n, credit: 0 });
@@ -48,6 +50,10 @@ export const payout = (clinic: string, n: number): Posting[] => [dr(A.payable(cl
 export const rewardTender = (clinic: string, refundCreditMinor: number, promoMinor: number): Posting[] => [...(refundCreditMinor > 0 ? [dr(A.patientRefundCredit, refundCreditMinor)] : []), ...(promoMinor > 0 ? [dr(A.promoFunded, promoMinor)] : []), cr(A.held(clinic), refundCreditMinor + promoMinor)];
 /** The reverse of rewardTender when the credit comes back to the patient (a refund of a credit-paid deposit). `account` is HELD, or REVIEW_HOLD for a deposit under review. */
 export const rewardRestore = (account: string, refundCreditMinor: number, promoMinor: number): Posting[] => [dr(account, refundCreditMinor + promoMinor), ...(refundCreditMinor > 0 ? [cr(A.patientRefundCredit, refundCreditMinor)] : []), ...(promoMinor > 0 ? [cr(A.promoFunded, promoMinor)] : [])];
+/** GRW-P2-S: the sponsored part of a deposit reaches the clinic's HELD from SPONSOR_FUNDED (balanced by construction). */
+export const sponsorTender = (clinic: string, n: number): Posting[] => [dr(A.sponsorFunded, n), cr(A.held(clinic), n)];
+/** GRW-P2-S: the sponsored share is voided (refund of the deposit, or a forfeited deposit where no discount was earned): the exact reverse of sponsorTender. `account` is HELD, or REVIEW_HOLD for a deposit under review. */
+export const sponsorVoid = (account: string, n: number): Posting[] => [dr(account, n), cr(A.sponsorFunded, n)];
 /** A refund the patient chose to keep as credit: the money stays at Kiorex, the liability moves from "owed back by card" to "refund credit". */
 export const refundToCredit = (n: number): Posting[] => [dr(A.refundPayable, n), cr(A.patientRefundCredit, n)];
 /** A refund-credit lot expired and its unspent rest goes back to the ORIGINAL payment method: the liability returns to "owed back by card". */
@@ -67,7 +73,7 @@ export function assertValid(p: Posting[]): void {
   if (d === 0) throw new LedgerError('zero-value transaction');
 }
 
-const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees || a === A.promoFunded;
+const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees || a === A.promoFunded || a === A.sponsorFunded;
 
 /** In-memory book used by property tests and by the reconciliation invariant checker. */
 export class LedgerBook {
@@ -102,5 +108,5 @@ export class LedgerBook {
 
 /** Accounting identity: debit-normal accounts (clearing, fees, promo funded) == liabilities. */
 export function identityHolds(book: LedgerBook): boolean {
-  return book.balance(A.clearing) + book.balance(A.fees) + book.balance(A.promoFunded) === book.liabilities();
+  return book.balance(A.clearing) + book.balance(A.fees) + book.balance(A.promoFunded) + book.balance(A.sponsorFunded) === book.liabilities();
 }

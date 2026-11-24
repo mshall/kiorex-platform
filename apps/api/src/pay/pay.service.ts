@@ -5,11 +5,12 @@ import { badRequest, conflict, notFound } from '../common/errors';
 import { newId, toMajor } from '../common/ids';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
-import { REWARDS_PORT, type RewardsPort } from '../growth/growth-ports-public';
+import { REWARDS_PORT, SPONSORED_PAY_PORT, type RewardsPort, type SponsoredPayPort } from '../growth/growth-ports-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { MARKET_FACTS } from '../market/market-public';
 import { PrismaService, Tx } from '../prisma/prisma.service';
-import { A, assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundCreditExpired, refundFromReview, refundRequest, refundSettle, refundToCredit, release, releaseFromReview, releaseOrder, rewardRestore, rewardTender } from './ledger';
+import { A, assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundCreditExpired, refundFromReview, refundRequest, refundSettle, refundToCredit, release, releaseFromReview, releaseOrder, rewardRestore, rewardTender, sponsorTender, sponsorVoid } from './ledger';
+import { sponsoredVoidedByRefund } from './refund-allocation';
 import { FakePspAdapter, pspAdapter, PspWebhookEvent } from './psp';
 
 const isoWeek = (d: Date) => {
@@ -35,10 +36,10 @@ export function assertPayableCurrency(currency: unknown): asserts currency is st
 export class PayService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort) {}
 
   /** What the Pay ledger holds for a deposit: the card money still held plus the credit part posted into HELD (GRW-P2-B2). Equals amountMinor - refundedMinor when no credit was used. */
-  private heldMinor(p: { amountMinor: number; refundedMinor: number; rewardPostedMinor?: number }): number { return p.amountMinor - p.refundedMinor + (p.rewardPostedMinor ?? 0); }
+  private heldMinor(p: { amountMinor: number; refundedMinor: number; rewardPostedMinor?: number; sponsoredPostedMinor?: number }): number { return p.amountMinor - p.refundedMinor + (p.rewardPostedMinor ?? 0) + (p.sponsoredPostedMinor ?? 0); } // GRW-P2-S: plus the sponsored part posted into HELD (only when postToPayLedger)
 
   onModuleInit() {
     this.outbox.register('kiorly.deposit_paid', (e) => this.notifyKiorlyDeposit(e.payload));
@@ -78,7 +79,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   // ───────────── deposits (KXM-PAY-01) ─────────────
 
   /** Idempotent per booking: returns the existing open intent. Caller (booking) gates on kiorex.pay_deposits. */
-  async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; rewardMinor?: number }): Promise<PaymentIntent> {
+  async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; rewardMinor?: number; sponsoredMinor?: number }): Promise<PaymentIntent> {
     assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
     // Two concurrent checkouts of one booking (double click, two tabs) must not create two charges: serialise per booking, then re-read.
     return this.prisma.$transaction(async (tx) => {
@@ -88,7 +89,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       const id = newId('pay');
       const adapter = pspAdapter(i.psp ?? 'paymob');
       const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
-      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, rewardMinor: i.rewardMinor ?? 0 } });
+      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, rewardMinor: i.rewardMinor ?? 0, sponsoredMinor: i.sponsoredMinor ?? 0 } });
     }, { timeout: 20_000 });
   }
 
@@ -97,20 +98,31 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
    * charged for the rest (never less than one minor unit), and the reservation becomes a REDEEM in the transaction that records the capture. If the intent cannot be created the reservation is
    * released. With the rewards switch OFF (or nothing applicable) this is exactly `createDepositIntent`.
    */
-  async createDepositIntentWithRewards(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; serviceKind: 'IN_CLINIC' | 'VIDEO' | 'HOME_VISIT'; specialty?: string | null; dependantId?: string | null; couponCode?: string | null; lotId?: string | null }): Promise<{ intent: PaymentIntent; rewardMinor: number; lines: Array<{ code: string; amountMinor: number; labelKey: string }>; couponProblem?: string }> {
+  async createDepositIntentWithRewards(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; serviceKind: 'IN_CLINIC' | 'VIDEO' | 'HOME_VISIT'; specialty?: string | null; dependantId?: string | null; couponCode?: string | null; lotId?: string | null }): Promise<{ intent: PaymentIntent; rewardMinor: number; sponsoredMinor: number; lines: Array<{ code: string; amountMinor: number; labelKey: string }>; couponProblem?: string }> {
     const open = await this.prisma.paymentIntent.findFirst({ where: { bookingId: i.bookingId, status: { in: ['CREATED', 'CAPTURED'] } } });
-    if (open || !this.rewards) return { intent: open ?? (await this.createDepositIntent(i)), rewardMinor: open?.rewardMinor ?? 0, lines: [] };
-    const r = await this.rewards.reserveForDeposit({ sub: i.sub, bookingId: i.bookingId, amountMinor: i.amountMinor, currency: i.currency, serviceKind: i.serviceKind, specialty: i.specialty, dependantId: i.dependantId, couponCode: i.couponCode, lotId: i.lotId });
+    if (open) return { intent: open, rewardMinor: open.rewardMinor, sponsoredMinor: open.sponsoredMinor, lines: this.depositLines(open) };
+    // GRW-P2-S: the provider-sponsored discount comes off the deposit FIRST (a price reduction), then credit, then the card (KX-30 section 14.2). The card keeps at least one minor unit. Flag OFF or no line: 0 and nothing below changes.
+    const line = i.amountMinor > 1 ? await this.sponsored?.lineForDeposit(i.bookingId).catch(() => null) : null;
+    const sponsoredMinor = line && line.currency === i.currency ? Math.min(line.amountMinor, i.amountMinor - 1) : 0;
+    const payable = i.amountMinor - sponsoredMinor;
+    if (!this.rewards) { const intent = await this.createDepositIntent({ ...i, amountMinor: payable, sponsoredMinor }); return { intent, rewardMinor: 0, sponsoredMinor: intent.sponsoredMinor, lines: this.depositLines(intent) }; }
+    const r = await this.rewards.reserveForDeposit({ sub: i.sub, bookingId: i.bookingId, amountMinor: payable, sponsoredMinor, currency: i.currency, serviceKind: i.serviceKind, specialty: i.specialty, dependantId: i.dependantId, couponCode: i.couponCode, lotId: i.lotId });
     try {
-      const intent = await this.createDepositIntent({ ...i, amountMinor: i.amountMinor - r.appliedMinor, rewardMinor: r.appliedMinor });
-      if (intent.rewardMinor !== r.appliedMinor) { // a concurrent checkout of the same booking won with another amount: keep ITS intent and release nothing it relies on
-        return { intent, rewardMinor: intent.rewardMinor, lines: r.lines, ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
-      }
-      return { intent, rewardMinor: r.appliedMinor, lines: r.lines, ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
+      const intent = await this.createDepositIntent({ ...i, amountMinor: payable - r.appliedMinor, rewardMinor: r.appliedMinor, sponsoredMinor });
+      const same = intent.rewardMinor === r.appliedMinor && intent.sponsoredMinor === sponsoredMinor; // a concurrent checkout of the same booking may have won with other amounts: keep ITS intent
+      return { intent, rewardMinor: intent.rewardMinor, sponsoredMinor: intent.sponsoredMinor, lines: same ? r.lines : this.depositLines(intent), ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
     } catch (e) {
       await this.rewards.releaseForBooking(i.bookingId, 'INTENT_NOT_CREATED').catch(() => undefined);
       throw e;
     }
+  }
+
+  /** The ordered checkout lines of a deposit intent (price, sponsored discount, credit, card; every line shown, negative for reductions). Same codes and label keys as the reward module's `composeCheckout`. */
+  private depositLines(p: { amountMinor: number; rewardMinor: number; sponsoredMinor: number }): Array<{ code: string; amountMinor: number; labelKey: string }> {
+    return [{ code: 'PRICE', amountMinor: p.amountMinor + p.rewardMinor + p.sponsoredMinor, labelKey: 'checkout.price' },
+      ...(p.sponsoredMinor > 0 ? [{ code: 'SPONSORED_DISCOUNT', amountMinor: -p.sponsoredMinor, labelKey: 'checkout.sponsored' }] : []),
+      ...(p.rewardMinor > 0 ? [{ code: 'PATIENT_CREDIT', amountMinor: -p.rewardMinor, labelKey: 'checkout.credit' }] : []),
+      { code: 'CARD', amountMinor: p.amountMinor, labelKey: 'checkout.card' }];
   }
 
   /** Vertical modules subscribe to captured payments of their purpose (delivered through the outbox: retried with backoff). */
@@ -215,6 +227,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       throw conflict('CURRENCY_MISMATCH', 'Captured currency does not match intent');
     }
     const fee = ev.feeMinor ?? Math.round((p.amountMinor * cfg().pspFeeBps) / 10000); // NEEDS_HUMAN: PSP_FEE_BPS placeholder 0
+    const postSponsored = p.sponsoredMinor > 0 && !!this.rewards && (await this.rewards.postToPayLedger().catch(() => false)); // read before the transaction opens (no second pooled connection while one is held)
     await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.paymentIntent.updateMany({ where: { id: p.id, status: { in: ['CREATED', 'FAILED'] } }, data: { status: 'CAPTURED', capturedAt: new Date(ev.occurredAt), feeMinor: fee } });
       if (!claimed.count) return;
@@ -226,6 +239,10 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
         const posted = red.postedMinor;
         if (posted > 0) await this.postLedger(tx, { key: `reward-tender:${p.id}`, kind: 'REWARD_TENDER', postings: rewardTender(p.clinicId, red.patientRefundMinor, posted - red.patientRefundMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
         await tx.paymentIntent.update({ where: { id: p.id }, data: { rewardMinor: red.totalMinor, rewardPostedMinor: posted } });
+      }
+      if (postSponsored && p.bookingId) { // GRW-P2-S: the provider-funded part reaches HELD from SPONSOR_FUNDED:clinicCredit (settled by the Clinic's wallet DEBIT); REWARD_RULES.postToPayLedger, default false (finance H-25)
+        await this.postLedger(tx, { key: `sponsor-tender:${p.id}`, kind: 'SPONSOR_FUNDED', postings: sponsorTender(p.clinicId, p.sponsoredMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
+        await tx.paymentIntent.update({ where: { id: p.id }, data: { sponsoredPostedMinor: p.sponsoredMinor } });
       }
       if (fee > 0) await this.postLedger(tx, { key: `fee:${p.id}`, kind: 'PSP_FEE', postings: pspFee(fee), paymentId: p.id, clinicId: p.clinicId });
       if (p.purpose !== 'DEPOSIT') {
@@ -242,7 +259,8 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   private async notifyKiorlyDeposit(payload: { paymentId: string }) {
     const p = await this.getIntent(payload.paymentId);
     // GRW-P2-B2: the Clinic is told the GROSS deposit (card plus credit) and how it was funded (never a patient identity); without credit the call is byte-identical to before
-    const body = { amount: toMajor(p.amountMinor + p.rewardMinor), currency: p.currency, paymentRef: p.id, paidAt: (p.capturedAt ?? new Date()).toISOString(), ...(p.rewardMinor > 0 ? { tender: { cardMinor: p.amountMinor, patientCreditMinor: p.rewardMinor } } : {}) };
+    // GRW-P2-S: and how much of it the provider's sponsored discount covered (`tender.sponsoredDiscountMinor`, contracts 1.12.0); gross = card + patient credit + sponsored
+    const body = { amount: toMajor(p.amountMinor + p.rewardMinor + p.sponsoredMinor), currency: p.currency, paymentRef: p.id, paidAt: (p.capturedAt ?? new Date()).toISOString(), ...(p.rewardMinor > 0 || p.sponsoredMinor > 0 ? { tender: { cardMinor: p.amountMinor, patientCreditMinor: p.rewardMinor, ...(p.sponsoredMinor > 0 ? { sponsoredDiscountMinor: p.sponsoredMinor } : {}) } } : {}) };
     try {
       if (p.bookingId) await this.kiorly.depositPaid(p.bookingId, body);
       else if (p.payLinkToken) await this.kiorly.depositLinkPaid(p.payLinkToken, body);
@@ -288,6 +306,13 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
           await this.postLedger(tx, { key: `reward-restore:${refund.id}`, kind: 'REWARD_RESTORE', postings: rewardRestore(heldForReview ? A.reviewHold(p.clinicId) : A.held(p.clinicId), patientPart, res.postedRestoredMinor - patientPart), bookingId: p.bookingId, paymentId, clinicId: p.clinicId });
           await tx.paymentIntent.update({ where: { id: paymentId }, data: { rewardPostedMinor: p.rewardPostedMinor - res.postedRestoredMinor } });
         }
+      }
+      if (p.sponsoredMinor > 0) {
+        // GRW-P2-S (KX-30 14.2): a refund voids its pro-rata share of the sponsored discount; the patient is refunded only what the patient paid (card, and credit restored): the sponsored share is never paid to the patient as cash or credit
+        const voided = sponsoredVoidedByRefund({ sponsoredMinor: p.sponsoredMinor, cardMinor: p.amountMinor, cardRefundedAfterMinor: p.refundedMinor + amount, alreadyVoidedMinor: p.sponsoredVoidedMinor });
+        const postedVoid = Math.min(voided, p.sponsoredPostedMinor);
+        if (postedVoid > 0) await this.postLedger(tx, { key: `sponsor-void:${refund.id}`, kind: 'SPONSOR_VOID', postings: sponsorVoid(heldForReview ? A.reviewHold(p.clinicId) : A.held(p.clinicId), postedVoid), bookingId: p.bookingId, paymentId, clinicId: p.clinicId });
+        if (voided > 0) await tx.paymentIntent.update({ where: { id: paymentId }, data: { sponsoredVoidedMinor: p.sponsoredVoidedMinor + voided, sponsoredPostedMinor: p.sponsoredPostedMinor - postedVoid } });
       }
       await this.outbox.enqueue(tx, { type: 'pay.refund_requested', aggregateType: 'Refund', aggregateId: refund.id, payload: { refundId: refund.id }, dedupeKey: `pay.refund_requested:${refund.id}` });
       return refund;
@@ -373,10 +398,16 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const p = await this.intentForBooking(bookingId);
     if (!p || p.status !== 'CAPTURED' || p.releasedAt) return null;
     if (p.reviewState === 'HELD_FOR_REVIEW') return null; // never auto-forfeited / auto-released while under review (KXMPAY07)
-    const n = this.heldMinor(p);
+    const unwind = kind === 'FORFEITED' ? p.sponsoredPostedMinor : 0; // GRW-P2-S: a forfeited deposit earned no discount, so the sponsored part posted into HELD goes back to SPONSOR_FUNDED and is not paid to the clinic
+    const n = this.heldMinor(p) - unwind;
     await this.prisma.$transaction(async (tx) => {
       const c = await tx.paymentIntent.updateMany({ where: { id: p.id, releasedAt: null }, data: { releasedAt: new Date(), releaseKind: kind } });
-      if (c.count) await this.postLedger(tx, { key: `release:${p.id}`, kind: `RELEASE_${kind}`, postings: release(p.clinicId, n), bookingId, paymentId: p.id, clinicId: p.clinicId });
+      if (!c.count) return;
+      if (unwind > 0) {
+        await this.postLedger(tx, { key: `sponsor-void-forfeit:${p.id}`, kind: 'SPONSOR_VOID', postings: sponsorVoid(A.held(p.clinicId), unwind), bookingId, paymentId: p.id, clinicId: p.clinicId });
+        await tx.paymentIntent.update({ where: { id: p.id }, data: { sponsoredPostedMinor: 0, sponsoredVoidedMinor: p.sponsoredVoidedMinor + unwind } });
+      }
+      if (n > 0) await this.postLedger(tx, { key: `release:${p.id}`, kind: `RELEASE_${kind}`, postings: release(p.clinicId, n), bookingId, paymentId: p.id, clinicId: p.clinicId });
     });
     return kind;
   }
@@ -446,7 +477,13 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   /** Weekly, idempotent. Each released, unpaid deposit is claimed exactly once; Kiorly is told via outbox with payoutRef. */
   async runPayouts(now = new Date()) {
     const period = isoWeek(now);
-    const due = await this.prisma.paymentIntent.findMany({ where: { purpose: 'DEPOSIT', status: { in: ['CAPTURED', 'PARTIALLY_REFUNDED'] }, releasedAt: { not: null }, payoutId: null } }); // vertical partner payouts are NEEDS_HUMAN (merchant-of-record decision)
+    const released = await this.prisma.paymentIntent.findMany({ where: { purpose: 'DEPOSIT', status: { in: ['CAPTURED', 'PARTIALLY_REFUNDED'] }, releasedAt: { not: null }, payoutId: null } }); // vertical partner payouts are NEEDS_HUMAN (merchant-of-record decision)
+    // GRW-P2-S payout gate: a deposit whose sponsored part sits in the Pay ledger is paid out only after the Clinic has written the DEBIT (the sponsored amount is funded from the clinic's wallet). Until then the whole deposit waits for the next run.
+    const due: PaymentIntent[] = []; const heldBack: { paymentId: string; holdMinor: number }[] = [];
+    for (const p of released) {
+      const hold = p.sponsoredPostedMinor > 0 ? (this.sponsored && p.bookingId ? await this.sponsored.payoutHoldMinor(p.bookingId, p.sponsoredPostedMinor) : p.sponsoredPostedMinor) : 0;
+      if (hold > 0) heldBack.push({ paymentId: p.id, holdMinor: hold }); else due.push(p);
+    }
     const byClinic = new Map<string, PaymentIntent[]>();
     for (const p of due) byClinic.set(p.clinicId, [...(byClinic.get(p.clinicId) ?? []), p]);
     const out: { payoutRef: string; clinicId: string; amountMinor: number }[] = [];
@@ -467,7 +504,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       }).catch((e) => { if (e?.code === 'P2002') return; throw e; });
       out.push({ payoutRef, clinicId, amountMinor: amount });
     }
-    return { period, payouts: out };
+    return { period, payouts: out, ...(heldBack.length ? { heldBack } : {}) };
   }
 
   private async notifyKiorlyPayout(payload: { payoutId: string }) {
@@ -579,6 +616,9 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     for (const n of noLedger) disc.push({ type: 'CAPTURE_WITHOUT_LEDGER', ref: n.id });
     const heldNoLedger = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p."reviewState" = 'HELD_FOR_REVIEW' AND NOT EXISTS (SELECT 1 FROM "LedgerTx" t WHERE t."idempotencyKey" = 'hold-review:' || p.id)`;
     for (const n of heldNoLedger) disc.push({ type: 'REVIEW_HOLD_WITHOUT_LEDGER', ref: n.id });
+    // GRW-P2-S RC-S4 (Pay side): the SPONSOR_FUNDED account moved for a payment equals what the intent says is still posted (a refund voids its share, a forfeit unwinds it all)
+    const sponsorDrift = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p."sponsoredMinor" > 0 AND (SELECT COALESCE(SUM(e."debitMinor" - e."creditMinor"), 0) FROM "LedgerEntry" e JOIN "LedgerTx" t ON t.id = e."txId" WHERE t."paymentId" = p.id AND e.account = ${A.sponsorFunded}) <> p."sponsoredPostedMinor"`;
+    for (const n of sponsorDrift) disc.push({ type: 'SPONSORED_LEDGER_MISMATCH', ref: n.id });
     // vertical orders: once released (fulfilled, or partially fulfilled with a pro-rata refund) nothing may stay HELD for that payment (captured = refunded + released)
     const heldAfterRelease = await this.prisma.$queryRaw<{ id: string }[]>`SELECT p.id FROM "PaymentIntent" p WHERE p.purpose <> 'DEPOSIT' AND p."releasedAt" IS NOT NULL AND (SELECT COALESCE(SUM(e."creditMinor" - e."debitMinor"), 0) FROM "LedgerEntry" e JOIN "LedgerTx" t ON t.id = e."txId" WHERE t."paymentId" = p.id AND e.account LIKE 'HELD:%') <> 0`;
     for (const n of heldAfterRelease) disc.push({ type: 'ORDER_HELD_AFTER_RELEASE', ref: n.id });

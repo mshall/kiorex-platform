@@ -22,3 +22,14 @@ export function allocateRefund(i: RefundAllocationInput): RefundAllocation {
   const creditRestoredMinor = Math.min(i.creditMinor, patientPaidRefundableMinor, Math.round(r * i.creditMinor));
   return { patientPaidRefundableMinor, creditRestoredMinor, cardRefundMinor: patientPaidRefundableMinor - creditRestoredMinor, sponsoredVoidedMinor: Math.min(i.sponsoredMinor, Math.round(r * i.sponsoredMinor)) };
 }
+
+/**
+ * GRW-P2-S: the sponsored share a refund voids, by the CARD fraction refunded (the same basis the credit restore uses): cumulative `round(S x cardRefundedAfter / card)`, exactly S once the whole card amount is
+ * refunded, never less than what earlier refunds already voided. Returns the share voided by THIS refund. Pure, integer minor units. Agrees with `allocateRefund` (sponsoredVoidedMinor) for a single refund.
+ */
+export function sponsoredVoidedByRefund(i: { sponsoredMinor: number; cardMinor: number; cardRefundedAfterMinor: number; alreadyVoidedMinor: number }): number {
+  for (const [k, v] of Object.entries(i)) if (!Number.isInteger(v) || v < 0) throw new RangeError(`${k} must be a non-negative integer`);
+  if (i.sponsoredMinor === 0 || i.cardMinor === 0) return 0;
+  const after = i.cardRefundedAfterMinor >= i.cardMinor ? i.sponsoredMinor : Math.min(i.sponsoredMinor, Math.round((i.sponsoredMinor * i.cardRefundedAfterMinor) / i.cardMinor));
+  return Math.max(0, after - i.alreadyVoidedMinor);
+}
