@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketCurrency } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../../common/errors';
 import { decryptField } from '../../common/crypto';
@@ -49,7 +50,7 @@ export class RewardsQueryService {
     const open = await this.ledger.openLots(this.prisma, { owners: [sub], now, mode: 'CREDIT' });
     const h = await this.prisma.rewardHousehold.findFirst({ where: { ownerSub: sub }, include: { members: { where: { endedAt: null } } } });
     return {
-      openBalanceMinor: open.reduce((s, l) => s + l.availableMinor, 0), currency: 'EGP',
+      openBalanceMinor: open.reduce((s, l) => s + l.availableMinor, 0), currency: (open[0] as { currency?: string } | undefined)?.currency ?? (marketCurrency(DEFAULT_MARKET) || 'EGP'),
       lots: open.map((l) => ({ id: l.id, kind: l.kind, remainingMinor: l.availableMinor, expiresAt: l.expiresAt, scopeText: scopeText(l.scope, locale), funding: l.funding })),
       household: h ? { ownerIsMe: true, members: h.members.length } : null,
     };

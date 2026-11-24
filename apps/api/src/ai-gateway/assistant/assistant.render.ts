@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketCurrency, marketMinorUnits } from '../../market/market-core-public';
 import { marketClock } from '../../common/market-time';
 import { EMERGENCY_GUIDANCE, SPECIALTY_LABELS, type SpecialtyCode } from '../../safety/safety-public';
 import type { ClarifySlot, Dialect, Lang, ReplyIntent } from './assistant.types';
@@ -12,7 +13,8 @@ export interface Rendered { key: string; body: string; buttons?: Button[] }
 type V = { en: string; eg: string; msa?: string };
 const pick = (d: Dialect, v: V) => (d === 'en' ? v.en : d === 'msa' ? v.msa ?? v.eg : v.eg);
 export const langOf = (d: Dialect): Lang => (d === 'en' ? 'en' : 'ar');
-const money = (minor: number | null | undefined, cur = 'EGP') => (minor && minor > 0 ? `${Math.round(minor) / 100} ${cur}` : null);
+/** Money in the market's own currency and minor units (ZY readiness): the default market unless a caller passes the conversation's market. */
+const money = (minor: number | null | undefined, cur?: string, market: string = DEFAULT_MARKET) => (minor && minor > 0 ? `${Math.round(minor) / 10 ** marketMinorUnits(market)} ${cur ?? (marketCurrency(market) || 'EGP')}` : null);
 const t = (iso: string, d: Dialect) => marketClock(iso, langOf(d));
 const nameOf = (x: { nameAr?: string | null; nameEn?: string | null; name?: string }, d: Dialect) => (x.name ?? (d === 'en' ? x.nameEn ?? x.nameAr : x.nameAr ?? x.nameEn) ?? '').toString();
 const specialtyLabel = (c: string, d: Dialect) => SPECIALTY_LABELS[c as SpecialtyCode]?.[langOf(d)] ?? c;

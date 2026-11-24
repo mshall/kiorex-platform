@@ -47,7 +47,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
           const p = await this.patients.profileBySub(sub);
           return this.suppression.isSuppressed(channel === 'EMAIL' ? [p?.email] : channel === 'PUSH' || channel === 'INAPP' ? [] : [p?.phone], channel, p?.market ?? DEFAULT_MARKET);
         },
-        defaultQuiet: async (at) => { const d = await this.prefCentre.consentDefaults(); return { zone: d.quietHoursTimezone, startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
+        defaultQuiet: async (at, sub) => { const d = await this.prefCentre.consentDefaults(await this.marketOfSub(sub)); return { zone: d.quietHoursTimezone, startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
       },
     }));
   }
@@ -61,8 +61,11 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
    * Marketing frequency cap across channels (defaults 1 per day and 3 per week, CONSENT_DEFAULTS): counts DISTINCT logical sends (a notify() fans one dedupe base
    * key out to several channels), and never counts the notification being delivered. Returns the capped window, or null when the send may go.
    */
+  /** The person's market (the quiet window and the caps come from that market's CONSENT_DEFAULTS); the default market when unknown. */
+  private async marketOfSub(sub?: string): Promise<string> { if (!sub) return DEFAULT_MARKET; return (await this.patients.profileBySub(sub).catch(() => null))?.market ?? DEFAULT_MARKET; }
+
   async marketingCapped(sub: string, currentDedupeKey: string | null, now = new Date()): Promise<'FREQUENCY_CAP_DAY' | 'FREQUENCY_CAP_WEEK' | null> {
-    const d = await this.prefCentre.consentDefaults();
+    const d = await this.prefCentre.consentDefaults(await this.marketOfSub(sub));
     const sent = await this.marketingSentSince(sub, new Date(now.getTime() - 7 * 86_400_000), currentDedupeKey);
     const day = sent.filter((t) => t.getTime() >= now.getTime() - 86_400_000).length;
     if (d.maxMarketingPerDay <= 0 || day >= d.maxMarketingPerDay) return 'FREQUENCY_CAP_DAY';

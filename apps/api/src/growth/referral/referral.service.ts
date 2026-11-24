@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketCurrency } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { REFERRAL_CODE_PATTERN } from '@kiorex/contracts';
 import { ApiError } from '../../common/errors';
@@ -57,7 +58,7 @@ export class ReferralService {
       code: code.code, status: code.status, inviteUrl: inviteUrl(code.code, { locale }), deepLink: inviteDeepLink(code.code),
       counts: { invited, signedUp, qualified },
       capsRemaining: { last30Days: Math.max(0, rules.caps.perReferrer30Days - last30), thisYear: Math.max(0, rules.caps.perReferrerYear - year) },
-      rewards: { activeCount: open.length, activeMinor: open.reduce((s, l) => s + l.availableMinor, 0), currency: 'EGP' },
+      rewards: { activeCount: open.length, activeMinor: open.reduce((s, l) => s + l.availableMinor, 0), currency: (open[0] as { currency?: string } | undefined)?.currency ?? (marketCurrency(DEFAULT_MARKET) || 'EGP') },
     };
   }
 

@@ -53,7 +53,8 @@ export interface PlatformPrefsDeps {
   marketing?: {
     enabled(sub: string): Promise<boolean>;
     suppressed(sub: string, channel: string): Promise<boolean>;
-    defaultQuiet(at: number): Promise<{ startHour: number; endHour: number; tzOffsetMinutes: number; zone?: string }>;
+    /** `sub` lets the implementation use the person's market (ZY readiness); absent means the default market. */
+    defaultQuiet(at: number, sub?: string): Promise<{ startHour: number; endHour: number; tzOffsetMinutes: number; zone?: string }>;
   };
 }
 export const consentPurposeOf = (p: Purpose, channel?: string): GateConsentKey =>
@@ -69,7 +70,7 @@ export class PlatformPreferenceStore implements PreferenceStore {
       // MARKETING needs: flag effective, per-channel marketing consent, no channel opt-out, no suppression, outside quiet hours. Anything missing = deny.
       const m = this.deps.marketing;
       if (!m || !(await m.enabled(sub))) return { consent: false, optedOut: false, quiet: null };
-      const [consent, pref, suppressed, dq] = await Promise.all([this.deps.hasConsent(sub, consentPurposeOf('MARKETING', ctx.channel)), this.deps.preference(sub, ctx.channel), m.suppressed(sub, ctx.channel), m.defaultQuiet(Date.now())]);
+      const [consent, pref, suppressed, dq] = await Promise.all([this.deps.hasConsent(sub, consentPurposeOf('MARKETING', ctx.channel)), this.deps.preference(sub, ctx.channel), m.suppressed(sub, ctx.channel), m.defaultQuiet(Date.now(), sub)]);
       return { consent, optedOut: suppressed || (!!pref && !pref.enabled), quiet: { startHour: pref?.quietStart ?? dq.startHour, endHour: pref?.quietEnd ?? dq.endHour, tzOffsetMinutes: dq.tzOffsetMinutes, ...(dq.zone ? { zone: dq.zone } : {}) } };
     }
     const consent = await this.deps.hasConsent(sub, consentPurposeOf(ctx.purpose));
