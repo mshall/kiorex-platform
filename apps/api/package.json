@@ -8,7 +8,7 @@
     "build": "prisma generate && nest build",
     "start": "node dist/main.js",
     "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
-    "lint": "prisma generate && tsc --noEmit -p tsconfig.json && node scripts/lint-boundaries.mjs",
+    "lint": "prisma generate && tsc --noEmit -p tsconfig.json && node scripts/lint-boundaries.mjs && node scripts/sast-growth.mjs",
     "test": "npm run test:unit && npm run test:integration",
     "pretest:unit": "prisma generate",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --selectProjects unit",

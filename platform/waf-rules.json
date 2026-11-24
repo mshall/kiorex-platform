@@ -25,6 +25,85 @@
       "scope": "CloudFront",
       "action": "COUNT",
       "statement": "Optional geo match for abuse investigation (not a residency control)"
+    },
+    {
+      "id": "rate-growth-public",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 300 requests / 5 min per IP on the public growth API",
+      "paths": [
+        "/api/v1/growth/v1/*"
+      ],
+      "rateLimit": {
+        "requests": 300,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-growth-referral",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 60 requests / 5 min per IP on referral invite, claim and me (the app also limits claims to 20 per hour per person)",
+      "paths": [
+        "/api/v1/growth/v1/referral/*",
+        "/api/v1/growth/v1/rewards/*"
+      ],
+      "rateLimit": {
+        "requests": 60,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-growth-assistant",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 60 requests / 5 min per IP on the assistant link verification (single-use 15 minute tokens)",
+      "paths": [
+        "/api/v1/growth/v1/assistant/*"
+      ],
+      "rateLimit": {
+        "requests": 60,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-growth-experiments",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 120 requests / 5 min per IP on experiment assignment and exposure (answers are cacheable per unit for 10 minutes; the cache key includes the kxe cookie)",
+      "paths": [
+        "/api/v1/growth/v1/experiments/*"
+      ],
+      "rateLimit": {
+        "requests": 120,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-invite-landing",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 120 requests / 5 min per IP on invite landing pages",
+      "paths": [
+        "/invite/*"
+      ],
+      "rateLimit": {
+        "requests": 120,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-widget-session",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 60 requests / 5 min per IP on widget session issue",
+      "paths": [
+        "/api/v1/widget/v1/*"
+      ],
+      "rateLimit": {
+        "requests": 60,
+        "windowSeconds": 300
+      }
     }
   ]
 }
