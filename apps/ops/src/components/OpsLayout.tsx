@@ -35,7 +35,7 @@ export function OpsLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-card/90 px-4 backdrop-blur-sm">
           <nav className="flex gap-1 overflow-x-auto md:hidden" aria-label={t("nav.main")}>
-            {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent text-primary")}>{t(`nav.${key}`)}</NavLink>)}
+            {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent font-semibold text-accent-foreground")}>{t(`nav.${key}`)}</NavLink>)}
           </nav>
           <div className="ms-auto flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} data-testid="lang-toggle"><Languages aria-hidden="true" /><span lang={next}>{next === "ar" ? "العربية" : "English"}</span></Button>
