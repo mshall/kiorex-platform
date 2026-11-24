@@ -1855,20 +1855,27 @@ model ReferralIdentitySignal {
 
 /// A bundle of reward value. `status` is a cache; the truth is RewardLedgerEntry.
 model RewardLot {
-  id             String   @id @default(cuid())
-  market         String   @default("EG")
-  sub            String
-  kind           String // REFERRER REFEREE REPEAT PROMO CORPORATE LOYALTY
-  mode           String // CREDIT COUPON
-  currency       String   @default("EGP")
-  amountMinor    Int
-  couponCodeHash String?
-  status         String   @default("ACTIVE") // ACTIVE HELD EXHAUSTED EXPIRED REVERSED
-  ruleVersionId  String
-  relationshipId String?
-  campaignId     String?
-  expiresAt      DateTime
-  createdAt      DateTime @default(now())
+  id                  String   @id @default(cuid())
+  market              String   @default("EG")
+  sub                 String
+  kind                String // REFERRER REFEREE REPEAT PROMO CORPORATE LOYALTY
+  mode                String // CREDIT COUPON
+  currency            String   @default("EGP")
+  amountMinor         Int
+  couponCodeHash      String?
+  status              String   @default("ACTIVE") // ACTIVE HELD EXHAUSTED EXPIRED REVERSED
+  ruleVersionId       String
+  relationshipId      String?
+  campaignId          String?
+  expiresAt           DateTime
+  createdAt           DateTime @default(now())
+  /// Rev 2.6 (migration 20261203096000): who OWNS the credit (family: the owner; `sub` stays the person it was issued for), the household, the funding label, the spend scope, the verified qualifying visit.
+  ownerSub            String?
+  householdId         String?
+  /// PLATFORM_MARKETING | PLATFORM_SERVICE_RECOVERY | PATIENT_REFUND (the patient's own refunded money: never a marketing expense, never revenue)
+  funding             String   @default("PLATFORM_MARKETING")
+  scope               Json     @default("{}")
+  qualifyingBookingId String?
 
   entries RewardLedgerEntry[]
 
@@ -1876,6 +1883,8 @@ model RewardLot {
   @@index([expiresAt, status])
   @@index([relationshipId])
   @@index([campaignId])
+  @@index([ownerSub])
+  @@index([householdId])
 }
 
 /// Append-only ledger (trigger reward_ledger_immutable). amountMinor > 0. idempotencyKey unique: a retry can never double an entry.
@@ -1894,11 +1903,14 @@ model RewardLedgerEntry {
   reasonCode     String
   actor          String
   createdAt      DateTime @default(now())
+  /// Rev 2.6: the refund a REFUND_CREDIT lot was issued for (the only ISSUE linked to a payment path, safety rule S7).
+  refundId       String?
 
   lot RewardLot @relation(fields: [lotId], references: [id])
 
   @@index([lotId, createdAt])
   @@index([bookingId])
+  @@index([refundId])
 }
 
 model RewardIssuanceBudget {
@@ -2122,4 +2134,92 @@ model GrowthJobRun {
   error      String?
 
   @@index([job, startedAt])
+}
+
+// ── Rev 2.6 (GRW-P2-X1, migration 20261203096000_growth_p2_credit_ledger_v2): the PATIENT credit system. A different system from the provider credit wallet of the Clinic:
+// no shared row, no foreign key, no shared code (ADR-048 Proposed). Every table below holds Kiorex patients only.
+
+/// One owner holds the credit; dependants draw from it. One household per owner and market.
+model RewardHousehold {
+  id        String   @id @default(cuid())
+  market    String   @default("EG")
+  ownerSub  String
+  createdAt DateTime @default(now())
+
+  members RewardHouseholdMember[]
+
+  @@unique([market, ownerSub])
+}
+
+model RewardHouseholdMember {
+  householdId String
+  memberSub   String
+  relation    String    @default("DEPENDANT")
+  addedAt     DateTime  @default(now())
+  endedAt     DateTime?
+
+  household RewardHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@id([householdId, memberSub])
+  @@index([memberSub])
+}
+
+/// Where a refund went: ORIGINAL (default) or CREDIT. Immutable once written (trigger; erasure may anonymise the subject inside the maintenance functions only).
+model RefundDestinationChoice {
+  id        String   @id @default(cuid())
+  market    String   @default("EG")
+  refundId  String   @unique
+  bookingId String
+  sub       String
+  choice    String // ORIGINAL | CREDIT
+  chosenAt  DateTime @default(now())
+  source    String // PATIENT_CANCEL | PATIENT_REFUND_REQUEST
+
+  @@index([sub])
+  @@index([bookingId])
+}
+
+/// Support goodwill and service-recovery grant. CHECK approvedBy <> grantedBy.
+model GoodwillGrant {
+  id          String   @id @default(cuid())
+  market      String   @default("EG")
+  sub         String
+  reason      String // PROVIDER_LATE_CANCEL LONG_WAIT FAILED_BOOKING PAYMENT_ISSUE OTHER_APPROVED
+  bookingId   String?
+  ticketRef   String?
+  amountMinor Int
+  lotId       String
+  grantedBy   String
+  approvedBy  String?
+  createdAt   DateTime @default(now())
+
+  @@index([sub, createdAt])
+  @@index([grantedBy, createdAt])
+}
+
+/// Immutable snapshot of the ordered checkout lines used by a booking or pay link (refunds and reports read it).
+model RewardCheckoutLine {
+  id         String   @id @default(cuid())
+  market     String   @default("EG")
+  sub        String
+  bookingId  String?
+  payLinkId  String?
+  priceMinor Int
+  lines      Json
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([sub])
+}
+
+/// Daily reconciliation (RC-1 to RC-7). Never auto-corrects: a failed check is a case for finance.
+model RewardReconcileRun {
+  id      String   @id @default(cuid())
+  market  String   @default("EG")
+  ranAt   DateTime @default(now())
+  results Json
+  ok      Boolean
+  caseRef String?
+
+  @@index([ranAt])
 }

@@ -23,6 +23,7 @@ const KIND_NOTES: Record<string, string> = {
   REWARD_RULES: 'Reward mode (coupon or credit), amounts, expiry, caps and redemption limits. Money: announcement required.',
   LIFECYCLE_POLICY: 'Message classes, frequency caps, quiet hours, journeys and allowlisted segments.',
   ASSISTANT_POLICY: 'WhatsApp assistant: languages, tools per state, token and cost budgets, retention, escalation SLA, model mode.',
+  SPONSORED_PROMOTION_POLICY: 'Provider-sponsored promotions: commission basis, high-value review thresholds, funding defaults. Money: 7 days notice and an announcement.',
   INTEGRATION: 'Read-only marketing integrations by kind: mode, secret reference names, pull schedule, rate budget, retention.',
   MARKET_GROWTH: 'Per-market growth facts: currency, phone code, locales, booking link host, integrations on/off, secret references.',
 };

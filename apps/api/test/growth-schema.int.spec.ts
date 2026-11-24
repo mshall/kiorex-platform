@@ -218,6 +218,8 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
         await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', '20261129090000_growth_analytics_v1', 'migration.sql'), 'utf8'));
         // GRW-P2-X1: growth_analytics_v1 re-creates the 17-column GrowthMetricDaily_dim_key, which 20261203090000 supersedes with dim2 (campaignId in the key): replay that one too
         await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', '20261203090000_growth_p2_campaigns', 'migration.sql'), 'utf8'));
+        // growth_core also re-creates the Phase 1 growth_erase_subject; the Phase 2 migrations that REPLACE it (erase and retention v2, credit ledger v2) are replayed in order, or a later suite erases without the Phase 2 tables
+        for (const m of ['20261203095000_growth_p2_erase_retention_v2', '20261203096000_growth_p2_credit_ledger_v2']) await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', m, 'migration.sql'), 'utf8'));
         const after = (await client.query(`SELECT count(*)::int AS n FROM pg_constraint`)).rows[0].n;
         expect(after).toBe(before);
         expect((await client.query(`SELECT count(*)::int AS n FROM pg_trigger WHERE tgname IN ('growth_touchpoint_immutable','growth_attribution_decision_immutable')`)).rows[0].n).toBe(2);

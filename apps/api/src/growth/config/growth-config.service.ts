@@ -13,7 +13,7 @@ import { DAILY_VERSION_BUDGET, evaluateGuardrails, findSecretViolations } from '
 export type ConfigScope = { scope: 'GLOBAL'; scopeId?: '' } | { scope: 'MARKET'; scopeId: string };
 export interface ConfigActor { sub: string; roles: string[] }
 /** Kinds whose change moves money or evidence rules: effectiveFrom must be at least 7 days after approval and an announcement text is required (ARCH section 16). */
-export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION'];
+export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY']; // the last: a clinic's sponsored discount changes what a provider funds, so it needs notice
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
 /** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
 export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY'];

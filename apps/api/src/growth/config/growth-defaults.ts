@@ -70,7 +70,18 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind, Record<st
   // all amounts 0 until KX-12 pricing sets a deposit or a Kiorex fee (AD-4); COUPON is the lower-exposure mode (AD-2)
   REWARD_RULES: {
     mode: 'COUPON', currency: 'EGP', amounts: { referrerMinor: 0, refereeMinor: 0, repeatMinor: 0, promoMinor: 0 }, expiryMonths: 12, perUserAnnualCapMinor: 0, perCampaignCapMinor: 0, ruleBudgetCeilingMinor: 0,
-    redemption: { maxPercentOfDeposit: 100, minPayableMinor: 0, postToPayLedger: false },
+    redemptionMaxBp: 10_000, minPayableMinor: 0, postToPayLedger: false, reversalWindowDays: 30, holdMaxDays: 14, manualApprovalAboveMinor: 20_000, manualDailyCapPerActorMinor: 50_000, issueOn: ['COMPLETED_VISIT'],
+    // Rev 2.6 patient credit block: every switch OFF (the launch-locked flags growth.patient_credit, growth.refund_as_credit and growth.family_credit gate it too); amounts are placeholders for counsel and the founder (H-23, H-27)
+    credit: {
+      maxOpenBalanceMinor: 200_000,
+      refundAsCredit: { enabled: false, refundCreditExpiryMonths: 12, refundCreditOnExpiry: 'REFUND_TO_ORIGINAL', restoredLotMinDays: 90 }, family: { enabled: false },
+      goodwill: { reasons: ['PROVIDER_LATE_CANCEL', 'LONG_WAIT', 'FAILED_BOOKING', 'PAYMENT_ISSUE', 'OTHER_APPROVED'], perAgentDailyCapMinor: 50_000, perPatient90dCapMinor: 20_000, perReasonMaxMinor: 10_000, approvalAboveMinor: 5_000 },
+      campaignScope: { serviceKinds: ['IN_CLINIC', 'VIDEO', 'HOME_VISIT'], specialtyAllowlist: [] },
+    },
+  },
+  SPONSORED_PROMOTION_POLICY: {
+    commissionBasis: 'GROSS_BEFORE_SPONSORED', highValueBudgetMinor: 5_000_000, highValuePerBookingMinor: 50_000, maxDiscountBp: 3000, allowedCareTypes: ['IN_CLINIC', 'VIDEO', 'HOME_VISIT'],
+    defaultFundingMode: 'WALLET_THEN_INVOICE', postToPayLedger: false, reservationTtlGraceMinutes: 15, reviewRequired: true,
   },
   LIFECYCLE_POLICY: {
     messageClasses: ['TRANSACTIONAL', 'SECURITY', 'CLINICAL', 'MARKETING'], frequencyCaps: { marketingPerDay: 1, marketingPerWeek: 3 }, quietHours: { start: '21:00', end: '09:00', timezone: 'Africa/Cairo' },
