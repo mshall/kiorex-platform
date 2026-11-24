@@ -28,6 +28,20 @@ describe('waitlist autofill (KXM-BK-12)', () => {
     expect((await c.http().get('/api/v1/waitlist').set(a)).body).toEqual([]);
   });
 
+  it('KIORLY_WAITLIST_MIRROR=true tells the Clinic about a join and a leave (externalRef = the entry id); a failing Clinic never fails the patient; default is off', async () => {
+    const off = await join(a).expect(201); expect(c.kiorly.callsTo('POST', '/waitlist')).toHaveLength(0);
+    await c.http().delete(`/api/v1/waitlist/${off.body.id}`).set(a).expect(200); expect(c.kiorly.callsTo('DELETE', '/waitlist/')).toHaveLength(0);
+    process.env.KIORLY_WAITLIST_MIRROR = 'true';
+    try {
+      const e = await join(a).expect(201);
+      const posts = c.kiorly.callsTo('POST', '/waitlist');
+      expect(posts).toHaveLength(1);
+      expect(posts[0]!.body).toMatchObject({ externalRef: e.body.id, clinicId: expect.any(String), patient: expect.any(Object) });
+      await c.http().delete(`/api/v1/waitlist/${e.body.id}`).set(a).expect(200);
+      expect(c.kiorly.callsTo('DELETE', `/waitlist/${e.body.id}`)).toHaveLength(1);
+    } finally { delete process.env.KIORLY_WAITLIST_MIRROR; }
+  });
+
   it('join for a doctor with open slots is rejected 409 SLOTS_AVAILABLE: no entry, no offer, no booking, other patients untouched', async () => {
     const eb = await join(b).expect(201); // b waits while the schedule is full
     c.kiorly.slots = [futureSlot(72), futureSlot(96)];

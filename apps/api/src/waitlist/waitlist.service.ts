@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
+import { KiorlyClient } from '../kiorly/kiorly-public';
 import { Provider, WaitlistEntry, WaitlistOffer } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, conflict, notFound } from '../common/errors';
@@ -25,7 +26,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   constructor(
     private readonly prisma: PrismaService, private readonly catalog: CatalogService, private readonly booking: BookingService, private readonly flags: FlagsService,
-    private readonly engagement: EngagementService, private readonly markets: MarketService, private readonly patients: PatientService,
+    private readonly engagement: EngagementService, private readonly markets: MarketService, private readonly patients: PatientService, @Optional() private readonly kiorly?: KiorlyClient,
   ) {}
 
   onModuleInit() {
@@ -69,8 +70,25 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       data: { id: newId('kx_wl'), sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, preferredFrom: from, preferredTo: to, expiresAt: to && to < horizon ? to : horizon },
       include: { offers: true },
     });
+    await this.mirrorJoin(sub, e, p, i.dependantId);
     await this.catalog.track('waitlist_joined', { providerId: p.id, specialtyCode: p.specialty ?? undefined });
     return this.presentEntry(e, p);
+  }
+
+  /** Wave 9 (GC-2 consumer): tell the Clinic about the entry so its own waitlist autofill sees the patient. Best effort and off by default (`KIORLY_WAITLIST_MIRROR`): the Kiorex waitlist stays authoritative. */
+  private async mirrorJoin(sub: string, e: WaitlistEntry, p: Provider, dependantId?: string): Promise<void> {
+    if (!cfg().kiorlyWaitlistMirror || !this.kiorly) return;
+    try {
+      const id = await this.patients.bookingIdentity(sub, dependantId);
+      await this.kiorly.waitlistJoin({
+        externalRef: e.id, clinicId: p.clinicId, clinicianId: p.clinicianId ?? undefined, typeId: e.typeId, preferredFrom: e.preferredFrom?.toISOString(), preferredTo: e.preferredTo?.toISOString(),
+        patient: { phone: id.phone, firstNameEn: id.firstNameEn, lastNameEn: id.lastNameEn, gender: id.gender, nationalId: id.nationalId, email: id.email }, marketplaceConsentGranted: await this.patients.hasConsent(sub, 'MARKETPLACE_PROCESSING'),
+      });
+    } catch (err) { this.log.warn(`clinic waitlist mirror failed for ${e.id}: ${(err as Error).message}`); }
+  }
+  private async mirrorLeave(entryId: string): Promise<void> {
+    if (!cfg().kiorlyWaitlistMirror || !this.kiorly) return;
+    try { await this.kiorly.waitlistLeave(entryId); } catch (err) { this.log.warn(`clinic waitlist leave failed for ${entryId}: ${(err as Error).message}`); }
   }
 
   async list(sub: string) {
@@ -82,6 +100,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
   async cancel(sub: string, id: string) {
     const r = await this.prisma.waitlistEntry.updateMany({ where: { id, sub, status: { in: ['WAITING', 'OFFERED'] } }, data: { status: 'CANCELLED' } });
     if (!r.count) throw notFound('WAITLIST_ENTRY_NOT_FOUND', 'Waitlist entry not found');
+    await this.mirrorLeave(id);
     await this.prisma.waitlistOffer.updateMany({ where: { entryId: id, status: 'OFFERED' }, data: { status: 'DECLINED', respondedAt: new Date() } });
     return { ok: true };
   }

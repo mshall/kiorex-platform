@@ -66,6 +66,8 @@ export const cfg = () => ({
   whatsappWebhookSecret: env('WHATSAPP_WEBHOOK_SECRET', 'wa_dev_webhook_secret_change_me'),
   /** Kiorly marketplace API only accepts channel MARKETPLACE|CLINIC_LINK today; flip when Kiorly adds KIOREX_WHATSAPP. */
   kiorlyAcceptsWhatsappChannel: bool('KIORLY_ACCEPTS_WHATSAPP_CHANNEL', false),
+  /** Wave 9: mirror waitlist join and leave to the Clinic (`POST/DELETE /marketplace/v1/waitlist`, GC-2). Default false until the deploy order with the Clinic is agreed. */
+  kiorlyWaitlistMirror: bool('KIORLY_WAITLIST_MIRROR', false),
   whatsappSessionMinutes: num('WHATSAPP_SESSION_MINUTES', 30),
   waitlistOfferMinutes: num('WAITLIST_OFFER_MINUTES', 15),
   waitlistHorizonDays: num('WAITLIST_HORIZON_DAYS', 30),

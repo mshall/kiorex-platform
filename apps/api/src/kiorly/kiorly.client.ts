@@ -119,6 +119,13 @@ export class KiorlyClient {
   referralLinks(q: { updatedSince?: string; limit?: number; cursor?: string }) {
     return this.request<{ items: Array<{ code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>; nextCursor: string | null }>({ method: 'GET', path: '/referral-links', query: q });
   }
+  /** GC-2 waitlist (marketplace 1.1.0): the patient joins the clinic's own waitlist; idempotent on `externalRef` (the Kiorex entry id). */
+  waitlistJoin(body: { externalRef: string; clinicId: string; clinicianId?: string; typeId?: string; preferredFrom?: string; preferredTo?: string; patient: Record<string, unknown>; marketplaceConsentGranted?: boolean }) {
+    return this.request<any>({ method: 'POST', path: '/waitlist', body, clinicId: body.clinicId });
+  }
+  waitlistLeave(externalRef: string, clinicId?: string) {
+    return this.request<any>({ method: 'DELETE', path: `/waitlist/${encodeURIComponent(externalRef)}`, clinicId });
+  }
   /** RF_PROVIDER_COLLUSION (contracts 1.13.0): keyed staff-phone hashes in, one boolean out. */
   staffPhoneMatch(clinicId: string, hashes: readonly string[]) {
     return this.request<{ match: boolean }>({ method: 'GET', path: '/growth/staff-phone-match', query: { clinicId, hashes: hashes.join(',') }, clinicId });
