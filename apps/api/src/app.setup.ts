@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { RejectNulBytesPipe } from './common/reject-nul-bytes.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
 import { AllExceptionsFilter } from './common/errors';
@@ -18,7 +19,7 @@ export function setupApp(app: INestApplication) {
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
   // org-onboarding quarantine uploads: raw bytes (SQL dumps up to 50 MB, scanned and size-checked per kind in the service)
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('raw', { type: 'application/octet-stream', limit: '52mb' });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
+  app.useGlobalPipes(new RejectNulBytesPipe(), new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
   app.useGlobalFilters(new AllExceptionsFilter());
   return app;
 }

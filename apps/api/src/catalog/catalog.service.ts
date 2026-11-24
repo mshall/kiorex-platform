@@ -276,8 +276,10 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
 
   async search(q: SearchParams) {
     const emergency = detectEmergency(q.q);
-    const page = Math.max(1, q.page ?? 1);
-    const pageSize = Math.min(30, Math.max(1, q.pageSize ?? 10));
+    // `?pageSize=abc` arrives as NaN, which `??` keeps and Math.min/max propagate: the query then had no LIMIT and returned the whole catalogue. Anything non-finite falls back to the default.
+    const finite = (n: number | undefined, d: number) => (typeof n === 'number' && Number.isFinite(n) ? Math.floor(n) : d);
+    const page = Math.min(100_000, Math.max(1, finite(q.page, 1)));
+    const pageSize = Math.min(30, Math.max(1, finite(q.pageSize, 10)));
     if (emergency.emergency) {
       await this.track('emergency_guidance_shown', { code: emergency.categories[0] });
       return { emergency: { ...EMERGENCY_GUIDANCE, categories: emergency.categories }, items: [], total: 0, page, pageSize, specialties: [] };

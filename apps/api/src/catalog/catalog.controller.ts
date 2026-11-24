@@ -59,6 +59,8 @@ export class CatalogController {
     const f = from ? new Date(from) : new Date();
     const t = to ? new Date(to) : new Date(f.getTime() + 7 * 86400_000);
     if (Number.isNaN(f.getTime()) || Number.isNaN(t.getTime())) throw badRequest('INVALID_RANGE', 'invalid from/to');
+    if (t.getTime() <= f.getTime()) throw badRequest('INVALID_RANGE', 'to must be after from'); // a reversed window used to reach Kiorly and come back as a 500
+    if (t.getTime() - f.getTime() > 92 * 86400_000) throw badRequest('RANGE_TOO_LARGE', 'ask for at most 92 days of slots at a time');
     const loc = (serviceLocation ? String(serviceLocation).toUpperCase() : 'IN_CLINIC') as ServiceLocation;
     if (!['IN_CLINIC', 'HOME'].includes(loc)) throw badRequest('INVALID_SERVICE_LOCATION', 'serviceLocation must be IN_CLINIC|HOME');
     let d: string | undefined;
