@@ -10835,6 +10835,38 @@
         ]
       }
     },
+    "/api/v1/ops/growth/product-decisions": {
+      "get": {
+        "operationId": "ProductDecisionAdminController_summary",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-B2 pharmacy, lab and nurse decisions by origin (counts only, cells under 10 masked)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
     "/api/v1/ops/growth-analytics/overview": {
       "get": {
         "operationId": "GrowthAnalyticsOpsController_overview",
@@ -13547,6 +13579,1061 @@
         "summary": "GRW-P2-F channel and campaign performance: external numbers beside first-party facts, CAC, blended CAC, ROAS, MER (k >= 10, spend floor)",
         "tags": [
           "growth-integrations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/attribution-models": {
+      "get": {
+        "operationId": "AttributionModelsController_compare",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-B model comparison (all models reconcile to the same total; POSITION_BASED is the default report)",
+        "tags": [
+          "growth-attribution-models"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/attribution-models/paths": {
+      "get": {
+        "operationId": "AttributionModelsController_paths",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-B common conversion paths (hashed ordered source kinds; only paths shared by 10 or more conversions)",
+        "tags": [
+          "growth-attribution-models"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/attribution-models/lift": {
+      "get": {
+        "operationId": "AttributionModelsController_lift",
+        "parameters": [
+          {
+            "name": "experimentKey",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-B experiment-based lift (holdout against exposed) for a P3-A experiment",
+        "tags": [
+          "growth-attribution-models"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/attribution-models/rollup": {
+      "post": {
+        "operationId": "AttributionModelsController_rollup",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-B recompute the last N market days (idempotent)",
+        "tags": [
+          "growth-attribution-models"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments": {
+      "get": {
+        "operationId": "ExperimentsAdminController_list",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "surface",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A list experiments (status, surface, market filters)",
+        "tags": [
+          "growth-experiments"
+        ]
+      },
+      "post": {
+        "operationId": "ExperimentsAdminController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A create an experiment (DRAFT); 422 EXPERIMENT_SURFACE_FORBIDDEN outside the allowlist",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/catalog": {
+      "get": {
+        "operationId": "ExperimentsAdminController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A the closed allowlist of surfaces, the metric registry and the policy defaults",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}": {
+      "get": {
+        "operationId": "ExperimentsAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A one experiment with its history and the latest result (redacted while SRM or a blocker stands)",
+        "tags": [
+          "growth-experiments"
+        ]
+      },
+      "patch": {
+        "operationId": "ExperimentsAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A edit a DRAFT (the design is frozen once submitted)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/history": {
+      "get": {
+        "operationId": "ExperimentsAdminController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A append-only history: config diffs, state changes, stop reasons",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/results": {
+      "get": {
+        "operationId": "ExperimentsAdminController_results",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A result snapshots, newest first",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/submit": {
+      "post": {
+        "operationId": "ExperimentsAdminController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A submit for approval",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/approve": {
+      "post": {
+        "operationId": "ExperimentsAdminController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A a DIFFERENT super admin approves and starts the experiment",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/stop": {
+      "post": {
+        "operationId": "ExperimentsAdminController_stop",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A stop with a reason; every unit returns to control at once (never flag-gated)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/archive": {
+      "post": {
+        "operationId": "ExperimentsAdminController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A archive a stopped or concluded experiment",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/{id}/ship-winner": {
+      "post": {
+        "operationId": "ExperimentsAdminController_ship",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A record a ship-winner PROPOSAL (never applied automatically; a human uses the existing maker-checker)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/experiments/evaluator/run": {
+      "post": {
+        "operationId": "ExperimentsAdminController_run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A run the hourly evaluator once (idempotent; also what the job does)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/experiments/assignments": {
+      "get": {
+        "operationId": "ExperimentsPublicController_visitorAssignments",
+        "parameters": [
+          {
+            "name": "x-kx-consent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A assignments of the consented visitor (empty list without consent)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/experiments/exposures": {
+      "post": {
+        "operationId": "ExperimentsPublicController_visitorExposure",
+        "parameters": [
+          {
+            "name": "x-kx-consent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A record that the consented visitor saw its variant (idempotent)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/experiments/me/assignments": {
+      "get": {
+        "operationId": "ExperimentsPublicController_myAssignments",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A assignments of the signed-in person for in-product surfaces",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/experiments/me/exposures": {
+      "post": {
+        "operationId": "ExperimentsPublicController_myExposure",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-A record that the signed-in person saw its variant (idempotent)",
+        "tags": [
+          "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/status": {
+      "get": {
+        "operationId": "AssistantAdminController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D assistant mode, gate status, budgets and breaker",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/conversations": {
+      "get": {
+        "operationId": "AssistantAdminController_conversations",
+        "parameters": [
+          {
+            "name": "state",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D assistant conversations (no phone, no subject)",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/conversations/{id}": {
+      "get": {
+        "operationId": "AssistantAdminController_conversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D redacted transcript of one conversation (view is audited)",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/escalations": {
+      "get": {
+        "operationId": "AssistantAdminController_escalationList",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D escalation queue with SLA timers",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/escalations/{id}": {
+      "get": {
+        "operationId": "AssistantAdminController_escalation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D escalation with its redacted transcript (view is audited)",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/escalations/{id}/ack": {
+      "post": {
+        "operationId": "AssistantAdminController_ack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D acknowledge an escalation",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/escalations/{id}/close": {
+      "post": {
+        "operationId": "AssistantAdminController_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D close an escalation; the assistant answers the next message again",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/budgets": {
+      "get": {
+        "operationId": "AssistantAdminController_budgets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D budgets, today usage and the last 14 days",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/budgets/reset-breaker": {
+      "post": {
+        "operationId": "AssistantAdminController_reset",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D reset the daily cost breaker (super admin, audited)",
+        "tags": [
+          "growth-assistant"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/assistant/metrics": {
+      "get": {
+        "operationId": "AssistantAdminController_metrics",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-D containment, handoff, completion, cost per booking, p95 latency; masked below k = 10 conversations",
+        "tags": [
+          "growth-assistant"
         ]
       }
     },
@@ -25019,7 +26106,7 @@
           "days": {
             "type": "number",
             "minimum": 1,
-            "maximum": 400
+            "maximum": 120
           }
         }
       },

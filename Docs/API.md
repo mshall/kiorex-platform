@@ -222,6 +222,31 @@
 | GET | `/api/v1/ops/growth/markets` | GRW-P1-K per-market configuration summary |
 | GET | `/api/v1/ops/growth/analytics` | GRW-P1-K daily growth events and decisions (raw tables until analytics v1 serves them) |
 | GET | `/api/v1/ops/growth/finance` | GRW-P1-K financial performance: decisions by origin and revenue facts (finance role) |
+| GET | `/api/v1/ops/growth/product-decisions` | GRW-P4-B2 pharmacy, lab and nurse decisions by origin (counts only, cells under 10 masked) |
+
+## growth-assistant
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/assistant/status` | GRW-P2-D assistant mode, gate status, budgets and breaker |
+| GET | `/api/v1/admin/growth/assistant/conversations` | GRW-P2-D assistant conversations (no phone, no subject) |
+| GET | `/api/v1/admin/growth/assistant/conversations/{id}` | GRW-P2-D redacted transcript of one conversation (view is audited) |
+| GET | `/api/v1/admin/growth/assistant/escalations` | GRW-P2-D escalation queue with SLA timers |
+| GET | `/api/v1/admin/growth/assistant/escalations/{id}` | GRW-P2-D escalation with its redacted transcript (view is audited) |
+| POST | `/api/v1/admin/growth/assistant/escalations/{id}/ack` | GRW-P2-D acknowledge an escalation |
+| POST | `/api/v1/admin/growth/assistant/escalations/{id}/close` | GRW-P2-D close an escalation; the assistant answers the next message again |
+| GET | `/api/v1/admin/growth/assistant/budgets` | GRW-P2-D budgets, today usage and the last 14 days |
+| POST | `/api/v1/admin/growth/assistant/budgets/reset-breaker` | GRW-P2-D reset the daily cost breaker (super admin, audited) |
+| GET | `/api/v1/admin/growth/assistant/metrics` | GRW-P2-D containment, handoff, completion, cost per booking, p95 latency; masked below k = 10 conversations |
+
+## growth-attribution-models
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/attribution-models` | GRW-P3-B model comparison (all models reconcile to the same total; POSITION_BASED is the default report) |
+| GET | `/api/v1/admin/growth/attribution-models/paths` | GRW-P3-B common conversion paths (hashed ordered source kinds; only paths shared by 10 or more conversions) |
+| GET | `/api/v1/admin/growth/attribution-models/lift` | GRW-P3-B experiment-based lift (holdout against exposed) for a P3-A experiment |
+| POST | `/api/v1/admin/growth/attribution-models/rollup` | GRW-P3-B recompute the last N market days (idempotent) |
 
 ## growth-campaigns
 
@@ -272,6 +297,28 @@
 | POST | `/api/v1/admin/growth/credit/goodwill` | GRW-P2-B2 support goodwill (flag growth.support_goodwill, second approver above the threshold) |
 | GET | `/api/v1/admin/growth/credit/reconcile` | GRW-P2-B2 reconcile runs (RC-1 to RC-7), newest first |
 | POST | `/api/v1/admin/growth/credit/reconcile/run` | GRW-P2-B2 run the reconciliation now (never corrects, records a case on failure) |
+
+## growth-experiments
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/experiments` | GRW-P3-A list experiments (status, surface, market filters) |
+| POST | `/api/v1/admin/growth/experiments` | GRW-P3-A create an experiment (DRAFT); 422 EXPERIMENT_SURFACE_FORBIDDEN outside the allowlist |
+| GET | `/api/v1/admin/growth/experiments/catalog` | GRW-P3-A the closed allowlist of surfaces, the metric registry and the policy defaults |
+| GET | `/api/v1/admin/growth/experiments/{id}` | GRW-P3-A one experiment with its history and the latest result (redacted while SRM or a blocker stands) |
+| PATCH | `/api/v1/admin/growth/experiments/{id}` | GRW-P3-A edit a DRAFT (the design is frozen once submitted) |
+| GET | `/api/v1/admin/growth/experiments/{id}/history` | GRW-P3-A append-only history: config diffs, state changes, stop reasons |
+| GET | `/api/v1/admin/growth/experiments/{id}/results` | GRW-P3-A result snapshots, newest first |
+| POST | `/api/v1/admin/growth/experiments/{id}/submit` | GRW-P3-A submit for approval |
+| POST | `/api/v1/admin/growth/experiments/{id}/approve` | GRW-P3-A a DIFFERENT super admin approves and starts the experiment |
+| POST | `/api/v1/admin/growth/experiments/{id}/stop` | GRW-P3-A stop with a reason; every unit returns to control at once (never flag-gated) |
+| POST | `/api/v1/admin/growth/experiments/{id}/archive` | GRW-P3-A archive a stopped or concluded experiment |
+| POST | `/api/v1/admin/growth/experiments/{id}/ship-winner` | GRW-P3-A record a ship-winner PROPOSAL (never applied automatically; a human uses the existing maker-checker) |
+| POST | `/api/v1/admin/growth/experiments/evaluator/run` | GRW-P3-A run the hourly evaluator once (idempotent; also what the job does) |
+| GET | `/api/v1/growth/v1/experiments/assignments` | GRW-P3-A assignments of the consented visitor (empty list without consent) |
+| POST | `/api/v1/growth/v1/experiments/exposures` | GRW-P3-A record that the consented visitor saw its variant (idempotent) |
+| GET | `/api/v1/growth/v1/experiments/me/assignments` | GRW-P3-A assignments of the signed-in person for in-product surfaces |
+| POST | `/api/v1/growth/v1/experiments/me/exposures` | GRW-P3-A record that the signed-in person saw its variant (idempotent) |
 
 ## growth-integrations
 
