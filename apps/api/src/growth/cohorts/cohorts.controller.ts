@@ -12,7 +12,7 @@ import type { CohortBasis, CohortDimension } from './cohort-builder';
 
 export const COHORTS_FLAG = 'growth.cohorts_ltv';
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-class RollupBody { @IsOptional() @IsInt() @Min(1) @Max(60) months?: number }
+class CohortRollupBody { @IsOptional() @IsInt() @Min(1) @Max(60) months?: number }
 const market = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : DEFAULT_MARKET);
 const basisOf = (b?: string): CohortBasis | undefined => { if (!b) return undefined; if (!(BASES as readonly string[]).includes(b)) throw growthError('GROWTH_INVALID_REQUEST', 'basis must be FIRST_COMPLETED or REGISTRATION'); return b as CohortBasis; };
 const dimOf = (d?: string): CohortDimension | undefined => { if (!d) return undefined; if (!['ALL', 'SOURCE', 'CAMPAIGN', 'PLATFORM'].includes(d)) throw growthError('GROWTH_INVALID_REQUEST', 'dimension must be ALL, SOURCE, CAMPAIGN or PLATFORM'); return d as CohortDimension; };
@@ -42,5 +42,5 @@ export class CohortsController {
   @Get('reconcile') @ApiOperation({ summary: 'GRW-P3-C independent recount of acquired patients and revenue against the stored cells' }) @ApiOkResponse(OBJ)
   reconcile(@Query('market') m?: string) { return this.cohorts.reconcile(market(m)); }
   @Roles(...rolesFor('manage')) @Post('rollup') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-C recompute cohorts and LTV for the last N months (idempotent)' }) @ApiOkResponse(OBJ)
-  rollup(@Body() b: RollupBody, @Query('market') m?: string) { return this.job.runOnce(market(m), b.months ?? 24); }
+  rollup(@Body() b: CohortRollupBody, @Query('market') m?: string) { return this.job.runOnce(market(m), b.months ?? 24); }
 }
