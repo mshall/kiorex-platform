@@ -151,6 +151,25 @@ describe('growth fraud detection v2 (GRW-P3-D)', () => {
       const log = await c.prisma.fraudDecisionLog.findMany({ where: { caseId: id }, orderBy: { at: 'asc' } }); expect(log.map((l) => l.action)).toEqual(['OPENED', 'CONFIRMED', 'APPEALED', 'DISMISSED']);
     });
 
+    it('an upheld appeal of a case that reversed value opens ONE goodwill approval request per patient; only a second approver grants it, and asking twice adds nothing', async () => {
+      await enforceAll();
+      const { rel } = await pair(); await lotFor('sub_r', rel.id); const id = (await heldCase(rel)).caseId!;
+      await c.http().post(`${BASE}/cases/${id}/assign`).set(sup1).send({ assignTo: 'sup_1' }).expect(200);
+      const body = { decision: 'CONFIRM', reverseRewards: true, note: 'Farm pattern confirmed' };
+      await c.http().post(`${BASE}/cases/${id}/decision`).set(sup1).send(body).expect(200);
+      await c.http().post(`${BASE}/cases/${id}/decision`).set(sup2).send({ decision: 'CONFIRM' }).expect(200);
+      await c.http().post(`${BASE}/cases/${id}/appeal`).set(sup1).send({ note: 'Patient called: the invitees are her cousins' }).expect(200);
+      const appeal = (await c.http().post(`${BASE}/cases/${id}/appeal-decision`).set(await c.as('sup_3', { roles: ['ops_admin', 'support'] })).send({ decision: 'DISMISS', note: 'Family relationship verified' }).expect(200)).body;
+      expect(appeal).toMatchObject({ status: 'DISMISSED', appeal: 'UPHELD', restoreRequests: 1 });
+      const reqs = await c.prisma.rewardApprovalRequest.findMany({ where: { ticketRef: `fraud-appeal:${id}` } });
+      expect(reqs).toHaveLength(1);
+      expect(reqs[0]).toMatchObject({ kind: 'GOODWILL', sub: 'sub_r', amountMinor: 4000, status: 'PENDING', requestedBy: 'sup_3', reason: 'OTHER_APPROVED' });
+      // nothing was credited by the appeal itself, and a repeat adds no second request
+      expect(await c.prisma.goodwillGrant.count({ where: { sub: 'sub_r' } })).toBe(0);
+      expect((await cases().restoreAfterUpheldAppeal(id, 'sup_3', [rel.id])).requests).toBe(0);
+      expect(await c.prisma.auditLog.count({ where: { action: 'growth.fraud.restore_requested', resourceId: reqs[0]!.id } })).toBe(1);
+    });
+
     it('an appeal after the window is refused; only a confirmed case can be appealed', async () => {
       await enforceAll();
       const { rel } = await pair(); const id = (await heldCase(rel)).caseId!;

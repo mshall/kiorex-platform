@@ -170,7 +170,7 @@ export class FraudCaseService {
     return { status: 'APPEALED' as const };
   }
 
-  /** The appeal decision: a different person from the one who confirmed. Upheld (DISMISS) re-enables the invite code; reversed reward value is NOT restored here (a human goodwill grant does that). */
+  /** The appeal decision: a different person from the one who confirmed. Upheld (DISMISS) re-enables the invite code and, when the case had reversed reward value, opens one goodwill approval request per patient for the value taken back (`restoreAfterUpheldAppeal`); a SECOND approver (never the appeal decider) grants it through the P2-B2 goodwill path. Nothing is credited here. */
   async redecide(id: string, actor: string, d: { decision: 'CONFIRM' | 'DISMISS'; note: string }, now = new Date()) {
     const c = await this.load(id);
     if (c.status !== 'APPEALED') throw new ApiError(409, 'FRAUD_CASE_NOT_APPEALED', 'The case is not under appeal');
@@ -179,10 +179,35 @@ export class FraudCaseService {
     if (d.decision === 'DISMISS') {
       await this.setStatus(id, 'APPEALED', 'DISMISSED', 'DISMISSED', actor, `APPEAL_UPHELD ${d.note}`, { decision: 'DISMISS', decisionNote: d.note.slice(0, 300), decidedBy: actor, decidedAt: now });
       const rels = await this.relsOf(id); await this.hold.reinstateReferral(rels); await this.hold.releaseRewards(rels);
-      return { status: 'DISMISSED' as const, appeal: 'UPHELD' as const };
+      const restore = await this.restoreAfterUpheldAppeal(id, actor, rels, now);
+      return { status: 'DISMISSED' as const, appeal: 'UPHELD' as const, restoreRequests: restore.requests };
     }
     await this.setStatus(id, 'APPEALED', 'CONFIRMED', 'CONFIRMED', actor, `APPEAL_REJECTED ${d.note}`, { decisionNote: d.note.slice(0, 300), decidedBy: actor, decidedAt: now });
     return { status: 'CONFIRMED' as const, appeal: 'REJECTED' as const };
+  }
+
+  /**
+   * Wave 9: value a confirmed case took back is returned only through a goodwill approval request (kind GOODWILL, reason OTHER_APPROVED, ticket `fraud-appeal:<case>`), one per patient and idempotent
+   * per case, for the amount of the REVERSE ledger entries of the case's lots. The appeal decider is the requester, so the existing rule "the requester cannot decide" makes the approver a second
+   * person. Whether to credit stays a human decision; with `growth.support_goodwill` OFF the request can still be created but cannot be approved.
+   */
+  async restoreAfterUpheldAppeal(caseId: string, requestedBy: string, relationshipIds: string[], now = new Date()): Promise<{ requests: number; amountMinor: number }> {
+    if (!relationshipIds.length) return { requests: 0, amountMinor: 0 };
+    const lots = await this.prisma.rewardLot.findMany({ where: { relationshipId: { in: relationshipIds } }, select: { id: true, sub: true } });
+    if (!lots.length) return { requests: 0, amountMinor: 0 };
+    const rev = await this.prisma.rewardLedgerEntry.findMany({ where: { lotId: { in: lots.map((l) => l.id) }, type: 'REVERSE', reasonCode: 'FRAUD_CONFIRMED' }, select: { lotId: true, amountMinor: true } });
+    const subOf = new Map(lots.map((l) => [l.id, l.sub]));
+    const bySub = new Map<string, number>();
+    for (const r of rev) { const s = subOf.get(r.lotId); if (s) bySub.set(s, (bySub.get(s) ?? 0) + r.amountMinor); }
+    let requests = 0; let total = 0; const ticketRef = `fraud-appeal:${caseId}`;
+    for (const [sub, amountMinor] of bySub) {
+      if (amountMinor <= 0) continue;
+      if (await this.prisma.rewardApprovalRequest.findFirst({ where: { kind: 'GOODWILL', sub, ticketRef }, select: { id: true } })) continue;
+      const r = await this.prisma.rewardApprovalRequest.create({ data: { kind: 'GOODWILL', sub, amountMinor, reason: 'OTHER_APPROVED', ticketRef, payload: { source: 'FRAUD_APPEAL_UPHELD', caseId, createdAt: now.toISOString() }, requestedBy } });
+      await this.prisma.auditLog.create({ data: { actor: requestedBy, action: 'growth.fraud.restore_requested', resource: 'RewardApprovalRequest', resourceId: r.id, metadata: { caseId, amountMinor } } });
+      requests++; total += amountMinor;
+    }
+    return { requests, amountMinor: total };
   }
 
   /** Decided cases past the appeal window close (history stays). Ended suspensions reinstate the invite code. */
