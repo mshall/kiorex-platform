@@ -103,6 +103,7 @@ export function AppLayout() {
             <Logo markClassName="h-8" />
             <p>{t("footer.tagline")}</p>
             <p>{t("footer.emergency")}</p>
+            <Link to="/preferences" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline" data-testid="footer-preferences">{t("consent.banner.preferences")}</Link>
           </div>
         </div>
       </footer>

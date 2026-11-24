@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: "http://localhost:5180", trace: "retain-on-failure", screenshot: "only-on-failure", locale: "ar-EG", timezoneId: "Africa/Cairo" },
+  use: { baseURL: "http://localhost:5180", storageState: "./e2e/consent-seed.json" /* consent already answered (reject): the privacy banner is covered by e2e/consent.spec.ts only */, trace: "retain-on-failure", screenshot: "only-on-failure", locale: "ar-EG", timezoneId: "Africa/Cairo" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: { command: "npx vite", url: "http://localhost:5180", reuseExistingServer: true, timeout: 60_000 }, // /api calls are re-pointed to :4001 by the spec (see home.spec.ts)
 });

@@ -1,0 +1,11 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5180",
+      "localStorage": [
+        { "name": "kx-consent", "value": "{\"v\":1,\"textVersion\":\"TODO_NEEDS_HUMAN_v0\",\"analytics\":false,\"marketing\":false,\"consentId\":null,\"at\":\"2026-11-24T00:00:00.000Z\"}" }
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import DoctorProfilePage from "@/pages/DoctorProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
 import VisitStatusPage from "@/pages/VisitStatusPage";
+import { ConsentBanner, LandingTouch } from "@/components/consent";
 
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const AppointmentsPage = lazy(() => import("@/pages/AppointmentsPage"));
@@ -39,6 +40,7 @@ const AddressesPage = lazy(() => import("@/pages/AddressesPage"));
 const CarePlansPage = lazy(() => import("@/pages/CarePlansPage"));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const PreferencesPage = lazy(() => import("@/pages/PreferencesPage")); // GRW-P1-I preference centre
 
 export const makeQueryClient = () =>
   new QueryClient({
@@ -88,6 +90,8 @@ export function AppRoutes() {
           <Route path="telemedicine/:id/room" element={guard(<TeleRoomPage />)} />
           <Route path="account" element={guard(<AccountPage />)} />
           <Route path="notifications" element={guard(<NotificationsPage />)} />
+          <Route path="preferences" element={<PreferencesPage />} />
+          <Route path=":locale/:cc/preferences" element={<PreferencesPage />} />
           <Route path="account/addresses" element={guard(<AddressesPage />)} />
           <Route path="care-plans" element={guard(<CarePlansPage />)} />
           <Route path="*" element={<NotFoundPage />} />
@@ -108,6 +112,8 @@ export default function App() {
             <TooltipProvider>
               <BrowserRouter>
                 <AppRoutes />
+                <ConsentBanner />
+                <LandingTouch />
               </BrowserRouter>
               <Toaster position="top-center" offset={76} dir="auto" />
             </TooltipProvider>

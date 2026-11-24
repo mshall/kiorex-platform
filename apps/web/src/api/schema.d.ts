@@ -108,6 +108,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location. */
+        get: operations["BootstrapController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/policy": {
         parameters: {
             query?: never;
@@ -671,6 +688,41 @@ export interface paths {
         put?: never;
         /** KXM-AC-06 in-app account deletion with optional export */
         post: operations["PatientController_deletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GRW-P1-I preference centre: service messages, reminders, analytics, per-channel marketing consent, quiet hours, caps */
+        get: operations["PreferenceCentreController_get"];
+        /** GRW-P1-I change preferences; every consent change is an append-only audit row and a PatientConsentUpdated event */
+        put: operations["PreferenceCentreController_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/preferences/unsubscribe-marketing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** GRW-P1-I one-step opt-out of every marketing channel */
+        post: operations["PreferenceCentreController_unsubscribe"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3719,6 +3771,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/growth/v1/touch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** GRW-P1-B record a landing touch (consent-gated visitor identity; no IP, no full UA, no full referrer, no search text) */
+        post: operations["TouchController_touch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** GRW-P1-B record canonical funnel events (batch of up to 20; idempotent; client-reportable names only; no PHI) */
+        post: operations["GrowthEventsController_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth/v1/consent/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GRW-P1-I current consent text version ids (the banner stores the version it showed) */
+        get: operations["VisitorConsentController_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth/v1/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** GRW-P1-I record an anonymous visitor consent decision (audit row keyed by a random consent id; sets nothing else server-side) */
+        post: operations["VisitorConsentController_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth/v1/evidence/{bookingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GRW-P1-B attribution evidence for one booking (ops session or signed partner); facts, never identifiers */
+        get: operations["EvidenceController_evidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth/config/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GRW-P1-B resolved growth config for a kind and market (ACTIVE version, else PROPOSED_DEFAULT) */
+        get: operations["GrowthConfigController_resolve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -3842,6 +3996,51 @@ export interface components {
             flag: string;
             /** @description LIVE or the reason it is not (AWAITING_GATE, OFF_GLOBAL, ...) */
             state: string;
+        };
+        BootstrapMarketDto: {
+            /** @example EG */
+            code: string;
+            /** @example EGP */
+            currency: string;
+            /** @example +20 */
+            phoneCode: string;
+            name: {
+                ar: string;
+                en: string;
+            };
+            /**
+             * @description Regional API base for this market (binding), with /api/v1
+             * @example https://api.example.com/api/v1
+             */
+            apiEndpoint: string;
+        };
+        BootstrapCapabilitiesDto: {
+            deepLinks: boolean;
+            marketplace: boolean;
+            homeVisits: boolean;
+        };
+        BootstrapDto: {
+            /** @example EG */
+            defaultMarket: string;
+            /**
+             * @description The link or account market when LIVE, else the default. Never derived from IP or device location.
+             * @example EG
+             */
+            resolvedMarket: string;
+            /**
+             * @example [
+             *       "EG"
+             *     ]
+             */
+            liveMarkets: string[];
+            markets: components["schemas"]["BootstrapMarketDto"][];
+            locales: ("ar" | "en")[];
+            /** @description False unless more than one market is live (founder rule 23 Nov 2026). */
+            showMarketSelector: boolean;
+            minAppVersion?: string | null;
+            /** @example https://api.example.com/api/v1 */
+            apiEndpoint: string;
+            capabilities: components["schemas"]["BootstrapCapabilitiesDto"];
         };
         PolicyOverrideDto: {
             /** @enum {string} */
@@ -4311,6 +4510,10 @@ export interface components {
         };
         ConsentBody: {
             granted: boolean;
+            /** @enum {string} */
+            source?: "web" | "app" | "whatsapp" | "widget" | "ops-import";
+            textVersion?: string;
+            evidence?: string;
         };
         ConsentSetResultDto: {
             purpose: string;
@@ -4373,6 +4576,26 @@ export interface components {
             };
             ok: boolean;
             deleted: boolean;
+        };
+        ChannelBody: {
+            /** @enum {string} */
+            channel: "WHATSAPP" | "SMS" | "EMAIL" | "PUSH";
+            enabled: boolean;
+        };
+        QuietHoursBody: {
+            start: number;
+            end: number;
+        };
+        PreferencesBody: {
+            analytics?: boolean;
+            reminders?: boolean;
+            marketing?: {
+                [key: string]: boolean;
+            };
+            channels?: components["schemas"]["ChannelBody"][];
+            quietHours?: components["schemas"]["QuietHoursBody"] | null;
+            /** @enum {string} */
+            source?: "web" | "app";
         };
         AddressDto: {
             /** @example Home */
@@ -6972,6 +7195,29 @@ export interface operations {
             };
         };
     };
+    BootstrapController_get: {
+        parameters: {
+            query?: {
+                /** @description Market hint from a link or the signed-in account (ISO alpha-2). Honoured only when that market is live; otherwise the default market is returned. */
+                cc?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bootstrap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapDto"];
+                };
+            };
+        };
+    };
     PolicyController_describe: {
         parameters: {
             query?: {
@@ -7796,6 +8042,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletionResultDto"];
+                };
+            };
+        };
+    };
+    PreferenceCentreController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PreferenceCentreController_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PreferenceCentreController_unsubscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -12190,6 +12503,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SweepSafetyDto"];
+                };
+            };
+        };
+    };
+    TouchController_touch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description analytics, only after the person accepted analytics/attribution consent */
+                "X-KX-Consent"?: string;
+                "x-kiorex-market": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    landingKind: string;
+                    utm?: {
+                        [key: string]: string;
+                    };
+                    clickId?: Record<string, never>;
+                    ref?: string;
+                    lt?: string;
+                    dwellMs?: number;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accepted?: boolean;
+                        visitorKeySet?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    GrowthEventsController_record: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kx-consent": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    events: {
+                        name: string;
+                        occurredAt?: string;
+                        careType?: string;
+                        landingKind?: string;
+                        props?: Record<string, never>;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accepted?: number;
+                        duplicates?: number;
+                    };
+                };
+            };
+        };
+    };
+    VisitorConsentController_versions: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorex-market": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    VisitorConsentController_record: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorex-market": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    analytics: boolean;
+                    marketing?: boolean;
+                    textVersion?: string;
+                    /** @enum {string} */
+                    source?: "web" | "app" | "widget";
+                    evidence?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    EvidenceController_evidence: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: string;
+            };
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    GrowthConfigController_resolve: {
+        parameters: {
+            query?: {
+                kind?: string;
+                market?: string;
+                at?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
