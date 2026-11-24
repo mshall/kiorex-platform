@@ -7,9 +7,11 @@ import { AuthSessionService } from '../auth/auth-public';
 import { MarketService } from '../market/market-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService } from '../prisma/prisma.service';
+import { ALL_CONSENT_PURPOSES, ConsentService, CORE_CONSENT_PURPOSES, type SetConsentOpts } from './consent/consent.service';
 
-export const CONSENT_PURPOSES = ['MARKETPLACE_PROCESSING', 'REMINDERS', 'RECORD_SHARING', 'AI_PROCESSING', 'VISIT_STATUS_SHARING'] as const;
-export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
+/** The Rev 2.2 consent centre list (unchanged shape). The growth purposes (ANALYTICS_MEASUREMENT, MARKETING_*) live in the preference centre and are also accepted by setConsent. */
+export const CONSENT_PURPOSES = CORE_CONSENT_PURPOSES;
+export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number] | (typeof ALL_CONSENT_PURPOSES)[number];
 /** NEEDS_HUMAN: consent copy/versions are legal wording; version is a placeholder until counsel signs off. */
 export const CONSENT_VERSION = 'TODO_NEEDS_HUMAN_v0';
 
@@ -25,7 +27,7 @@ const AGE_OF_MAJORITY = 18;
 export class PatientService implements OnModuleInit {
   private exporters = new Map<string, Contributor>();
   private anonymizers = new Map<string, Contributor>();
-  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService, private readonly markets: MarketService) {}
+  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService, private readonly markets: MarketService, private readonly consentSvc: ConsentService) {}
 
   onModuleInit() {
     this.outbox.register('subject.deleted', async (e) => {
@@ -137,14 +139,12 @@ export class PatientService implements OnModuleInit {
   async consentHistory(sub: string) {
     return this.prisma.consentRecord.findMany({ where: { sub }, orderBy: { createdAt: 'desc' }, take: 200 });
   }
-  async setConsent(sub: string, purpose: string, granted: boolean, source = 'app') {
-    if (!(CONSENT_PURPOSES as readonly string[]).includes(purpose)) throw badRequest('UNKNOWN_CONSENT_PURPOSE', 'Unknown consent purpose', { allowed: CONSENT_PURPOSES });
-    await this.prisma.consentRecord.create({ data: { sub, purpose, granted, version: CONSENT_VERSION, source } });
-    return { purpose, granted };
+  /** Append-only audit row + PatientConsentUpdated event, same transaction (ConsentService). `source` stays accepted as a plain string for older callers. */
+  async setConsent(sub: string, purpose: string, granted: boolean, source: string | SetConsentOpts = 'app') {
+    return this.consentSvc.setConsent(sub, purpose, granted, typeof source === 'string' ? { source } : source);
   }
   async hasConsent(sub: string, purpose: ConsentPurpose): Promise<boolean> {
-    const last = await this.prisma.consentRecord.findFirst({ where: { sub, purpose }, orderBy: { createdAt: 'desc' } });
-    return !!last?.granted;
+    return this.consentSvc.hasConsent(sub, purpose);
   }
 
   // ── Kiorly record link rule (KXM-AC-07) ──

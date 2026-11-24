@@ -2,7 +2,8 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
 import { MessagingAdapter, MessagingHub, MsgChannel } from '../messaging/messaging-public';
-import { PatientService } from '../patient/patient-public';
+import { FlagsService } from '../control-plane/control-plane-public';
+import { PatientService, PreferenceCentreService, SuppressionService, tzOffsetMinutes } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId } from '../common/ids';
 import { NotifyKind, render, TEMPLATES } from './templates';
@@ -28,11 +29,44 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   /** Every channel send goes through the shared notification layer (@kiorex/contracts/notify); the hub stays the transport + MessageLog. */
   private readonly notifier: ReturnType<typeof createPlatformNotifier>;
-  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub) {
+  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub, private readonly suppression: SuppressionService, private readonly flags: FlagsService, private readonly prefCentre: PreferenceCentreService) {
     this.notifier = createPlatformNotifier(hub, new PlatformPreferenceStore({
       hasConsent: (sub, purpose) => this.patients.hasConsent(sub, purpose),
       preference: (sub, channel) => this.prisma.notificationPreference.findUnique({ where: { sub_channel: { sub, channel } } }),
+      // GRW-P1-I: marketing is denied unless the flag is effective, the channel consent is granted, the address is not suppressed, and it is outside the marketing quiet window
+      marketing: {
+        enabled: (sub) => this.marketingEnabled(sub),
+        suppressed: async (sub, channel) => {
+          const p = await this.patients.profileBySub(sub);
+          return this.suppression.isSuppressed(channel === 'EMAIL' ? [p?.email] : channel === 'PUSH' || channel === 'INAPP' ? [] : [p?.phone], channel, p?.market ?? 'EG');
+        },
+        defaultQuiet: async (at) => { const d = await this.prefCentre.consentDefaults(); return { startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
+      },
     }));
+  }
+
+  private async marketingEnabled(sub: string): Promise<boolean> {
+    const p = await this.patients.profileBySub(sub);
+    return this.flags.isEnabled('growth.marketing_messaging', { market: p?.market ?? 'EG' }).catch(() => false);
+  }
+
+  /**
+   * Marketing frequency cap across channels (defaults 1 per day and 3 per week, CONSENT_DEFAULTS): counts DISTINCT logical sends (a notify() fans one dedupe base
+   * key out to several channels), and never counts the notification being delivered. Returns the capped window, or null when the send may go.
+   */
+  async marketingCapped(sub: string, currentDedupeKey: string | null, now = new Date()): Promise<'FREQUENCY_CAP_DAY' | 'FREQUENCY_CAP_WEEK' | null> {
+    const d = await this.prefCentre.consentDefaults();
+    const marketingTemplateIds = Object.values(TEMPLATES).filter((t) => t.marketing).map((t) => t.templateId);
+    if (!marketingTemplateIds.length) return null;
+    const rows = await this.prisma.message.findMany({ where: { sub, status: 'SENT', templateId: { in: marketingTemplateIds }, sentAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } }, select: { dedupeKey: true, sentAt: true } });
+    const base = (k: string | null) => (k ?? '').replace(/:(INAPP|WHATSAPP|PUSH|SMS|EMAIL)$/, '');
+    const me = currentDedupeKey ? base(currentDedupeKey) : null;
+    const logical = new Map<string, Date>();
+    for (const r of rows) { const b = base(r.dedupeKey) || String(r.sentAt); if (b !== me && r.sentAt) logical.set(b, r.sentAt); }
+    const day = [...logical.values()].filter((t) => t.getTime() >= now.getTime() - 86_400_000).length;
+    if (d.maxMarketingPerDay <= 0 || day >= d.maxMarketingPerDay) return 'FREQUENCY_CAP_DAY';
+    if (d.maxMarketingPerWeek <= 0 || logical.size >= d.maxMarketingPerWeek) return 'FREQUENCY_CAP_WEEK';
+    return null;
   }
 
   onModuleInit() {
@@ -80,7 +114,8 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     const params = (m.params ?? {}) as Record<string, unknown>;
     const t = TEMPLATES[params.kind as NotifyKind];
         const finish = (status: string, reason?: string) => this.prisma.message.update({ where: { id }, data: { status, reason, ...(status === 'SENT' ? { sentAt: new Date() } : {}) } }).then(() => status);
-    const purpose = t.reminder ? 'REMINDER' as const : 'TRANSACTIONAL' as const; // consent (KXM-NT-02): reminders need REMINDERS; transactional need MARKETPLACE_PROCESSING
+    const purpose = t.marketing ? 'MARKETING' as const : t.reminder ? 'REMINDER' as const : 'TRANSACTIONAL' as const; // consent (KXM-NT-02): reminders need REMINDERS; transactional need MARKETPLACE_PROCESSING; marketing needs its own per-channel consent (GRW-P1-I)
+    if (purpose === 'MARKETING' && (await this.patients.hasConsent(m.sub, `MARKETING_${m.channel === 'INAPP' ? 'PUSH' : m.channel}` as never))) { const capped = await this.marketingCapped(m.sub, m.dedupeKey); if (capped) return finish('SKIPPED_FREQUENCY_CAP', capped); }
     const channel = m.channel as 'INAPP' | MsgChannel;
     const profile = channel === 'INAPP' ? null : await this.patients.profileBySub(m.sub);
     // PUSH goes to every active registered device (token registry); in MOCK mode an account without a device still gets the dev-inbox push so flows stay testable
@@ -90,7 +125,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     const intentParams = Object.fromEntries(Object.entries(params).filter(([k, v]) => allowed.includes(k) && (typeof v === 'string' || typeof v === 'number'))) as Record<string, string | number>; // PHI-free guard: only declared params reach a template
     try {
       const state = await this.notifier.service.dispatch({
-        type: params.kind as string, severity: t.reminder ? 'ROUTINE' : 'IMPORTANT',
+        type: params.kind as string, severity: t.reminder || t.marketing ? 'ROUTINE' : 'IMPORTANT',
         recipient: { id: m.sub, phone: profile?.phone ?? undefined, email: profile?.email ?? undefined, deviceIds, locale: m.locale === 'en' ? 'en' : 'ar' },
         params: intentParams, channels: [channel],
         idempotencyKey: `${m.id}:${m.scheduledFor.getTime()}`, // a quiet-hours deferral moves scheduledFor, so the retry is a new key

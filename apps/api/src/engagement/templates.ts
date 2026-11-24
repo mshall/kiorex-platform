@@ -6,7 +6,8 @@ export type NotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKI
   | 'HOME_VISIT_ASSIGNED' | 'HOME_VISIT_EN_ROUTE' | 'HOME_VISIT_ABORTED' | 'HOME_VISIT_FAMILY_INVITE' | 'HOME_VISIT_FAMILY_UPDATE' | 'CARE_PLAN_CONFIRMED'
   | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_OUT_FOR_DELIVERY' | 'PHARMACY_ORDER_PARTIAL_REFUND' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY' | 'OPS_LEAD_ALERT';
 
-export interface Template { templateId: string; reminder: boolean; bypassQuiet?: boolean; en: string; ar: string }
+/** `marketing: true` binds the template to the MARKETING purpose (per-channel consent, suppression, quiet hours, frequency caps, growth.marketing_messaging). No shipped template is marketing yet: copy and licence are NEEDS_HUMAN. */
+export interface Template { templateId: string; reminder: boolean; marketing?: boolean; bypassQuiet?: boolean; en: string; ar: string }
 
 export const TEMPLATES: Record<NotifyKind, Template> = {
   BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_booking_confirmed', reminder: false, en: 'Your visit with {doctor} is confirmed for {time}.', ar: 'تم تأكيد زيارتك مع {doctor} في {time}.' },

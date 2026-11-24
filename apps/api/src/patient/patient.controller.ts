@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsDateString, IsEmail, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { CONSENT_SOURCES } from './consent/consent.service';
 import { AuthSessionService } from '../auth/auth-public';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
@@ -32,7 +33,15 @@ class DependantPatch {
   @IsOptional() @IsIn(['MALE', 'FEMALE']) gender?: string;
   @IsOptional() @IsString() relationship?: string;
 }
-class ConsentBody { @IsBoolean() granted!: boolean }
+class ConsentBody {
+  @IsBoolean() granted!: boolean;
+  /** Where the person decided (web|app|whatsapp|widget); stored with the record. */
+  @IsOptional() @IsIn([...CONSENT_SOURCES]) source?: string;
+  /** Id of the exact wording shown; the server fills the current approved id when absent. */
+  @IsOptional() @IsString() @MaxLength(64) textVersion?: string;
+  /** Button id (audit evidence). */
+  @IsOptional() @IsString() @MaxLength(64) evidence?: string;
+}
 class DeleteBody { @IsBoolean() confirm!: boolean; @IsOptional() @IsBoolean() includeExport?: boolean }
 
 @ApiTags('patient')
@@ -68,7 +77,7 @@ export class PatientController {
   @Get('consents/history') consentHistory(@CurrentUser() u: AuthUser) { return this.svc.consentHistory(u.sub); }
   @ApiOkResponse({ type: ConsentSetResultDto })
   @Put('consents/:purpose') @ApiOperation({ summary: 'KXM-AC-04 grant or withdraw a consent' })
-  setConsent(@CurrentUser() u: AuthUser, @Param('purpose') purpose: string, @Body() b: ConsentBody) { return this.svc.setConsent(u.sub, purpose, b.granted); }
+  setConsent(@CurrentUser() u: AuthUser, @Param('purpose') purpose: string, @Body() b: ConsentBody, @Req() req: { ip?: string }) { return this.svc.setConsent(u.sub, purpose, b.granted, { source: b.source ?? 'app', textVersion: b.textVersion, evidence: b.evidence, ip: req.ip }); }
 
   @ApiOkResponse({ type: AuthSessionDto, isArray: true })
 

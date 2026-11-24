@@ -1519,6 +1519,83 @@
         ]
       }
     },
+    "/api/v1/me/preferences": {
+      "get": {
+        "operationId": "PreferenceCentreController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I preference centre: service messages, reminders, analytics, per-channel marketing consent, quiet hours, caps",
+        "tags": [
+          "consent"
+        ]
+      },
+      "put": {
+        "operationId": "PreferenceCentreController_put",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I change preferences; every consent change is an append-only audit row and a PatientConsentUpdated event",
+        "tags": [
+          "consent"
+        ]
+      }
+    },
+    "/api/v1/me/preferences/unsubscribe-marketing": {
+      "post": {
+        "operationId": "PreferenceCentreController_unsubscribe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I one-step opt-out of every marketing channel",
+        "tags": [
+          "consent"
+        ]
+      }
+    },
     "/api/v1/me/addresses": {
       "get": {
         "operationId": "AddressController_list",
@@ -8403,6 +8480,358 @@
         ]
       }
     },
+    "/api/v1/growth/v1/touch": {
+      "post": {
+        "operationId": "TouchController_touch",
+        "parameters": [
+          {
+            "name": "X-KX-Consent",
+            "required": false,
+            "in": "header",
+            "description": "analytics, only after the person accepted analytics/attribution consent",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "landingKind"
+                ],
+                "properties": {
+                  "landingKind": {
+                    "type": "string"
+                  },
+                  "utm": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "clickId": {
+                    "type": "object"
+                  },
+                  "ref": {
+                    "type": "string"
+                  },
+                  "lt": {
+                    "type": "string"
+                  },
+                  "dwellMs": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "visitorKeySet": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B record a landing touch (consent-gated visitor identity; no IP, no full UA, no full referrer, no search text)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/events": {
+      "post": {
+        "operationId": "GrowthEventsController_record",
+        "parameters": [
+          {
+            "name": "x-kx-consent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "occurredAt": {
+                          "type": "string"
+                        },
+                        "careType": {
+                          "type": "string"
+                        },
+                        "landingKind": {
+                          "type": "string"
+                        },
+                        "props": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "integer"
+                    },
+                    "duplicates": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B record canonical funnel events (batch of up to 20; idempotent; client-reportable names only; no PHI)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/consent/versions": {
+      "get": {
+        "operationId": "VisitorConsentController_versions",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I current consent text version ids (the banner stores the version it showed)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/consent": {
+      "post": {
+        "operationId": "VisitorConsentController_record",
+        "parameters": [
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "analytics"
+                ],
+                "properties": {
+                  "analytics": {
+                    "type": "boolean"
+                  },
+                  "marketing": {
+                    "type": "boolean"
+                  },
+                  "textVersion": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "app",
+                      "widget"
+                    ]
+                  },
+                  "evidence": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-I record an anonymous visitor consent decision (audit row keyed by a random consent id; sets nothing else server-side)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/evidence/{bookingId}": {
+      "get": {
+        "operationId": "EvidenceController_evidence",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B attribution evidence for one booking (ops session or signed partner); facts, never identifiers",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/config/resolve": {
+      "get": {
+        "operationId": "GrowthConfigController_resolve",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "at",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-B resolved growth config for a kind and market (ACTIVE version, else PROPOSED_DEFAULT)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -8752,6 +9181,133 @@
           "live",
           "flag",
           "state"
+        ]
+      },
+      "BootstrapMarketDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "EG"
+          },
+          "currency": {
+            "type": "string",
+            "example": "EGP"
+          },
+          "phoneCode": {
+            "type": "string",
+            "example": "+20"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ar",
+              "en"
+            ]
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1",
+            "description": "Regional API base for this market (binding), with /api/v1"
+          }
+        },
+        "required": [
+          "code",
+          "currency",
+          "phoneCode",
+          "name",
+          "apiEndpoint"
+        ]
+      },
+      "BootstrapCapabilitiesDto": {
+        "type": "object",
+        "properties": {
+          "deepLinks": {
+            "type": "boolean"
+          },
+          "marketplace": {
+            "type": "boolean"
+          },
+          "homeVisits": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deepLinks",
+          "marketplace",
+          "homeVisits"
+        ]
+      },
+      "BootstrapDto": {
+        "type": "object",
+        "properties": {
+          "defaultMarket": {
+            "type": "string",
+            "example": "EG"
+          },
+          "resolvedMarket": {
+            "type": "string",
+            "example": "EG",
+            "description": "The link or account market when LIVE, else the default. Never derived from IP or device location."
+          },
+          "liveMarkets": {
+            "example": [
+              "EG"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BootstrapMarketDto"
+            }
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          "showMarketSelector": {
+            "type": "boolean",
+            "description": "False unless more than one market is live (founder rule 23 Nov 2026)."
+          },
+          "minAppVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/BootstrapCapabilitiesDto"
+          }
+        },
+        "required": [
+          "defaultMarket",
+          "resolvedMarket",
+          "liveMarkets",
+          "markets",
+          "locales",
+          "showMarketSelector",
+          "apiEndpoint",
+          "capabilities"
         ]
       },
       "PolicyOverrideDto": {
@@ -10459,6 +11015,24 @@
         "properties": {
           "granted": {
             "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "app",
+              "whatsapp",
+              "widget",
+              "ops-import"
+            ]
+          },
+          "textVersion": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 64
           }
         },
         "required": [
@@ -10658,6 +11232,85 @@
           "ok",
           "deleted"
         ]
+      },
+      "ChannelBody": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "WHATSAPP",
+              "SMS",
+              "EMAIL",
+              "PUSH"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "enabled"
+        ]
+      },
+      "QuietHoursBody": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 23
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      },
+      "PreferencesBody": {
+        "type": "object",
+        "properties": {
+          "analytics": {
+            "type": "boolean"
+          },
+          "reminders": {
+            "type": "boolean"
+          },
+          "marketing": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelBody"
+            }
+          },
+          "quietHours": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuietHoursBody"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "app"
+            ]
+          }
+        }
       },
       "AddressDto": {
         "type": "object",
@@ -19384,125 +20037,6 @@
           "db",
           "providers",
           "leadSigning"
-        ]
-      },
-      "BootstrapDto": {
-        "type": "object",
-        "properties": {
-          "defaultMarket": {
-            "type": "string",
-            "example": "EG"
-          },
-          "resolvedMarket": {
-            "type": "string",
-            "example": "EG",
-            "description": "The link or account market when LIVE, else the default. Never derived from IP or device location."
-          },
-          "liveMarkets": {
-            "example": [
-              "EG"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "markets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BootstrapMarketDto"
-            }
-          },
-          "locales": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "ar",
-                "en"
-              ]
-            }
-          },
-          "showMarketSelector": {
-            "type": "boolean",
-            "description": "False unless more than one market is live (founder rule 23 Nov 2026)."
-          },
-          "minAppVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiEndpoint": {
-            "type": "string",
-            "example": "https://api.example.com/api/v1"
-          },
-          "capabilities": {
-            "$ref": "#/components/schemas/BootstrapCapabilitiesDto"
-          }
-        },
-        "required": [
-          "defaultMarket",
-          "resolvedMarket",
-          "liveMarkets",
-          "markets",
-          "locales",
-          "showMarketSelector",
-          "apiEndpoint",
-          "capabilities"
-        ]
-      },
-      "BootstrapMarketDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "EG"
-          },
-          "currency": {
-            "type": "string",
-            "example": "EGP"
-          },
-          "phoneCode": {
-            "type": "string",
-            "example": "+20"
-          },
-          "name": {
-            "type": "object",
-            "example": {
-              "ar": "مصر",
-              "en": "Egypt"
-            }
-          },
-          "apiEndpoint": {
-            "type": "string",
-            "example": "https://api.example.com/api/v1",
-            "description": "Regional API base for this market (binding), with /api/v1"
-          }
-        },
-        "required": [
-          "code",
-          "currency",
-          "phoneCode",
-          "name",
-          "apiEndpoint"
-        ]
-      },
-      "BootstrapCapabilitiesDto": {
-        "type": "object",
-        "properties": {
-          "deepLinks": {
-            "type": "boolean"
-          },
-          "marketplace": {
-            "type": "boolean"
-          },
-          "homeVisits": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "deepLinks",
-          "marketplace",
-          "homeVisits"
         ]
       }
     }

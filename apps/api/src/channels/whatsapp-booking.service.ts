@@ -7,7 +7,7 @@ import { CatalogService } from '../catalog/catalog-public';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { MarketService } from '../market/market-public';
 import { InboundMessage, MessagingHub } from '../messaging/messaging-public';
-import { PatientService } from '../patient/patient-public';
+import { PatientService, SuppressionService } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { detectEmergency, mapSymptomToSpecialties, normalizeText, SPECIALTY_CODES, SpecialtyCode } from '../safety/safety-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
@@ -25,7 +25,7 @@ const SHOWN_SPECIALTIES: SpecialtyCode[] = SPECIALTY_CODES.slice(0, 6) as unknow
 const YES = new Set(['yes', 'y', 'ok', 'confirm', 'نعم', 'ايوه', 'ايوا', 'تمام', 'اكد', 'تأكيد', 'تاكيد', '1']);
 const NO = new Set(['no', 'n', 'لا', 'مش عايز']);
 const CANCEL = new Set(['0', 'cancel', 'reset', 'menu', 'الغاء', 'إلغاء', 'قائمه', 'قائمة']);
-const STOP = new Set(['stop', 'unsubscribe', 'وقف', 'ايقاف', 'إيقاف']);
+const STOP = new Set(['stop', 'unsubscribe', 'وقف', 'ايقاف', 'إيقاف', 'الغاء الاشتراك', 'ايقاف الرسائل', 'وقف الرسائل']); // normalised forms; a bare 'الغاء' keeps its old meaning (cancel the booking conversation)
 const norm = (s?: string) => normalizeText(s ?? '').replace(/[.!؟?,،]/g, '').trim();
 
 /**
@@ -37,7 +37,7 @@ const norm = (s?: string) => normalizeText(s ?? '').replace(/[.!؟?,،]/g, '').t
 export class WhatsAppBookingService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly hub: MessagingHub, private readonly flags: FlagsService, private readonly patients: PatientService, private readonly catalog: CatalogService,
-    private readonly booking: BookingService, private readonly waitlist: WaitlistService, private readonly markets: MarketService,
+    private readonly booking: BookingService, private readonly waitlist: WaitlistService, private readonly markets: MarketService, private readonly suppression: SuppressionService,
   ) {}
 
   onModuleInit() { this.hub.onInbound('WHATSAPP', (m) => this.handle(m)); }
@@ -70,15 +70,19 @@ export class WhatsAppBookingService implements OnModuleInit {
       await this.catalog.track('emergency_guidance_shown', { code: em.categories[0] });
       return this.reply(conv, 'emergency', copy.emergency(lang));
     }
-    // 2) flag OFF (kiorex.whatsapp_booking, market scope): reply with the app link only
-    const market = profile?.market ?? 'EG';
-    if (!(await this.flags.isEnabled('kiorex.whatsapp_booking', { market })) || !(await this.marketLive(market))) return this.reply(conv, 'app_link', copy.appLink(lang));
-    // 3) channel opt-out
+    // 1b) channel opt-out (STOP / إلغاء الاشتراك) works even when WhatsApp booking is switched OFF: it is a legal opt-out, never a feature (GRW-P1-I)
     if (STOP.has(text)) {
-      if (profile) await this.prisma.notificationPreference.upsert({ where: { sub_channel: { sub: profile.sub, channel: 'WHATSAPP' } }, create: { sub: profile.sub, channel: 'WHATSAPP', enabled: false }, update: { enabled: false } });
+      await this.suppression.add({ address: phone, channel: 'WHATSAPP', reason: 'STOP', source: 'whatsapp-inbound', market: profile?.market ?? 'EG' });
+      if (profile) {
+        await this.prisma.notificationPreference.upsert({ where: { sub_channel: { sub: profile.sub, channel: 'WHATSAPP' } }, create: { sub: profile.sub, channel: 'WHATSAPP', enabled: false }, update: { enabled: false } });
+        if (await this.patients.hasConsent(profile.sub, 'MARKETING_WHATSAPP')) await this.patients.setConsent(profile.sub, 'MARKETING_WHATSAPP', false, { source: 'whatsapp', evidence: 'stop_keyword' });
+      }
       await this.releaseHeld(conv.sub, ctx); await this.save(conv, 'IDLE', {});
       return this.reply(conv, 'stopped', copy.stopped(lang));
     }
+    // 2) flag OFF (kiorex.whatsapp_booking, market scope): reply with the app link only
+    const market = profile?.market ?? 'EG';
+    if (!(await this.flags.isEnabled('kiorex.whatsapp_booking', { market })) || !(await this.marketLive(market))) return this.reply(conv, 'app_link', copy.appLink(lang));
     // 4) identity: booking needs an existing Kiorex profile (consent + identity live in the app)
     if (!profile) return this.reply(conv, 'not_registered', copy.notRegistered(lang));
     if (CANCEL.has(text)) { await this.releaseHeld(profile.sub, ctx); await this.save(conv, 'IDLE', {}); return this.reply(conv, 'cancelled', copy.cancelled(lang), profile.sub); }

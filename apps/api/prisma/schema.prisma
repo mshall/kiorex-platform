@@ -120,11 +120,15 @@ model ConsentRecord {
   sub       String
   purpose   String // MARKETPLACE_PROCESSING | REMINDERS | RECORD_SHARING | AI_PROCESSING
   granted   Boolean
-  version   String   @default("TODO_NEEDS_HUMAN_v0")
-  source    String   @default("app")
+  version   String   @default("TODO_NEEDS_HUMAN_v0") // textVersion: id of the exact approved wording (AR and EN)
+  source    String   @default("app") // web | app | whatsapp | widget | ops-import
+  channel   String? // WHATSAPP SMS EMAIL PUSH for the marketing purposes
+  ipHash    String? // keyed hash with a daily-rotating salt; never the IP
+  evidence  String? // button id
   createdAt DateTime @default(now())
 
   @@index([sub, purpose, createdAt])
+  @@index([purpose, channel, createdAt])
 }
 
 model DataRequest {
@@ -1341,12 +1345,14 @@ model GrowthAcquisitionSource {
   sourceKind String // PROVIDER_LINK PROVIDER_QR WIDGET ORGANIC_SEARCH DIRECT REFERRAL CAMPAIGN WHATSAPP OFFLINE
   sourceRef  String   @default("")
   label      String?
+  ownerOrgRef String? // provider-owned sources: the organisation that owns the link code (from the Clinic projection)
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
 
   touchpoints GrowthTouchpoint[]
 
   @@unique([market, sourceKind, sourceRef])
+  @@index([ownerOrgRef])
 }
 
 /// Append-only observation. No IP (keyed hash with daily-rotating salt, blanked after 24 h by growth_purge_expired), no full UA, no full referrer.
@@ -1397,6 +1403,8 @@ model GrowthAttributionDecision {
   firstTouchId         String?
   lastTouchId          String?
   lastNonDirectTouchId String?
+  winningTouchId       String? // the touch that decided the origin (null for channel-only and no-evidence decisions)
+  bookingSnapshot      Json? // booking subset the function saw (ids, createdAt, channel, hasValidLt, precedence): enough to replay; no personal data
   supersedesId         String?
   actor                String? // set only on a correction (a human or system actor)
   note                 String? // correction reason; never patient data
@@ -1404,7 +1412,8 @@ model GrowthAttributionDecision {
 
   policyVersion GrowthConfigVersion @relation(fields: [policyVersionId], references: [id])
 
-  @@unique([bookingId, policyVersionId])
+  // unique (bookingId, policyVersionId) WHERE supersedesId IS NULL and unique (supersedesId) WHERE NOT NULL: partial indexes in migration 20261128120000
+  @@index([bookingId, policyVersionId])
   @@index([bookingId])
   @@index([market, createdAt])
   @@index([supersedesId])
@@ -1419,6 +1428,7 @@ model GrowthEvent {
   bookingId  String?
   careType   String?
   props      Json     @default("{}")
+  dedupeKey  String?  @unique // same fact from web, mobile, messaging or backend = same key (idempotent ingestion)
   occurredAt DateTime @default(now())
 
   @@index([name, occurredAt])
@@ -1465,6 +1475,7 @@ model GrowthConfigVersion {
   reason        String?
   checksum      String
   supersedesId  String?
+  announcement  String? // provider-facing text, required for ATTRIBUTION_POLICY changes
 
   decisions GrowthAttributionDecision[]
 
@@ -1544,6 +1555,21 @@ model GrowthFraudSignal {
 
   @@index([ruleId, createdAt])
   @@index([subjectHash])
+}
+
+/// Anonymous visitor consent audit (banner decisions). Keyed by a random consent id; holds no sub and no cookie value. Append-only (trigger).
+model GrowthVisitorConsent {
+  id          String   @id // kxc_<random>
+  market      String   @default("EG")
+  analytics   Boolean
+  marketing   Boolean  @default(false)
+  textVersion String
+  source      String   @default("web")
+  evidence    String?
+  ipHash      String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 /// Marketing suppression list (STOP / إلغاء, bounces, complaints, withdrawal). addressHash is a keyed hash of phone or email: the raw value is never stored here.
