@@ -53,7 +53,7 @@ describe('growth experiments (GRW-P3-A)', () => {
       expect((await c.http().get(BASE).set(ops).expect(200)).body).toHaveLength(1);
       for (const body of [(await c.http().get(BASE).set(ops)).body, (await c.http().get(`${BASE}/${e.id}`).set(ops)).body, (await c.http().patch(`${BASE}/${e.id}`).set(A).send({ name: 'Renamed' })).body, (await c.http().post(`${BASE}/${e.id}/submit`).set(A)).body]) expect(JSON.stringify(body)).not.toContain((await fresh(e.id)).salt); // the HMAC key of every unit hash never leaves the server
       const cat = (await c.http().get(`${BASE}/catalog`).set(ops).expect(200)).body; expect(cat.surfaces.length).toBeGreaterThan(5); expect(cat.policy.minRunDays).toBe(7);
-      expect((await c.http().get(`${BASE}/${e.id}/history`).set(ops).expect(200)).body.map((x: any) => x.kind)).toEqual(['CREATED']);
+      expect((await c.http().get(`${BASE}/${e.id}/history`).set(ops).expect(200)).body.map((x: any) => x.kind)).toEqual(['CREATED', 'EDITED', 'SUBMITTED']); // the salt probe above edited and submitted the draft
     });
     it('a forbidden or unknown surface is refused with 422 EXPERIMENT_SURFACE_FORBIDDEN and no row exists', async () => {
       for (const surface of ['emergency.guidance.banner', 'triage.symptom_checker.intro', 'privacy.notice.text', 'consent.analytics.banner', 'booking.price.disclosure', 'checkout.fee.note', 'regulatory.disclaimer', 'clinical.content.card', 'booking.cancellation.policy_text', 'landing.unlisted']) {
