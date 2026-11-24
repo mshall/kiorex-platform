@@ -216,6 +216,8 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
         // later suite of the run (growth analytics rollup) fail with a unique violation, because three providers' rows differ only in columns the narrow index does not cover.
         // So the replay continues with the later migration that supersedes it, exactly like a real upgrade path, and the shared test DB ends in its migrated state.
         await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', '20261129090000_growth_analytics_v1', 'migration.sql'), 'utf8'));
+        // GRW-P2-X1: growth_analytics_v1 re-creates the 17-column GrowthMetricDaily_dim_key, which 20261203090000 supersedes with dim2 (campaignId in the key): replay that one too
+        await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', '20261203090000_growth_p2_campaigns', 'migration.sql'), 'utf8'));
         const after = (await client.query(`SELECT count(*)::int AS n FROM pg_constraint`)).rows[0].n;
         expect(after).toBe(before);
         expect((await client.query(`SELECT count(*)::int AS n FROM pg_trigger WHERE tgname IN ('growth_touchpoint_immutable','growth_attribution_decision_immutable')`)).rows[0].n).toBe(2);
