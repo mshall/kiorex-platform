@@ -6,8 +6,10 @@ import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
 import { ApiError } from '../common/errors';
 import { PartnerEnrolmentService } from './partner-enrolment.service';
 import { PartnerOnboardingService } from './partner-onboarding.service';
+import { VerificationUpdateService } from './verification-update.consumer';
 import { EnrolmentCreatedDto, EnrolmentViewDto, IntakeResultDto, PartnerAuditLineDto, PartnerConnectionDto, PartnerConnectionRowDto, PartnerPublicStatusDto } from './partner-onboarding.dto';
 
+class VerificationDecisionBody { @IsIn(['APPROVED', 'REJECTED', 'NEEDS_INFO']) decision!: string; @IsOptional() @IsString() @MaxLength(300) note?: string }
 class PartnerNoteBody { @IsOptional() @IsString() @MaxLength(200) note?: string }
 class LicenceBody { @IsString() @MaxLength(80) reference!: string }
 class FeesBody { @IsIn(['STANDARD', 'ORG_OVERRIDE']) mode!: 'STANDARD' | 'ORG_OVERRIDE'; @IsOptional() @IsString() @MaxLength(200) note?: string }
@@ -64,4 +66,16 @@ export class PartnerOnboardingController {
   @Post(':id/pause') @HttpCode(200) @ApiOperation({ summary: 'OP: pause a live partner with a reason' }) @ApiOkResponse({ type: PartnerConnectionDto }) pause(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: PartnerReasonBody) { return this.svc.pause(u.sub, id, b.reason); }
   @Post(':id/resume') @HttpCode(200) @ApiOperation({ summary: 'OP: resume a paused partner' }) @ApiOkResponse({ type: PartnerConnectionDto }) resume(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.resume(u.sub, id); }
   @Post(':id/apply-rotation') @HttpCode(200) @ApiOperation({ summary: 'OP: apply a pending credential rotation after a passing handshake' }) @ApiOkResponse({ type: PartnerConnectionDto }) rotate(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.applyRotation(u.sub, id); }
+}
+
+
+/** GRW-P2-C: provider verification update requests (a Clinic or Nurse provider asks Kiorex ops to change a verified public profile field). Ops only; the requested value is read live from the Clinic. */
+@ApiTags('ops-onboarding')
+@OpsOnly()
+@Controller('admin/onboarding/verification-updates')
+export class VerificationUpdateController {
+  constructor(private readonly svc: VerificationUpdateService) {}
+  @Get() @ApiOperation({ summary: 'OP: provider verification update requests (open first)' }) list(@Query('status') status?: string) { return this.svc.list({ status }); }
+  @Get(':ref') @ApiOperation({ summary: 'OP: one request with the requested value and evidence references read live from the Clinic' }) get(@Param('ref') ref: string) { return this.svc.detail(ref); }
+  @Post(':ref/decide') @HttpCode(200) @ApiOperation({ summary: 'OP: approve, reject or ask for more information; the decision is delivered to the Clinic (ProviderVerificationDecided)' }) decide(@CurrentUser() u: AuthUser, @Param('ref') ref: string, @Body() b: VerificationDecisionBody) { return this.svc.decide(u.sub, ref, b.decision, b.note); }
 }
