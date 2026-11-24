@@ -181,3 +181,10 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **Policy defaults** (PROPOSED_DEFAULT until the founder signs): caps 1 per day and 3 per week, quiet hours 21:00 to 09:00 Cairo, holdout 0, dormant at 180 days and churned at 365, re-engagement at most 2 per 90 days.
 - **Suppression lifting** procedure and who may approve (two different people, written consent evidence) is a DPO decision.
 - **Real providers** (Meta, SMS, e-mail, push) stay MOCKED; real sends are the dedicated pre-launch pass, in staging first.
+
+## Product ingest and decision (GRW-P4-B2) and Phase 2 close (GRW-P2-H): items that stay human
+- **Do products ever pay on attribution?** The commission link of Pharmacy, Lab and Nurse decisions is inert (AD-13): decisions are recorded and sent to the partner, no charge exists. A rate, basis and start date are a founder and finance decision (launch guide 11.40).
+- **Per-product attribution windows** (`ATTRIBUTION_POLICY.products.<PRODUCT>.windows`): defaults equal the clinic windows; the values are a founder decision and the 1.12.0 JSON Schema may need a 1.13.0 key before they can be set through maker-checker (11.41).
+- **Continuity entry points** (prescription to pharmacy, ordered test to lab, care plan): product, UX and counsel (health data between products); until built no decision is CROSS_PRODUCT (11.42).
+- **ADR signatures**: ADR-041 to ADR-052 are Proposed; the assistant ADR is ADR-058 in the architecture file and ADR-051 here until the founder confirms the numbering (11.39).
+- **Phase 2 suites** 31, 32, 34, 35, 50, 51 are not written on the real stack (11.43).
