@@ -124,6 +124,13 @@ const RULES: Array<{ id: ReferralFraudRuleId; stages: FraudStage[]; eval: (f: Fr
   } },
 ];
 
+/** One referral rule by id, whatever the stage (GRW-P3-D wraps these as scored signals; the stage table above stays the P2-B1 contract). */
+export function evaluateReferralRule(id: ReferralFraudRuleId, f: FraudFacts, o: { paymentFingerprint?: boolean; deviceSignal?: boolean } = {}): FraudSignal | null {
+  const r = RULES.find((x) => x.id === id);
+  const s = r?.eval(f, { paymentFingerprint: o.paymentFingerprint ?? true, deviceSignal: o.deviceSignal ?? false });
+  return s ? { ruleId: id, ...s } : null;
+}
+
 const PRECEDENCE: FraudAction[] = ['ALLOW', 'BLOCK_REDEMPTION', 'HOLD', 'REVERSE', 'REJECT'];
 
 /** Every rule of the stage that fires, with the combined action (the strongest) and a score (max, plus 5 per extra rule, capped at 100). `enforce=false` keeps the signals and returns ALLOW. */

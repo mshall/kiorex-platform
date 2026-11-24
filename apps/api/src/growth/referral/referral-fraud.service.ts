@@ -1,7 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { subRefOf } from '../../common/privacy-hash';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RewardPolicyService } from '../rewards/reward-policy.service';
+import { FRAUD_SCORER, type FraudScorer, type FraudSurface } from '../fraud/fraud-public';
 import { evaluateFraud, type FraudAction, type FraudFacts, type FraudSignal, type FraudStage } from './referral-fraud.rules';
 import { ReferralIdentityService, STAFF_PHONE_MATCH, type StaffPhoneMatchPort } from './referral-identity.service';
 
@@ -13,11 +14,23 @@ const DAY = 86_400_000;
  */
 @Injectable()
 export class ReferralFraudService {
-  constructor(private readonly prisma: PrismaService, private readonly identity: ReferralIdentityService, private readonly policy: RewardPolicyService, @Inject(STAFF_PHONE_MATCH) private readonly staff: StaffPhoneMatchPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly identity: ReferralIdentityService, private readonly policy: RewardPolicyService, @Inject(STAFF_PHONE_MATCH) private readonly staff: StaffPhoneMatchPort, @Optional() @Inject(FRAUD_SCORER) private readonly scorer?: FraudScorer) {}
 
   async evaluate(stage: FraudStage, facts: FraudFacts) {
     const { rules } = await this.policy.referralRules();
     return evaluateFraud(stage, facts, { enforce: await this.policy.fraudEnforced(), paymentFingerprint: rules.signals.paymentFingerprint, deviceSignal: rules.signals.deviceSignal });
+  }
+
+  /**
+   * GRW-P3-D: score the same facts with fraud v2 (shadow by default: it records a case and changes NOTHING). Only for rules the maker-checker switched to enforce can the answer be stronger
+   * than the P2-B1 verdict: a v2 REJECT_CLAIM becomes REJECT, a v2 HOLD_REWARD becomes HOLD. The stronger of the two wins; v2 never weakens the P2-B1 verdict.
+   */
+  async escalate<V extends { action: FraudAction; signals: readonly unknown[]; score: number }>(verdict: V, surface: FraudSurface, facts: FraudFacts, ctx: { subject: string; evidenceRef: string; relationshipIds?: string[] }): Promise<V> {
+    if (!this.scorer) return verdict;
+    const a = await this.scorer.assess(surface, facts, ctx);
+    if (a.action === 'REJECT_CLAIM' && verdict.action !== 'REJECT') return { ...verdict, action: 'REJECT' as FraudAction };
+    if (a.action === 'HOLD_REWARD' && (verdict.action === 'ALLOW')) return { ...verdict, action: 'HOLD' as FraudAction };
+    return verdict;
   }
 
   /** One OPEN signal per (rule, relationship): a re-evaluation never piles up duplicates. */

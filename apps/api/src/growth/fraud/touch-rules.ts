@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
 import { GrowthLimiter, growthLimits } from '../growth-limiter';
 import { sha256Hex } from '../growth-secrets';
+import { FRAUD_SCORER, type FraudScorer } from './fraud-public';
 
 /**
  * Fraud signal hooks for the attribution inputs (ARCH section 19): provider gaming must not be able to turn marketplace patients into provider-led ones.
@@ -30,7 +31,7 @@ export function providerLedShareJump(s: { recentLed: number; recentTotal: number
 
 @Injectable()
 export class FraudSignalService {
-  constructor(private readonly prisma: PrismaService, private readonly limiter: GrowthLimiter) {}
+  constructor(private readonly prisma: PrismaService, private readonly limiter: GrowthLimiter, @Optional() @Inject(FRAUD_SCORER) private readonly scorer?: FraudScorer) {}
 
   async record(hit: RuleHit, subject: string, evidenceRef?: string, market = GROWTH_DEFAULT_MARKET) {
     await this.prisma.growthFraudSignal.create({ data: { market, ruleId: hit.ruleId, subjectHash: sha256Hex(`${hit.ruleId}|${subject}`).slice(0, 32), score: hit.score, evidenceRef } });
@@ -41,12 +42,16 @@ export class FraudSignalService {
     try {
       const cwr = clickWithoutRender(t, t.minDwellMs);
       if (cwr) await this.record(cwr, t.ipHash, t.touchId);
+      let burstRefused = false;
       // count touches per ipHash per minute in the shared limiter; the first refusal in a 10 minute window writes ONE signal
       const burst = await this.limiter.limiter.hit(`growth:burst:${t.ipHash}`, growthLimits().burstPerMin, 60_000);
       if (!burst.ok) {
         const first = await this.limiter.limiter.hit(`growth:burst-signal:${t.ipHash}`, 1, 600_000);
         if (first.ok) { const hit = burstPerIpHash(growthLimits().burstPerMin + 1, growthLimits().burstPerMin); if (hit) await this.record(hit, t.ipHash); }
+        burstRefused = true;
       }
+      // GRW-P3-D: the same signals as one scored rule (shadow: a case, never an attribution change)
+      if (this.scorer && (cwr || burstRefused)) await this.scorer.onTouch({ ipHash: t.ipHash, burst: burstRefused, burstLimit: growthLimits().burstPerMin, clickWithoutRender: !!cwr });
     } catch { /* fraud hooks are best effort: a failure must never lose a touch */ }
   }
 

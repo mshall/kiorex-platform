@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { createHmac } from 'node:crypto';
 import { cfg } from '../../common/config';
 import { FlagsService } from '../../control-plane/control-plane-public';
@@ -7,6 +7,7 @@ import { AttributionPolicyResolver } from '../attribution/policy';
 import { verifyAnyLinkToken } from '../consent/link-token';
 import { LinkRegistryService } from '../links/link-registry.service';
 import { FraudSignalService } from '../fraud/touch-rules';
+import { FRAUD_SCORER, type FraudScorer } from '../fraud/fraud-public';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
 import { GrowthLimiter, growthLimits } from '../growth-limiter';
@@ -42,6 +43,7 @@ export class TouchService {
   constructor(
     private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly limiter: GrowthLimiter,
     private readonly fraud: FraudSignalService, private readonly policies: AttributionPolicyResolver, private readonly links: LinkRegistryService,
+    @Optional() @Inject(FRAUD_SCORER) private readonly scorer?: FraudScorer,
   ) {}
 
   /** Visitor keys are opaque and unguessable; a cookie that does not match the format is ignored and replaced. */
@@ -55,6 +57,7 @@ export class TouchService {
     let claims: { org: string; code: string; n: string } | undefined;
     if (t.lt !== undefined) {
       const v = verifyAnyLinkToken({ kxl1: linkTokenKey(), provider: providerLinkTouchSecret() }, t.lt, now.getTime());
+      if (this.scorer) void this.scorer.onLinkToken({ ipHash: ctx.ipHash, ok: v.ok, expired: !v.ok && v.reason === 'EXPIRED', ...(v.ok ? { tokenId: sha256Hex(t.lt).slice(0, 16) } : {}) }).catch(() => undefined); // GRW-P3-D: forging and replay of the link token (best effort, shadow)
       if (!v.ok) throw growthError(v.reason === 'EXPIRED' ? 'GROWTH_LINK_TOKEN_EXPIRED' : 'GROWTH_LINK_TOKEN_INVALID', v.reason === 'EXPIRED' ? 'The link token expired' : 'The link token is not valid');
       claims = { ...v.claims, n: sha256Hex(t.lt).slice(0, 16) }; // an opaque token id; the token itself is never stored
       await this.links.learn(v.claims.code, v.claims.org, market); // a code belongs to ONE organisation: on a conflict the registry keeps the first and the mismatch check below ignores the touch

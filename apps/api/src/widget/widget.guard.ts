@@ -1,9 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, Optional } from '@nestjs/common';
 import { GROWTH_ERROR_STATUS } from '@kiorex/contracts';
 import { ApiError, forbidden } from '../common/errors';
 import { ipHashOf } from '../common/privacy-hash';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PrismaService } from '../prisma/prisma.service';
+import { FRAUD_SCORER, type FraudScorer } from '../growth/fraud/fraud-public';
 import { WidgetAuditService } from './widget-audit.service';
 import { WidgetLimiter, widgetLimits } from './widget-limiter';
 import { originOfUrl, widgetSelfOrigin } from './widget-origins';
@@ -40,7 +41,14 @@ export class WidgetRequestGuard implements CanActivate {
   constructor(
     private readonly flags: FlagsService, private readonly regs: WidgetRegistrationService, private readonly audit: WidgetAuditService,
     private readonly limiter: WidgetLimiter, private readonly prisma: PrismaService, private readonly policy: WidgetPolicyService,
+    @Optional() @Inject(FRAUD_SCORER) private readonly fraud?: FraudScorer,
   ) {}
+
+  /** The audit write plus the fraud scorer's view of the denial (best effort, shadow by default). */
+  private async deny(org: string | null, origin: string | null | undefined, reason: Parameters<WidgetAuditService['denied']>[2], surface: string): Promise<void> {
+    await this.audit.denied(org, origin, reason, surface);
+    if (this.fraud) void this.fraud.onWidgetDenied({ org, origin, reason }).catch(() => undefined);
+  }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const req = ctx.switchToHttp().getRequest();
@@ -50,19 +58,21 @@ export class WidgetRequestGuard implements CanActivate {
     const path: string = String(req.originalUrl ?? req.url ?? '').split('?')[0]!;
     const method: string = String(req.method ?? 'GET').toUpperCase();
     const v = verifyWidgetToken(token);
-    if (!v.ok) { await this.audit.denied(null, req.headers?.origin, 'TOKEN_INVALID', path); throw new ApiError(401, 'WIDGET_TOKEN_INVALID', 'Widget session is not valid or has expired', { reason: v.reason }); }
+    if (!v.ok) { await this.deny(null, req.headers?.origin, 'TOKEN_INVALID', path); throw new ApiError(401, 'WIDGET_TOKEN_INVALID', 'Widget session is not valid or has expired', { reason: v.reason }); }
     const { org, origin } = v.claims;
+    // GRW-P3-D: an origin the fraud rules throttled (enforced rule, reversible, ends by itself) answers 429 like any rate limit
+    if (await this.fraud?.originThrottled(origin)) throw new ApiError(429, 'WIDGET_ORIGIN_THROTTLED', 'Too many requests from this site, try again later');
     await this.flags.assertEnabled('growth.widgets', { market: 'EG' });
     const route = ROUTES.find((r) => r.m === method && r.re.test(path));
-    if (!route) { await this.audit.denied(org, origin, 'ROUTE_NOT_ALLOWED', `${method} ${path}`); throw forbidden('WIDGET_ROUTE_NOT_ALLOWED', 'This request is not available to the widget'); }
+    if (!route) { await this.deny(org, origin, 'ROUTE_NOT_ALLOWED', `${method} ${path}`); throw forbidden('WIDGET_ROUTE_NOT_ALLOWED', 'This request is not available to the widget'); }
     const reg = await this.regs.byOrg(org);
     const allowed = reg ? this.regs.effectiveOrigins(reg) : [];
     const sandbox = v.claims.sbx === 1 && originOfUrl(origin) === widgetSelfOrigin(req.protocol, req.headers?.host);
-    if (!reg || (!allowed.includes(origin) && !sandbox)) { await this.audit.denied(org, origin, 'ORIGIN_NOT_ALLOWED', path); throw new ApiError(GROWTH_ERROR_STATUS.GROWTH_WIDGET_ORIGIN_NOT_ALLOWED, 'GROWTH_WIDGET_ORIGIN_NOT_ALLOWED', 'This site is not allowed to embed the booking widget'); }
+    if (!reg || (!allowed.includes(origin) && !sandbox)) { await this.deny(org, origin, 'ORIGIN_NOT_ALLOWED', path); throw new ApiError(GROWTH_ERROR_STATUS.GROWTH_WIDGET_ORIGIN_NOT_ALLOWED, 'GROWTH_WIDGET_ORIGIN_NOT_ALLOWED', 'This site is not allowed to embed the booking widget'); }
     // the widget app is the only legitimate caller: its own origin must appear in Origin (or, for same-origin GETs that omit it, Referer)
     const self = widgetSelfOrigin(req.protocol, req.headers?.host);
     const seen = originOfUrl(req.headers?.origin) ?? (method === 'GET' ? originOfUrl(req.headers?.referer) : null);
-    if ((seen && seen !== self) || (!seen && method !== 'GET')) { await this.audit.denied(org, seen ?? req.headers?.origin ?? '', 'ORIGIN_MISMATCH', path); throw forbidden('WIDGET_ORIGIN_MISMATCH', 'Request did not come from the widget'); }
+    if ((seen && seen !== self) || (!seen && method !== 'GET')) { await this.deny(org, seen ?? req.headers?.origin ?? '', 'ORIGIN_MISMATCH', path); throw forbidden('WIDGET_ORIGIN_MISMATCH', 'Request did not come from the widget'); }
 
     const ip = ipHashOf(req.ip); const L = widgetLimits();
     switch (route.cls) {
@@ -99,6 +109,6 @@ export class WidgetRequestGuard implements CanActivate {
 
   private async assertProviderInScope(org: string, providerId: string) {
     const p = providerId ? await this.prisma.provider.findUnique({ where: { id: providerId }, select: { clinicId: true } }) : null;
-    if (p && p.clinicId !== org) { await this.audit.denied(org, null, 'OUT_OF_SCOPE', 'provider'); throw forbidden('WIDGET_PROVIDER_OUT_OF_SCOPE', 'This provider is not part of the widget'); }
+    if (p && p.clinicId !== org) { await this.deny(org, null, 'OUT_OF_SCOPE', 'provider'); throw forbidden('WIDGET_PROVIDER_OUT_OF_SCOPE', 'This provider is not part of the widget'); }
   }
 }

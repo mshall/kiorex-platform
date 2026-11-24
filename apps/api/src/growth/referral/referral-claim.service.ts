@@ -47,7 +47,8 @@ export class ReferralClaimService {
 
     const existing = await this.existingPatient(u.sub, now);
     const facts = await this.fraud.claimFacts({ referrerSub: row.sub, refereeSub: u.sub, refereePhoneHash: phoneHash, ipHash: ctx.ip ? ipHashOf(ctx.ip, now) : undefined, touch: touch ? { id: touch.id, occurredAt: touch.occurredAt, ipHash: touch.ipHash } : null, now });
-    const verdict = await this.fraud.evaluate('CLAIM', facts);
+    let verdict = await this.fraud.evaluate('CLAIM', facts);
+    verdict = await this.fraud.escalate(verdict, 'REFERRAL_CLAIM', facts, { subject: row.sub, evidenceRef: `claim:${row.id}:${subRefOf(u.sub).slice(0, 12)}` }); // GRW-P3-D (shadow unless a rule is enforced)
     await this.fraud.record(verdict.signals, { subject: row.sub, evidenceRef: `claim:${row.id}:${subRefOf(u.sub).slice(0, 12)}`, score: verdict.score });
 
     let status = 'SIGNED_UP'; let reason: string | undefined;

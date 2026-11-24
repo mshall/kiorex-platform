@@ -93,9 +93,11 @@ export class ReferralQualificationService implements ReferralPort {
     const phoneOther = refereePhoneHashes.length ? (await Promise.all(refereePhoneHashes.map((h) => this.identity.seenOnOtherSub('PHONE', h, rel.refereeSub)))).some(Boolean) : false;
     const refunded = booking ? (booking.depositStatus === 'REFUNDED' && booking.status !== 'CANCELLED') || (await this.prisma.paymentIntent.count({ where: { bookingId: booking.id, status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] } } })) > 0 : false;
     const providerLed = booking ? await this.providerLedByReferrer(booking.id, rel.referrerSub) : false;
-    const verdict = o.override || o.reviewedAllow || rel.reviewState === 'RELEASED'
-      ? { action: 'ALLOW' as const, signals: [], score: 0 }
-      : await this.fraud.evaluate('QUALIFICATION', await this.fraud.qualificationFacts({ id: rel.id, referrerSub: rel.referrerSub, refereeSub: rel.refereeSub, createdAt: rel.createdAt, qualifiedAt: rel.qualifiedAt }, booking, now));
+    const skipFraud = o.override || o.reviewedAllow || rel.reviewState === 'RELEASED';
+    const qFacts = skipFraud ? null : await this.fraud.qualificationFacts({ id: rel.id, referrerSub: rel.referrerSub, refereeSub: rel.refereeSub, createdAt: rel.createdAt, qualifiedAt: rel.qualifiedAt }, booking, now);
+    let verdict = qFacts ? await this.fraud.evaluate('QUALIFICATION', qFacts) : { action: 'ALLOW' as const, signals: [] as never[], score: 0 };
+    // GRW-P3-D: fraud v2 scores the same facts (shadow unless a rule is enforced; it can only make the verdict stronger)
+    if (qFacts) verdict = (await this.fraud.escalate(verdict as never, 'REWARD', qFacts, { subject: rel.referrerSub, evidenceRef: `rel:${rel.id}`, relationshipIds: [rel.id] })) as typeof verdict;
     if (verdict.signals.length) await this.fraud.record(verdict.signals, { subject: rel.referrerSub, evidenceRef: `rel:${rel.id}`, score: verdict.score });
 
     const ageDays = referrerProfile ? Math.floor((now.getTime() - referrerProfile.createdAt.getTime()) / DAY) : 0;

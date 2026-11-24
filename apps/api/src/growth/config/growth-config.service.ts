@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { GROWTH_CONFIG_KINDS, GROWTH_CONFIG_STATES, growthCanonicalJson, validateGrowthConfig as validateContractConfig, type GrowthConfigKind } from '@kiorex/contracts';
 import { validateSeoExtensions } from '../seo/seo-public';
+import { validateFraudRules } from '../fraud/fraud-config';
+import { validateSeoAutomation } from '../seo-automation/seo-automation-config';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
@@ -39,6 +41,14 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
+  // GRW-P3-D and P3-F: the two Wave 7 kinds are validated by their own validators (the contract schema joins them with 1.13.0; both must pass once it does)
+  if (kind === 'FRAUD_RULES' || kind === 'SEO_AUTOMATION') {
+    const mine = kind === 'FRAUD_RULES' ? validateFraudRules(payload) : validateSeoAutomation(payload);
+    const known = (GROWTH_CONFIG_KINDS as readonly string[]).includes(kind);
+    const theirs = known ? validateContractConfig(kind, payload) : ({ valid: true } as { valid: true });
+    const errors = [...(theirs.valid ? [] : theirs.errors), ...mine.errors];
+    return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
+  }
   if (kind !== 'SEO' || !payload || typeof payload !== 'object' || Array.isArray(payload)) return validateContractConfig(kind, payload);
   const base: Record<string, unknown> = {}; const ext: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(payload as Record<string, unknown>)) ((SEO_EXTENSION_KEYS as readonly string[]).includes(k) ? ext : base)[k] = v;
@@ -158,6 +168,19 @@ export class GrowthConfigService {
     await this.guard({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, ticket: i.ticket }, true);
     const row = await this.createRow({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, createdBy: actor.sub, effectiveFrom: i.effectiveFrom ?? null, ticket: i.ticket, reason: i.reason, announcement: i.announcement, status: 'DRAFT' });
     await this.audit(actor.sub, 'create', row, { after: row.checksum });
+    return row;
+  }
+
+  /**
+   * A DRAFT created by the system (the fraud calibration job proposes weights). It is an ordinary DRAFT: it still goes through submit and a super admin's approval, and the approver
+   * can never be the creator (`system:...`), so the proposal is never applied by itself.
+   */
+  async createSystemDraft(i: ConfigScope & { kind: string; payload: Record<string, unknown>; reason?: string }) {
+    this.assertKind(i.kind); this.assertScope(i);
+    const v = validateGrowthConfig(i.kind, i.payload);
+    if (!v.valid) throw growthError('GROWTH_CONFIG_INVALID', 'Payload does not match the schema for this kind', { errors: v.errors });
+    const row = await this.createRow({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, createdBy: 'system:fraud-calibration', effectiveFrom: null, reason: i.reason, status: 'DRAFT' });
+    await this.audit('system:fraud-calibration', 'create', row, { after: row.checksum });
     return row;
   }
 
