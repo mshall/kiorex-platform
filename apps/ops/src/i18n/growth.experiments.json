@@ -1,0 +1,54 @@
+{
+  "en": { "growth": { "experiments": {
+    "title": "Experiments",
+    "new": "New experiment", "back": "Back to experiments", "tabs": "Experiment views", "tab": { "overview": "Overview", "history": "History" },
+    "policyLine": "An experiment can never sit on emergency, triage, safety, consent, privacy, price, fee, cancellation or clinical content, and it can never change money, commission or attribution. Without analytics consent everyone sees the control.",
+    "filters": { "all": "All statuses", "status": "Status" },
+    "list": { "empty": "No experiments yet.", "key": "Key", "name": "Name", "surface": "Surface", "status": "Status", "mode": "Mode", "started": "Started", "open": "Open" },
+    "status": { "DRAFT": "Draft", "PENDING_APPROVAL": "Waiting for a second person", "RUNNING": "Running", "STOPPED": "Stopped", "CONCLUDED": "Concluded", "ARCHIVED": "Archived" },
+    "mode": { "FIXED": "Fixed horizon", "SEQUENTIAL": "Sequential (always valid)" },
+    "verdict": { "COLLECTING": "Collecting data", "SRM_DETECTED": "Sample ratio mismatch: results hidden", "GUARDRAIL_BREACH": "Guardrail breached: stopped", "NO_WINNER": "No winner", "WINNER": "Winner", "INCONCLUSIVE": "Inconclusive: not enough sample" },
+    "wizard": {
+      "title": "Create an experiment", "fields": { "key": "Key", "name": "Name", "surface": "Surface", "hypothesis": "Hypothesis", "variantB": "Variant B key", "weights": "Share of control (%)", "allocation": "Share of eligible people in the experiment (%)", "metric": "Primary metric", "guardrails": "Guardrails (a rise beyond the margin stops the experiment)", "margin": "Margin (points)", "mode": "Analysis mode", "days": "Planned days", "baseline": "Baseline rate (optional, %)", "mde": "Smallest effect that matters (optional, points)" },
+      "hints": { "key": "Lower case letters, digits, dash and underscore.", "surface": "Only surfaces on the closed list can be tested. Safety, consent, price and clinical surfaces are not on it.", "variants": "Two variants: control and one change. Weights must add up to 100 percent.", "sample": "With a baseline and an effect the sample size is calculated before the start (power 80 percent)." },
+      "create": "Create draft", "created": "Experiment created as a draft.", "invalid": "Check this field.", "needsRole": "Only a super admin can create experiments."
+    },
+    "detail": {
+      "design": "Design", "surface": "Surface", "hypothesis": "Hypothesis", "metric": "Primary metric", "allocation": "Allocation", "sample": "Pre-registered sample per arm", "days": "Planned days", "started": "Started", "author": "Author", "approver": "Approved by", "stopReason": "Stop reason", "flag": "Linked flag",
+      "actions": "Actions", "submit": "Submit for approval", "approve": "Approve and start", "approveHint": "A different super admin than the author must approve.", "stop": "Stop experiment", "stopReason2": "Reason for stopping", "stopHint": "Stopping returns everyone to the control at once.", "archive": "Archive", "ship": "Request shipping the winner", "shipHint": "This only records a proposal. Changing a flag or a configuration still goes through the normal two-person approval.",
+      "done": "Done.", "shipped": "Proposal recorded. Nothing was changed automatically.", "stopConfirm": "Stop now",
+      "results": "Results", "noResult": "No result yet. The evaluator runs hourly.", "hiddenTitle": "Results are not shown yet",
+      "blocker": { "MIN_DAYS": "The minimum run time has not passed.", "MIN_SAMPLE": "The pre-registered sample has not been reached.", "FIXED_HORIZON_NOT_REACHED": "The planned days have not passed (fixed horizon).", "SRM": "The split of people between variants does not match the weights. Results stay hidden and the experiment was stopped." },
+      "arms": "Variants", "units": "People", "conversions": "Converted", "rate": "Rate", "diff": "Difference", "interval": "95% interval", "p": "Adjusted p-value", "pav": "Always-valid p-value",
+      "guardrails": "Guardrails", "guardrailBreach": "Breached", "guardrailOk": "Within margin", "winner": "Winner", "srmLine": "Sample ratio check", "dayN": "Day {{n}}"
+    },
+    "history": { "title": "Append-only history", "empty": "No history yet.", "at": "When", "kind": "Event", "actor": "Who", "reason": "Reason", "diff": "Change", "kinds": { "CREATED": "Created", "EDITED": "Edited", "SUBMITTED": "Submitted", "APPROVED": "Approved", "STARTED": "Started", "STOPPED": "Stopped", "CONCLUDED": "Concluded", "ARCHIVED": "Archived", "SRM": "Sample ratio mismatch", "GUARDRAIL": "Guardrail breach", "SHIP_REQUESTED": "Shipping proposed", "FLAG_OFF": "Switched off" } },
+    "err": { "FEATURE_DISABLED": "Experiments are switched off. Everyone sees the control.", "EXPERIMENT_SURFACE_FORBIDDEN": "This surface cannot host an experiment: it is not on the allowed list.", "EXPERIMENT_FLAG_FORBIDDEN": "This flag cannot be linked to an experiment.", "EXPERIMENT_INVALID": "Some values are not valid.", "EXPERIMENT_KEY_TAKEN": "An experiment with this key already exists.", "EXPERIMENT_SURFACE_BUSY": "Another experiment is already running on this surface.", "SECOND_APPROVER_REQUIRED": "A different super admin must approve this experiment.", "EXPERIMENT_NOT_SHIPPABLE": "Only a concluded experiment with a winner can be shipped.", "EXPERIMENT_INVALID_TRANSITION": "This step is not possible in the current state.", "generic": "Something went wrong. Try again." }
+  } } },
+  "ar": { "growth": { "experiments": {
+    "title": "التجارب",
+    "new": "تجربة جديدة", "back": "العودة إلى التجارب", "tabs": "عروض التجربة", "tab": { "overview": "نظرة عامة", "history": "السجل" },
+    "policyLine": "لا يمكن إجراء تجربة على الطوارئ أو الفرز أو السلامة أو الموافقات أو الخصوصية أو الأسعار أو الرسوم أو سياسة الإلغاء أو المحتوى الطبي، ولا يمكنها تغيير المال أو العمولة أو الإسناد. بدون موافقة التحليلات يرى الجميع النسخة الأصلية.",
+    "filters": { "all": "كل الحالات", "status": "الحالة" },
+    "list": { "empty": "لا توجد تجارب بعد.", "key": "المفتاح", "name": "الاسم", "surface": "الواجهة", "status": "الحالة", "mode": "الوضع", "started": "بدأت", "open": "فتح" },
+    "status": { "DRAFT": "مسودة", "PENDING_APPROVAL": "بانتظار شخص ثانٍ", "RUNNING": "قيد التشغيل", "STOPPED": "متوقفة", "CONCLUDED": "منتهية", "ARCHIVED": "مؤرشفة" },
+    "mode": { "FIXED": "أفق ثابت", "SEQUENTIAL": "تتابعي (صالح دائماً)" },
+    "verdict": { "COLLECTING": "جارٍ جمع البيانات", "SRM_DETECTED": "خلل في توزيع العينة: النتائج مخفية", "GUARDRAIL_BREACH": "تم تجاوز حد الأمان: أُوقفت", "NO_WINNER": "لا يوجد فائز", "WINNER": "فائز", "INCONCLUSIVE": "غير حاسمة: العينة غير كافية" },
+    "wizard": {
+      "title": "إنشاء تجربة", "fields": { "key": "المفتاح", "name": "الاسم", "surface": "الواجهة", "hypothesis": "الفرضية", "variantB": "مفتاح النسخة ب", "weights": "نسبة النسخة الأصلية (٪)", "allocation": "نسبة المؤهلين المشاركين في التجربة (٪)", "metric": "المؤشر الرئيسي", "guardrails": "حدود الأمان (ارتفاع يتجاوز الهامش يوقف التجربة)", "margin": "الهامش (نقاط)", "mode": "نمط التحليل", "days": "الأيام المخططة", "baseline": "المعدل الأساسي (اختياري، ٪)", "mde": "أصغر أثر مهم (اختياري، نقاط)" },
+      "hints": { "key": "أحرف إنجليزية صغيرة وأرقام وشرطة وشرطة سفلية.", "surface": "يمكن اختبار الواجهات الموجودة في القائمة المغلقة فقط. واجهات السلامة والموافقات والأسعار والمحتوى الطبي ليست فيها.", "variants": "نسختان: الأصلية وتغيير واحد. يجب أن يكون مجموع النسب ١٠٠٪.", "sample": "عند إدخال المعدل الأساسي والأثر يُحسب حجم العينة قبل البدء (قوة ٨٠٪)." },
+      "create": "إنشاء مسودة", "created": "تم إنشاء التجربة كمسودة.", "invalid": "راجع هذا الحقل.", "needsRole": "فقط المشرف الأعلى يمكنه إنشاء التجارب."
+    },
+    "detail": {
+      "design": "التصميم", "surface": "الواجهة", "hypothesis": "الفرضية", "metric": "المؤشر الرئيسي", "allocation": "نسبة المشاركة", "sample": "حجم العينة المسجل مسبقاً لكل نسخة", "days": "الأيام المخططة", "started": "بدأت", "author": "المنشئ", "approver": "اعتمدها", "stopReason": "سبب الإيقاف", "flag": "المفتاح المرتبط",
+      "actions": "الإجراءات", "submit": "إرسال للاعتماد", "approve": "اعتماد وبدء", "approveHint": "يجب أن يعتمدها مشرف أعلى مختلف عن المنشئ.", "stop": "إيقاف التجربة", "stopReason2": "سبب الإيقاف", "stopHint": "الإيقاف يعيد الجميع إلى النسخة الأصلية فوراً.", "archive": "أرشفة", "ship": "طلب تعميم النسخة الفائزة", "shipHint": "هذا يسجل اقتراحاً فقط. تغيير المفتاح أو الإعداد يمر بالاعتماد المعتاد من شخصين.",
+      "done": "تم.", "shipped": "تم تسجيل الاقتراح. لم يتغير شيء تلقائياً.", "stopConfirm": "إيقاف الآن",
+      "results": "النتائج", "noResult": "لا توجد نتيجة بعد. يعمل المقيّم كل ساعة.", "hiddenTitle": "النتائج غير معروضة بعد",
+      "blocker": { "MIN_DAYS": "لم تمر مدة التشغيل الدنيا بعد.", "MIN_SAMPLE": "لم يتم الوصول إلى العينة المسجلة مسبقاً.", "FIXED_HORIZON_NOT_REACHED": "لم تمر الأيام المخططة (أفق ثابت).", "SRM": "توزيع الأشخاص بين النسخ لا يطابق النسب. تبقى النتائج مخفية وقد أُوقفت التجربة." },
+      "arms": "النسخ", "units": "الأشخاص", "conversions": "المستجيبون", "rate": "المعدل", "diff": "الفرق", "interval": "مجال ٩٥٪", "p": "قيمة p المعدلة", "pav": "قيمة p الصالحة دائماً",
+      "guardrails": "حدود الأمان", "guardrailBreach": "تم تجاوزه", "guardrailOk": "ضمن الهامش", "winner": "الفائز", "srmLine": "فحص نسبة العينة", "dayN": "اليوم {{n}}"
+    },
+    "history": { "title": "سجل لا يُعدَّل", "empty": "لا يوجد سجل بعد.", "at": "الوقت", "kind": "الحدث", "actor": "من", "reason": "السبب", "diff": "التغيير", "kinds": { "CREATED": "أُنشئت", "EDITED": "عُدّلت", "SUBMITTED": "أُرسلت", "APPROVED": "اعتُمدت", "STARTED": "بدأت", "STOPPED": "أُوقفت", "CONCLUDED": "انتهت", "ARCHIVED": "أُرشفت", "SRM": "خلل في توزيع العينة", "GUARDRAIL": "تجاوز حد الأمان", "SHIP_REQUESTED": "اقتراح التعميم", "FLAG_OFF": "أُطفئت" } },
+    "err": { "FEATURE_DISABLED": "التجارب مطفأة. يرى الجميع النسخة الأصلية.", "EXPERIMENT_SURFACE_FORBIDDEN": "لا يمكن إجراء تجربة على هذه الواجهة: ليست في القائمة المسموحة.", "EXPERIMENT_FLAG_FORBIDDEN": "لا يمكن ربط هذا المفتاح بتجربة.", "EXPERIMENT_INVALID": "بعض القيم غير صالحة.", "EXPERIMENT_KEY_TAKEN": "توجد تجربة بهذا المفتاح.", "EXPERIMENT_SURFACE_BUSY": "هناك تجربة أخرى تعمل على هذه الواجهة.", "SECOND_APPROVER_REQUIRED": "يجب أن يعتمد هذه التجربة مشرف أعلى مختلف.", "EXPERIMENT_NOT_SHIPPABLE": "يمكن تعميم تجربة منتهية لها فائز فقط.", "EXPERIMENT_INVALID_TRANSITION": "هذه الخطوة غير ممكنة في الحالة الحالية.", "generic": "حدث خطأ. حاول مرة أخرى." }
+  } } }
+}

@@ -11,6 +11,7 @@ import growthReferrals from "./growth.referrals.json";
 import growthLifecycle from "./growth.lifecycle.json";
 import growthWhatsapp from "./growth.whatsapp.json";
 import growthAttributionModels from "./growth.attributionModels.json";
+import growthExperiments from "./growth.experiments.json";
 
 /** Deep merge: the namespaced per-package files (GRW-P2-X1: `growth.<pkg>.json`, shape {en,ar}) add keys and never reorder or overwrite the main catalogue. */
 type Tree = { [key: string]: unknown };
@@ -40,7 +41,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en) } },
+    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar, growthExperiments.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en, growthExperiments.en) } },
     fallbackLng: "en",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

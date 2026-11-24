@@ -42,7 +42,7 @@ describe("Growth navigation", () => {
     expect(within(screen.getByTestId("growth-nav-whatsapp")).queryByText(/^P\d$/)).toBeNull(); // GRW-P2-D: WhatsApp and Assistant are live
     expect(within(screen.getByTestId("growth-nav-assistant")).queryByText(/^P\d$/)).toBeNull();
     expect(within(screen.getByTestId("growth-nav-campaigns")).queryByText(/^P\d$/)).toBeNull(); // GRW-P2-A: Campaign Management is live
-    expect(within(screen.getByTestId("growth-nav-experiments")).getByText("P3")).toBeInTheDocument();
+    expect(within(screen.getByTestId("growth-nav-experiments")).queryByText("P3")).toBeNull(); // live since GRW-P3-A
     expect(within(screen.getByTestId("growth-nav-seo")).queryByText(/^P\d$/)).toBeNull();
   });
   it("is collapsed outside /growth and expands on demand", async () => {

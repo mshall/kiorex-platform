@@ -9,6 +9,7 @@ import integrationsNs from "@/i18n/growth.integrations.json";
 import referralsNs from "@/i18n/growth.referrals.json";
 import lifecycleNs from "@/i18n/growth.lifecycle.json";
 import whatsappNs from "@/i18n/growth.whatsapp.json";
+import experimentsNs from "@/i18n/growth.experiments.json";
 
 const flat = (o: Record<string, unknown>, p = ""): string[] => Object.entries(o).flatMap(([k, v]) => (typeof v === "object" && v ? flat(v as Record<string, unknown>, `${p}${k}.`) : [`${p}${k}`]));
 const base = (k: string) => k.replace(/_(zero|one|two|few|many|other)$/, "");
@@ -17,7 +18,7 @@ const files = (d: string): string[] => readdirSync(d).flatMap((f) => { const p =
 
 describe("i18n", () => {
   // the per-package namespaced files (GRW-P2-X1: growth.<pkg>.json, shape {en, ar}) are merged into the catalogue at start-up
-  const A = new Set([...flat(ar), ...flat(campaignsNs.ar), ...flat(stubsNs.ar), ...flat(integrationsNs.ar), ...flat(referralsNs.ar), ...flat(lifecycleNs.ar), ...flat(whatsappNs.ar)].map(base)); const E = new Set([...flat(en), ...flat(campaignsNs.en), ...flat(stubsNs.en), ...flat(integrationsNs.en), ...flat(referralsNs.en), ...flat(lifecycleNs.en), ...flat(whatsappNs.en)].map(base));
+  const A = new Set([...flat(ar), ...flat(campaignsNs.ar), ...flat(stubsNs.ar), ...flat(integrationsNs.ar), ...flat(referralsNs.ar), ...flat(lifecycleNs.ar), ...flat(whatsappNs.ar), ...flat(experimentsNs.ar)].map(base)); const E = new Set([...flat(en), ...flat(campaignsNs.en), ...flat(stubsNs.en), ...flat(integrationsNs.en), ...flat(referralsNs.en), ...flat(lifecycleNs.en), ...flat(whatsappNs.en), ...flat(experimentsNs.en)].map(base));
   it("ar and en have the same keys (plural suffixes aside)", () => {
     expect([...E].filter((k) => !A.has(k))).toEqual([]); expect([...A].filter((k) => !E.has(k))).toEqual([]);
   });

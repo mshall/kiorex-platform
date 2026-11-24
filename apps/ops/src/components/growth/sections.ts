@@ -19,7 +19,7 @@ export const GROWTH_SECTIONS: readonly GrowthSection[] = [
   { key: "assistant", to: "/growth/assistant", icon: Bot, status: "live", phase: 2, pkg: "GRW-P2-D" },
   { key: "lifecycle", to: "/growth/lifecycle", icon: HeartHandshake, status: "live", phase: 2, pkg: "GRW-P2-E" },
   { key: "templates", to: "/growth/templates", icon: Mail, status: "live" },
-  { key: "experiments", to: "/growth/experiments", icon: FlaskConical, status: "planned", phase: 3, pkg: "GRW-P3-A" },
+  { key: "experiments", to: "/growth/experiments", icon: FlaskConical, status: "live", phase: 3, pkg: "GRW-P3-A" },
   { key: "attribution", to: "/growth/attribution", icon: Scale, status: "live" },
   { key: "attribution-models", to: "/growth/attribution-models", icon: Layers, status: "live", phase: 3, pkg: "GRW-P3-B" },
   { key: "cohorts", to: "/growth/cohorts", icon: LineChart, status: "planned", phase: 3, pkg: "GRW-P3-C" },
