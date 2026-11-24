@@ -986,5 +986,698 @@
     "unattributed": "Unattributed bookings",
     "unattributedHint": "No evidence either way",
     "providers": "Providers"
+  },
+  "growth": {
+    "live": "Phase 1",
+    "nav": {
+      "group": "Growth & Patient Acquisition",
+      "pick": "Growth section"
+    },
+    "common": {
+      "market": "Market",
+      "period": "Period",
+      "lastDays": "Last {{count}} days",
+      "yes": "Yes",
+      "no": "No",
+      "on": "On",
+      "off": "Off",
+      "all": "All",
+      "noData": "No data in this period yet.",
+      "actions": "Actions",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "form": {
+      "placeholders": "Placeholders:",
+      "noTemplates": "No custom template. The built-in text is used.",
+      "language": "Language",
+      "pageType": "Page type",
+      "tplTitle": "Title template",
+      "tplDescription": "Description template",
+      "setTemplate": "Set template",
+      "fixed": "Fixed by the contract",
+      "remove": "Remove",
+      "add": "Add",
+      "newKey": "New key (lowercase)",
+      "badJson": "This is not valid JSON."
+    },
+    "events": {
+      "PageViewed": "Page views",
+      "SearchStarted": "Searches",
+      "ResultsViewed": "Results viewed",
+      "ProviderViewed": "Provider profiles viewed",
+      "SlotSelected": "Slots selected",
+      "BookingInitiated": "Bookings started",
+      "BookingConfirmed": "Bookings confirmed",
+      "BookingAttended": "Visits attended",
+      "BookingCancelled": "Bookings cancelled",
+      "AppInstalled": "App installs",
+      "PatientRegistered": "Patients registered",
+      "WidgetLoaded": "Widget loads",
+      "WidgetBookingStarted": "Widget bookings started",
+      "WhatsAppConversationStarted": "WhatsApp conversations",
+      "ConsentGranted": "Consents granted"
+    },
+    "origin": {
+      "PROVIDER_LED": "Provider-led",
+      "MARKETPLACE": "Marketplace",
+      "UNATTRIBUTED": "Unattributed"
+    },
+    "sourceKind": {
+      "PROVIDER_LINK": "Provider link",
+      "PROVIDER_QR": "Provider QR",
+      "WIDGET": "Booking widget",
+      "ORGANIC_SEARCH": "Organic search",
+      "DIRECT": "Direct",
+      "REFERRAL": "Patient referral",
+      "CAMPAIGN": "Campaign",
+      "WHATSAPP": "WhatsApp",
+      "OFFLINE": "Offline evidence"
+    },
+    "sections": {
+      "overview": {
+        "nav": "Executive overview",
+        "title": "Executive overview",
+        "hint": "How patients reach Kiorex and its providers, who brought each booking, and whether every growth rule is in force."
+      },
+      "campaigns": {
+        "nav": "Campaigns",
+        "title": "Campaign management",
+        "hint": "Plan, budget and monitor acquisition campaigns.",
+        "scope": [
+          "Campaign records with channels, UTM builder and state machine (draft, active, paused, ended)",
+          "Budgets, caps and threshold events",
+          "Attribution of campaign clicks (windows already exist in the attribution policy)"
+        ],
+        "deps": [
+          "GRW-P2-1 campaign engine",
+          "Flag growth.campaigns (default ON, nothing to switch yet)",
+          "Counsel position on direct marketing for paid and owned channels"
+        ],
+        "today": "Campaign traffic that carries UTM parameters is already recorded as touches and shows on Acquisition channels. There are no campaign records, budgets or spend here yet.",
+        "flag": "growth.campaigns"
+      },
+      "channels": {
+        "nav": "Acquisition channels",
+        "title": "Acquisition channels",
+        "hint": "Every source that brings visitors, with its volume. Pause a source to stop it counting as a channel."
+      },
+      "providers": {
+        "nav": "Provider acquisition",
+        "title": "Provider acquisition",
+        "hint": "Supply side: partner leads and onboarding, and the provider-owned links that bring patients."
+      },
+      "patients": {
+        "nav": "Patient acquisition",
+        "title": "Patient acquisition",
+        "hint": "Where patients come from and who gets credit, with a read-only evidence viewer for any booking."
+      },
+      "referrals": {
+        "nav": "Referral programs",
+        "title": "Referral programs",
+        "hint": "Patient-to-patient referral links and qualification.",
+        "scope": [
+          "Referral links and relationships between patients",
+          "Qualification rules and the fraud review queue for referrals",
+          "Consent-first referral screens in web and mobile"
+        ],
+        "deps": [
+          "GRW-P2-2 patient referral",
+          "Counsel gate on rewards and referral incentives (NEEDS_HUMAN)",
+          "Flag growth.patient_referral is launch-locked"
+        ],
+        "today": "The link format and the consent-first landing exist in the patient app and web (deep links). No referral is created, tracked or rewarded.",
+        "flag": "growth.patient_referral"
+      },
+      "rewards": {
+        "nav": "Rewards & incentives",
+        "title": "Rewards & incentives",
+        "hint": "Reward ledger, credits and expiry.",
+        "scope": [
+          "Closed-loop reward ledger or coupon fallback",
+          "Credit application at checkout and expiry job",
+          "Finance treatment of credits (never revenue, never deposits)"
+        ],
+        "deps": [
+          "GRW-P2-3 reward ledger, after GRW-P2-2",
+          "ADR-046 and the finance treatment (NEEDS_HUMAN)",
+          "Counsel gate; flag growth.rewards is launch-locked"
+        ],
+        "today": "Nothing is issued or redeemed. No money path is built for rewards.",
+        "flag": "growth.rewards"
+      },
+      "promotions": {
+        "nav": "Promotional campaigns",
+        "title": "Promotional campaigns",
+        "hint": "Time-boxed offers and promotional credits.",
+        "scope": [
+          "Promotion definitions, audiences from an allow-list of segments, and schedules",
+          "Promotional credit rules that sit on top of the reward ledger",
+          "Reporting of promotion cost against bookings"
+        ],
+        "deps": [
+          "GRW-P2-1 campaign engine and GRW-P2-3 reward ledger",
+          "Counsel position on marketing licence and consent wording (NEEDS_HUMAN)",
+          "No health-based targeting, ever"
+        ],
+        "today": "No promotion exists. Provider fees and the EGP 40 rule are unchanged and live on the Fees page.",
+        "flag": "growth.campaigns"
+      },
+      "seo": {
+        "nav": "SEO management",
+        "title": "SEO management",
+        "hint": "Public site rules, thin-page thresholds, sitemap and robots status, slug history and redirects."
+      },
+      "landing": {
+        "nav": "Landing pages",
+        "title": "Landing page management",
+        "hint": "Pages the site generated and whether each one is indexable. Read-only in Phase 1."
+      },
+      "widgets": {
+        "nav": "Booking widgets",
+        "title": "Booking widgets",
+        "hint": "Which organisations embed the booking widget, on which origins, and the widget policy."
+      },
+      "whatsapp": {
+        "nav": "WhatsApp booking assistant",
+        "title": "WhatsApp booking assistant",
+        "hint": "Booking by chat with a safe, scripted assistant.",
+        "scope": [
+          "Assistant orchestrator with a closed tool registry and a confirmation button before any booking",
+          "Cost caps per conversation, per day and per market, with human hand-off",
+          "Injection tests and emergency short-circuit"
+        ],
+        "deps": [
+          "GRW-P2-5 and the KX-11 safety review",
+          "Approved Meta message templates (NEEDS_HUMAN)",
+          "Flag kiorex.whatsapp_ai_assistant is launch-locked"
+        ],
+        "today": "The deterministic WhatsApp booking flow exists (see Messaging). There is no AI assistant and nothing to configure here.",
+        "flag": "kiorex.whatsapp_ai_assistant"
+      },
+      "lifecycle": {
+        "nav": "Patient lifecycle CRM",
+        "title": "Patient lifecycle CRM",
+        "hint": "Journeys, frequency caps and segments for consented messages.",
+        "scope": [
+          "Journeys and triggers, with frequency caps across channels",
+          "Segment allow-list (no health attributes) and the template catalogue",
+          "Send gate dashboards (consent, suppression, quiet hours)"
+        ],
+        "deps": [
+          "GRW-P2-6 after consent management (done)",
+          "Counsel position on marketing licence (NEEDS_HUMAN)",
+          "Flag growth.marketing_messaging is launch-locked"
+        ],
+        "today": "The consent gate and the preference centre are built, and no marketing message is sent. Existing transactional and reminder templates are on the Communication templates page.",
+        "flag": "growth.marketing_messaging"
+      },
+      "templates": {
+        "nav": "Communication templates",
+        "title": "Communication templates",
+        "hint": "The shipped notification templates with their purpose and consent class. Read-only: copy and Meta approval are human decisions."
+      },
+      "experiments": {
+        "nav": "Experimentation & A/B testing",
+        "title": "Experimentation & A/B testing",
+        "hint": "Controlled experiments with guardrails.",
+        "scope": [
+          "Experiment definitions, variants, allocation and stopping rules",
+          "Guardrail metrics that stop a variant automatically",
+          "Results read from analytics, never from patient identifiers"
+        ],
+        "deps": [
+          "GRW-P3-1 experiments, after analytics v1",
+          "Flag growth.experiments (nothing to switch yet)",
+          "Experiment guardrail configuration kind (Phase 3)"
+        ],
+        "today": "No experiment runs and no variant is served.",
+        "flag": "growth.experiments"
+      },
+      "attribution": {
+        "nav": "Attribution & commission rules",
+        "title": "Attribution & commission rules",
+        "hint": "The rules that decide whether a booking is provider-led or marketplace. A change needs a second super admin and seven days notice."
+      },
+      "fraud": {
+        "nav": "Fraud management",
+        "title": "Fraud management",
+        "hint": "Signals that need a human look. A signal never changes a booking decision by itself."
+      },
+      "analytics": {
+        "nav": "Growth analytics",
+        "title": "Growth analytics",
+        "hint": "Funnel, channels and daily trends. Small groups are masked (fewer than 10 shows as \"<10\")."
+      },
+      "finance": {
+        "nav": "Financial performance",
+        "title": "Financial performance",
+        "hint": "Who brought the bookings that can carry a fee, and Kiorex revenue facts. Finance role."
+      },
+      "markets": {
+        "nav": "Market configurations",
+        "title": "Market configurations",
+        "hint": "Languages, currency, time zone, consent defaults, retention and marketing rules per market. A new market is configuration, not code."
+      },
+      "integrations": {
+        "nav": "Integration management",
+        "title": "Integration management",
+        "hint": "Which providers run in mock or real mode, whether they are ready, and which secrets they reference. Secret values never appear here."
+      },
+      "audit": {
+        "nav": "Audit logs",
+        "title": "Audit logs",
+        "hint": "Every growth change: who, what, when. Payloads are never copied here, only checksums and states."
+      },
+      "config": {
+        "nav": "Configuration versions",
+        "title": "Configuration versions",
+        "hint": "All versioned growth configuration in one place: draft, validate, approve by a second super admin, schedule, roll back."
+      }
+    },
+    "planned": {
+      "badge": "Planned: Phase {{phase}}",
+      "title": "Planned: Phase {{phase}}",
+      "statusNotBuilt": "Not built",
+      "honest": "This page is a plan, not a feature. There is no data, no setting and no action behind it, so nothing here can change how Kiorex behaves.",
+      "scope": "Scope",
+      "dependencies": "Dependencies",
+      "today": "What exists today",
+      "package": "Work package",
+      "status": "Status",
+      "statusValue": "Planned, not started",
+      "flag": "Feature flag"
+    },
+    "overview": {
+      "source": {
+        "internal": "Raw growth tables (analytics v1 is not serving yet)",
+        "analytics-v1": "Analytics v1 (small groups masked)"
+      },
+      "since": "Since {{at}}",
+      "freshness": "Rolled up {{at}}",
+      "providerLedShare": "Provider-led share",
+      "providerLedHint": "Of decided bookings",
+      "bookingsConfirmed": "Bookings confirmed",
+      "decisions": "Attribution decisions",
+      "fraudOpen": "Open fraud signals",
+      "activeWidgets": "Active widgets",
+      "indexable": "Indexable pages",
+      "funnel": "Funnel",
+      "funnelHint": "Counts of each canonical event in the period.",
+      "origins": "Who brought the bookings",
+      "originsHint": "Original decisions only; corrections are not counted twice.",
+      "sources": "Touches by source",
+      "reasons": "Decision reasons",
+      "configHealth": "Configuration in force",
+      "configHealthHint": "A proposed default is the code default nobody has approved yet. Approve a version to replace it.",
+      "pending": "Waiting for approval",
+      "scheduled": "Scheduled",
+      "rawNote": "The funnel, origins, sources and reasons below are raw counts of stored events and decisions. The figures above use the analytics v1 definitions, so the two can differ.",
+      "a": {
+        "bookings": "Bookings",
+        "k": "Groups under {{k}} are masked",
+        "anp": "Attended new patients",
+        "anpHint": "The fee-relevant count",
+        "bookingToAttended": "Booking to attended"
+      }
+    },
+    "channels": {
+      "byKind": "Touches by channel",
+      "byKindHint": "Volume in the selected period.",
+      "kindHint": "{{sources}} sources, {{active}} active",
+      "sources": "Sources",
+      "manageHint": "Pausing a source stops it counting as a channel. Past touches and decisions are never changed.",
+      "readOnlyHint": "Only a super admin can pause or resume a source.",
+      "empty": "No acquisition sources yet.",
+      "colKind": "Channel",
+      "colRef": "Reference",
+      "colLabel": "Label",
+      "colOwner": "Owner organisation",
+      "colTouches": "Touches",
+      "colLast": "Last touch",
+      "colState": "State",
+      "active": "Active",
+      "paused": "Paused",
+      "pause": "Pause",
+      "resume": "Resume",
+      "saved": "Source updated"
+    },
+    "providers": {
+      "openLeads": "Open partner leads",
+      "supply": "Supply funnel",
+      "supplyHint": "From the Partner leads page: interest to live.",
+      "stage": {
+        "interested": "Interested",
+        "started": "Started",
+        "submitted": "Submitted",
+        "live": "Live"
+      },
+      "fromPrevious": "{{pct}}% of the previous step",
+      "owned": "Provider-owned sources",
+      "ownedHint": "{{count}} active links and QR codes registered by providers.",
+      "noLinks": "No provider links registered yet.",
+      "top": "Organisations bringing visitors",
+      "topHint": "Touches through their own links, QR codes and widgets."
+    },
+    "evidence": {
+      "title": "Booking evidence",
+      "hint": "Read-only: the stored decision and the touches it considered. No patient identifiers.",
+      "bookingId": "Booking id",
+      "lookup": "Look up",
+      "none": "No attribution evidence for this booking.",
+      "policy": "Policy version",
+      "touches": "Touches considered",
+      "noTouches": "No touches were considered.",
+      "at": "When",
+      "dwell": "Dwell (ms)",
+      "winning": "Decided"
+    },
+    "attribution": {
+      "rules": "How a booking is decided",
+      "rulesHint": "The decision is a pure function of the touches, the booking and the policy version below. The same inputs always give the same answer.",
+      "rule1": "A booking made by the provider through their own channel is never charged the marketplace fee, and evidence can only remove a fee, never add one.",
+      "rule2": "A provider touch counts only inside its window and only if the page was really shown for the minimum dwell time.",
+      "rule3": "First-touch is for reporting only and cannot be the commission rule.",
+      "rule4": "A change needs a second super admin, a provider announcement, and an effective date at least seven days after approval. Earlier decisions keep citing the version that was in force."
+    },
+    "config": {
+      "colKind": "Configuration",
+      "colVersion": "Version",
+      "colStatus": "Status",
+      "colMaker": "Drafted by",
+      "colChecker": "Approved by",
+      "status": {
+        "DRAFT": "Draft",
+        "PENDING_APPROVAL": "Waiting for approval",
+        "APPROVED": "Approved, scheduled",
+        "ACTIVE": "In force",
+        "SUPERSEDED": "Replaced",
+        "REJECTED": "Rejected",
+        "ROLLED_BACK": "Rolled back"
+      },
+      "inForce": "In force now",
+      "activeVersion": "Version {{version}} in force",
+      "proposedDefault": "Proposed default (not approved)",
+      "proposedNote": "Nobody has approved a version yet, so the code default applies.",
+      "since": "since {{at}}",
+      "scope": "Applies to",
+      "scopeGlobal": "All markets",
+      "scopeMarket": "Market {{market}} only",
+      "moneyChip": "Money policy: 7 days notice",
+      "scheduledLine": "Version {{version}} activates {{at}}",
+      "propagation": "Propagation",
+      "noReaders": "No reader has loaded it yet",
+      "converged": "All {{n}} readers serve this version",
+      "stale": "{{n}} reader(s) still on an older version",
+      "cacheTtl": "Readers refresh at least every {{s}} s, no redeploy needed",
+      "readerVersion": "version {{version}}",
+      "upToDate": "up to date",
+      "behind": "behind",
+      "idle": "idle",
+      "versions": "Versions",
+      "makerHint": "Draft a version, submit it, and a different super admin approves it. Approved versions activate on their effective date.",
+      "readOnlyHint": "You can read versions. Drafting and approving need the super admin role.",
+      "noVersions": "No version yet. The proposed default applies.",
+      "newVersion": "New version",
+      "editDraft": "Edit draft v{{version}}",
+      "draftNote": "Saved as a draft. Nothing changes until it is submitted and approved.",
+      "moneyNote": "This changes who gets credit and who pays a fee. It needs an announcement to providers and takes effect at least 7 days after approval.",
+      "effectiveFrom": "Effective from",
+      "effectiveHint": "Leave empty to apply as soon as it is approved.",
+      "effectiveHintMoney": "At least 7 days after approval.",
+      "ticket": "Ticket or reference",
+      "ticketHint": "Where this decision is recorded.",
+      "reason": "Reason",
+      "announcement": "Announcement to providers",
+      "announcementHint": "Plain words, in the provider language. Legal wording is a human decision.",
+      "saveDraft": "Save draft",
+      "saved": "Draft saved",
+      "edit": "Edit",
+      "submit": "Submit",
+      "submitted": "Submitted for approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "approveTitle": "Approve this version?",
+      "approveBody": "You are the second pair of eyes. After approval it activates at its effective date and every action is recorded.",
+      "rejectTitle": "Reject this version?",
+      "rejectBody": "The author can create a corrected version. The rejected one stays in history.",
+      "secondAdmin": "Waiting for a second super admin",
+      "activatesAt": "Activates {{at}}",
+      "rollback": "Roll back to this",
+      "rollbackTitle": "Roll back to version {{version}}",
+      "rollbackBody": "This creates a new version with the old values. It needs the same approval as any change.",
+      "rollbackConfirm": "Create rollback version",
+      "rollbackCreated": "Rollback version created and waiting for approval",
+      "diff": "Compare",
+      "review": "Review version {{version}}",
+      "against": "Compared with version {{version}}",
+      "againstDefault": "Compared with the proposed default",
+      "noChanges": "No difference.",
+      "diffKind": {
+        "added": "added",
+        "removed": "removed",
+        "changed": "changed"
+      },
+      "checks": "Checks",
+      "valid": "Passes all checks",
+      "invalid": "Has blocking problems",
+      "trail": "Audit trail",
+      "decide": "Decide…"
+    },
+    "seo": {
+      "indexable": "Indexable pages",
+      "thin": "Thin pages (noindex)",
+      "thinHint": "Held back by the thin-page guard",
+      "shards": "Sitemap files",
+      "shardHint": "{{size}} URLs per file",
+      "slugs": "Slugs / history",
+      "slugsHint": "Current slugs and old ones that redirect",
+      "thresholds": "Thin-page thresholds",
+      "thresholdsHint": "A generated page is indexable only when it passes all three. Change them in the SEO configuration below.",
+      "thr": {
+        "minLiveProviders": "Live providers needed",
+        "minUniqueBlocks": "Unique content blocks needed",
+        "maxSiblingSimilarityPercent": "Max overlap with a sibling page (%)"
+      },
+      "thinReasons": "Why pages are held back",
+      "robotsSitemap": "Robots and sitemap",
+      "robotsMode": {
+        "ALLOW_PUBLIC": "Public pages allowed",
+        "DISALLOW_ALL": "Everything disallowed"
+      },
+      "environment": "Environment: {{env}}",
+      "robotsNote": "Only an explicit production environment is indexable; every other environment disallows everything.",
+      "sitemapLine": "{{pages}} indexable pages in {{shards}} file(s)",
+      "lastRendered": "last render {{at}}",
+      "lastRenderedShort": "Last rendered",
+      "live": "What a crawler gets right now",
+      "liveRobots": "robots.txt answers {{status}}",
+      "liveSitemap": "sitemap.xml answers {{status}} with {{n}} entries",
+      "liveUnreachable": "This server could not reach its own site routes.",
+      "slugHistory": "Slug history",
+      "slugHistoryHint": "Old slugs answer a permanent redirect to the current one.",
+      "slugSearch": "Search slug",
+      "entityType": "Entity type",
+      "slug": "Current slug",
+      "previous": "Previous slugs",
+      "gone": "gone",
+      "updated": "Updated",
+      "redirects": "Redirects",
+      "redirectsHint": "301 means moved; 410 means the page is gone.",
+      "from": "From",
+      "to": "To",
+      "status": "Status"
+    },
+    "landing": {
+      "pages": "Generated pages",
+      "pagesHint": "{{total}} pages match.",
+      "empty": "No generated pages yet. They appear after the public site renders them.",
+      "filterIndexable": "Show",
+      "indexable": "Indexable",
+      "noindex": "Held back (noindex)",
+      "pageType": "Page type",
+      "locale": "Language",
+      "params": "Parameters",
+      "state": "State",
+      "reasons": "Why held back"
+    },
+    "widgets": {
+      "registrations": "Registrations",
+      "registrationsHint": "Organisations that registered origins for the booking widget. Origins come from the provider profile; this console only enables or disables them.",
+      "empty": "No organisation has registered a widget origin.",
+      "org": "Organisation",
+      "origins": "Allowed origins",
+      "state": "State",
+      "status": {
+        "ACTIVE": "Active",
+        "DISABLED": "Disabled"
+      },
+      "synced": "Synced",
+      "enable": "Enable",
+      "disable": "Disable",
+      "saved": "Registration updated",
+      "policy": "Widget policy in force",
+      "policyHint": "Edit it in the configuration below.",
+      "audit": "Recent widget audit events"
+    },
+    "templates": {
+      "openMessaging": "Open Messaging",
+      "purpose": "Purpose",
+      "purposes": {
+        "TRANSACTIONAL": "Transactional",
+        "REMINDER": "Reminder",
+        "MARKETING": "Marketing"
+      },
+      "list": "{{count}} templates",
+      "hint": "No marketing template ships. Copy and Meta approval of every template are human decisions.",
+      "empty": "No template matches.",
+      "kind": "Template",
+      "consent": "Consent class",
+      "consentClass": {
+        "NONE_REQUIRED": "None required",
+        "REMINDERS_CONSENT": "Reminders consent",
+        "MARKETING_CONSENT_PER_CHANNEL": "Marketing consent per channel"
+      },
+      "quiet": "Ignores quiet hours",
+      "locales": "Languages",
+      "meta": "Meta approval",
+      "metaState": {
+        "NEEDS_HUMAN": "Needs a human",
+        "ID_SET": "Id set"
+      },
+      "body": "Text"
+    },
+    "fraud": {
+      "queue": "Queue",
+      "status": {
+        "OPEN": "Open",
+        "CONFIRMED": "Confirmed",
+        "DISMISSED": "Dismissed"
+      },
+      "signals": "Signals",
+      "empty": "No signals in this queue.",
+      "reviewHint": "Confirm or dismiss with a short note. This never changes a booking decision; it records what a person concluded.",
+      "readOnlyHint": "Reviewing needs the super admin or support role.",
+      "rule": "Rule",
+      "score": "Score",
+      "subject": "Subject (hash)",
+      "state": "State",
+      "note": "Note",
+      "confirm": "Confirm",
+      "dismiss": "Dismiss",
+      "reviewed": "Signal reviewed",
+      "thresholds": "Thresholds",
+      "threshold": "Triggers when",
+      "source": "Where it is set"
+    },
+    "analytics": {
+      "funnel": "Funnel (analytics v1)",
+      "funnelHint": "Counts under 10 are masked.",
+      "stage": "Stage",
+      "count": "Count",
+      "step": "Step",
+      "cumulative": "Overall",
+      "channels": "Channels (analytics v1)",
+      "channelsHint": "Bookings and attended new patients by channel.",
+      "bookings": "Bookings",
+      "anp": "Attended new patients",
+      "daily": "Daily counts",
+      "rawSource": "Raw growth tables",
+      "day": "Day"
+    },
+    "finance": {
+      "openFees": "Open fee statements",
+      "denied": "Financial performance is for the finance role and super admins.",
+      "providerLedHint": "No marketplace fee",
+      "marketplaceHint": "Can carry the fee",
+      "corrections": "Corrections",
+      "revenue": "Revenue facts",
+      "revenueHint": "Commission charge events recorded by analytics. Gross booking value is never shown as revenue.",
+      "charges": "Charges",
+      "reversals": "Reversals",
+      "noFacts": "No revenue facts recorded yet.",
+      "analyticsV1": "Analytics v1",
+      "analyticsV1Hint": "Groups under {{k}} are masked.",
+      "kiorexRevenue": "Kiorex revenue",
+      "notGbv": "Fees only, not booking value",
+      "pending": "Commission pending",
+      "spend": "Approved spend",
+      "spendHint": "Entered by hand, approved by a second person",
+      "cac": "Blended CAC",
+      "planned": "Planned: Phase 2",
+      "plannedBody": "Campaign budgets, ad-platform spend feeds, ROAS by campaign and cohorts arrive with the campaign engine and advanced analytics. Nothing here is estimated."
+    },
+    "markets": {
+      "live": "Live",
+      "notLive": "Not live",
+      "liveHint": "Set by the market flag, not by this page.",
+      "languages": "Languages",
+      "currency": "Currency (phone code)",
+      "timeZone": "Time zone",
+      "quietHours": "Quiet hours",
+      "consentRegime": "Consent regime",
+      "caps": "Marketing cap per day / week",
+      "withdrawal": "Withdrawal reaches the send gate within",
+      "seconds": "{{n}} s",
+      "retention": "Retention (months)",
+      "retentionValue": "evidence {{linked}}, other touches {{unlinked}}",
+      "geography": "Cities and districts",
+      "geoValue": "{{cities}} cities, {{districts}} districts",
+      "noGeoRef": "no list reference yet",
+      "licence": "Marketing licence confirmed",
+      "licenceNo": "No (counsel decision pending)",
+      "marketingRules": "Marketing and consent switches",
+      "growthConfig": "Market growth configuration",
+      "consentConfig": "Consent defaults"
+    },
+    "integrations": {
+      "secretRule": "Configuration stores only the name of a secret. This page cannot show or accept a secret value, and the API never returns one.",
+      "providers": "Providers",
+      "providersHint": "Mock is the default until the real-provider go-live pass.",
+      "kind": "Integration",
+      "mode": "Mode",
+      "mock": "Mock",
+      "real": "Real",
+      "provider": "Vendor",
+      "ready": "Ready",
+      "readyYes": "Ready",
+      "readyNo": "Not ready",
+      "secretRefs": "Secret references",
+      "refSet": "set",
+      "refUnset": "not set",
+      "selected": "Selected for market",
+      "problems": "Problems (variable names only)",
+      "selection": "Selection per market",
+      "selectionHint": "On or off per integration kind, versioned with the market growth configuration.",
+      "noSelection": "No selection recorded; every integration follows its flag.",
+      "waRef": "WhatsApp phone number reference",
+      "editSelection": "Edit in market configurations",
+      "flags": "Growth switches",
+      "flagsHint": "The switches live in the flag control plane. Launch-locked ones need recorded gate evidence.",
+      "openFlags": "Open feature flags",
+      "planned": "Planned integrations",
+      "plannedHint": "Not built. Shown so the plan is visible; there is no status to report.",
+      "phase": "Phase",
+      "direction": "Direction",
+      "note": "Note"
+    },
+    "audit": {
+      "filters": "Filters",
+      "action": "Action",
+      "actor": "Actor",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "events": "Events",
+      "empty": "No audit events match.",
+      "when": "When",
+      "resource": "Resource",
+      "resourceId": "Resource id",
+      "details": "Details",
+      "older": "Older events",
+      "newest": "Back to newest"
+    }
   }
 }

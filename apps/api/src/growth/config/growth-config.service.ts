@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { GROWTH_CONFIG_KINDS, GROWTH_CONFIG_STATES, growthCanonicalJson, validateGrowthConfig, type GrowthConfigKind } from '@kiorex/contracts';
+import { GROWTH_CONFIG_KINDS, GROWTH_CONFIG_STATES, growthCanonicalJson, validateGrowthConfig as validateContractConfig, type GrowthConfigKind } from '@kiorex/contracts';
+import { validateSeoExtensions } from '../seo/seo-public';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
 import { sha256Hex } from '../growth-secrets';
 import { GROWTH_DEFAULT_PAYLOADS, PROPOSED_DEFAULT_MARKER } from './growth-defaults';
+import { ConfigReaders } from './config-readers';
+import { diffPayload } from '../admin/config-diff';
+import { DAILY_VERSION_BUDGET, evaluateGuardrails, findSecretViolations } from '../admin/config-guardrails';
 
 export type ConfigScope = { scope: 'GLOBAL'; scopeId?: '' } | { scope: 'MARKET'; scopeId: string };
 export interface ConfigActor { sub: string; roles: string[] }
@@ -26,6 +30,21 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
   effectiveFrom: Date | null;
 }
 
+/**
+ * SEO keys of package F that ride in the SEO payload next to the contract keys (templates, pagination, review markup, same-day window). The contract schema
+ * (additionalProperties false) knows only its own keys until kiorex-contracts adds these as optional, so the contract part is validated by the JSON Schema and this
+ * part by F's validator. Both run on every write; nothing else may be added.
+ */
+export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
+export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
+  if (kind !== 'SEO' || !payload || typeof payload !== 'object' || Array.isArray(payload)) return validateContractConfig(kind, payload);
+  const base: Record<string, unknown> = {}; const ext: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(payload as Record<string, unknown>)) ((SEO_EXTENSION_KEYS as readonly string[]).includes(k) ? ext : base)[k] = v;
+  const a = validateContractConfig(kind, base); const b = validateSeoExtensions(ext);
+  const errors = [...(a.valid ? [] : a.errors), ...b.errors];
+  return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
+}
+
 const checksumOf = (payload: unknown) => sha256Hex(growthCanonicalJson(payload));
 const isSuper = (a: ConfigActor) => a.roles.includes('super_admin');
 
@@ -42,12 +61,40 @@ const isSuper = (a: ConfigActor) => a.roles.includes('super_admin');
  */
 @Injectable()
 export class GrowthConfigService {
-  constructor(private readonly prisma: PrismaService) {}
+  /** Propagation monitor: other readers of a growth config (the SEO renderer, the widget host) call `readers.record(name, resolved)` too. */
+  readonly readers: ConfigReaders;
+  private readonly cache = new Map<string, { until: number; value: ResolvedConfig }>();
+  constructor(private readonly prisma: PrismaService) { this.readers = new ConfigReaders(prisma); }
+
+  /**
+   * Read-through cache for LIVE reads (no explicit `at`). It refreshes by itself: an entry lives at most GROWTH_CONFIG_CACHE_TTL_MS (default 5 s; 0 in tests) and never
+   * past the instant a newer approved version takes over, so a change reaches every instance without a redeploy and an effective date is honoured to the second on the
+   * instance that approved it and within the TTL on the others. Local transitions invalidate at once.
+   */
+  cacheTtlMs(): number {
+    const raw = process.env.GROWTH_CONFIG_CACHE_TTL_MS;
+    const n = raw === undefined || raw === '' ? NaN : Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : process.env.NODE_ENV === 'test' ? 0 : 5000;
+  }
+  invalidate(): void { this.cache.clear(); }
 
   // ───────────────────────── resolution ─────────────────────────
 
   /** MARKET scope first, then GLOBAL, then PROPOSED_DEFAULT (never throws for a kind that has a default). */
   async resolve<T = Record<string, unknown>>(kind: GrowthConfigKind | string, o: { market?: string; at?: Date } = {}): Promise<ResolvedConfig<T>> {
+    const ttl = this.cacheTtlMs();
+    if (o.at || ttl === 0) return this.resolveUncached<T>(kind, o);
+    const key = `${kind}|${o.market ?? ''}`; const now = Date.now();
+    const hit = this.cache.get(key);
+    if (hit && hit.until > now) { await this.readers.record('config-service', hit.value); return hit.value as ResolvedConfig<T>; }
+    const value = await this.resolveUncached<T>(kind, o);
+    const nextDue = await this.prisma.growthConfigVersion.findFirst({ where: { kind, status: 'APPROVED', effectiveFrom: { gt: new Date(now) } }, orderBy: { effectiveFrom: 'asc' }, select: { effectiveFrom: true } });
+    const bounds = [now + ttl, nextDue?.effectiveFrom?.getTime() ?? Infinity];
+    this.cache.set(key, { until: Math.min(...bounds), value: value as ResolvedConfig });
+    return value;
+  }
+
+  private async resolveUncached<T = Record<string, unknown>>(kind: GrowthConfigKind | string, o: { market?: string; at?: Date } = {}): Promise<ResolvedConfig<T>> {
     const at = o.at ?? new Date();
     if (!o.at || at.getTime() >= Date.now() - 1000) await this.activateDue(at);
     const scopes: ConfigScope[] = [...(o.market ? [{ scope: 'MARKET', scopeId: o.market } as ConfigScope] : []), { scope: 'GLOBAL', scopeId: '' }];
@@ -56,12 +103,17 @@ export class GrowthConfigService {
         where: { kind, scope: s.scope, scopeId: s.scopeId ?? '', status: { in: ['ACTIVE', 'SUPERSEDED', 'ROLLED_BACK'] }, effectiveFrom: { lte: at }, OR: [{ effectiveTo: null }, { effectiveTo: { gt: at } }] },
         orderBy: { effectiveFrom: 'desc' },
       });
-      if (row) return this.present<T>(row);
+      if (row) return this.noted(o, this.present<T>(row));
     }
     const def = (GROWTH_DEFAULT_PAYLOADS as Record<string, Record<string, unknown> | undefined>)[kind];
     if (!def) throw growthError('GROWTH_CONFIG_NOT_FOUND', `No active growth configuration and no default for ${kind}`);
     const row = await this.ensureDefaultRow(kind);
-    return { ...this.present<T>(row), payload: def as T, source: 'PROPOSED_DEFAULT' };
+    return this.noted(o, { ...this.present<T>(row), payload: def as T, source: 'PROPOSED_DEFAULT' });
+  }
+  /** Live reads report to the propagation monitor (historical `at` reads are replays, not serving). */
+  private async noted<T>(o: { at?: Date }, r: ResolvedConfig<T>): Promise<ResolvedConfig<T>> {
+    if (!o.at) await this.readers.record('config-service', r);
+    return r;
   }
 
   private present<T>(row: { id: string; version: number; kind: string; scope: string; scopeId: string; payload: unknown; ticket: string | null; effectiveFrom: Date | null }): ResolvedConfig<T> {
@@ -101,6 +153,7 @@ export class GrowthConfigService {
     const v = validateGrowthConfig(i.kind, i.payload);
     if (!v.valid) throw growthError('GROWTH_CONFIG_INVALID', 'Payload does not match the schema for this kind', { errors: v.errors });
     if (i.kind === 'ATTRIBUTION_POLICY' && i.payload.precedence === 'FIRST_TOUCH') throw growthError('GROWTH_CONFIG_INVALID', 'FIRST_TOUCH is reporting only and cannot be the commission precedence', { errors: ['/precedence FIRST_TOUCH is not allowed for commission'] });
+    await this.guard({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, ticket: i.ticket }, true);
     const row = await this.createRow({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, createdBy: actor.sub, effectiveFrom: i.effectiveFrom ?? null, ticket: i.ticket, reason: i.reason, announcement: i.announcement, status: 'DRAFT' });
     await this.audit(actor.sub, 'create', row, { after: row.checksum });
     return row;
@@ -114,6 +167,7 @@ export class GrowthConfigService {
     if (patch.payload) {
       const v = validateGrowthConfig(row.kind, patch.payload);
       if (!v.valid) throw growthError('GROWTH_CONFIG_INVALID', 'Payload does not match the schema for this kind', { errors: v.errors });
+      await this.guard({ kind: row.kind, scope: row.scope, scopeId: row.scopeId, payload: patch.payload, ticket: patch.ticket ?? row.ticket }, false);
     }
     const payload = patch.payload ?? (row.payload as Record<string, unknown>);
     const next = await this.prisma.growthConfigVersion.update({ where: { id }, data: { payload: payload as never, checksum: checksumOf(payload), ...(patch.effectiveFrom !== undefined ? { effectiveFrom: patch.effectiveFrom } : {}), ...(patch.ticket !== undefined ? { ticket: patch.ticket } : {}), ...(patch.reason !== undefined ? { reason: patch.reason } : {}), ...(patch.announcement !== undefined ? { announcement: patch.announcement } : {}) } });
@@ -126,7 +180,27 @@ export class GrowthConfigService {
     if (row.status !== 'DRAFT') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'Only a DRAFT can be submitted', { status: row.status });
     if (row.createdBy !== actor.sub) throw forbidden('FORBIDDEN_NOT_AUTHOR', 'Only the author can submit a draft');
     this.assertMoneyPolicy(row, now);
+    await this.guard({ kind: row.kind, scope: row.scope, scopeId: row.scopeId, payload: row.payload as Record<string, unknown>, ticket: row.ticket }, false);
+    await this.assertNoOtherPending(row);
     return this.move(actor.sub, 'submit', row, { status: 'PENDING_APPROVAL' }, ['DRAFT']);
+  }
+
+  /** Dry run for the console: schema, guardrails and the money-policy rules, without changing anything. */
+  async validate(id: string, now = new Date()) {
+    const row = await this.must(id);
+    const errors: string[] = []; const warnings: string[] = [];
+    const v = validateGrowthConfig(row.kind, row.payload);
+    if (!v.valid) errors.push(...v.errors);
+    errors.push(...findSecretViolations(row.payload));
+    const current = await this.inForcePayload(row.kind, row.scope, row.scopeId, row.id);
+    const g = evaluateGuardrails({ kind: row.kind, scope: row.scope, scopeId: row.scopeId, payload: row.payload as Record<string, unknown>, current, ticket: row.ticket });
+    errors.push(...g.errors); warnings.push(...g.warnings);
+    if (MONEY_POLICY_KINDS.includes(row.kind)) {
+      if (!row.announcement || row.announcement.trim().length < 10) errors.push('/announcement: a provider-facing announcement (10+ characters) is required for this kind');
+      const min = now.getTime() + MONEY_POLICY_LEAD_MS;
+      if (!row.effectiveFrom || row.effectiveFrom.getTime() < min) errors.push(`/effectiveFrom: must be at least 7 days after approval (earliest ${new Date(min).toISOString()} if approved now)`);
+    }
+    return { valid: errors.length === 0, errors, warnings };
   }
 
   // ───────────────────────── checker side ─────────────────────────
@@ -159,6 +233,7 @@ export class GrowthConfigService {
     const target = await this.prisma.growthConfigVersion.findUnique({ where: { kind_scope_scopeId_version: { kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', version: i.toVersion } } });
     if (!target) throw growthError('GROWTH_CONFIG_NOT_FOUND', `Version ${i.toVersion} of ${i.kind} does not exist`);
     if (!['ACTIVE', 'SUPERSEDED', 'ROLLED_BACK'].includes(target.status)) throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'Only a version that has been active can be restored', { status: target.status });
+    await this.assertNoOtherPending({ id: '', kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '' });
     const row = await this.createRow({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: target.payload as Record<string, unknown>, createdBy: actor.sub, effectiveFrom: i.effectiveFrom ?? null, ticket: i.ticket, reason: `rollback to v${i.toVersion}: ${i.reason}`.slice(0, 500), announcement: i.announcement, status: 'DRAFT', supersedesId: target.id });
     await this.audit(actor.sub, 'rollback', row, { after: row.checksum, restoredVersion: i.toVersion });
     this.assertMoneyPolicy(row, now);
@@ -188,7 +263,44 @@ export class GrowthConfigService {
         if ((e as { code?: string }).code !== 'P2002' && (e as Error).message !== 'already activated') throw e;
       }
     }
+    if (n > 0) this.invalidate();
     return n;
+  }
+
+  /**
+   * Explicit activation (checker). An APPROVED version activates at its stated effectiveFrom; asking earlier is refused (the date is the promise made to providers),
+   * asking at or after it activates now. Idempotent for a version that is already ACTIVE.
+   */
+  async activate(actor: ConfigActor, id: string, now = new Date()) {
+    if (!isSuper(actor)) throw forbidden('FORBIDDEN_ROLE', 'Insufficient role', { required: ['super_admin'] });
+    const row = await this.must(id);
+    if (row.status === 'ACTIVE') return row;
+    if (row.status !== 'APPROVED') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'Only an approved version can be activated', { status: row.status });
+    if (row.effectiveFrom && row.effectiveFrom.getTime() > now.getTime()) throw growthError('GROWTH_CONFIG_EFFECTIVE_TOO_SOON', 'This version is approved and scheduled: it activates at its effective date', { effectiveFrom: row.effectiveFrom.toISOString() });
+    await this.activateDue(now);
+    return this.must(id);
+  }
+
+  // ───────────────────────── diff and propagation ─────────────────────────
+
+  /** Field-level diff of a version against another one (default: the version it replaces, else the one in force when it is a first version). */
+  async diff(id: string, againstId?: string) {
+    const row = await this.must(id);
+    let base = againstId ? await this.must(againstId) : null;
+    if (!base && row.supersedesId) base = await this.prisma.growthConfigVersion.findUnique({ where: { id: row.supersedesId } });
+    if (!base) base = await this.prisma.growthConfigVersion.findFirst({ where: { kind: row.kind, scope: row.scope, scopeId: row.scopeId, version: { lt: row.version }, status: { in: ['ACTIVE', 'SUPERSEDED', 'ROLLED_BACK'] } }, orderBy: { version: 'desc' } });
+    const against = base ? { id: base.id, version: base.version, status: base.status } : null;
+    const before = base ? (base.payload as Record<string, unknown>) : ((GROWTH_DEFAULT_PAYLOADS as Record<string, Record<string, unknown> | undefined>)[row.kind] ?? {});
+    return { id: row.id, version: row.version, against, againstIsDefault: !base, changes: diffPayload(before, row.payload) };
+  }
+
+  /** Which readers serve which version of (kind, scope), against the version in force at `now`. */
+  async propagation(kind: string, scope: string, scopeId: string, now = new Date()) {
+    this.assertKind(kind); this.assertScope({ scope, scopeId } as ConfigScope);
+    const inForce = await this.prisma.growthConfigVersion.findFirst({ where: { kind, scope, scopeId, status: 'ACTIVE' } });
+    const pending = await this.prisma.growthConfigVersion.findMany({ where: { kind, scope, scopeId, status: 'APPROVED' }, orderBy: { effectiveFrom: 'asc' }, select: { id: true, version: true, effectiveFrom: true } });
+    const status = await this.readers.status(kind, scope, scopeId, inForce ? { versionId: inForce.id, version: inForce.version } : null, now);
+    return { kind, scope, scopeId, cacheTtlMs: this.cacheTtlMs(), ...status, scheduled: pending.map((p) => ({ id: p.id, version: p.version, effectiveFrom: p.effectiveFrom?.toISOString() ?? null })) };
   }
 
   // ───────────────────────── reads ─────────────────────────
@@ -198,6 +310,32 @@ export class GrowthConfigService {
     return this.prisma.growthConfigVersion.findMany({ where: { ...(o.kind ? { kind: o.kind } : {}), ...(o.status ? { status: o.status } : {}), ...(o.scope ? { scope: o.scope } : {}), ...(o.scopeId !== undefined ? { scopeId: o.scopeId } : {}) }, orderBy: [{ kind: 'asc' }, { scope: 'asc' }, { scopeId: 'asc' }, { version: 'desc' }], take: 200 });
   }
   get(id: string) { return this.must(id); }
+  /** Every audit row of one version, oldest first (checksums and states only). */
+  auditTrail(id: string) { return this.prisma.auditLog.findMany({ where: { resource: 'GrowthConfigVersion', resourceId: id }, orderBy: { createdAt: 'asc' }, select: { id: true, actor: true, action: true, metadata: true, createdAt: true } }); }
+
+  /** The payload serving a scope right now (own scope first; a MARKET scope without a version of its own answers with GLOBAL), excluding one version id. */
+  private async inForcePayload(kind: string, scope: string, scopeId: string, excludeId?: string): Promise<Record<string, unknown> | null> {
+    const own = await this.prisma.growthConfigVersion.findFirst({ where: { kind, scope, scopeId, status: 'ACTIVE', ...(excludeId ? { id: { not: excludeId } } : {}) } });
+    if (own) return own.payload as Record<string, unknown>;
+    if (scope === 'MARKET') { const g = await this.prisma.growthConfigVersion.findFirst({ where: { kind, scope: 'GLOBAL', scopeId: '', status: 'ACTIVE', ...(excludeId ? { id: { not: excludeId } } : {}) } }); if (g) return g.payload as Record<string, unknown>; }
+    return ((GROWTH_DEFAULT_PAYLOADS as Record<string, Record<string, unknown> | undefined>)[kind] ?? null);
+  }
+  /** Raw secrets are refused at every write; guardrails compare with what is in force; the daily version budget limits churn. */
+  private async guard(i: { kind: string; scope: string; scopeId: string; payload: Record<string, unknown>; ticket?: string | null }, countBudget: boolean) {
+    const secrets = findSecretViolations(i.payload);
+    if (secrets.length) throw growthError('GROWTH_CONFIG_INVALID', 'Configuration may reference secrets by name only', { errors: secrets });
+    const g = evaluateGuardrails({ ...i, current: await this.inForcePayload(i.kind, i.scope, i.scopeId) });
+    if (g.errors.length) throw growthError('GROWTH_CONFIG_INVALID', 'Change refused by a guardrail', { errors: g.errors, warnings: g.warnings });
+    if (countBudget) {
+      const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+      const made = await this.prisma.growthConfigVersion.count({ where: { kind: i.kind, scope: i.scope, scopeId: i.scopeId, createdAt: { gte: dayStart }, NOT: { ticket: PROPOSED_DEFAULT_MARKER } } });
+      if (made >= DAILY_VERSION_BUDGET()) throw growthError('GROWTH_RATE_LIMITED', 'Daily version budget for this configuration is used up', { budget: DAILY_VERSION_BUDGET() });
+    }
+  }
+  private async assertNoOtherPending(row: { id: string; kind: string; scope: string; scopeId: string }) {
+    const other = await this.prisma.growthConfigVersion.findFirst({ where: { kind: row.kind, scope: row.scope, scopeId: row.scopeId, status: 'PENDING_APPROVAL', id: { not: row.id } }, select: { version: true } });
+    if (other) throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'Another version of this configuration is already waiting for approval; approve or reject it first', { pendingVersion: other.version });
+  }
 
   // ───────────────────────── internals ─────────────────────────
 
@@ -230,6 +368,7 @@ export class GrowthConfigService {
     const r = await this.prisma.growthConfigVersion.updateMany({ where: { id: row.id, status: { in: from } }, data: data as never });
     if (!r.count) throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The version changed state meanwhile', { status: (await this.must(row.id)).status });
     const next = await this.must(row.id);
+    this.invalidate();
     await this.audit(actor, transition, next, { before: row.checksum, after: next.checksum, from: row.status, to: next.status });
     return next;
   }

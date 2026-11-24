@@ -26,6 +26,24 @@ const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
 const PartnerOnboardingPage = lazy(() => import("@/pages/PartnerOnboardingPage"));
 const PartnerLeadsPage = lazy(() => import("@/pages/PartnerLeadsPage"));
 const PartnerOnboardingDetailPage = lazy(() => import("@/pages/PartnerOnboardingDetailPage"));
+// Growth & Patient Acquisition (GRW-P1-K)
+const GrowthExecutivePage = lazy(() => import("@/pages/growth/GrowthExecutivePage"));
+const GrowthChannelsPage = lazy(() => import("@/pages/growth/GrowthChannelsPage"));
+const GrowthProvidersPage = lazy(() => import("@/pages/growth/GrowthProvidersPage"));
+const GrowthPatientsPage = lazy(() => import("@/pages/growth/GrowthPatientsPage"));
+const GrowthAttributionPage = lazy(() => import("@/pages/growth/GrowthAttributionPage"));
+const GrowthSeoPage = lazy(() => import("@/pages/growth/GrowthSeoPage"));
+const GrowthLandingPage = lazy(() => import("@/pages/growth/GrowthLandingPage"));
+const GrowthWidgetsPage = lazy(() => import("@/pages/growth/GrowthWidgetsPage"));
+const GrowthTemplatesPage = lazy(() => import("@/pages/growth/GrowthTemplatesPage"));
+const GrowthFraudPage = lazy(() => import("@/pages/growth/GrowthFraudPage"));
+const GrowthAnalyticsPage = lazy(() => import("@/pages/growth/GrowthAnalyticsPage"));
+const GrowthFinancePage = lazy(() => import("@/pages/growth/GrowthFinancePage"));
+const GrowthMarketsPage = lazy(() => import("@/pages/growth/GrowthMarketsPage"));
+const GrowthIntegrationsPage = lazy(() => import("@/pages/growth/GrowthIntegrationsPage"));
+const GrowthAuditPage = lazy(() => import("@/pages/growth/GrowthAuditPage"));
+const GrowthConfigPage = lazy(() => import("@/pages/growth/GrowthConfigPage"));
+const GrowthPlannedPage = lazy(() => import("@/pages/growth/GrowthPlannedPage"));
 const GrowthAnalyticsV1Page = lazy(() => import("@/pages/growth-analytics/GrowthAnalyticsPage"));
 const AcquisitionPage = lazy(() => import("@/pages/growth-analytics/AcquisitionPage"));
 
@@ -61,6 +79,23 @@ export function AppRoutes() {
           <Route path="partner-leads" element={<PartnerLeadsPage />} />
           <Route path="growth-analytics" element={<GrowthAnalyticsV1Page />} />
           <Route path="acquisition" element={<AcquisitionPage />} />
+          <Route path="growth" element={<GrowthExecutivePage />} />
+          <Route path="growth/channels" element={<GrowthChannelsPage />} />
+          <Route path="growth/providers" element={<GrowthProvidersPage />} />
+          <Route path="growth/patients" element={<GrowthPatientsPage />} />
+          <Route path="growth/attribution" element={<GrowthAttributionPage />} />
+          <Route path="growth/seo" element={<GrowthSeoPage />} />
+          <Route path="growth/landing-pages" element={<GrowthLandingPage />} />
+          <Route path="growth/widgets" element={<GrowthWidgetsPage />} />
+          <Route path="growth/templates" element={<GrowthTemplatesPage />} />
+          <Route path="growth/fraud" element={<GrowthFraudPage />} />
+          <Route path="growth/analytics" element={<GrowthAnalyticsPage />} />
+          <Route path="growth/finance" element={<GrowthFinancePage />} />
+          <Route path="growth/markets" element={<GrowthMarketsPage />} />
+          <Route path="growth/integrations" element={<GrowthIntegrationsPage />} />
+          <Route path="growth/audit" element={<GrowthAuditPage />} />
+          <Route path="growth/config" element={<GrowthConfigPage />} />
+          {(["campaigns", "referrals", "rewards", "promotions", "whatsapp", "lifecycle", "experiments"] as const).map((k) => <Route key={k} path={`growth/${k}`} element={<GrowthPlannedPage section={k} />} />)}
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>
       </Routes>

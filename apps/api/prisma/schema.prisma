@@ -1564,9 +1564,33 @@ model GrowthFraudSignal {
   score       Int      @default(0)
   evidenceRef String?
   createdAt   DateTime @default(now())
+  /// GRW-P1-K review queue: OPEN | CONFIRMED | DISMISSED. A review never changes an attribution decision.
+  reviewStatus String   @default("OPEN")
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  reviewNote   String?
 
   @@index([ruleId, createdAt])
   @@index([subjectHash])
+  @@index([reviewStatus, createdAt])
+}
+
+/// GRW-P1-K propagation monitoring: which reader (API/site instance + service) loaded which config version, and when it was last seen on it.
+model GrowthConfigReader {
+  id            String   @id @default(cuid())
+  instanceId    String
+  reader        String
+  kind          String
+  scope         String   @default("GLOBAL")
+  scopeId       String   @default("")
+  versionId     String
+  version       Int
+  firstLoadedAt DateTime @default(now())
+  loadedAt      DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+
+  @@unique([instanceId, reader, kind, scope, scopeId], map: "GrowthConfigReader_instance_reader_key")
+  @@index([kind, scope, scopeId])
 }
 
 /// Anonymous visitor consent audit (banner decisions). Keyed by a random consent id; holds no sub and no cookie value. Append-only (trigger).

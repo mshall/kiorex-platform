@@ -1,0 +1,23 @@
+/**
+ * GRW-P1-K role matrix for the Growth admin API. The console has FOUR role claims today (ops users always carry `ops_admin`):
+ *   super_admin  everything, including the maker side (draft, submit, rollback) and the checker side (approve, reject, activate) of config versions
+ *   ops_admin    read everything that is not money; review nothing
+ *   finance      `ops_admin` + `finance`: also reads the money views (financial performance, spend)
+ *   support      `ops_admin` + `support`: also reviews fraud signals
+ * One table, so the controllers, the UI capability endpoint and the tests cannot disagree. A new role is one line here.
+ */
+export const GROWTH_CAPABILITIES = ['read', 'readFinance', 'writeConfig', 'approveConfig', 'reviewFraud', 'manage'] as const;
+export type GrowthCapability = (typeof GROWTH_CAPABILITIES)[number];
+
+export const GROWTH_ACCESS: Record<GrowthCapability, readonly string[]> = {
+  read: ['super_admin', 'ops_admin', 'finance', 'support'],
+  readFinance: ['super_admin', 'finance'],
+  writeConfig: ['super_admin'],
+  approveConfig: ['super_admin'],
+  reviewFraud: ['super_admin', 'support'],
+  manage: ['super_admin'], // channels, widget registrations
+};
+
+export const rolesFor = (cap: GrowthCapability): string[] => [...GROWTH_ACCESS[cap]];
+export const can = (roles: readonly string[], cap: GrowthCapability): boolean => roles.some((r) => GROWTH_ACCESS[cap].includes(r));
+export const capabilitiesOf = (roles: readonly string[]): Record<GrowthCapability, boolean> => Object.fromEntries(GROWTH_CAPABILITIES.map((c) => [c, can(roles, c)])) as Record<GrowthCapability, boolean>;
