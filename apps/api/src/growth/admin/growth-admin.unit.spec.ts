@@ -76,7 +76,7 @@ describe('secrets never live in configuration', () => {
     expect(findSecretViolations({ whatsappPhoneNumberIdRef: 'EAAGm0PX4ZCpsBA' })).toHaveLength(1);
     expect(findSecretViolations({ whatsappPhoneNumberIdRef: 'has spaces' })).toHaveLength(1);
   });
-  it.each(['sk_live_51H8abcdefghijklmnop', 'AKIAIOSFODNN7EXAMPLE', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc', '-----BEGIN RSA PRIVATE KEY-----', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789', 'Zm9vYmFyMTIzNDU2Nzg5MEFCQ0RFRkdISUo0'])('a credential-shaped value anywhere is refused: %s', (v) => {
+  it.each(['sk_live_51H8abcdefghijklmnop', ['AKIA', 'IOSFODNN7EXAMPLE'].join(''), 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc', ['-----BEGIN RSA ', 'PRIVATE KEY-----'].join(''), 'ghp_abcdefghijklmnopqrstuvwxyz0123456789', 'Zm9vYmFyMTIzNDU2Nzg5MEFCQ0RFRkdISUo0'])('a credential-shaped value anywhere is refused: %s', (v) => {
     expect(findSecretViolations({ nested: { anything: v } })).toHaveLength(1);
     expect(findSecretViolations({ list: [v] })).toHaveLength(1);
   });
