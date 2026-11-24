@@ -169,10 +169,15 @@ export class ExperimentService implements OnModuleInit {
   history(id: string) { return this.prisma.growthExperimentEvent.findMany({ where: { experimentId: id }, orderBy: { at: 'asc' }, take: 1000 }); }
   async results(id: string) { const e = await this.must(id); return (await this.prisma.growthExperimentResult.findMany({ where: { experimentId: id }, orderBy: { computedAt: 'desc' }, take: 200 })).map((r) => this.redact(r, e.status)); }
 
-  /** While SRM, a blocker or a guardrail breach stands the payload carries no p-value, interval or winner (hidden rows are kept for audit but shown redacted). */
+  /**
+   * While SRM or a blocker stands the payload carries no p-value, interval or winner (hidden rows are kept for audit but shown redacted). Every arm of every payload is k-anonymised: an arm with fewer
+   * than k = 10 units shows "<10" instead of a count (no breakdown by segment exists, but a tiny arm is still a tiny group of people).
+   */
   redact<T extends { verdict: string; payload: unknown }>(r: T, _status: string): T {
-    const p = (r.payload ?? {}) as { hidden?: boolean };
-    if (r.verdict === 'SRM_DETECTED' || r.verdict === 'COLLECTING' || p.hidden) { const { arms, srm, blockers, dayNumber } = (r.payload ?? {}) as Record<string, unknown>; return { ...r, payload: { hidden: true, arms, srm, blockers, dayNumber } }; }
-    return r;
+    const p = (r.payload ?? {}) as { hidden?: boolean; arms?: { variant: string; n: number; x: number; rate: number }[] };
+    const k = EXPERIMENT_POLICY.kAnonymity;
+    const arms = p.arms?.map((a) => (a.n < k ? { variant: a.variant, n: '<10', x: '<10', rate: null } : a));
+    if (r.verdict === 'SRM_DETECTED' || r.verdict === 'COLLECTING' || p.hidden) { const { srm, blockers, dayNumber } = (r.payload ?? {}) as Record<string, unknown>; return { ...r, payload: { hidden: true, arms, srm, blockers, dayNumber } }; }
+    return { ...r, payload: { ...p, arms } };
   }
 }

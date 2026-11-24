@@ -184,6 +184,10 @@ describe('growth experiments (GRW-P3-A)', () => {
       expect(await c.prisma.growthExperimentEvent.count({ where: { experimentId: x.id, kind: 'SHIP_REQUESTED' } })).toBe(1);
       expect(await c.prisma.auditLog.count({ where: { action: 'growth.experiment.ship_requested' } })).toBe(1);
     });
+    it('an arm with fewer than 10 units is shown as "<10", never as a number', async () => {
+      const e = await start({}, new Date(Date.now() - 2 * DAY)); await c.prisma.growthExperimentResult.create({ data: { experimentId: e.id, verdict: 'NO_WINNER', dayNumber: 2, payload: { hidden: false, arms: [{ variant: 'control', n: 9, x: 1, rate: 0.11 }, { variant: 'b', n: 500, x: 50, rate: 0.1 }], treatments: [] } } });
+      const r = (await c.http().get(`${BASE}/${e.id}/results`).set(ops).expect(200)).body[0]; expect(r.payload.arms[0]).toEqual({ variant: 'control', n: '<10', x: '<10', rate: null }); expect(r.payload.arms[1].n).toBe(500);
+    });
     it('SRM: results hidden, an SRM event and an outbox event are written, the experiment is stopped', async () => {
       const e = await start({}, new Date(Date.now() - 10 * DAY)); await seedRun(e, { days: 9, perDay: 100, rate: { control: 0.1, b: 0.16 }, skew: { b: 0.8 } });
       const out = await job().runOnce(new Date(e.startedAt!.getTime() + 9 * DAY)); expect(out.stopped).toBe(1);

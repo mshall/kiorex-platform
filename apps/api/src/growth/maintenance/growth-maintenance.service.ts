@@ -8,6 +8,8 @@ export interface PurgeResult {
   ipHashBlanked: number; touchpointsDeletedUnlinked: number; touchpointsDeletedLinked: number; eventsDeleted: number; fraudSignalsDeleted: number;
   /** GRW-P2-X1 (growth_purge_expired_v2): the Phase 2 tables. */
   assistantTurnsDeleted?: number; assistantToolCallsDeleted?: number; assistantSessionsDeleted?: number; lifecycleDecisionsDeleted?: number; rewardLedgerEntriesDeleted?: number; rewardLotsDeleted?: number; qualificationChecksDeleted?: number; jobRunsDeleted?: number;
+  /** GRW-P3-A (growth_purge_experiments). */
+  experimentExposuresPurged?: number;
 }
 
 /**
