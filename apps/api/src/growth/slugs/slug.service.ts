@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { SEO_TRIGGER, type SeoTriggerPort } from '../seo-automation/seo-automation-public';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
@@ -13,7 +14,7 @@ export type SlugResolution = { kind: 'CURRENT'; entityId: string; slug: string }
  */
 @Injectable()
 export class SlugService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, @Optional() @Inject(SEO_TRIGGER) private readonly seoTrigger?: SeoTriggerPort) {}
   private assertType(t: string): asserts t is SlugEntityType { if (!(SLUG_ENTITY_TYPES as readonly string[]).includes(t)) throw growthError('GROWTH_INVALID_REQUEST', 'Unknown slug entity type'); }
 
   async ensure(i: { entityType: string; entityId: string; name?: string | null; market?: string }): Promise<string> {
@@ -57,6 +58,7 @@ export class SlugService {
       await tx.growthSlugHistory.updateMany({ where: { market, entityType: i.entityType, entityId: i.entityId }, data: { replacedBy: i.newSlug } }); // every older slug now points at the newest one (single hop, no chains)
       await tx.growthSlug.update({ where: { id: cur.id }, data: { slug: i.newSlug } });
     });
+    this.seoTrigger?.request('slug-changed', market); // GRW-P3-F: a changed URL needs a fresh gate run (links, canonical, parity)
     return i.newSlug;
   }
 

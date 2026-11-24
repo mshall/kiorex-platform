@@ -18,6 +18,7 @@ import { PublicSiteCache } from '../public-site/public-site-public';
 import { WidgetRegistrationService } from '../widget/widget-public';
 import { VerificationUpdateService } from '../partner-onboarding/partner-onboarding-public';
 import { CROSS_PRODUCT_EVENTS, GROWTH_REVENUE, LINK_REGISTRY, type CrossProductEventPort, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
+import { SEO_TRIGGER, type SeoTriggerPort } from '../growth/seo-automation/seo-automation-public';
 import { B2bReferralService, PromotionProjectionService, PromotionReviewService, SponsoredDiscountService } from '../growth/growth-public';
 
 const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
@@ -26,7 +27,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, private readonly corporateLeads: B2bReferralService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, private readonly corporateLeads: B2bReferralService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort, @Optional() @Inject(SEO_TRIGGER) private readonly seoTrigger?: SeoTriggerPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -78,6 +79,7 @@ export class WebhooksService {
         this.catalog.invalidateSlots(data.clinicianId);
         await this.catalog.syncOnce();
         await this.publicSite.onListingChanged([data.listingId, data.clinicianId, data.clinicId, env.aggregateId]).catch((e) => this.log.warn(`public site purge failed: ${(e as Error).message}`)); // GRW-P1-E: pages and sitemaps within 15 min
+        this.seoTrigger?.request(type === 'PROVIDER_PROFILE_UPDATED' ? 'profile-updated' : 'listing-status'); // GRW-P3-F: re-run the quality gate (coalesced, non-throwing, no-op while growth.seo_automation is OFF)
         return 'APPLIED';
       case 'SAFETY_ALERT_RAISED': return this.safety.onAlertRaised(data, (env as any).eventId); // KXMOP12 (60 s SLO)
       case 'CARE_PLAN_CONFIRMED': return this.carePlans.onConfirmed(data);

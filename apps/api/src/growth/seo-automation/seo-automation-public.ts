@@ -50,3 +50,7 @@ export interface SeoSitePort {
   /** drop the site's cached snapshots, sitemaps and pages after a run */
   refresh(): void;
 }
+
+/** Event trigger of the quality gate (profile update, listing publish or pause, slug change). Coalesced, non-throwing, a no-op while `growth.seo_automation` is OFF. */
+export const SEO_TRIGGER = Symbol('SEO_TRIGGER');
+export interface SeoTriggerPort { request(reason: string, market?: string): void }
