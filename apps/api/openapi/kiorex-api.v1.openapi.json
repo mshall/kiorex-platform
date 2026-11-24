@@ -266,6 +266,38 @@
         ]
       }
     },
+    "/api/v1/bootstrap": {
+      "get": {
+        "operationId": "BootstrapController_get",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": false,
+            "in": "query",
+            "description": "Market hint from a link or the signed-in account (ISO alpha-2). Honoured only when that market is live; otherwise the default market is returned.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bootstrap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location.",
+        "tags": [
+          "bootstrap"
+        ]
+      }
+    },
     "/api/v1/admin/policy": {
       "get": {
         "operationId": "PolicyController_describe",
@@ -19352,6 +19384,125 @@
           "db",
           "providers",
           "leadSigning"
+        ]
+      },
+      "BootstrapDto": {
+        "type": "object",
+        "properties": {
+          "defaultMarket": {
+            "type": "string",
+            "example": "EG"
+          },
+          "resolvedMarket": {
+            "type": "string",
+            "example": "EG",
+            "description": "The link or account market when LIVE, else the default. Never derived from IP or device location."
+          },
+          "liveMarkets": {
+            "example": [
+              "EG"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BootstrapMarketDto"
+            }
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          "showMarketSelector": {
+            "type": "boolean",
+            "description": "False unless more than one market is live (founder rule 23 Nov 2026)."
+          },
+          "minAppVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/BootstrapCapabilitiesDto"
+          }
+        },
+        "required": [
+          "defaultMarket",
+          "resolvedMarket",
+          "liveMarkets",
+          "markets",
+          "locales",
+          "showMarketSelector",
+          "apiEndpoint",
+          "capabilities"
+        ]
+      },
+      "BootstrapMarketDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "EG"
+          },
+          "currency": {
+            "type": "string",
+            "example": "EGP"
+          },
+          "phoneCode": {
+            "type": "string",
+            "example": "+20"
+          },
+          "name": {
+            "type": "object",
+            "example": {
+              "ar": "مصر",
+              "en": "Egypt"
+            }
+          },
+          "apiEndpoint": {
+            "type": "string",
+            "example": "https://api.example.com/api/v1",
+            "description": "Regional API base for this market (binding), with /api/v1"
+          }
+        },
+        "required": [
+          "code",
+          "currency",
+          "phoneCode",
+          "name",
+          "apiEndpoint"
+        ]
+      },
+      "BootstrapCapabilitiesDto": {
+        "type": "object",
+        "properties": {
+          "deepLinks": {
+            "type": "boolean"
+          },
+          "marketplace": {
+            "type": "boolean"
+          },
+          "homeVisits": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deepLinks",
+          "marketplace",
+          "homeVisits"
         ]
       }
     }

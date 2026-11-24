@@ -165,6 +165,12 @@
 | GET | `/api/v1/admin/lab/bookings` | OP: lab bookings (status filter) |
 | POST | `/api/v1/admin/lab/bookings/{id}/resubmit` | OP: re-send a PAID booking to Kiorly Lab (idempotent) |
 
+## bootstrap
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/bootstrap` | Market-aware app and web bootstrap: live markets, regional API endpoint and capabilities. Public, cacheable for 60 seconds. The market comes from the account or link context (?cc=), never from the caller location. |
+
 ## market
 
 | Method | Path | Summary |

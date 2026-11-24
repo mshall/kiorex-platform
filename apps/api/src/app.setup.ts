@@ -6,7 +6,8 @@ import { AllExceptionsFilter } from './common/errors';
 export const API_PREFIX = 'api/v1';
 
 export function setupApp(app: INestApplication) {
-  app.setGlobalPrefix(API_PREFIX);
+  // GRW-P1-H: well-known app-link files and the mobile web fallback pages live at the host root (they must be served without a path prefix)
+  app.setGlobalPrefix(API_PREFIX, { exclude: ['.well-known/apple-app-site-association', '.well-known/assetlinks.json', 'r/:code', 'q/:code', 'a/:id', 'appointment/:id'] });
   // public partner intake: refuse oversized bodies BEFORE they are parsed (the global JSON limit is 8 MB for vault uploads)
   (app as unknown as { use?: (p: string, f: (req: any, res: any, next: () => void) => void) => void }).use?.(`/${API_PREFIX}/partners/v1/connection-requests`, (req, res, next) => {
     const len = Number(req.headers?.['content-length'] ?? 0);
