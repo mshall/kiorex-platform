@@ -43,6 +43,14 @@ describe('booking orchestration (KXM-BK-01..08)', () => {
     expect(nextStatus('CONFIRMED', 'SLOTS_CHANGED')).toBeNull();
   });
 
+  it('six parallel confirms of one hold are one Kiorly booking, all answer 200, and the booking is never expired behind the Clinic (EDGE round 2)', async () => {
+    const h = await hold().expect(201);
+    const rs = await Promise.all(Array.from({ length: 6 }, () => confirm(h.body.id)));
+    expect(rs.map((r) => r.status)).toEqual([200, 200, 200, 200, 200, 200]);
+    expect(c.kiorly.callsTo('POST', '/bookings')).toHaveLength(1); // the duplicates wait for the first call and find the booking already moved on
+    expect((await c.prisma.bookingIntent.findUniqueOrThrow({ where: { id: h.body.id } })).status).toBe('CONFIRMED');
+  });
+
   it('golden flow: hold (BK-02) → idempotent confirm with Idempotency-Key = booking id (BK-03) → CONFIRMED + Kiorly id stored', async () => {
     const h = await hold().expect(201);
     expect(h.body.status).toBe('HELD');

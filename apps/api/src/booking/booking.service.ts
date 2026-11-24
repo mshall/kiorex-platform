@@ -244,7 +244,26 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── idempotent confirm (KXM-BK-03/05/06) ─────────────
 
+  /**
+   * One confirm of a booking at a time per process: a duplicate click or a parallel retry waits for the first call and then finds the booking already moved on, instead of
+   * racing it into Kiorly (where the second request can lose with SLOT_TAKEN against the first one's own insert and used to expire a booking the Clinic had confirmed).
+   * It is an in-memory chain, not a database lock: a lock held on a pooled connection while the same call needs more connections would starve the pool under load.
+   * Across instances the post-check in the catch block below covers the same case.
+   */
+  private readonly confirming = new Map<string, Promise<unknown>>();
+  private async withBookingLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.confirming.get(id) ?? Promise.resolve();
+    const run = prev.catch(() => undefined).then(fn);
+    const tail = run.catch(() => undefined);
+    this.confirming.set(id, tail);
+    try { return await run; } finally { if (this.confirming.get(id) === tail) this.confirming.delete(id); }
+  }
+
   async confirm(sub: string, id: string, c: ConfirmInput, g: BookingGrowthContext = {}) {
+    return this.withBookingLock(id, () => this.confirmLocked(sub, id, c, g));
+  }
+
+  private async confirmLocked(sub: string, id: string, c: ConfirmInput, g: BookingGrowthContext = {}) {
     let b = await this.owned(sub, id);
     await this.flags.assertEnabled('kiorex.marketplace', { market: 'EG' });
     if (['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(b.status)) return this.present(b); // double click: same result
@@ -279,6 +298,11 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /bookings', status: data.status });
       await this.adopt(id, data, { evidence: identity.nationalId ? 'PHONE_AND_NATIONAL_ID' : 'PHONE' });
     } catch (e) {
+      // A duplicate confirm of the same booking can overtake the first one inside Kiorly (same Idempotency-Key, slot already taken by the first request's own insert) and get a
+      // 409 SLOT_TAKEN while the first request has ALREADY adopted the appointment. Expiring the booking then would contradict the Clinic (CONFIRMED there, EXPIRED here):
+      // a booking that has moved past HELD is returned as it is, exactly like a double click.
+      const cur = await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } });
+      if (['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(cur.status)) return this.present(cur);
       await this.handleConfirmError(b, e);
     }
     return this.present(await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } }));
