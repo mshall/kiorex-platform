@@ -22,6 +22,7 @@
     "mobile:web": "npm --prefix apps/mobile run web",
     "mobile:test": "npm --prefix apps/mobile test",
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
+    "check:bundles": "node scripts/check-production-bundles.mjs",
     "typecheck:ts7": "for a in api web ops mobile; do (cd apps/$a && npx -y -p typescript@7.0.2 tsc --noEmit -p tsconfig.json) || exit 1; done"
   },
   "devDependencies": {

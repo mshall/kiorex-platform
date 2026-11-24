@@ -3,17 +3,17 @@
     "collect": {
       "url": [
         "http://localhost:4000/ar/eg",
-        "http://localhost:4000/ar/eg/doctors/cardiology/cairo",
+        "http://localhost:4000/ar/eg/doctors/paediatrics",
         "http://localhost:4000/ar/eg/locations/cairo",
-        "http://localhost:4000/ar/eg/same-day/cardiology",
-        "http://localhost:4000/ar/eg/doctor/__SLUG__"
+        "http://localhost:4000/ar/eg/doctor/mona-fahmy",
+        "http://localhost:4000/ar/eg/clinic/pyramids-heart-care-center-dokki"
       ],
       "numberOfRuns": 3,
       "settings": {
-        "preset": "perf",
         "formFactor": "mobile",
         "throttlingMethod": "simulate"
-      }
+      },
+      "_note": "lighthouse-audit.mjs reads assert + pages from this file; the URL list is for Lighthouse CI users."
     },
     "assert": {
       "assertions": {
@@ -59,13 +59,37 @@
           {
             "maxNumericValue": 307200
           }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:seo": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:best-practices": [
+          "error",
+          {
+            "minScore": 0.95
+          }
         ]
       }
     },
     "upload": {
       "target": "filesystem",
       "outputDir": ".lighthouseci"
+    },
+    "pages": {
+      "doctor": "mona-fahmy",
+      "clinic": "pyramids-heart-care-center-dokki",
+      "specialty": "paediatrics",
+      "city": "cairo"
     }
   },
-  "_comment": "GRW-P1-E budgets (ARCH section 5, work package E acceptance). Replace __SLUG__ with a seeded doctor slug; the three templates are home, listing and doctor. Field targets (p75 mobile, Egypt): LCP 2.5 s, INP 200 ms, CLS 0.1. Reports stay on the build agent (filesystem); a public upload target is NEEDS_HUMAN."
+  "_comment": "GRW-P1-E budgets (ARCH section 5). Used by scripts/lighthouse-audit.mjs (npm run audit:lighthouse). Lab scores differ from field data: field targets (p75 mobile, Egypt) are LCP 2.5 s, INP 200 ms, CLS 0.1. Reports stay on the build agent (filesystem); a public upload target is NEEDS_HUMAN."
 }

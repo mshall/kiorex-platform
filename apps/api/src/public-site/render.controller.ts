@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, normalize, sep } from 'node:path';
+import { dirname, extname, join, normalize, sep } from 'node:path';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { GROWTH_FLAG } from '../growth/growth-public';
 import { PublicSiteCache } from './cache-tags';
@@ -19,7 +19,8 @@ import { siteCfg } from './site.config';
 import { buildPath, cacheKey, canonicalUrl, hreflangAlternates, negotiateLocale, parsePublicPath, readPageQuery, isPublicNamespace, type Locale } from './url-policy';
 import type { CachedResponse } from './page-cache';
 
-const TYPES: Record<string, string> = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.map': 'application/json' };
+const BRAND_FILES = /^(favicon\.svg|favicon-32\.png|favicon\.ico|apple-touch-icon\.png|manifest\.webmanifest|og-image\.png|kiorex-mark\.svg|pwa\/[a-z0-9-]+\.png)$/;
+const TYPES: Record<string, string> = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.map': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
 
 /**
  * Public site request handler (GRW-P1-E): parse and normalise the URL, check the flag and the market, load PUBLIC data, render through the SSR
@@ -180,6 +181,19 @@ export class RenderController {
     if (live.length !== 1) { next(); return; }
     const locale = negotiateLocale({ cookie: req.headers.cookie, acceptLanguage: req.headers['accept-language'] });
     this.redirect(res, buildPath(locale, live[0]!, 'home'), 301, 0, { 'Cache-Control': 'private, no-cache', Vary: 'Accept-Language, Cookie' });
+  };
+
+  /**
+   * The few unhashed brand files every public page links (favicons, touch icon, web manifest, social image, mark). They live in the patient web build (the SPA shell's folder); without
+   * this route a deployment that sends the public pages to this role alone answered 404 for them (a console error on every page). Fixed allow-list, one day of caching.
+   */
+  brandAsset = (req: Request, res: Response, next: NextFunction): void => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') { next(); return; }
+    const rel = req.path.replace(/^\/+/, '');
+    const root = dirname(siteCfg().spaShell);
+    const file = join(root, rel);
+    if (!BRAND_FILES.test(rel) || !file.startsWith(root + sep) || !existsSync(file) || !statSync(file).isFile()) { next(); return; }
+    res.status(200).set({ 'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' }).send(req.method === 'HEAD' ? undefined : readFileSync(file));
   };
 
   /** Public client assets (hashed, immutable) under /_p/. Path traversal safe; only files inside the public client dir. */

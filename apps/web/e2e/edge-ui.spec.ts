@@ -32,7 +32,7 @@ test("Arabic page keeps RTL with mixed digits and a very long name: no overflow,
       await box.fill(text); await box.press("Enter");
       await page.waitForTimeout(300);
       expect(await overflow(page), text.slice(0, 20)).toBeLessThanOrEqual(1);
-      expect(await page.evaluate(() => Boolean((window as any).__xss))).toBe(false);
+      expect(await page.evaluate(() => Boolean((window as unknown as { __xss?: unknown }).__xss))).toBe(false);
     }
   }
   await expect(page.locator("html")).toHaveAttribute("dir", /rtl|ltr/);

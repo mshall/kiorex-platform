@@ -8,7 +8,8 @@ function requiredInProduction(name: string, value: string | undefined, fallback?
 
 export const config = {
   apiOrigin: apiOrigin(requiredInProduction("EXPO_PUBLIC_API_URL", process.env.EXPO_PUBLIC_API_URL)),
-  oidcIssuer: requiredInProduction("EXPO_PUBLIC_OIDC_ISSUER", process.env.EXPO_PUBLIC_OIDC_ISSUER, "http://localhost:4400") as string,
+  // a local Passport only in development; the production export folds it away (check:dev-test-users)
+  oidcIssuer: requiredInProduction("EXPO_PUBLIC_OIDC_ISSUER", process.env.EXPO_PUBLIC_OIDC_ISSUER, __DEV__ ? "http://localhost:4400" : undefined) as string,
   oidcClientId: process.env.EXPO_PUBLIC_OIDC_CLIENT_ID ?? "kiorex-mobile",
   mock: process.env.EXPO_PUBLIC_MOCK === "1",
   // offline_access ⇒ refresh token (access tokens live ≤ 15 min; without it the patient is signed out every 15 minutes).

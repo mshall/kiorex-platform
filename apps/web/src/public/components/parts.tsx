@@ -125,7 +125,7 @@ export function RatingBars({ buckets, ctx }: { buckets: RatingBucket[]; ctx: Tem
       <h2>{ctx.t("list.distribution")}</h2>
       <table className="kxp-bars"><tbody>
         {buckets.map((b) => (
-          <tr key={b.stars}><th scope="row">{ctx.t("list.stars", { n: b.stars })}</th><td><span className="kxp-bar" aria-hidden="true"><span style={{ width: `${Math.round((b.count / total) * 100)}%` }} /></span></td><td className="kxp-num">{b.count}</td></tr>
+          <tr key={b.stars}><th scope="row">{ctx.t("list.stars", { n: b.stars })}</th><td><svg className="kxp-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width={Math.round((b.count / total) * 100)} height="8" /></svg></td><td className="kxp-num">{b.count}</td></tr>
         ))}
       </tbody></table>
     </section>

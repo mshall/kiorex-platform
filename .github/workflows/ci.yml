@@ -66,3 +66,155 @@ jobs:
         working-directory: kiorex-platform
       - run: npm run lint --workspaces --if-present && npm run typecheck --workspaces --if-present
         working-directory: kiorex-platform
+
+  # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  # Security and edge-case specs on their own (fast feedback; they also run inside `api` above). Pentest 2026-11 KX-PT-* regressions and the EDGE 2026-11 sweep live here.
+  security-edge:
+    name: security + edge-case specs
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform_test?schema=public
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: kiorex-platform }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -c 'CREATE DATABASE kiorex_platform_test'
+      - run: npm ci
+        working-directory: kiorex-platform
+      - name: security + edge unit specs (HTTP hardening, xlsx, money edges, policy edges, NUL / error mapping)
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --selectProjects unit --testPathPattern "security|edge|errors|reject-nul|market-time"
+        working-directory: kiorex-platform/apps/api
+      - name: security + edge integration specs (pay webhooks, ops input shapes, import edges, growth edges)
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --selectProjects integration --runInBand --testPathPattern "edge|input-shapes|security|growth-analytics|growth-schema"
+        working-directory: kiorex-platform/apps/api
+
+  # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  # Browser apps: unit tests, production builds, size budgets and the production-bundle hygiene check (no dev-only feature, no localhost) for web, ops, widget and the public SSR site.
+  web-apps:
+    name: web, ops, widget, public site (unit, build, budgets, bundle hygiene)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: kiorex-platform }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: npm ci
+        working-directory: kiorex-platform
+      - name: lint + typecheck (web, ops, widget)
+        run: npm run lint -w apps/web -w apps/ops -w apps/widget && npm run typecheck -w apps/web -w apps/ops -w apps/widget
+        working-directory: kiorex-platform
+      - name: unit tests (web, ops, widget)
+        run: npm test -w apps/web -w apps/ops -w apps/widget
+        working-directory: kiorex-platform
+      - name: build the patient web, the public SSR site and the widget; size budgets
+        run: |
+          npm run build:site -w apps/web
+          npm run check:public-budget -w apps/web
+          npm run build -w apps/widget
+        working-directory: kiorex-platform
+      - name: production bundles contain no dev-only feature and no localhost (web, ops, widget, public client + server)
+        run: npm run check:bundles
+        working-directory: kiorex-platform
+
+  # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  # Hermetic Playwright suites: deep-link fallback pages (own tiny server) and the embeddable booking widget (own API on :4393 with a stand-in Passport, own database).
+  # The widget against the REAL Passport popup needs the whole local stack and is run by e2e/scripts/widget-real.sh (workspace e2e job).
+  playwright-hermetic:
+    name: deep links + widget (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: kiorex-platform }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: npm ci
+        working-directory: kiorex-platform
+      - run: npx playwright install --with-deps chromium
+        working-directory: kiorex-platform/apps/web
+      - name: deep-link fallback pages (iOS, Android, desktop)
+        run: npx playwright test -c playwright.deeplinks.config.ts
+        working-directory: kiorex-platform/apps/web
+      - name: build the widget bundles the hermetic API serves
+        run: npm run build -w apps/widget
+        working-directory: kiorex-platform
+      - name: booking widget (embed, SDK, popup sign-in with the stand-in Passport, origin allow-list, a11y)
+        run: npx playwright test -c playwright.config.ts
+        working-directory: kiorex-platform/apps/widget
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with: { name: playwright-traces, path: "kiorex-platform/apps/*/test-results", retention-days: 7 }
+
+  # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  # SEO audit and Lighthouse of the public SSR pages (home, specialty hub, city hub, doctor, clinic; mobile + desktop; Arabic + English). Budgets: apps/web/lighthouserc.json
+  # (performance >= 90, accessibility >= 95, best practices >= 95, SEO >= 95, LCP <= 2.5 s). Lab scores are NOT field data; the CI runner is slower than a laptop, so a budget
+  # miss here is a signal to look, the real-user p75 (CrUX / RUM) is the target that counts after launch.
+  site-audit:
+    name: SEO audit + Lighthouse (public site)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform?schema=public
+      NODE_ENV: development
+      PORT: "4350"
+      SITE_ENVIRONMENT: production   # the only way the site is indexable; the sitemap and the SEO / best-practices scores need it
+      JOBS_ENABLED: "false"
+      PSP_MODE: sandbox-fake
+      MESSAGING_MODE: log
+      AI_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: kiorex-platform }
+      - uses: actions/setup-node@v7
+        with: { node-version: 26, cache: npm, cache-dependency-path: kiorex-platform/package-lock.json }
+      - run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -c 'CREATE DATABASE kiorex_platform'
+      - run: npm ci
+        working-directory: kiorex-platform
+      - name: build the API and the public site
+        run: |
+          npm run build -w apps/api
+          npm run build:site -w apps/web
+        working-directory: kiorex-platform
+      - name: migrate and seed the demo catalogue (providers, slugs)
+        run: |
+          npm run db:deploy -w apps/api
+          npm run db:seed -w apps/api
+          DEMO_SEED_ALLOWED=true npm run db:seed:demo -w apps/api
+        working-directory: kiorex-platform
+      - name: start the site
+        run: |
+          set -a; . kiorex-platform/apps/api/.env.example; set +a
+          (cd kiorex-platform/apps/api && nohup node dist/main.js > ../../../site.log 2>&1 &)
+          for i in $(seq 1 60); do curl -fs localhost:4350/ar/eg > /dev/null && exit 0; sleep 1; done; cat site.log; exit 1
+      - name: SEO audit (sitemap crawl, head tags, canonical / hreflang, JSON-LD, links)
+        run: npm run seo:audit -w apps/api -- --base http://localhost:4350 --host https://kiorex.com --limit 500
+        working-directory: kiorex-platform
+      - name: smoke + Core Web Vitals hygiene
+        run: npm run smoke:site -w apps/web -- --base http://localhost:4350 --paths /ar/eg,/en/eg,/ar/eg/doctors/paediatrics,/ar/eg/locations/cairo
+        working-directory: kiorex-platform
+      - name: Lighthouse (mobile + desktop, ar + en)
+        run: npm run audit:lighthouse -w apps/web -- --base http://localhost:4350 --runs 3
+        working-directory: kiorex-platform
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: lighthouse, path: kiorex-platform/apps/web/.lighthouseci, retention-days: 14 }

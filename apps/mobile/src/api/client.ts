@@ -28,10 +28,12 @@ const auth: Middleware = {
   },
 };
 
-// Offline fixtures are loaded lazily and only in mock mode.
-const mockFetchLazy = async (req: Request) => (await import("@/mocks/mockFetch")).mockFetch(req);
+// Offline fixtures are loaded lazily and only in mock mode. The test is the literal env read so the bundler folds the branch away, and the fixtures module is not part of a
+// production export at all (check:dev-test-users fails on it).
+let mockFetchLazy: ((req: Request) => Promise<Response>) | undefined;
+if (process.env.EXPO_PUBLIC_MOCK === "1") mockFetchLazy = async (req: Request) => (await import("@/mocks/mockFetch")).mockFetch(req);
 
-export const api = createClient<paths>({ baseUrl: config.apiOrigin, ...(config.mock ? { fetch: mockFetchLazy } : {}) });
+export const api = createClient<paths>({ baseUrl: config.apiOrigin, ...(mockFetchLazy ? { fetch: mockFetchLazy } : {}) });
 api.use(auth);
 
 /** Unwraps an openapi-fetch result, throwing a typed ApiError for non-2xx. The 2xx body type comes from the generated spec. */

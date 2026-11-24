@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import compression from 'compression';
 import type { Express } from 'express';
 import { RenderController } from './render.controller';
 import { RobotsController } from './robots.controller';
@@ -21,6 +22,9 @@ export class SiteMounter implements OnModuleInit {
     const cfg = siteCfg();
     const app = this.host.httpAdapter?.getInstance() as Express | undefined;
     if (!cfg.mounted || !app || typeof app.get !== 'function') { this.log.log(`public site not mounted (role=${cfg.role}, enabled=${cfg.mounted})`); return; }
+    // gzip/brotli-less text compression for the public site only (HTML, JSON-LD, the /_p JS and CSS): the CDN compresses in production, but the origin must not
+    // ship 340 KB of uncompressed JavaScript to a client that asks for gzip (Lighthouse uses-text-compression, slow 4G). Fonts and images are already compressed.
+    if (process.env.SITE_COMPRESSION !== 'false') app.use(compression({ threshold: 1024, filter: (req, res) => /^\/(_p\/|ar\/|en\/|sitemap|robots|manifest)/.test(req.path) && compression.filter(req, res) }));
     app.get('/robots.txt', this.robots.handle);
     app.get('/sitemap.xml', this.sitemaps.index);
     app.get(/^\/sitemaps\/([A-Za-z0-9._-]+)$/, (req, res, next) => { req.params.file = String(req.params[0] ?? ''); void this.sitemaps.shard(req, res, next); });
@@ -34,6 +38,7 @@ export class SiteMounter implements OnModuleInit {
     app.get('/_site/health', this.render.health);
     app.get('/_site/metrics', this.render.metrics);
     app.get(/^\/_p\/.+$/, this.render.assets);
+    app.get(/^\/(favicon\.svg|favicon-32\.png|favicon\.ico|apple-touch-icon\.png|manifest\.webmanifest|og-image\.png|kiorex-mark\.svg|pwa\/[a-z0-9-]+\.png)$/, this.render.brandAsset);
     app.get('/doctors/:id', this.render.legacyDoctor);
     app.get('/', this.render.root);
     app.get(/^\/(ar|en)\/([a-z]{2})(\/.*)?$/i, this.render.handle);
