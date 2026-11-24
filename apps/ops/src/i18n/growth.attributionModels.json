@@ -1,0 +1,178 @@
+{
+  "en": {
+    "growth": {
+      "attributionModels": {
+        "tabs": "Attribution model views",
+        "tab": {
+          "compare": "Compare models",
+          "paths": "Paths",
+          "models": "About the models"
+        },
+        "reportingOnly": "Reporting only. These models explain where bookings came from; they never change a commission decision (the deterministic attribution policy stays the money rule).",
+        "tableCaption": "Conversions and revenue by source under each attribution model",
+        "source": "Source",
+        "total": "Total",
+        "default": "Default",
+        "status": "Model status",
+        "reconciled": "All models reconcile",
+        "yes": "Yes",
+        "no": "No",
+        "reconciledHint": "Every model credits the same total conversions and the same revenue.",
+        "defaultModel": "Default report",
+        "defaultWhy": "A booking funnel has few touches; the first discovery and last conversion touches both matter.",
+        "dataDriven": "Data-driven model",
+        "ddOk": "Running",
+        "ddInsufficient": "Insufficient volume",
+        "ddHint": "{{n}} attended new patients in 90 days; needs {{needed}}.",
+        "compare": "Model comparison",
+        "compareHint": "Fractional conversions with revenue in EGP below. A cell built from fewer than 10 paths shows <10.",
+        "lift": "Incrementality",
+        "liftHint": "Holdout against exposed units of an experiment with a holdout variant. Labelled experiment-based lift.",
+        "experimentKey": "Experiment key",
+        "liftNotFound": "No experiment with that key.",
+        "liftLabel": "Experiment-based lift",
+        "liftSummary": "Lift {{pp}} percentage points (95% interval {{lo}} to {{hi}}), p = {{p}}.",
+        "liftReason": {
+          "NO_HOLDOUT_VARIANT": "This experiment has no holdout variant.",
+          "K_FLOOR": "Fewer than 10 units in an arm: not reported.",
+          "NO_DATA": "No exposures yet."
+        },
+        "paths": "Common conversion paths",
+        "path": "Ordered sources",
+        "length": "Touches",
+        "conversions": "Conversions",
+        "lengths": "Path length",
+        "pathsEmpty": "No path has 10 or more conversions yet.",
+        "pathsPrivacy": "Paths show ordered source kinds only. No identifier, and a path appears only when {{k}} or more conversions share it.",
+        "modelsTitle": "The models",
+        "modelsHint": "Seven reporting models. Each one gives exactly one conversion per path.",
+        "windowsTitle": "Look-back windows",
+        "windowsHint": "Reporting windows. They never change the attribution policy used for commission.",
+        "windowWeb": "Web and app touches: 30 days.",
+        "windowCampaign": "Campaign touches: 7 days.",
+        "windowProvider": "Provider link touches: 30 days, matching the money policy.",
+        "windowNever": "Day boundaries follow the market time zone; day 30 counts.",
+        "crossDeviceTitle": "Cross-device joining",
+        "crossDevice": "Touches join one person only through the signed-in subject or the consented visitor key already recorded. A deferred app install joins through its claim code. There is no fingerprinting, no probabilistic matching and no third-party identity graph.",
+        "model": {
+          "LAST_TOUCH": "Last touch",
+          "LAST_NON_DIRECT": "Last non-direct",
+          "FIRST_TOUCH": "First touch",
+          "LINEAR": "Linear",
+          "TIME_DECAY": "Time decay",
+          "POSITION_BASED": "Position based",
+          "DATA_DRIVEN": "Data driven"
+        },
+        "explain": {
+          "LAST_TOUCH": "All credit to the last touch before the booking.",
+          "LAST_NON_DIRECT": "All credit to the last touch that was not direct visits.",
+          "FIRST_TOUCH": "All credit to the first touch.",
+          "LINEAR": "Equal credit to every touch.",
+          "TIME_DECAY": "More credit to recent touches; the weight halves every 7 days.",
+          "POSITION_BASED": "40 percent to the first touch, 40 percent to the last, 20 percent shared by the middle ones. The default report.",
+          "DATA_DRIVEN": "Markov chain removal effect over the path graph. Runs only with 1,000 attended new patients in 90 days; otherwise it says insufficient volume."
+        },
+        "kind": {
+          "ORGANIC_SEARCH": "Organic search",
+          "DIRECT": "Direct",
+          "PROVIDER_LINK": "Provider link",
+          "PROVIDER_QR": "Provider QR",
+          "WIDGET": "Widget",
+          "REFERRAL": "Referral",
+          "CAMPAIGN": "Campaign",
+          "WHATSAPP": "WhatsApp",
+          "OFFLINE": "Offline",
+          "UNATTRIBUTED": "No touch found"
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "attributionModels": {
+        "tabs": "عروض نماذج الإسناد",
+        "tab": {
+          "compare": "مقارنة النماذج",
+          "paths": "المسارات",
+          "models": "عن النماذج"
+        },
+        "reportingOnly": "للتقارير فقط. تشرح هذه النماذج مصدر الحجوزات ولا تغيّر أي قرار عمولة (تبقى سياسة الإسناد الحتمية هي قاعدة المال).",
+        "tableCaption": "التحويلات والإيراد حسب المصدر في كل نموذج إسناد",
+        "source": "المصدر",
+        "total": "الإجمالي",
+        "default": "الافتراضي",
+        "status": "حالة النماذج",
+        "reconciled": "كل النماذج متطابقة",
+        "yes": "نعم",
+        "no": "لا",
+        "reconciledHint": "كل نموذج ينسب نفس إجمالي التحويلات ونفس الإيراد.",
+        "defaultModel": "التقرير الافتراضي",
+        "defaultWhy": "عدد نقاط التماس في رحلة الحجز قليل، ونقطة الاكتشاف الأولى ونقطة التحويل الأخيرة كلتاهما مهمتان.",
+        "dataDriven": "النموذج القائم على البيانات",
+        "ddOk": "يعمل",
+        "ddInsufficient": "الحجم غير كافٍ",
+        "ddHint": "{{n}} مريض جديد حضر خلال ٩٠ يوماً، والمطلوب {{needed}}.",
+        "compare": "مقارنة النماذج",
+        "compareHint": "التحويلات الكسرية مع الإيراد بالجنيه أدناه. الخلية المبنية على أقل من ١٠ مسارات تظهر <10.",
+        "lift": "الأثر الإضافي",
+        "liftHint": "المجموعة المحجوبة مقابل المعرّضة في تجربة بها مجموعة حجب. تُسمّى أثراً قائماً على التجربة.",
+        "experimentKey": "مفتاح التجربة",
+        "liftNotFound": "لا توجد تجربة بهذا المفتاح.",
+        "liftLabel": "أثر قائم على التجربة",
+        "liftSummary": "الأثر {{pp}} نقطة مئوية (فاصل ٩٥٪ من {{lo}} إلى {{hi}})، p = {{p}}.",
+        "liftReason": {
+          "NO_HOLDOUT_VARIANT": "لا تحتوي هذه التجربة على مجموعة حجب.",
+          "K_FLOOR": "أقل من ١٠ وحدات في مجموعة: لا يُعرض.",
+          "NO_DATA": "لا توجد تعرضات بعد."
+        },
+        "paths": "مسارات التحويل الشائعة",
+        "path": "المصادر بالترتيب",
+        "length": "نقاط التماس",
+        "conversions": "التحويلات",
+        "lengths": "طول المسار",
+        "pathsEmpty": "لا يوجد مسار تشترك فيه ١٠ تحويلات أو أكثر بعد.",
+        "pathsPrivacy": "تعرض المسارات أنواع المصادر بالترتيب فقط. لا معرّفات، ولا يظهر مسار إلا إذا اشترك فيه {{k}} تحويلات أو أكثر.",
+        "modelsTitle": "النماذج",
+        "modelsHint": "سبعة نماذج للتقارير. كل نموذج ينسب تحويلاً واحداً بالضبط لكل مسار.",
+        "windowsTitle": "نوافذ الرجوع",
+        "windowsHint": "نوافذ للتقارير. لا تغيّر أبداً سياسة الإسناد المستخدمة للعمولة.",
+        "windowWeb": "نقاط تماس الويب والتطبيق: ٣٠ يوماً.",
+        "windowCampaign": "نقاط تماس الحملات: ٧ أيام.",
+        "windowProvider": "نقاط تماس روابط مقدمي الخدمة: ٣٠ يوماً، مطابقة لسياسة المال.",
+        "windowNever": "حدود اليوم حسب المنطقة الزمنية للسوق، ويُحتسب اليوم الثلاثون.",
+        "crossDeviceTitle": "الربط بين الأجهزة",
+        "crossDevice": "تنضم نقاط التماس إلى شخص واحد فقط عبر هوية الدخول أو مفتاح الزائر الموافَق عليه والمسجّل مسبقاً. ويُربط تثبيت التطبيق المؤجل برمز المطالبة. لا بصمة جهاز ولا مطابقة احتمالية ولا رسم هوية من طرف ثالث.",
+        "model": {
+          "LAST_TOUCH": "آخر لمسة",
+          "LAST_NON_DIRECT": "آخر لمسة غير مباشرة",
+          "FIRST_TOUCH": "أول لمسة",
+          "LINEAR": "خطي",
+          "TIME_DECAY": "تناقص زمني",
+          "POSITION_BASED": "حسب الموضع",
+          "DATA_DRIVEN": "قائم على البيانات"
+        },
+        "explain": {
+          "LAST_TOUCH": "كل النسبة لآخر لمسة قبل الحجز.",
+          "LAST_NON_DIRECT": "كل النسبة لآخر لمسة لم تكن زيارة مباشرة.",
+          "FIRST_TOUCH": "كل النسبة لأول لمسة.",
+          "LINEAR": "نسبة متساوية لكل لمسة.",
+          "TIME_DECAY": "نسبة أكبر للمسات الأحدث؛ يتناقص الوزن للنصف كل ٧ أيام.",
+          "POSITION_BASED": "٤٠٪ لأول لمسة و٤٠٪ لآخر لمسة و٢٠٪ موزعة على لمسات المنتصف. هو التقرير الافتراضي.",
+          "DATA_DRIVEN": "أثر الإزالة في سلسلة ماركوف على رسم المسارات. يعمل فقط عند ١٠٠٠ مريض جديد حضر خلال ٩٠ يوماً، وإلا يعرض أن الحجم غير كافٍ."
+        },
+        "kind": {
+          "ORGANIC_SEARCH": "بحث طبيعي",
+          "DIRECT": "مباشر",
+          "PROVIDER_LINK": "رابط مقدم خدمة",
+          "PROVIDER_QR": "رمز QR لمقدم خدمة",
+          "WIDGET": "أداة الحجز",
+          "REFERRAL": "دعوة صديق",
+          "CAMPAIGN": "حملة",
+          "WHATSAPP": "واتساب",
+          "OFFLINE": "خارج الإنترنت",
+          "UNATTRIBUTED": "لا توجد لمسة"
+        }
+      }
+    }
+  }
+}

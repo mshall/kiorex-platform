@@ -36,3 +36,5 @@ export { CampaignService, SYSTEM as CAMPAIGN_SYSTEM_ACTOR, type Actor as Campaig
 export { CampaignBudgetService } from './campaigns/campaign-budget.service';
 export { evaluateTransition as evaluateCampaignTransition, type CampaignStatus } from './campaigns/campaign.state';
 export { isEligible as isCampaignEligible, validateEligibility as validateCampaignEligibility, type Eligibility as CampaignEligibility, type EligibilityFacts as CampaignEligibilityFacts } from './campaigns/campaign-eligibility';
+// GRW-P3-B (reporting attribution models, W7 lane A2)
+export { AttributionModelsModule } from './attribution-models/attribution-models.module';

@@ -8,7 +8,7 @@ import { CatalogModule } from './catalog/catalog-public';
 import { ControlPlaneModule } from './control-plane/control-plane-public';
 import { EngagementModule } from './engagement/engagement-public';
 import { HealthModule } from './health/health.module';
-import { CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, GrowthModule } from './growth/growth-public';
+import { CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, GrowthModule, AttributionModelsModule } from './growth/growth-public';
 import { PublicSiteModule } from './public-site/public-site-public';
 import { WidgetModule } from './widget/widget-public';
 import { AnalyticsModule } from './analytics/analytics-public';
@@ -36,6 +36,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AttributionModelsModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
 })
 export class AppModule {}
