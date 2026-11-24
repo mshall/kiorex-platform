@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { SafetyService } from '../homecare/homecare-public';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
@@ -22,15 +22,15 @@ class PaymentReviewBody { @IsString() reason!: string }
 class SimulateBody { @IsIn(['DELIVERED', 'READ', 'FAILED']) state!: 'DELIVERED' | 'READ' | 'FAILED' }
 class ResolveBody { @IsIn(['RESTORED', 'KEPT_HIDDEN']) resolution!: 'RESTORED' | 'KEPT_HIDDEN' }
 class SettlementLine {
-  @IsString() psp!: string;
-  @IsString() pspRef!: string;
+  @IsString() @MaxLength(60) psp!: string;
+  @IsString() @MaxLength(200) pspRef!: string;
   @IsIn(['CAPTURE', 'REFUND']) kind!: 'CAPTURE' | 'REFUND';
-  @IsInt() amountMinor!: number;
-  @IsOptional() @IsInt() feeMinor?: number;
-  @IsString() date!: string;
+  @IsInt() @Min(0) @Max(2_147_483_647) amountMinor!: number;
+  @IsOptional() @IsInt() @Min(0) @Max(2_147_483_647) feeMinor?: number;
+  @IsDateString() date!: string;
 }
 class ImportBody {
-  @ValidateNested({ each: true }) @Type(() => SettlementLine) lines!: SettlementLine[];
+  @IsArray() @ArrayMaxSize(20_000) @ValidateNested({ each: true }) @Type(() => SettlementLine) lines!: SettlementLine[];
 }
 
 @ApiTags('ops')

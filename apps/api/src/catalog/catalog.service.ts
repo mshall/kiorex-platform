@@ -457,9 +457,10 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
 
   /** KXM-OP-01: provider directory with listing status mirrored from Kiorly. */
   async opsList(q: { status?: string; q?: string; take?: number; page?: number }) {
-    const take = Math.min(q.take ?? 50, 200);
+    const take = Math.min(Math.max(1, Number.isFinite(q.take) ? Math.floor(q.take!) : 50), 200);
+    const page = Math.min(100_000, Math.max(1, Number.isFinite(q.page) ? Math.floor(q.page!) : 1));
     const where: Prisma.ProviderWhereInput = { ...(q.status ? { status: q.status } : {}), ...(q.q ? { searchText: { contains: normalizeText(q.q) } } : {}) };
-    const [total, rows] = await Promise.all([this.prisma.provider.count({ where }), this.prisma.provider.findMany({ where, orderBy: { syncedAt: 'desc' }, take, skip: ((q.page ?? 1) - 1) * take, select: { id: true, profession: true, careType: true, serviceLocations: true, coverageDistricts: true, clinicId: true, clinicianId: true, status: true, nameEn: true, nameAr: true, specialty: true, governorate: true, ratingAvg: true, ratingCount: true, sourceVersion: true, syncedAt: true } })]);
+    const [total, rows] = await Promise.all([this.prisma.provider.count({ where }), this.prisma.provider.findMany({ where, orderBy: { syncedAt: 'desc' }, take, skip: (page - 1) * take, select: { id: true, profession: true, careType: true, serviceLocations: true, coverageDistricts: true, clinicId: true, clinicianId: true, status: true, nameEn: true, nameAr: true, specialty: true, governorate: true, ratingAvg: true, ratingCount: true, sourceVersion: true, syncedAt: true } })]);
     return { total, items: rows };
   }
 
