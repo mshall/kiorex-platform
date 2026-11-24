@@ -2724,3 +2724,77 @@ model SponsoredPromotionReview {
   @@index([promotionId, promotionVersion], map: "SponsoredPromotionReview_promotion_idx")
   @@index([decision, createdAt], map: "SponsoredPromotionReview_decision_idx")
 }
+
+/// GRW-P3-E: a journey built in the constrained builder. A published graph is immutable (trigger LifecycleJourneyDefinition_guard); only the kill switch and PUBLISHED -> RETIRED may change.
+/// One PUBLISHED version per (market, key): partial unique index in the migration. Maker-checker is a CHECK (approver differs from the author).
+model LifecycleJourneyDefinition {
+  id          String    @id @default(cuid())
+  market      String    @default("EG")
+  key         String
+  version     Int       @default(1)
+  status      String    @default("DRAFT") // DRAFT PENDING_APPROVAL PUBLISHED RETIRED
+  name        String    @default("")
+  graph       Json
+  checksum    String
+  createdBy   String
+  submittedAt DateTime?
+  approvedBy  String?
+  publishedAt DateTime?
+  retiredAt   DateTime?
+  killedAt    DateTime?
+  killedBy    String?
+  killReason  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  runLogs LifecycleJourneyRunLog[]
+
+  @@unique([market, key, version])
+  @@index([market, status])
+}
+
+/// GRW-P3-E: COUNTS ONLY, one row per journey and market day. No person, no message id.
+model LifecycleJourneyRunLog {
+  id           String   @id @default(cuid())
+  definitionId String
+  market       String   @default("EG")
+  day          DateTime @db.Date
+  enrolled     Int      @default(0)
+  sent         Int      @default(0)
+  skipped      Int      @default(0)
+  ended        Int      @default(0)
+  byReason     Json     @default("{}")
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  definition LifecycleJourneyDefinition @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+
+  @@unique([definitionId, day])
+}
+
+/// GRW-P3-E: an advisory proposal built from AGGREGATES only (k >= 10). Never activates, sends, spends or changes a budget by itself: approval creates a DRAFT for the normal maker-checker path.
+/// Evidence columns are immutable (trigger GrowthRecommendation_guard); the aggregate-only CHECK is the second wall behind assert-aggregate-only.ts.
+model GrowthRecommendation {
+  id          String    @id @default(cuid())
+  market      String    @default("EG")
+  kind        String // REALLOCATE_BUDGET PAUSE_CAMPAIGN CONTENT_SUGGESTION SEO_GAP LIFECYCLE_HOLDOUT
+  fingerprint String
+  payload     Json
+  rationale   String
+  rationaleAr String    @default("")
+  evidenceRefs Json     @default("[]")
+  confidence  Int       @default(0)
+  status      String    @default("PROPOSED") // PROPOSED APPROVED REJECTED EXPIRED CONVERTED
+  decidedBy   String?
+  decidedAt   DateTime?
+  decisionNote String?
+  convertedRef String?
+  modelMode   String    @default("rules") // rules mock real
+  aiSummary   Json?
+  feedback    String? // USEFUL NOT_USEFUL
+  feedbackBy  String?
+  feedbackAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([market, status, createdAt])
+}

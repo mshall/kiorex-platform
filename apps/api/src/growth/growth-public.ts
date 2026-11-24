@@ -50,3 +50,6 @@ export { PromotionReviewService } from './promotions/promotion-review.service';
 export { SponsoredDiscountService, type SponsoredBlock } from './promotions/sponsored-discount.service';
 export { PromotionQuoteService, type SponsoredQuote } from './promotions/promotion-quote.service';
 export { sponsoredPayoutHoldMinor } from './promotions/promotion-math';
+// GRW-P3-E (wave 8, lane A1): marketing automation and AI-assisted recommendations
+export { AutomationModule } from './automation/automation.module';
+export { RecommendationsModule } from './recommendations/recommendations.module';

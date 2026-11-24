@@ -13,6 +13,6 @@ import { SendGateService } from './send-gate.service';
 @Module({
   controllers: [LifecycleAdminController, LifecyclePreferencesController],
   providers: [LifecyclePolicyService, LifecycleStateService, SendGateService, JourneyRunnerService, LifecycleTriggersService, LifecycleJob, LifecycleService],
-  exports: [LifecycleService, LifecycleStateService, LifecyclePolicyService],
+  exports: [LifecycleService, LifecycleStateService, LifecyclePolicyService, JourneyRunnerService, SendGateService],
 })
 export class LifecycleModule {}
