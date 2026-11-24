@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { RequiresFlag } from '../control-plane/control-plane-public';
 import { BookingService } from './booking.service';
@@ -25,7 +25,16 @@ class ConfirmBody {
   @IsOptional() @IsBoolean() remindersConsent?: boolean;
   @IsOptional() @IsString() @MaxLength(500) notes?: string;
 }
-class CancelBody { @IsOptional() @IsString() @MaxLength(500) reason?: string }
+class CancelBody {
+  @IsOptional() @IsString() @MaxLength(500) reason?: string;
+  /** GRW-P2-B2: where the refund of card money goes. Absent or anything but CREDIT means ORIGINAL (the original payment method, the default). CREDIT is an option while growth.refund_as_credit is effective, else 422. */
+  @IsOptional() @IsIn(['ORIGINAL', 'CREDIT']) refundDestination?: 'ORIGINAL' | 'CREDIT';
+}
+/** GRW-P2-B2: a coupon code typed at checkout, or one tap on a voucher (lotId). Both optional: credit lots apply by themselves when patient credit is effective. */
+class DepositCheckoutBody {
+  @IsOptional() @IsString() @MaxLength(24) couponCode?: string;
+  @IsOptional() @IsString() @Matches(/^rwl_[a-z0-9]+$/) lotId?: string;
+}
 class RescheduleBody { @IsDateString() startsAt!: string; @IsOptional() @IsDateString() endsAt?: string }
 
 type GrowthReq = { headers: Record<string, string | string[] | undefined> };
@@ -62,7 +71,7 @@ export class BookingController {
   @Post('bookings/:id/release') @HttpCode(200) release(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.release(u.sub, id); }
   @ApiOkResponse({ type: BookingDto })
   @Post('bookings/:id/cancel') @HttpCode(200) @ApiOperation({ summary: 'KXM-BK-07 cancel (policy enforced by Kiorly)' })
-  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: CancelBody) { return this.svc.cancel(u.sub, id, b.reason); }
+  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: CancelBody) { return this.svc.cancel(u.sub, id, b.reason, b.refundDestination); }
   @ApiOkResponse({ type: BookingDto })
   @Post('bookings/:id/reschedule') @HttpCode(200) @ApiOperation({ summary: 'KXM-BK-07 reschedule' })
   reschedule(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: RescheduleBody) { return this.svc.reschedule(u.sub, id, b); }
@@ -70,7 +79,7 @@ export class BookingController {
   @ApiOkResponse({ type: DepositCheckoutDto })
 
   @Post('bookings/:id/deposit-checkout') @HttpCode(200) @RequiresFlag('kiorex.pay_deposits') @ApiOperation({ summary: 'KXM-PAY-01 start hosted deposit checkout (flag kiorex.pay_deposits)' })
-  deposit(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.depositCheckout(u.sub, id); }
+  deposit(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: DepositCheckoutBody) { return this.svc.depositCheckout(u.sub, id, b ?? {}); }
 
   @ApiOkResponse({ type: BookingDto, isArray: true })
 

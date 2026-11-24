@@ -94,6 +94,7 @@
 | GET | `/api/v1/me/preferences` | GRW-P1-I preference centre: service messages, reminders, analytics, per-channel marketing consent, quiet hours, caps |
 | PUT | `/api/v1/me/preferences` | GRW-P1-I change preferences; every consent change is an append-only audit row and a PatientConsentUpdated event |
 | POST | `/api/v1/me/preferences/unsubscribe-marketing` | GRW-P1-I one-step opt-out of every marketing channel |
+| GET | `/api/v1/me/preferences/classes` | GRW-P2-E the four message classes, what is required and what is optional, quiet hours and caps |
 
 ## control-plane
 
@@ -243,6 +244,73 @@
 | GET | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A spend lines booked against the campaign, with the daily utilisation |
 | POST | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page) |
 
+## growth-credit
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/pay/v1/refunds/preview` | GRW-P2-B2 both refund destinations with the exact amounts; "original payment method" is the default and is first |
+| GET | `/api/v1/growth/v1/referral/rewards` | GRW-P2-B2 my vouchers and credit lots with expiry and status (coupons are masked until revealed once) |
+| POST | `/api/v1/growth/v1/rewards/{lotId}/reveal` | GRW-P2-B2 show a coupon code once |
+| POST | `/api/v1/growth/v1/rewards/quote` | GRW-P2-B2 checkout lines for a deposit: price, credit, card (read only; the booking and pay flow apply them) |
+| GET | `/api/v1/growth/v1/credit` | GRW-P2-B2 my credit: open balance, lots by expiry with scope text, household |
+| GET | `/api/v1/growth/v1/credit/household` | GRW-P2-B2 my household (owner only) |
+| POST | `/api/v1/growth/v1/credit/household` | GRW-P2-B2 let one of my dependants draw from my credit |
+| DELETE | `/api/v1/growth/v1/credit/household` | GRW-P2-B2 stop a member drawing from my credit |
+| GET | `/api/v1/admin/growth/rewards` | GRW-P2-B2 rules summary, mode, switches and the pricing note |
+| GET | `/api/v1/admin/growth/rewards/lots` | GRW-P2-B2 lots with balances (patient as an opaque reference) |
+| GET | `/api/v1/admin/growth/rewards/lots/{id}/ledger` | GRW-P2-B2 every entry of one lot (append-only) |
+| POST | `/api/v1/admin/growth/rewards/manual-issue` | GRW-P2-B2 manual issuance: reason, daily cap per actor, second approver above the threshold |
+| POST | `/api/v1/admin/growth/rewards/lots/{id}/hold` | GRW-P2-B2 freeze the available part of a lot (fraud review) |
+| POST | `/api/v1/admin/growth/rewards/lots/{id}/release` | GRW-P2-B2 release a hold |
+| POST | `/api/v1/admin/growth/rewards/lots/{id}/reverse` | GRW-P2-B2 reverse the unspent part of a lot found fraudulent (never a refund credit or restored lot: the patient's own money) |
+| GET | `/api/v1/admin/growth/rewards/approvals` | GRW-P2-B2 pending second-approver requests (manual issue, goodwill) |
+| POST | `/api/v1/admin/growth/rewards/approvals/{id}/decide` | GRW-P2-B2 approve or reject (never the requester) |
+| GET | `/api/v1/admin/growth/rewards/finance` | GRW-P2-B2 finance report for a month (YYYY-MM): issued, redeemed, reversed, expired, outstanding; format=csv exports |
+| GET | `/api/v1/admin/growth/rewards/finance.csv` | GRW-P2-B2 finance report as CSV |
+| POST | `/api/v1/admin/growth/rewards/housekeeping/run` | GRW-P2-B2 run the expiry and release job once (idempotent; also what the hourly job does) |
+| GET | `/api/v1/admin/growth/credit/lots` | GRW-P2-B2 credit lots (CREDIT mode, refund credit, restored) with the refund-credit liability apart |
+| POST | `/api/v1/admin/growth/credit/goodwill` | GRW-P2-B2 support goodwill (flag growth.support_goodwill, second approver above the threshold) |
+| GET | `/api/v1/admin/growth/credit/reconcile` | GRW-P2-B2 reconcile runs (RC-1 to RC-7), newest first |
+| POST | `/api/v1/admin/growth/credit/reconcile/run` | GRW-P2-B2 run the reconciliation now (never corrects, records a case on failure) |
+
+## growth-integrations
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/integration-status` | GRW-P2-F status, mode, circuit, last run, secretRef presence (boolean) per integration |
+| GET | `/api/v1/admin/growth/integration-runs` | GRW-P2-F run history (kind filter) |
+| POST | `/api/v1/admin/growth/integrations/{kind}/test` | GRW-P2-F health check (mock: synthetic OK; real: secret resolves, no upstream call) |
+| POST | `/api/v1/admin/growth/integrations/{kind}/run` | GRW-P2-F pull now. Mock: direct. Real: needs { requestId } of a request made by another super admin |
+| POST | `/api/v1/admin/growth/integrations/{kind}/run-requests` | GRW-P2-F ask for a real pull (first person of two) |
+| GET | `/api/v1/admin/growth/channel-performance` | GRW-P2-F channel and campaign performance: external numbers beside first-party facts, CAC, blended CAC, ROAS, MER (k >= 10, spend floor) |
+
+## growth-lifecycle
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/lifecycle` | GRW-P2-E journeys with their steps, class, policy state and active enrolments; the policy in force |
+| GET | `/api/v1/admin/growth/lifecycle/funnel` | GRW-P2-E stage funnel; a stage with fewer than 10 people shows no count |
+| GET | `/api/v1/admin/growth/lifecycle/decisions` | GRW-P2-E send-gate decisions by journey, decision and reason code over the last N days (aggregate) |
+| GET | `/api/v1/admin/growth/lifecycle/templates` | GRW-P2-E template catalogue: class badge, purpose, copy review state, AR and EN preview with sample parameters |
+| GET | `/api/v1/admin/growth/lifecycle/suppressions` | GRW-P2-E suppression list (channel, reason, source, hash tail; never the address) |
+| POST | `/api/v1/admin/growth/lifecycle/suppressions` | GRW-P2-E add a manual suppression (reason MANUAL, a written note is required, audited) |
+| POST | `/api/v1/admin/growth/lifecycle/suppressions/{id}/lift-request` | GRW-P2-E first person: ask to lift a suppression, with documented consent evidence |
+| POST | `/api/v1/admin/growth/lifecycle/suppressions/{id}/lift-approve` | GRW-P2-E second person (never the requester): lift the suppression |
+| POST | `/api/v1/admin/growth/lifecycle/test-send` | GRW-P2-E send one template to an allowlisted staff subject, only while the channel runs in mock mode |
+| GET | `/api/v1/admin/growth/lifecycle/lookup` | GRW-P2-E audited lookup of one subject decisions (DPO use): every call writes an audit row |
+| POST | `/api/v1/admin/growth/lifecycle/run` | GRW-P2-E run the one-minute tick once (idempotent; also what the job does) |
+
+## growth-referral
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/growth/v1/referral/me` | GRW-P2-B1 my referral code, invite link, counts and caps remaining |
+| POST | `/api/v1/growth/v1/referral/invites` | GRW-P2-B1 record a share of my invite and get the link and share text (counts only, no recipient) |
+| POST | `/api/v1/growth/v1/referral/claim` | GRW-P2-B1 claim a referral code as the invited person (first claim wins; every refusal has the same shape) |
+| GET | `/api/v1/admin/growth/referrals` | GRW-P2-B1 funnel counts (k >= 10) and the review queue |
+| GET | `/api/v1/admin/growth/referrals/{id}` | GRW-P2-B1 reviewer view: checks, fraud signals, state (no contact data) |
+| POST | `/api/v1/admin/growth/referrals/{id}/decision` | GRW-P2-B1 QUALIFY_OVERRIDE (two people), REJECT or RELEASE_HOLD |
+
 ## health
 
 | Method | Path | Summary |
@@ -336,23 +404,6 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/admin/onboarding/imports` | Create an import batch for a target organization |
-| GET | `/api/v1/admin/onboarding/imports` | Import batches, newest first (max 100) |
-| GET | `/api/v1/admin/onboarding/imports/{id}` | One batch with its staged files |
-| POST | `/api/v1/admin/onboarding/imports/{id}/files` | Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name= |
-| POST | `/api/v1/admin/onboarding/imports/{id}/rescan` | Re-run the deterministic analysis |
-| GET | `/api/v1/admin/onboarding/imports/{id}/tasks` | Resolution queue (paged, filter by status/severity/type) |
-| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many` | Apply one resolution to up to 500 tasks |
-| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve` | Resolve one task |
-| GET | `/api/v1/admin/onboarding/imports/{id}/patients` | Staged patient lookup for the merge / assign pickers (max 20) |
-| GET | `/api/v1/admin/onboarding/imports/{id}/dry-run` | Dry-run report: what a commit would create, blockers and the report hash to approve |
-| POST | `/api/v1/admin/onboarding/imports/{id}/request-commit` | Ask for approval (two-person rule step 1) |
-| POST | `/api/v1/admin/onboarding/imports/{id}/approve` | SA: approve the exact report hash (not the requester or creator) |
-| POST | `/api/v1/admin/onboarding/imports/{id}/reject` | SA: reject the commit request with a reason |
-| POST | `/api/v1/admin/onboarding/imports/{id}/commit` | SA: commit the approved batch into the target clinic (idempotent items) |
-| POST | `/api/v1/admin/onboarding/imports/{id}/rollback` | SA: roll back a committed batch |
-| POST | `/api/v1/admin/onboarding/imports/{id}/purge-staging` | SA: delete the quarantined files and staging rows |
-| GET | `/api/v1/admin/onboarding/imports/{id}/audit` | Audit trail of the batch (ids and counts only) |
 | GET | `/api/v1/admin/onboarding/enrolments` | OP: enrolment codes (never the code itself) |
 | POST | `/api/v1/admin/onboarding/enrolments` | OP: create a one-time enrolment code; the code is in this response only |
 | DELETE | `/api/v1/admin/onboarding/enrolments/{id}` | OP: revoke an unused enrolment code |
@@ -371,6 +422,26 @@
 | POST | `/api/v1/admin/onboarding/partners/{id}/pause` | OP: pause a live partner with a reason |
 | POST | `/api/v1/admin/onboarding/partners/{id}/resume` | OP: resume a paused partner |
 | POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` | OP: apply a pending credential rotation after a passing handshake |
+| GET | `/api/v1/admin/onboarding/verification-updates` | OP: provider verification update requests (open first) |
+| GET | `/api/v1/admin/onboarding/verification-updates/{ref}` | OP: one request with the requested value and evidence references read live from the Clinic |
+| POST | `/api/v1/admin/onboarding/verification-updates/{ref}/decide` | OP: approve, reject or ask for more information; the decision is delivered to the Clinic (ProviderVerificationDecided) |
+| POST | `/api/v1/admin/onboarding/imports` | Create an import batch for a target organization |
+| GET | `/api/v1/admin/onboarding/imports` | Import batches, newest first (max 100) |
+| GET | `/api/v1/admin/onboarding/imports/{id}` | One batch with its staged files |
+| POST | `/api/v1/admin/onboarding/imports/{id}/files` | Upload one file into quarantine: JSON {name, contentBase64} or application/octet-stream with ?name= |
+| POST | `/api/v1/admin/onboarding/imports/{id}/rescan` | Re-run the deterministic analysis |
+| GET | `/api/v1/admin/onboarding/imports/{id}/tasks` | Resolution queue (paged, filter by status/severity/type) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/resolve-many` | Apply one resolution to up to 500 tasks |
+| POST | `/api/v1/admin/onboarding/imports/{id}/tasks/{taskId}/resolve` | Resolve one task |
+| GET | `/api/v1/admin/onboarding/imports/{id}/patients` | Staged patient lookup for the merge / assign pickers (max 20) |
+| GET | `/api/v1/admin/onboarding/imports/{id}/dry-run` | Dry-run report: what a commit would create, blockers and the report hash to approve |
+| POST | `/api/v1/admin/onboarding/imports/{id}/request-commit` | Ask for approval (two-person rule step 1) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/approve` | SA: approve the exact report hash (not the requester or creator) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/reject` | SA: reject the commit request with a reason |
+| POST | `/api/v1/admin/onboarding/imports/{id}/commit` | SA: commit the approved batch into the target clinic (idempotent items) |
+| POST | `/api/v1/admin/onboarding/imports/{id}/rollback` | SA: roll back a committed batch |
+| POST | `/api/v1/admin/onboarding/imports/{id}/purge-staging` | SA: delete the quarantined files and staging rows |
+| GET | `/api/v1/admin/onboarding/imports/{id}/audit` | Audit trail of the batch (ids and counts only) |
 | GET | `/api/v1/admin/partner-leads` | OP: partner leads (newest first), status derived from the onboarding request |
 | GET | `/api/v1/admin/partner-leads/funnel` | OP: interested -> started -> submitted -> live (distinct organisations) with conversion |
 | GET | `/api/v1/admin/partner-leads/unread` | OP: new leads this team member has not seen yet (nav badge) |

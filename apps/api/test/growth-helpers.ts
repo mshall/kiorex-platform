@@ -6,7 +6,7 @@ export const SUPER_A = { sub: 'adm_a', roles: ['super_admin', 'ops_admin'] };
 export const SUPER_B = { sub: 'adm_b', roles: ['super_admin', 'ops_admin'] };
 
 /** Gate evidence for the launch-locked visitor-key and marketing flags: a TEST FIXTURE (DEV-prefixed gate id), never a real counsel gate. */
-export async function unlockFlag(c: TestCtx, key: 'growth.analytics_visitor' | 'growth.marketing_messaging') {
+export async function unlockFlag(c: TestCtx, key: 'growth.analytics_visitor' | 'growth.marketing_messaging' | 'growth.patient_referral' | 'growth.rewards' | 'growth.patient_credit' | 'growth.refund_as_credit' | 'growth.family_credit' | 'growth.support_goodwill') {
   await c.prisma.flagGateEvidence.upsert({ where: { flagKey_gateId: { flagKey: key, gateId: 'DEV-TEST-FIXTURE-NOT-A-REAL-GATE' } }, create: { flagKey: key, gateId: 'DEV-TEST-FIXTURE-NOT-A-REAL-GATE', approver: 'test fixture', approvedOn: new Date(), documentUrl: 'https://dev.invalid/fixture', recordedBy: 'TEST_FIXTURE' }, update: {} });
   c.flags.invalidate();
 }

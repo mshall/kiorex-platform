@@ -21,6 +21,10 @@ export const A = {
   reviewHold: (clinic: string) => `REVIEW_HOLD:${clinic}`,
   /** Kiorex's own marketplace take on vertical orders (credit-normal revenue). NEEDS_HUMAN rate; VAT only as config on fee statements. */
   marketplaceFees: 'MARKETPLACE_FEES',
+  /** GRW-P2-B2: the patient's OWN refunded money kept as credit (liability, credit-normal). Moves REFUND_PAYABLE -> here on a refund the patient chose to keep as credit; flows to HELD when spent on a deposit. Never revenue. */
+  patientRefundCredit: 'PATIENT_REFUND_CREDIT',
+  /** GRW-P2-B2: promotional credit applied to a deposit, posted only when REWARD_RULES.postToPayLedger is true (finance decision). Debit-normal like an expense: it is Kiorex's marketing cost, never the provider's. */
+  promoFunded: 'PROMO_FUNDED:rewards',
 };
 
 const dr = (account: string, n: number): Posting => ({ account, debit: n, credit: 0 });
@@ -40,6 +44,14 @@ export const releaseFromReview = (clinic: string, n: number): Posting[] => [dr(A
 /** ... or refund the patient (the refund then settles through REFUND_PAYABLE like any other refund). */
 export const refundFromReview = (clinic: string, n: number): Posting[] => [dr(A.reviewHold(clinic), n), cr(A.refundPayable, n)];
 export const payout = (clinic: string, n: number): Posting[] => [dr(A.payable(clinic), n), cr(A.clearing, n)];
+/** GRW-P2-B2 deposit paid partly with credit: the credit part reaches the clinic's HELD from the account that funds it (the patient's refund credit liability, and the promo account when it is posted). Balanced by construction. */
+export const rewardTender = (clinic: string, refundCreditMinor: number, promoMinor: number): Posting[] => [...(refundCreditMinor > 0 ? [dr(A.patientRefundCredit, refundCreditMinor)] : []), ...(promoMinor > 0 ? [dr(A.promoFunded, promoMinor)] : []), cr(A.held(clinic), refundCreditMinor + promoMinor)];
+/** The reverse of rewardTender when the credit comes back to the patient (a refund of a credit-paid deposit). `account` is HELD, or REVIEW_HOLD for a deposit under review. */
+export const rewardRestore = (account: string, refundCreditMinor: number, promoMinor: number): Posting[] => [dr(account, refundCreditMinor + promoMinor), ...(refundCreditMinor > 0 ? [cr(A.patientRefundCredit, refundCreditMinor)] : []), ...(promoMinor > 0 ? [cr(A.promoFunded, promoMinor)] : [])];
+/** A refund the patient chose to keep as credit: the money stays at Kiorex, the liability moves from "owed back by card" to "refund credit". */
+export const refundToCredit = (n: number): Posting[] => [dr(A.refundPayable, n), cr(A.patientRefundCredit, n)];
+/** A refund-credit lot expired and its unspent rest goes back to the ORIGINAL payment method: the liability returns to "owed back by card". */
+export const refundCreditExpired = (n: number): Posting[] => [dr(A.patientRefundCredit, n), cr(A.refundPayable, n)];
 
 export class LedgerError extends Error {}
 
@@ -55,7 +67,7 @@ export function assertValid(p: Posting[]): void {
   if (d === 0) throw new LedgerError('zero-value transaction');
 }
 
-const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees;
+const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees || a === A.promoFunded;
 
 /** In-memory book used by property tests and by the reconciliation invariant checker. */
 export class LedgerBook {
@@ -88,7 +100,7 @@ export class LedgerBook {
   liabilities(): number { return this.accounts().filter((a) => !DEBIT_NORMAL(a)).reduce((s, a) => s + this.balance(a), 0); }
 }
 
-/** Accounting identity: clearing - fees... clearing(debit-normal) + fees(debit-normal) == liabilities. */
+/** Accounting identity: debit-normal accounts (clearing, fees, promo funded) == liabilities. */
 export function identityHolds(book: LedgerBook): boolean {
-  return book.balance(A.clearing) + book.balance(A.fees) === book.liabilities();
+  return book.balance(A.clearing) + book.balance(A.fees) + book.balance(A.promoFunded) === book.liabilities();
 }

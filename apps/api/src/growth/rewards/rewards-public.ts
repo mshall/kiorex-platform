@@ -1,1 +1,14 @@
 export { RewardsModule } from './rewards.module';
+export { RewardLedgerService } from './reward-ledger.service';
+export { RewardIssuanceService, issueKey, type IssueInput, type IssueResult } from './reward-issuance.service';
+export { RewardRedemptionService } from './reward-redemption.service';
+export { RewardReversalService } from './reward-reversal.service';
+export { RewardHoldService } from './reward-hold.service';
+export { RewardExpiryJob } from './reward-expiry.job';
+export { RewardReconcileJob } from './reward-reconcile.job';
+export { RewardPolicyService } from './reward-policy.service';
+export { RewardFinanceService } from './reward-finance.service';
+export { GoodwillService } from './goodwill.service';
+export { RewardHouseholdService } from './reward-household.service';
+export { consumeFifo, maxRedeemable, entryKey } from './reward-math';
+export { composeCheckout, linesBalance } from './checkout-lines';

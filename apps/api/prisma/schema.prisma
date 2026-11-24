@@ -340,6 +340,10 @@ model PaymentIntent {
   heldForReviewAt DateTime?
   reviewedBy      String?
   reviewedAt      DateTime?
+  /// GRW-P2-B2 (migration 20261217090000): credit applied to this deposit. `amountMinor` stays the CARD amount charged at the PSP; `rewardMinor` is the part paid with credit,
+  /// `rewardPostedMinor` the part of it that sits in the Pay ledger HELD account (patient-refund credit always, promotional credit only when REWARD_RULES.postToPayLedger).
+  rewardMinor       Int     @default(0)
+  rewardPostedMinor Int     @default(0)
 
   refunds Refund[]
 
@@ -1818,6 +1822,12 @@ model ReferralRelationship {
   ruleVersionId      String
   createdAt          DateTime  @default(now())
   qualifiedAt        DateTime?
+  /// GRW-P2-B1 (migration 20261217090000): end of the hold window after the completed first visit, the review state of a fraud hold, the campaign the invite came through.
+  holdUntil          DateTime?
+  completedAt        DateTime?
+  reviewState        String    @default("NONE") // NONE HOLD RELEASED REJECTED
+  campaignId         String?
+  claimedVia         String    @default("LINK") // LINK SIGNUP APP
 
   code   ReferralCode                 @relation(fields: [codeId], references: [id])
   checks ReferralQualificationCheck[]
@@ -1876,6 +1886,11 @@ model RewardLot {
   funding             String   @default("PLATFORM_MARKETING")
   scope               Json     @default("{}")
   qualifyingBookingId String?
+  /// GRW-P2-B2 (migration 20261217090000): the sealed coupon code lives here only until the patient has seen it once; afterwards only `couponCodeHash` stays.
+  couponCodeSealed    String?
+  couponRevealedAt    DateTime?
+  issuedBy            String   @default("system")
+  reasonCode          String?
 
   entries RewardLedgerEntry[]
 
@@ -2222,4 +2237,54 @@ model RewardReconcileRun {
   caseRef String?
 
   @@index([ranAt])
+}
+
+
+/// GRW-P2-B1: one share of an invite (counts only, no recipient).
+model ReferralShare {
+  id        String   @id @default(cuid())
+  market    String   @default("EG")
+  codeId    String
+  channel   String // LINK WHATSAPP_SHARE SMS COPY
+  createdAt DateTime @default(now())
+
+  @@index([codeId, createdAt])
+}
+
+/// GRW-P2-B2: manual issuance and goodwill above the approval threshold wait for a second person. A decided request is immutable (trigger).
+model RewardApprovalRequest {
+  id           String    @id @default(cuid())
+  market       String    @default("EG")
+  kind         String // MANUAL_ISSUE GOODWILL
+  status       String    @default("PENDING") // PENDING APPROVED REJECTED
+  sub          String
+  amountMinor  Int
+  reason       String
+  bookingId    String?
+  ticketRef    String?
+  payload      Json      @default("{}")
+  requestedBy  String
+  decidedBy    String?
+  decisionNote String?
+  lotId        String?
+  createdAt    DateTime  @default(now())
+  decidedAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([sub])
+}
+
+/// GRW-P2-B2: value a reversal could not take back (already spent). Blocks further issuance to the subject for a while and shows in the finance report.
+model RewardRecoverableLoss {
+  id          String   @id @default(cuid())
+  market      String   @default("EG")
+  sub         String
+  lotId       String
+  amountMinor Int
+  reasonCode  String
+  bookingId   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([lotId, bookingId])
+  @@index([sub, createdAt])
 }

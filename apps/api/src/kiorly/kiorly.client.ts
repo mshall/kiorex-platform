@@ -121,10 +121,10 @@ export class KiorlyClient {
   rescheduleBooking(ref: string, body: { startsAt: string; endsAt?: string; holdId?: string }, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/reschedule`, body, clinicId });
   }
-  depositPaid(ref: string, body: { amount: number; currency: string; paymentRef: string; paidAt?: string }) {
+  depositPaid(ref: string, body: { amount: number; currency: string; paymentRef: string; paidAt?: string; tender?: { cardMinor?: number; patientCreditMinor?: number; sponsoredDiscountMinor?: number } }) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/deposit-paid`, body });
   }
-  depositLinkPaid(token: string, body: { amount: number; currency: string; paymentRef: string; paidAt?: string }) {
+  depositLinkPaid(token: string, body: { amount: number; currency: string; paymentRef: string; paidAt?: string; tender?: { cardMinor?: number; patientCreditMinor?: number; sponsoredDiscountMinor?: number } }) {
     return this.request<any>({ method: 'POST', path: `/deposit-links/${encodeURIComponent(token)}/paid`, body });
   }
   recordPayout(body: { payoutRef: string; clinicId: string; amount: number; currency: string; paidAt: string; depositPaymentRefs: string[] }) {

@@ -119,6 +119,9 @@ export class BookingDto {
 export class DepositCheckoutDto {
   paymentId!: string;
   @ApiProperty({ nullable: true, type: String }) checkoutUrl!: string | null;
-  amountMinor!: number;
+  @ApiProperty({ description: 'The CARD amount to pay now (the deposit minus any credit applied)' }) amountMinor!: number;
   currency!: string;
+  @ApiProperty({ required: false, description: 'GRW-P2-B2: credit (coupon or patient credit) applied to this deposit, in minor units; absent when none' }) rewardMinor?: number;
+  @ApiProperty({ required: false, description: 'GRW-P2-B2: the ordered checkout lines (PRICE, credit, CARD) whose sum is the deposit; absent when no credit applies' }) lines?: { code: string; amountMinor: number; labelKey: string }[];
+  @ApiProperty({ required: false, description: 'GRW-P2-B2: why a coupon was not applied (COUPON_INVALID, NOT_APPLICABLE); the same text for a wrong code and for a code of another account' }) couponProblem?: string;
 }

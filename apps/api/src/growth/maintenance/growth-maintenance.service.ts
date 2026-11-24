@@ -21,9 +21,11 @@ export class GrowthMaintenanceService {
 
   async eraseSubject(sub: string): Promise<EraseResult> {
     const rows = await this.prisma.$queryRaw<{ r: EraseResult }[]>`SELECT growth_erase_subject(${sub}) AS r`;
+    // GRW-P2-B1/B2 (migration 20261217090000): approval requests, recoverable losses and unrevealed coupon seals of the subject
+    const more = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_rewards_engine(${sub}) AS r`;
     // GRW-P1-J: the PatientRegistered fact is keyed by the person's pseudonymous reference, so it leaves with the person (it is a plain row, not append-only)
     const registered = await this.prisma.growthEvent.deleteMany({ where: { dedupeKey: `fact|PatientRegistered|${subRefOf(sub)}` } });
-    const r = rows[0].r;
+    const r = { ...rows[0].r, ...more[0].r };
     return { ...r, eventsDeleted: Number(r.eventsDeleted) + registered.count };
   }
 

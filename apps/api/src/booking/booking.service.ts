@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { BookingIntent, Prisma, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
@@ -12,7 +12,7 @@ import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/k
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
-import { BOOKING_GROWTH, type BookingGrowthContext, type BookingGrowthPort } from '../growth/growth-ports-public';
+import { BOOKING_GROWTH, REWARDS_PORT, type BookingGrowthContext, type BookingGrowthPort, type RewardsPort } from '../growth/growth-ports-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddressService, VisitAddress } from '../address/address-public';
 import { addressForLog } from '../common/district';
@@ -41,7 +41,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly catalog: CatalogService, private readonly flags: FlagsService,
     private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService, private readonly markets: MarketService,
-    private readonly addresses: AddressService, @Inject(BOOKING_GROWTH) private readonly growth: BookingGrowthPort,
+    private readonly addresses: AddressService, @Inject(BOOKING_GROWTH) private readonly growth: BookingGrowthPort, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort,
   ) {}
 
   /** Other modules (family share) subscribe to home status changes without this module importing them. */
@@ -385,10 +385,16 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── cancel / reschedule (KXM-BK-07/08) ─────────────
 
-  async cancel(sub: string, id: string, reason?: string) {
+  async cancel(sub: string, id: string, reason?: string, refundDestination?: 'ORIGINAL' | 'CREDIT') {
     const b = await this.owned(sub, id);
     if (b.status === 'HELD') return this.release(sub, id);
     if (!['PENDING_CLINIC', 'CONFIRMED'].includes(b.status)) throw unprocessable('BOOKING_NOT_CHANGEABLE', `Booking is ${b.status}`);
+    // GRW-P2-B2: "keep as credit" is an OPTION the patient picks on the cancel request; absent means the original payment method. When the option is not available (a launch-locked switch is off) a request for it is refused
+    // so nobody believes they chose credit and gets a card refund. The choice is parked on the booking timeline and read when the refund is created from the Clinic's cancellation event.
+    if (refundDestination === 'CREDIT') {
+      if (!this.rewards || !(await this.rewards.refundCreditAvailable())) throw unprocessable('REFUND_CREDIT_NOT_AVAILABLE', 'Keeping a refund as credit is not available');
+      await this.ev(id, 'REFUND_CHOICE', { destination: 'CREDIT', source: 'PATIENT_CANCEL' });
+    }
     try {
       const { data } = await this.kiorly.cancelBooking(b.id, reason, b.clinicId);
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /cancel', depositRefundable: data?.depositRefundable });
@@ -417,14 +423,17 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     return this.present(await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } }));
   }
 
-  async depositCheckout(sub: string, id: string) {
+  async depositCheckout(sub: string, id: string, o: { couponCode?: string; lotId?: string } = {}) {
     const b = await this.owned(sub, id);
     if (b.depositStatus !== 'REQUIRED') throw conflict('NO_DEPOSIT_DUE', 'No deposit is due for this booking');
     if (!['PENDING_CLINIC', 'CONFIRMED'].includes(b.status)) throw conflict('BOOKING_NOT_PAYABLE', `Booking is ${b.status}`);
     await this.flags.assertEnabled('kiorex.pay_deposits', { market: 'EG' });
-    const p = await this.pay.createDepositIntent({ bookingId: b.id, sub, clinicId: b.clinicId, amountMinor: b.depositAmountMinor, currency: b.currency });
-    await this.ev(id, 'PAYMENT', { paymentId: p.id });
-    return { paymentId: p.id, checkoutUrl: p.checkoutUrl, amountMinor: p.amountMinor, currency: p.currency };
+    const prov = await this.provider(b);
+    // GRW-P2-B2: credit first (a coupon on request, credit lots automatically when patient credit is effective), then the card for the rest; with rewards off this is the plain deposit intent
+    const r = await this.pay.createDepositIntentWithRewards({ bookingId: b.id, sub, clinicId: b.clinicId, amountMinor: b.depositAmountMinor, currency: b.currency, serviceKind: b.serviceLocation === 'HOME' ? 'HOME_VISIT' : b.telehealth ? 'VIDEO' : 'IN_CLINIC', specialty: prov?.specialty ?? null, dependantId: b.dependantId, couponCode: o.couponCode, lotId: o.lotId });
+    const p = r.intent;
+    await this.ev(id, 'PAYMENT', { paymentId: p.id, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor } : {}) });
+    return { paymentId: p.id, checkoutUrl: p.checkoutUrl, amountMinor: p.amountMinor, currency: p.currency, ...(r.rewardMinor ? { rewardMinor: r.rewardMinor, lines: r.lines } : {}), ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
   }
 
   async list(sub: string, status?: string) {
@@ -674,7 +683,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       try { refundable = (await this.kiorly.getBooking(b.id, b.clinicId)).data?.depositRefundable; } catch { /* fall through */ }
     }
     if (refundable === true) {
-      await this.pay.refundForBooking(b.id, type === 'CANCELLED_BY_CLINIC' ? 'CLINIC_CANCELLED' : 'PATIENT_CANCELLED_REFUNDABLE');
+      // GRW-P2-B2: only a refund the PATIENT started can carry the credit option; a provider cancellation, an expired hold and every system refund go to the original payment method at once
+      const patientChoice = type === 'CANCELLED_BY_PATIENT' && this.rewards ? await this.parkedRefundChoice(b.id) : undefined;
+      await this.pay.refundForBooking(b.id, type === 'CANCELLED_BY_CLINIC' ? 'CLINIC_CANCELLED' : 'PATIENT_CANCELLED_REFUNDABLE', type === 'CANCELLED_BY_PATIENT' && this.rewards ? { destination: patientChoice ?? 'ORIGINAL', source: 'PATIENT_CANCEL' } : {});
       await this.prisma.bookingIntent.update({ where: { id: b.id }, data: { depositStatus: b.depositStatus === 'REQUIRED' ? 'NONE' : 'REFUNDED', depositRefundable: true } });
     } else if (refundable === false) {
       await this.pay.releaseForBooking(b.id, 'FORFEITED');
@@ -682,6 +693,12 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     } else {
       await this.prisma.auditLog.create({ data: { actor: 'system', action: 'booking.refund_policy_review', resource: 'BookingIntent', resourceId: b.id, metadata: { note: 'NEEDS_HUMAN: depositRefundable absent; cancellation-policy fallback undefined' } } });
     }
+  }
+
+  /** The destination the patient picked on the cancel request (CREDIT), read from the booking timeline; anything else is ORIGINAL. A choice older than a day belongs to an earlier cancel attempt and is ignored. */
+  private async parkedRefundChoice(bookingId: string): Promise<'CREDIT' | undefined> {
+    const e = await this.prisma.bookingEvent.findFirst({ where: { bookingId, kind: 'REFUND_CHOICE', createdAt: { gte: new Date(Date.now() - 86_400_000) } }, orderBy: { createdAt: 'desc' } });
+    return (e?.detail as { destination?: string } | null)?.destination === 'CREDIT' ? 'CREDIT' : undefined;
   }
 
   /** Payment captured: if the booking is already dead, refund automatically (KX-09 §05). */

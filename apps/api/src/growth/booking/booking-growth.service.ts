@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AttributionService, type StoredDecision } from '../attribution/attribution.service';
 import { GrowthRevenueService } from '../analytics/revenue.service';
 import { GrowthEventsService } from '../events/growth-events.service';
-import type { BookingGrowthContext, BookingGrowthPort, ConfirmGrowth } from '../growth-ports-public';
+import { REFERRAL_PORT, type BookingGrowthContext, type BookingGrowthPort, type ConfirmGrowth, type ReferralPort } from '../growth-ports-public';
 
 const PLATFORMS = new Set(['web', 'ios', 'android', 'whatsapp', 'widget']);
 export const platformOf = (v: unknown): string | undefined => (typeof v === 'string' && PLATFORMS.has(v.toLowerCase()) ? v.toLowerCase() : undefined);
@@ -19,7 +19,7 @@ export const platformOf = (v: unknown): string | undefined => (typeof v === 'str
 @Injectable()
 export class BookingGrowthService implements BookingGrowthPort {
   private readonly log = new Logger('booking-growth');
-  constructor(private readonly attribution: AttributionService, private readonly events: GrowthEventsService, private readonly prisma: PrismaService, private readonly revenue: GrowthRevenueService) {}
+  constructor(private readonly attribution: AttributionService, private readonly events: GrowthEventsService, private readonly prisma: PrismaService, private readonly revenue: GrowthRevenueService, @Optional() @Inject(REFERRAL_PORT) private readonly referral?: ReferralPort) {}
 
   async onIntent(b: { id: string; dependantId: string | null; careType: string; createdAt: Date }, market: string, ctx: BookingGrowthContext = {}) {
     if (b.dependantId) return;
@@ -51,10 +51,15 @@ export class BookingGrowthService implements BookingGrowthPort {
   async fact(name: 'BookingConfirmed' | 'BookingAttended' | 'BookingCancelled', b: { id: string; dependantId: string | null; careType: string }, market: string, props: Record<string, string | number | boolean> = {}, at?: Date) {
     if (b.dependantId) return;
     await this.safe(name, () => this.events.recordFact({ name, naturalKey: b.id, bookingId: b.id, careType: b.careType, market, props, ...(at ? { occurredAt: at } : {}) }));
+    // GRW-P2-B1: the referral engine reads cancellations (it never changes the attribution decision, a commission or a booking, and its failures never reach the booking)
+    if (name === 'BookingCancelled') await this.safe('referral:cancelled', () => this.referral?.onBookingCancelled(b.id) ?? Promise.resolve());
   }
 
   /** COMPLETED: the Clinic confirms the visit's PENDING commission charge at the same moment (no event of its own), so the revenue fact becomes CONFIRMED. */
-  async onCompleted(bookingId: string) { await this.revenue.onBookingCompleted(bookingId); }
+  async onCompleted(bookingId: string) {
+    await this.revenue.onBookingCompleted(bookingId);
+    await this.safe('referral:completed', () => this.referral?.onBookingCompleted(bookingId) ?? Promise.resolve()); // GRW-P2-B1: first completed visit of a referred person
+  }
 
   private async safe(what: string, fn: () => Promise<unknown>) { try { await fn(); } catch (e) { this.log.warn(`growth fact ${what} not recorded: ${(e as Error).message}`); } }
 }

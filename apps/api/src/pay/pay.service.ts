@@ -1,14 +1,15 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { PayLink, PaymentIntent, Prisma } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { badRequest, conflict, notFound } from '../common/errors';
 import { newId, toMajor } from '../common/ids';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
+import { REWARDS_PORT, type RewardsPort } from '../growth/growth-ports-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { MARKET_FACTS } from '../market/market-public';
 import { PrismaService, Tx } from '../prisma/prisma.service';
-import { assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundFromReview, refundRequest, refundSettle, release, releaseFromReview, releaseOrder } from './ledger';
+import { A, assertValid, LedgerTxInput, Posting, capture, holdForReview, payout as payoutPosting, pspFee, refundCreditExpired, refundFromReview, refundRequest, refundSettle, refundToCredit, release, releaseFromReview, releaseOrder, rewardRestore, rewardTender } from './ledger';
 import { FakePspAdapter, pspAdapter, PspWebhookEvent } from './psp';
 
 const isoWeek = (d: Date) => {
@@ -34,13 +35,17 @@ export function assertPayableCurrency(currency: unknown): asserts currency is st
 export class PayService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort) {}
+
+  /** What the Pay ledger holds for a deposit: the card money still held plus the credit part posted into HELD (GRW-P2-B2). Equals amountMinor - refundedMinor when no credit was used. */
+  private heldMinor(p: { amountMinor: number; refundedMinor: number; rewardPostedMinor?: number }): number { return p.amountMinor - p.refundedMinor + (p.rewardPostedMinor ?? 0); }
 
   onModuleInit() {
     this.outbox.register('kiorly.deposit_paid', (e) => this.notifyKiorlyDeposit(e.payload));
     this.outbox.register('kiorly.payout_recorded', (e) => this.notifyKiorlyPayout(e.payload));
     this.outbox.register('pay.refund_requested', (e) => this.settleRefund(e.payload.refundId));
     this.outbox.register('pay.refund_settled', async () => undefined);
+    this.outbox.register('pay.refund_credit_expired', async (e) => { await this.refundCreditExpired(e.payload); }); // GRW-P2-B2: the unspent rest of an expired refund credit goes back to the ORIGINAL payment method
     this.outbox.register('pay.order_captured', async (e) => { // vertical modules subscribe per purpose (PHARMACY | LAB)
       const fn = this.orderHandlers.get(e.payload.purpose);
       if (!fn) throw new Error(`no order handler for purpose ${e.payload.purpose}`);
@@ -73,7 +78,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   // ───────────── deposits (KXM-PAY-01) ─────────────
 
   /** Idempotent per booking: returns the existing open intent. Caller (booking) gates on kiorex.pay_deposits. */
-  async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string }): Promise<PaymentIntent> {
+  async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; rewardMinor?: number }): Promise<PaymentIntent> {
     assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
     // Two concurrent checkouts of one booking (double click, two tabs) must not create two charges: serialise per booking, then re-read.
     return this.prisma.$transaction(async (tx) => {
@@ -83,8 +88,29 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       const id = newId('pay');
       const adapter = pspAdapter(i.psp ?? 'paymob');
       const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency });
-      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl } });
+      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, rewardMinor: i.rewardMinor ?? 0 } });
     }, { timeout: 20_000 });
+  }
+
+  /**
+   * GRW-P2-B2: the deposit checkout with credit. The credit (a coupon, or credit lots when patient credit is effective) is RESERVED for this booking first (idempotent per booking), the card is
+   * charged for the rest (never less than one minor unit), and the reservation becomes a REDEEM in the transaction that records the capture. If the intent cannot be created the reservation is
+   * released. With the rewards switch OFF (or nothing applicable) this is exactly `createDepositIntent`.
+   */
+  async createDepositIntentWithRewards(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; serviceKind: 'IN_CLINIC' | 'VIDEO' | 'HOME_VISIT'; specialty?: string | null; dependantId?: string | null; couponCode?: string | null; lotId?: string | null }): Promise<{ intent: PaymentIntent; rewardMinor: number; lines: Array<{ code: string; amountMinor: number; labelKey: string }>; couponProblem?: string }> {
+    const open = await this.prisma.paymentIntent.findFirst({ where: { bookingId: i.bookingId, status: { in: ['CREATED', 'CAPTURED'] } } });
+    if (open || !this.rewards) return { intent: open ?? (await this.createDepositIntent(i)), rewardMinor: open?.rewardMinor ?? 0, lines: [] };
+    const r = await this.rewards.reserveForDeposit({ sub: i.sub, bookingId: i.bookingId, amountMinor: i.amountMinor, currency: i.currency, serviceKind: i.serviceKind, specialty: i.specialty, dependantId: i.dependantId, couponCode: i.couponCode, lotId: i.lotId });
+    try {
+      const intent = await this.createDepositIntent({ ...i, amountMinor: i.amountMinor - r.appliedMinor, rewardMinor: r.appliedMinor });
+      if (intent.rewardMinor !== r.appliedMinor) { // a concurrent checkout of the same booking won with another amount: keep ITS intent and release nothing it relies on
+        return { intent, rewardMinor: intent.rewardMinor, lines: r.lines, ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
+      }
+      return { intent, rewardMinor: r.appliedMinor, lines: r.lines, ...(r.couponProblem ? { couponProblem: r.couponProblem } : {}) };
+    } catch (e) {
+      await this.rewards.releaseForBooking(i.bookingId, 'INTENT_NOT_CREATED').catch(() => undefined);
+      throw e;
+    }
   }
 
   /** Vertical modules subscribe to captured payments of their purpose (delivered through the outbox: retried with backoff). */
@@ -163,7 +189,9 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     try {
       if (ev.type === 'payment.captured') return { status: await this.capturePayment(ev) };
       if (ev.type === 'payment.failed') {
+        const failed = await this.prisma.paymentIntent.findMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' }, select: { bookingId: true } });
         await this.prisma.paymentIntent.updateMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' }, data: { status: 'FAILED' } });
+        for (const f of failed) if (f.bookingId && this.rewards) await this.rewards.releaseForBooking(f.bookingId, 'PAYMENT_FAILED'); // GRW-P2-B2: the reserved credit is free again
         return { status: 'FAILED_RECORDED' };
       }
       return { status: await this.settleRefundFromWebhook(ev) };
@@ -192,6 +220,13 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       if (!claimed.count) return;
       if (p.payLinkToken) await tx.payLink.updateMany({ where: { token: p.payLinkToken }, data: { status: 'PAID' } }); // a real PSP capture (not only the sandbox page) closes the link
       await this.postLedger(tx, { key: `capture:${p.id}`, kind: 'CAPTURE', postings: capture(p.clinicId, p.amountMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
+      if (p.rewardMinor > 0 && p.bookingId && this.rewards) { // GRW-P2-B2: the reservation becomes a REDEEM in this transaction; the Pay ledger moves only for the patient's own refund credit (always) and for promotional credit when REWARD_RULES.postToPayLedger is true
+        const red = await this.rewards.redeemOnCapture(tx, { bookingId: p.bookingId, paymentId: p.id });
+        if (red.totalMinor !== p.rewardMinor) await tx.auditLog.create({ data: { actor: 'system', action: 'pay.reward_mismatch', resource: 'PaymentIntent', resourceId: p.id, metadata: { expected: p.rewardMinor, redeemed: red.totalMinor } } });
+        const posted = red.postedMinor;
+        if (posted > 0) await this.postLedger(tx, { key: `reward-tender:${p.id}`, kind: 'REWARD_TENDER', postings: rewardTender(p.clinicId, red.patientRefundMinor, posted - red.patientRefundMinor), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
+        await tx.paymentIntent.update({ where: { id: p.id }, data: { rewardMinor: red.totalMinor, rewardPostedMinor: posted } });
+      }
       if (fee > 0) await this.postLedger(tx, { key: `fee:${p.id}`, kind: 'PSP_FEE', postings: pspFee(fee), paymentId: p.id, clinicId: p.clinicId });
       if (p.purpose !== 'DEPOSIT') {
         // vertical orders (pharmacy/lab): the owning module reacts; Kiorly clinic deposit endpoints are never called
@@ -206,7 +241,8 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   private async notifyKiorlyDeposit(payload: { paymentId: string }) {
     const p = await this.getIntent(payload.paymentId);
-    const body = { amount: toMajor(p.amountMinor), currency: p.currency, paymentRef: p.id, paidAt: (p.capturedAt ?? new Date()).toISOString() };
+    // GRW-P2-B2: the Clinic is told the GROSS deposit (card plus credit) and how it was funded (never a patient identity); without credit the call is byte-identical to before
+    const body = { amount: toMajor(p.amountMinor + p.rewardMinor), currency: p.currency, paymentRef: p.id, paidAt: (p.capturedAt ?? new Date()).toISOString(), ...(p.rewardMinor > 0 ? { tender: { cardMinor: p.amountMinor, patientCreditMinor: p.rewardMinor } } : {}) };
     try {
       if (p.bookingId) await this.kiorly.depositPaid(p.bookingId, body);
       else if (p.payLinkToken) await this.kiorly.depositLinkPaid(p.payLinkToken, body);
@@ -220,7 +256,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   /** Idempotent by key. Over-refund is impossible: remaining is checked under a row lock. */
   /** Pass `outer` to run inside the caller's transaction (e.g. order REJECTED/CANCELLED + refund commit together, so no reader sees the new status with an un-refunded payment). */
-  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string; reviewedBy?: string }, outer?: Tx) {
+  async refund(paymentId: string, o: { reason: string; amountMinor?: number; idempotencyKey: string; reviewedBy?: string; destination?: 'ORIGINAL' | 'CREDIT'; source?: 'PATIENT_CANCEL' | 'PATIENT_REFUND_REQUEST' }, outer?: Tx) {
     const existing = await (outer ?? this.prisma).refund.findUnique({ where: { idempotencyKey: o.idempotencyKey } });
     if (existing) return existing;
     const run = <T>(fn: (tx: Tx) => Promise<T>): Promise<T> => (outer ? fn(outer) : this.prisma.$transaction(fn));
@@ -243,6 +279,16 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
         await tx.paymentIntent.update({ where: { id: paymentId }, data: { reviewState: 'REFUNDED_TO_PATIENT', reviewedAt: new Date(), reviewedBy: o.reviewedBy ?? 'system' } });
         await this.outbox.enqueue(tx, { type: 'pay.review_resolved', aggregateType: 'PaymentIntent', aggregateId: paymentId, payload: { paymentId, bookingId: p.bookingId, outcome: 'REFUNDED' }, dedupeKey: `pay.review_resolved:${paymentId}` });
       }
+      if (this.rewards && p.bookingId && p.sub && (p.rewardMinor > 0 || o.source)) {
+        // GRW-P2-B2: a refund the PATIENT started records where it goes (default ORIGINAL; CREDIT only as an option while all three switches say so) and gives back the credit that paid part of the deposit
+        const destination = o.destination === 'CREDIT' && o.source && (await this.rewards.refundCreditAvailable()) ? 'CREDIT' : 'ORIGINAL';
+        const res = await this.rewards.onRefundCreated(tx, { bookingId: p.bookingId, sub: p.sub, paymentId, refundId: refund.id, cardRefundMinor: amount, paymentCardMinor: p.amountMinor, paymentRewardMinor: p.rewardMinor, paymentRewardPostedMinor: p.rewardPostedMinor, alreadyRefundedMinor: p.refundedMinor, destination, source: o.source ?? null, currency: p.currency });
+        if (res.postedRestoredMinor > 0) {
+          const patientPart = Math.min(res.patientRefundRestoredMinor, res.postedRestoredMinor);
+          await this.postLedger(tx, { key: `reward-restore:${refund.id}`, kind: 'REWARD_RESTORE', postings: rewardRestore(heldForReview ? A.reviewHold(p.clinicId) : A.held(p.clinicId), patientPart, res.postedRestoredMinor - patientPart), bookingId: p.bookingId, paymentId, clinicId: p.clinicId });
+          await tx.paymentIntent.update({ where: { id: paymentId }, data: { rewardPostedMinor: p.rewardPostedMinor - res.postedRestoredMinor } });
+        }
+      }
       await this.outbox.enqueue(tx, { type: 'pay.refund_requested', aggregateType: 'Refund', aggregateId: refund.id, payload: { refundId: refund.id }, dedupeKey: `pay.refund_requested:${refund.id}` });
       return refund;
     });
@@ -250,9 +296,43 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
 
   async settleRefund(refundId: string) {
     const r = await this.prisma.refund.findUnique({ where: { id: refundId }, include: { payment: true } });
-    if (!r || r.status === 'SETTLED') return;
+    if (!r || r.status === 'SETTLED' || r.status === 'CREDITED') return;
+    // GRW-P2-B2: the patient chose "keep as credit" (an option, never the default): the money stays at Kiorex as a REFUND_CREDIT lot and no PSP call is made. A PSP refund that FAILS never becomes credit
+    // (the refund stays REQUESTED for ops and the reconciliation flags it); and when credit can no longer be issued (switch turned off in between) the refund goes to the original method as usual.
+    const choice = this.rewards ? await this.prisma.refundDestinationChoice.findUnique({ where: { refundId } }) : null;
+    if (choice?.choice === 'CREDIT' && this.rewards) {
+      const lot = await this.rewards.issueRefundCredit({ sub: choice.sub, bookingId: r.payment.bookingId, refundId, amountMinor: r.amountMinor, currency: r.payment.currency });
+      if (lot) { await this.finalizeRefundAsCredit(r, lot.lotId); return; }
+      await this.prisma.auditLog.create({ data: { actor: 'system', action: 'pay.refund_credit_unavailable', resource: 'Refund', resourceId: refundId, metadata: { fallback: 'ORIGINAL' } } });
+    }
     const out = await pspAdapter(r.payment.psp).refund({ pspRef: r.payment.pspRef ?? '', refundId: r.id, amountMinor: r.amountMinor });
     await this.finalizeRefund(r, out.pspRefundRef);
+  }
+
+  /** The refund became a credit lot: REFUND_PAYABLE -> PATIENT_REFUND_CREDIT (the money never left Kiorex), no PSP movement. Idempotent on the refund id. */
+  private async finalizeRefundAsCredit(r: { id: string; paymentId: string; amountMinor: number; payment: { bookingId: string | null; clinicId: string } }, lotId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await this.postLedger(tx, { key: `refund-credit:${r.id}`, kind: 'REFUND_TO_CREDIT', postings: refundToCredit(r.amountMinor), bookingId: r.payment.bookingId, paymentId: r.paymentId, clinicId: r.payment.clinicId });
+      await tx.refund.update({ where: { id: r.id }, data: { status: 'CREDITED', settledAt: new Date() } });
+      await this.outbox.enqueue(tx, { type: 'pay.refund_settled', aggregateType: 'Refund', aggregateId: r.id, payload: { refundId: r.id, bookingId: r.payment.bookingId, amountMinor: r.amountMinor, destination: 'CREDIT', lotId }, dedupeKey: `pay.refund_settled:${r.id}` });
+    });
+  }
+
+  /** An expired REFUND_CREDIT lot: its unspent rest is the patient's own money and returns to the ORIGINAL payment method (a system reversal, never a patient-triggered cash-out). Idempotent per lot and amount. */
+  async refundCreditExpired(payload: { lotId: string; amountMinor: number }) {
+    const issue = await this.prisma.rewardLedgerEntry.findFirst({ where: { lotId: payload.lotId, type: 'ISSUE', refundId: { not: null } } });
+    const source = issue?.refundId ? await this.prisma.refund.findUnique({ where: { id: issue.refundId }, include: { payment: true } }) : null;
+    if (!source) { await this.prisma.auditLog.create({ data: { actor: 'system', action: 'pay.refund_credit_expiry_no_source', resource: 'RewardLot', resourceId: payload.lotId, metadata: { amountMinor: payload.amountMinor } } }); return; }
+    const key = `refund-credit-expiry:${payload.lotId}:${payload.amountMinor}`;
+    const existing = await this.prisma.refund.findUnique({ where: { idempotencyKey: key } });
+    if (existing) { await this.settleRefund(existing.id); return; }
+    const rf = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.refund.create({ data: { id: newId('rf'), paymentId: source.paymentId, amountMinor: payload.amountMinor, reason: 'REFUND_CREDIT_EXPIRED', idempotencyKey: key } });
+      await this.postLedger(tx, { key: `refund-credit-expiry:${created.id}`, kind: 'REFUND_CREDIT_EXPIRED', postings: refundCreditExpired(payload.amountMinor), bookingId: source.payment.bookingId, paymentId: source.paymentId, clinicId: source.payment.clinicId });
+      await this.outbox.enqueue(tx, { type: 'pay.refund_requested', aggregateType: 'Refund', aggregateId: created.id, payload: { refundId: created.id }, dedupeKey: `pay.refund_requested:${created.id}` });
+      return created;
+    });
+    return rf;
   }
 
   /** Idempotent: ledger posting is keyed on the refund id, so the sync path and a later `refund.settled` webhook cannot double-post. */
@@ -277,14 +357,14 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Booking cancelled/expired: refund a captured deposit; cancel an uncaptured intent. */
-  async refundForBooking(bookingId: string, reason: string) {
+  async refundForBooking(bookingId: string, reason: string, opts: { destination?: 'ORIGINAL' | 'CREDIT'; source?: 'PATIENT_CANCEL' | 'PATIENT_REFUND_REQUEST' } = {}) {
     const p = await this.intentForBooking(bookingId);
     if (!p) return null;
-    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; }
+    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); await this.rewards?.releaseForBooking(bookingId, 'BOOKING_ENDED'); return null; }
     if (p.status !== 'CAPTURED' && p.status !== 'PARTIALLY_REFUNDED') return null;
     if (p.releasedAt) return null; // already released to the clinic (completed / forfeited)
     if (p.reviewState === 'HELD_FOR_REVIEW') return null; // KXMPAY07: only an ops decision moves a held deposit
-    return this.refund(p.id, { reason, idempotencyKey: `refund:${bookingId}:${reason}` });
+    return this.refund(p.id, { reason, idempotencyKey: `refund:${bookingId}:${reason}`, ...(opts.source ? { destination: opts.destination ?? 'ORIGINAL', source: opts.source } : {}) });
   }
 
   // ───────────── release / forfeit ─────────────
@@ -293,7 +373,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const p = await this.intentForBooking(bookingId);
     if (!p || p.status !== 'CAPTURED' || p.releasedAt) return null;
     if (p.reviewState === 'HELD_FOR_REVIEW') return null; // never auto-forfeited / auto-released while under review (KXMPAY07)
-    const n = p.amountMinor - p.refundedMinor;
+    const n = this.heldMinor(p);
     await this.prisma.$transaction(async (tx) => {
       const c = await tx.paymentIntent.updateMany({ where: { id: p.id, releasedAt: null }, data: { releasedAt: new Date(), releaseKind: kind } });
       if (c.count) await this.postLedger(tx, { key: `release:${p.id}`, kind: `RELEASE_${kind}`, postings: release(p.clinicId, n), bookingId, paymentId: p.id, clinicId: p.clinicId });
@@ -310,9 +390,9 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   async holdForReview(bookingId: string, reason: string) {
     const p = await this.intentForBooking(bookingId);
     if (!p) return null;
-    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); return null; } // never paid: nothing to hold
+    if (p.status === 'CREATED') { await this.prisma.paymentIntent.update({ where: { id: p.id }, data: { status: 'FAILED' } }); await this.rewards?.releaseForBooking(bookingId, 'BOOKING_ENDED'); return null; } // never paid: nothing to hold
     if (!['CAPTURED', 'PARTIALLY_REFUNDED'].includes(p.status) || p.releasedAt) return null;
-    const n = p.amountMinor - p.refundedMinor;
+    const n = this.heldMinor(p);
     if (n <= 0) return null;
     return this.prisma.$transaction(async (tx) => {
       const claimed = await tx.paymentIntent.updateMany({ where: { id: p.id, reviewState: null, releasedAt: null }, data: { reviewState: 'HELD_FOR_REVIEW', heldForReviewAt: new Date(), reviewReason: reason } });
@@ -331,7 +411,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       const p = rows[0];
       if (!p) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
       if (p.reviewState !== 'HELD_FOR_REVIEW') throw conflict('NOT_HELD_FOR_REVIEW', `Payment review state is ${p.reviewState ?? 'none'}`);
-      const n = p.amountMinor - p.refundedMinor;
+      const n = this.heldMinor(p);
       await this.postLedger(tx, { key: `review-release:${p.id}`, kind: 'REVIEW_RELEASE', postings: releaseFromReview(p.clinicId, n), bookingId: p.bookingId, paymentId: p.id, clinicId: p.clinicId });
       await tx.paymentIntent.update({ where: { id: p.id }, data: { reviewState: 'RELEASED_TO_PROVIDER', reviewedBy: actor, reviewedAt: new Date(), reviewReason: `${p.reviewReason ?? ''} | ${reason}`.slice(0, 500), releasedAt: new Date(), releaseKind: 'REVIEW_RELEASED' } });
       await tx.auditLog.create({ data: { actor, action: 'pay.review_release', resource: 'PaymentIntent', resourceId: p.id, metadata: { reason, amountMinor: n } } });
@@ -357,7 +437,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const books = await this.prisma.bookingIntent.findMany({ where: { id: { in: rows.map((r) => r.bookingId ?? '-') } }, select: { id: true, providerId: true, visitDistrict: true, abortedAt: true, status: true, homeState: true } });
     return rows.map((p) => {
       const b = books.find((x) => x.id === p.bookingId);
-      return { paymentId: p.id, bookingId: p.bookingId, clinicId: p.clinicId, amountMinor: p.amountMinor - p.refundedMinor, currency: p.currency, reason: p.reviewReason, heldForReviewAt: p.heldForReviewAt, ageHours: p.heldForReviewAt ? Math.round(((Date.now() - p.heldForReviewAt.getTime()) / 3600_000) * 10) / 10 : null, providerId: b?.providerId ?? null, district: b?.visitDistrict ?? null, abortedAt: b?.abortedAt ?? null };
+      return { paymentId: p.id, bookingId: p.bookingId, clinicId: p.clinicId, amountMinor: this.heldMinor(p), currency: p.currency, reason: p.reviewReason, heldForReviewAt: p.heldForReviewAt, ageHours: p.heldForReviewAt ? Math.round(((Date.now() - p.heldForReviewAt.getTime()) / 3600_000) * 10) / 10 : null, providerId: b?.providerId ?? null, district: b?.visitDistrict ?? null, abortedAt: b?.abortedAt ?? null };
     });
   }
 
@@ -371,7 +451,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     for (const p of due) byClinic.set(p.clinicId, [...(byClinic.get(p.clinicId) ?? []), p]);
     const out: { payoutRef: string; clinicId: string; amountMinor: number }[] = [];
     for (const [clinicId, items] of byClinic) {
-      const amount = items.reduce((s, p) => s + p.amountMinor - p.refundedMinor, 0);
+      const amount = items.reduce((s, p) => s + this.heldMinor(p), 0);
       if (amount <= 0) continue;
       const seq = await this.prisma.payout.count({ where: { clinicId, periodKey: { startsWith: period } } });
       const periodKey = seq === 0 ? period : `${period}#${seq + 1}`;
