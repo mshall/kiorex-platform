@@ -18,6 +18,7 @@ import { setAnalyticsSink } from "@/lib/analytics";
 import { ApiError } from "@/api/errors";
 import { api } from "@/api/client";
 import { usePushRouting } from "@/hooks/usePushRouting";
+import { useDeepLinkRouting } from "@/hooks/useDeepLinkRouting";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -33,6 +34,7 @@ const queryClient = new QueryClient({
 
 function Shell() {
   usePushRouting();
+  useDeepLinkRouting();
   const { t, i18n } = useTranslation();
   const { colors, scheme } = useTheme();
   const common = { headerStyle: { backgroundColor: colors.surface }, headerShadowVisible: false, animation: "slide_from_right" as const, headerLargeTitleShadowVisible: false, headerTintColor: colors.ink, headerTitleStyle: { fontFamily: fontFamily(i18n.language, "semibold"), color: colors.text }, contentStyle: { backgroundColor: colors.ground }, headerBackButtonDisplayMode: "minimal" as const };
@@ -44,6 +46,8 @@ function Shell() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="auth/logout" options={{ headerShown: false }} />
+        <Stack.Screen name="r/[code]" options={{ headerShown: false }} />
+        <Stack.Screen name="claim" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="checkout/[id]" options={{ title: t("checkout.title"), gestureEnabled: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="visit-status/[token]" options={{ title: t("hv.familyScreenTitle"), headerShown: false }} />

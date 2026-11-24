@@ -1016,5 +1016,17 @@
       "ENDED": "Ended",
       "REJECTED": "Declined"
     }
+  },
+  "deepLink": {
+    "title": "Open this invitation",
+    "consent": "May we remember this invitation code on your device so your booking can be credited to where you heard about Kiorex? We do not fingerprint your device or track your location. You can change your mind later.",
+    "allow": "Allow",
+    "decline": "Not now",
+    "draft": "Draft wording, pending legal approval.",
+    "invalidTitle": "This link is not valid",
+    "claimTitle": "Enter your invitation code",
+    "claimBody": "If you came from a Kiorex link on the web, enter the code shown there once. It is only used to credit your booking to the source you came from.",
+    "claimLabel": "Invitation code",
+    "claimInvalid": "This code is not valid"
   }
 }
