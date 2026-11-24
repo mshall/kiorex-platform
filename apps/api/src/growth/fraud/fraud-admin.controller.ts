@@ -10,17 +10,17 @@ import { FraudReviewQueueService } from './review-queue.service';
 import { FRAUD_RULE_IDS } from './signals';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-class AssignBody { @IsString() @MaxLength(80) assignTo!: string }
-class DecisionBody {
+class FraudAssignBody { @IsString() @MaxLength(80) assignTo!: string }
+class FraudDecisionBody {
   @IsIn(['CONFIRM', 'DISMISS']) decision!: 'CONFIRM' | 'DISMISS';
   @IsOptional() @IsString() @MaxLength(300) note?: string;
   @IsOptional() @IsBoolean() reverseRewards?: boolean;
   @IsOptional() @IsInt() @Min(1) @Max(730) suspendDays?: number;
 }
-class AppealBody { @IsString() @MaxLength(300) note!: string }
-class AppealDecisionBody { @IsIn(['CONFIRM', 'DISMISS']) decision!: 'CONFIRM' | 'DISMISS'; @IsString() @MaxLength(300) note!: string }
-class BulkBody { @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100) @IsString({ each: true }) ids!: string[]; @IsString() @MaxLength(300) reason!: string }
-class IdentityBody { @IsString() @MaxLength(200) reason!: string }
+class FraudAppealBody { @IsString() @MaxLength(300) note!: string }
+class FraudAppealDecisionBody { @IsIn(['CONFIRM', 'DISMISS']) decision!: 'CONFIRM' | 'DISMISS'; @IsString() @MaxLength(300) note!: string }
+class FraudBulkBody { @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100) @IsString({ each: true }) ids!: string[]; @IsString() @MaxLength(300) reason!: string }
+class FraudIdentityBody { @IsString() @MaxLength(200) reason!: string }
 
 /**
  * Fraud v2 ops API (GRW-P3-D). Reading needs any growth read role; a decision needs the reviewer role; money-moving confirmations need a second person (enforced in the service); an identity lookup needs
@@ -42,17 +42,17 @@ export class FraudAdminController {
   one(@Param('id') id: string) { return this.cases.evidence(id); }
 
   @Roles(...rolesFor('reviewFraud')) @Post('cases/bulk-dismiss') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D bulk dismiss LOW and MEDIUM cases with a reason' }) @ApiOkResponse(OBJ)
-  async bulk(@CurrentUser() u: AuthUser, @Body() b: BulkBody) { return this.queue.bulkDismiss(b.ids, u.sub, b.reason, await this.cfg.get()); }
+  async bulk(@CurrentUser() u: AuthUser, @Body() b: FraudBulkBody) { return this.queue.bulkDismiss(b.ids, u.sub, b.reason, await this.cfg.get()); }
   @Roles(...rolesFor('reviewFraud')) @Post('cases/:id/assign') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D assign a case' }) @ApiOkResponse(OBJ)
-  assign(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: AssignBody) { return this.cases.assign(id, u.sub, b.assignTo); }
+  assign(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FraudAssignBody) { return this.cases.assign(id, u.sub, b.assignTo); }
   @Roles(...rolesFor('reviewFraud')) @Post('cases/:id/decision') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D CONFIRM (reversing reward value needs a second person) or DISMISS' }) @ApiOkResponse(OBJ)
-  async decide(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: DecisionBody) { return this.cases.decide(id, u.sub, b, await this.cfg.get()); }
+  async decide(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FraudDecisionBody) { return this.cases.decide(id, u.sub, b, await this.cfg.get()); }
   @Roles(...rolesFor('reviewFraud')) @Post('cases/:id/appeal') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D file an appeal for a confirmed case (support, inside the appeal window)' }) @ApiOkResponse(OBJ)
-  async appeal(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: AppealBody) { return this.cases.appeal(id, u.sub, b.note, await this.cfg.get()); }
+  async appeal(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FraudAppealBody) { return this.cases.appeal(id, u.sub, b.note, await this.cfg.get()); }
   @Roles(...rolesFor('reviewFraud')) @Post('cases/:id/appeal-decision') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D decide an appeal (a different reviewer)' }) @ApiOkResponse(OBJ)
-  appealDecision(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: AppealDecisionBody) { return this.cases.redecide(id, u.sub, b); }
+  appealDecision(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FraudAppealDecisionBody) { return this.cases.redecide(id, u.sub, b); }
   @Roles('dpo') @Post('cases/:id/identity') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-D account references of a case (DPO role, audited)' }) @ApiOkResponse(OBJ)
-  identity(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: IdentityBody) { return this.cases.identity(id, u.sub, b.reason); }
+  identity(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: FraudIdentityBody) { return this.cases.identity(id, u.sub, b.reason); }
 
   @Get('rules') @ApiOperation({ summary: 'GRW-P3-D rules, weights, enforce switches and thresholds (read-only; change through the FRAUD_RULES configuration)' }) @ApiOkResponse(OBJ)
   async rules() { const c = await this.cfg.get(); return { ruleIds: FRAUD_RULE_IDS, config: c, editable: false, source: c.version === null ? 'PROPOSED_DEFAULT' : 'ACTIVE' }; }

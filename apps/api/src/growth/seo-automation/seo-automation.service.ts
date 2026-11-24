@@ -32,7 +32,7 @@ export interface RunResult { market: string; measured: boolean; pages: number; r
 export class SeoAutomationService implements SeoQualityPort {
   private readonly log = new Logger('seo-automation');
   private cfgCache = new Map<string, { at: number; cfg: SeoAutomationConfig; version: number | null }>();
-  private qCache = new Map<string, { at: number; auto: boolean; noindex: Set<string>; omit: Map<string, PageLocale[]> }>();
+  private qCache = new Map<string, { at: number; auto: boolean; noindex: Set<string>; byLocale: Record<PageLocale, Set<string>>; omit: Map<string, PageLocale[]> }>();
   private lCache = new Map<string, { at: number; edges: Map<string, { toKey: string; anchorKind: string; rank: number }[]> }>();
   private labelCache = new Map<string, { at: number; labels: Map<string, { en: string; ar: string }> }>();
 
@@ -69,11 +69,13 @@ export class SeoAutomationService implements SeoQualityPort {
         if (om.length) omit.set(id, om);
       }
     }
-    const v = { at: Date.now(), auto: cfg.autoNoindex, noindex, omit }; this.qCache.set(market, v); return v;
+    const byLocale: Record<PageLocale, Set<string>> = { ar: new Set(), en: new Set() };
+    for (const id of noindex) byLocale[id.endsWith('|ar') ? 'ar' : 'en'].add(id.slice(0, -3));
+    const v = { at: Date.now(), auto: cfg.autoNoindex, noindex, byLocale, omit }; this.qCache.set(market, v); return v;
   }
   async blocked(market: string, pageKey: string, locale: PageLocale): Promise<boolean> { return (await this.quality(market)).noindex.has(pageId(pageKey, locale)); }
   async omittedAlternates(market: string, pageKey: string, locale: PageLocale): Promise<PageLocale[]> { return (await this.quality(market)).omit.get(pageId(pageKey, locale)) ?? []; }
-  async blockedSet(market: string, locale: PageLocale): Promise<ReadonlySet<string>> { return new Set([...(await this.quality(market)).noindex].filter((i) => i.endsWith(`|${locale}`)).map((i) => i.slice(0, -3))); }
+  async blockedSet(market: string, locale: PageLocale): Promise<ReadonlySet<string>> { return (await this.quality(market)).byLocale[locale]; }
 
   /** The newest report of every page and locale (a content change writes a new row; an unchanged page is updated in place). */
   async latestReports(market: string) {

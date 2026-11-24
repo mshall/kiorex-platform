@@ -139,3 +139,9 @@ Web (`npm test -w apps/web`): `templates.test.tsx` (30 AR and EN structure snaps
 
 ### Manual checklist (NEEDS_HUMAN)
 Search Console and Bing property verification (set the four variables above), Rich Results Test on one page per type (Physician, MedicalClinic, Pharmacy, BreadcrumbList, ItemList), sitemap submission after launch, CMO review of every `meta`, `faq.*` and template string in AR and EN, decision whether paginated pages should be indexable, image resizer for `SITE_IMAGE_CDN`, partner location fields (pharmacy and lab pages only know the name today).
+
+## Package GRW-P3-F: SEO automation (As-built 25 Nov 2026)
+
+Quality gate, internal link graph, vitals and indexation snapshots. Full description in `Docs/GROWTH.md` ("SEO automation"). Public-site side: `page-snapshot.service.ts` (renders a page for analysis without touching the cache), `seo-site.adapter.ts` (the `SEO_SITE` port), `render.controller.ts` and `sitemap.service.ts` (read the stored decisions through `SEO_QUALITY`; with `autoNoindex` off nothing changes), `site-data.types.ts` (`computedLinks`). The public templates render the computed links as a `nav` with `data-computed-links` (`apps/web/src/public/components/parts.tsx`), after the page's own link blocks.
+
+Run it: `POST /api/v1/admin/growth/seo-automation/run` (super admin), or the nightly job. Lab vitals: `node apps/web/scripts/lighthouse-audit.mjs --base <site>` then `POST .../vitals/ingest`. Opt-in Lighthouse test against the real stack: `KX_LIGHTHOUSE=1 npx jest --selectProjects integration --runInBand --testPathPatterns growth-seo-lighthouse` in `apps/api` (needs Chrome).

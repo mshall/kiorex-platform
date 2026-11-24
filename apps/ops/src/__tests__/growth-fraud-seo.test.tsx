@@ -131,3 +131,27 @@ describe("SEO automation tabs (GRW-P3-F)", () => {
     await userEvent.click(await screen.findByRole("tab", { name: "الجودة" })); expect(await screen.findByTestId("seo-auto-mode")).toHaveTextContent(/متوقف/);
   });
 });
+
+describe("accessibility of the fraud and SEO automation pages (axe, WCAG 2 A and AA structural rules)", () => {
+  const run = async (container: HTMLElement) => (await import("axe-core")).default.run(container, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] }, rules: { "color-contrast": { enabled: false }, region: { enabled: false } } });
+  const labText = { budgets: { lcpMs: 2500, inpMs: 200, cls: 0.1, tbtMs: 200, perfScore: 90 }, trend: [], latest: [{ templateKind: "doctor", metric: "lcp_ms", source: "LAB", day: "2027-01-08", p75: 1800, sampleSize: 1 }], breaches: [], lab: { measured: true }, field: { measured: false, note: "Not measured." }, readiness: { productionIndexing: [{ key: "vitals_measured", ok: true }, { key: "vitals_within_budget", ok: true }] } };
+  it("fraud: the queue, a case, the rules and the shadow report; SEO: quality, links and vitals, in English and Arabic", async () => {
+    for (const lang of ["en", "ar"] as const) {
+      base();
+      server.use(http.get(`${A}/rules`, () => HttpResponse.json(rules())), http.get(`${A}/shadow-report`, () => HttpResponse.json({ days: 90, enforce: false, configVersion: null, wouldHaveBeenHeld: 0, rules: [{ ruleId: "r_farm", flagged: 3, labelled: 2, confirmed: 1, dismissed: 1, precision: null, pending: 1, weight: 70, enforce: false }] })), http.get(`${A}/fairness`, () => HttpResponse.json({ weekStart: "2027-01-01", language: [{ group: "ar", total: "<10", held: "<10", rate: null, flagged: false }], city: [], note: "" })));
+      const f = renderOps(<GrowthFraudPage />, { route: "/growth/fraud", lang });
+      await screen.findByTestId("case-open-cmcase0000000001"); expect((await run(f.container)).violations.map((v) => `${v.id}: ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(" | ")}`), `${lang} cases`).toEqual([]);
+      await userEvent.click(screen.getByTestId("case-open-cmcase0000000001")); await screen.findByTestId("fraud-case-detail"); expect((await run(f.container)).violations.map((v) => v.id), `${lang} case`).toEqual([]);
+      await userEvent.click(screen.getByTestId("fraud-case-back")); await userEvent.click(screen.getByRole("tab", { name: lang === "en" ? "Rules" : "القواعد" })); await screen.findByTestId("fraud-rules-tab"); expect((await run(f.container)).violations.map((v) => v.id), `${lang} rules`).toEqual([]);
+      await userEvent.click(screen.getByRole("tab", { name: lang === "en" ? "Shadow report" : "تقرير الوضع التجريبي" })); await screen.findByTestId("fraud-shadow-tab"); await screen.findByTestId("prec-r_farm"); expect((await run(f.container)).violations.map((v) => v.id), `${lang} shadow`).toEqual([]);
+      f.unmount();
+      server.use(http.get(`${G}/access`, () => caps()), http.get(`${S}/overview`, () => HttpResponse.json(overview())), http.get(`${S}/links`, () => HttpResponse.json({ totals: overview().links })), http.get(`${S}/vitals`, () => HttpResponse.json(labText)), http.get(`${S}/indexation`, () => HttpResponse.json({ rows: [{ templateKind: "doctor", day: "2027-01-08", submitted: 16, indexed: null, excluded: 2, reasons: { "thin-content": 2 }, indexedKnown: false }], note: "n" })));
+      const s = renderOps(<GrowthSeoPage />, { route: "/growth/seo", lang });
+      for (const [tab, id] of [[lang === "en" ? "Quality" : "الجودة", "seo-quality-tab"], [lang === "en" ? "Links" : "الروابط", "seo-links-tab"], [lang === "en" ? "Vitals" : "الأداء", "seo-vitals-tab"]] as const) {
+        await userEvent.click(await screen.findByRole("tab", { name: tab })); await screen.findByTestId(id);
+        expect((await run(s.container)).violations.map((v) => `${v.id}: ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(" | ")}`), `${lang} ${id}`).toEqual([]);
+      }
+      s.unmount();
+    }
+  });
+});
