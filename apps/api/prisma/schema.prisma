@@ -1353,6 +1353,8 @@ model GrowthAcquisitionSource {
   linkRevokedAt     DateTime?
   registryCheckedAt DateTime? // last time the Clinic confirmed the state through the signed lookup or the reconciliation feed
   createdAt         DateTime  @default(now())
+  /// GRW-P4-B2 (migration 20270107094000): which partner product owns the code. CLINIC | PHARMACY | LAB | NURSE.
+  product           String    @default("CLINIC")
 
   touchpoints GrowthTouchpoint[]
 
@@ -2329,4 +2331,391 @@ model RewardRecoverableLoss {
 
   @@unique([lotId, bookingId])
   @@index([sub, createdAt])
+}
+
+
+// ── Wave 7 (migrations 20270107090000 .. 20270107095000, owner: lane A1). Additive. See _docs/growth/GROWTH_PHASE2_4_WORK_PACKAGES.md section 7.
+
+/// GRW-P3-A: an experiment. status DRAFT PENDING_APPROVAL RUNNING STOPPED CONCLUDED ARCHIVED. The design is frozen once started (trigger). Never on a safety, consent, price or clinical surface (CHECK and surfaces.ts).
+model GrowthExperiment {
+  id            String    @id @default(cuid())
+  market        String    @default("EG")
+  key           String
+  name          String
+  surface       String
+  hypothesis    String
+  status        String    @default("DRAFT")
+  variants      Json // [{key, weightBp}]
+  allocationBp  Int       @default(10000)
+  eligibility   Json      @default("{}")
+  primaryMetric String
+  guardrails    Json      @default("[]")
+  mode          String    @default("FIXED") // FIXED SEQUENTIAL
+  alphaBp       Int       @default(500)
+  minSample     Int       @default(1000)
+  plannedDays   Int       @default(14)
+  salt          String
+  startedAt     DateTime?
+  stoppedAt     DateTime?
+  stopReason    String?
+  createdBy     String
+  approvedBy    String?
+  flagKey       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  exposures GrowthExperimentExposure[]
+  dailies   GrowthExperimentDaily[]
+  results   GrowthExperimentResult[]
+  events    GrowthExperimentEvent[]
+
+  @@unique([market, key])
+  @@index([market, surface, status])
+  @@index([status])
+}
+
+/// One row per (experiment, unit). unitHash = HMAC(experiment salt, unit key): not linkable to a person. subRef = sha256(sub) only for authenticated units, deleted by growth_erase_experiments.
+model GrowthExperimentExposure {
+  id           String   @id @default(cuid())
+  experimentId String
+  market       String   @default("EG")
+  day          DateTime @db.Date
+  variant      String
+  unitKind     String // VISITOR SUB
+  unitHash     String
+  subRef       String?
+  firstAt      DateTime @default(now())
+
+  experiment GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Restrict)
+
+  @@unique([experimentId, unitHash])
+  @@index([experimentId, day, variant])
+  @@index([subRef])
+  @@index([firstAt])
+}
+
+model GrowthExperimentDaily {
+  experimentId    String
+  day             DateTime @db.Date
+  variant         String
+  exposures       Int      @default(0)
+  conversions     Int      @default(0)
+  guardrailCounts Json     @default("{}")
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  experiment GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Restrict)
+
+  @@id([experimentId, day, variant])
+}
+
+/// Append-only result snapshot. verdict COLLECTING SRM_DETECTED GUARDRAIL_BREACH NO_WINNER WINNER INCONCLUSIVE.
+model GrowthExperimentResult {
+  id           String   @id @default(cuid())
+  experimentId String
+  computedAt   DateTime @default(now())
+  dayNumber    Int      @default(0)
+  verdict      String
+  srmP         Float?
+  payload      Json     @default("{}")
+
+  experiment GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Restrict)
+
+  @@index([experimentId, computedAt])
+}
+
+/// Append-only history: config diffs, state changes, stop reasons.
+model GrowthExperimentEvent {
+  id           String   @id @default(cuid())
+  experimentId String
+  at           DateTime @default(now())
+  kind         String
+  actor        String
+  reason       String?
+  diff         Json     @default("{}")
+
+  experiment GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Restrict)
+
+  @@index([experimentId, at])
+}
+
+/// GRW-P3-B: reporting-only attribution model output (AD-9). Never read by the decision or any money path.
+model GrowthAttributionModelResult {
+  id              String   @id @default(cuid())
+  market          String   @default("EG")
+  day             DateTime @db.Date
+  model           String
+  sourceKind      String
+  sourceRef       String   @default("")
+  campaignId      String   @default("")
+  conversionsFrac Decimal  @default(0) @db.Decimal(18, 6)
+  revenueMinor    BigInt   @default(0)
+  paths           Int      @default(0)
+  windowDays      Int      @default(30)
+  updatedAt       DateTime @default(now())
+
+  @@unique([market, day, model, sourceKind, sourceRef, campaignId, windowDays], map: "GrowthAttributionModelResult_key")
+  @@index([day, model])
+}
+
+/// Hashed ordered source KINDS only (no ids). k >= 10 (CHECK).
+model GrowthPathSnapshot {
+  id          String   @id @default(cuid())
+  market      String   @default("EG")
+  day         DateTime @db.Date
+  pathHash    String
+  pathKinds   String[] @default([])
+  length      Int
+  conversions Int
+  k           Int      @default(10)
+  windowDays  Int      @default(30)
+
+  @@unique([market, day, pathHash, windowDays], map: "GrowthPathSnapshot_key")
+}
+
+/// GRW-P3-C (code in W8): aggregate cohort cell. A cell with fewer than k people is stored suppressed with every measure zero (CHECK).
+model GrowthCohortMonthly {
+  id                String   @id @default(cuid())
+  market            String   @default("EG")
+  cohortMonth       DateTime @db.Date
+  cohortBasis       String   @default("FIRST_COMPLETED") // FIRST_COMPLETED REGISTRATION
+  sourceKind        String   @default("")
+  campaignId        String   @default("")
+  platform          String   @default("")
+  monthIndex        Int
+  patients          Int      @default(0)
+  retainedPatients  Int      @default(0)
+  completedBookings Int      @default(0)
+  revenueMinor      BigInt   @default(0)
+  rewardCostMinor   BigInt   @default(0)
+  k                 Int      @default(10)
+  suppressed        Boolean  @default(false)
+  updatedAt         DateTime @default(now())
+
+  @@unique([market, cohortMonth, cohortBasis, sourceKind, campaignId, platform, monthIndex], map: "GrowthCohortMonthly_key")
+  @@index([market, cohortMonth])
+}
+
+/// Aggregate LTV estimate with an interval. Always labelled ESTIMATE; n >= 10; never per person.
+model GrowthLtvEstimate {
+  id            String   @id @default(cuid())
+  market        String   @default("EG")
+  cohortKey     String
+  horizonMonths Int
+  estimateMinor BigInt
+  lowMinor      BigInt
+  highMinor     BigInt
+  modelVersion  String
+  computedAt    DateTime @default(now())
+  n             Int
+  label         String   @default("ESTIMATE")
+
+  @@unique([market, cohortKey, horizonMonths, modelVersion], map: "GrowthLtvEstimate_key")
+}
+
+/// GRW-P3-D: fraud case (SHADOW first). subjectHash is a keyed hash. A case never changes an attribution decision or a reward by itself.
+model FraudCase {
+  id           String    @id @default(cuid())
+  market       String    @default("EG")
+  subjectHash  String
+  kind         String // REFERRAL REWARD TOUCH WIDGET PROVIDER
+  score        Int       @default(0)
+  band         String    @default("LOW") // LOW MEDIUM HIGH
+  status       String    @default("OPEN") // OPEN IN_REVIEW CONFIRMED DISMISSED APPEALED CLOSED
+  mode         String    @default("SHADOW") // SHADOW ENFORCE
+  slaDueAt     DateTime?
+  assignedTo   String?
+  decision     String?
+  decisionNote String?
+  decidedBy    String?
+  createdAt    DateTime  @default(now())
+  decidedAt    DateTime?
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  signals FraudCaseSignal[]
+  log     FraudDecisionLog[]
+
+  @@index([status, createdAt])
+  @@index([subjectHash])
+}
+
+model FraudCaseSignal {
+  id          String   @id @default(cuid())
+  caseId      String
+  ruleId      String
+  weight      Int
+  evidenceRef String?
+  at          DateTime @default(now())
+
+  case FraudCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+
+  @@unique([caseId, ruleId, evidenceRef], map: "FraudCaseSignal_case_rule_evidence_key")
+  @@index([caseId, at])
+}
+
+model FraudDecisionLog {
+  id         String   @id @default(cuid())
+  caseId     String
+  action     String
+  fromStatus String?
+  toStatus   String
+  actor      String
+  note       String?
+  at         DateTime @default(now())
+
+  case FraudCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, at])
+}
+
+model FraudCalibration {
+  market    String   @default("EG")
+  day       DateTime @db.Date
+  ruleId    String
+  flagged   Int      @default(0)
+  confirmed Int      @default(0)
+  dismissed Int      @default(0)
+
+  @@id([market, day, ruleId])
+}
+
+/// GRW-P3-F: public page quality report (score 0..100 with failed check ids).
+model SeoQualityReport {
+  id           String   @id @default(cuid())
+  market       String   @default("EG")
+  pageKey      String
+  templateKind String
+  locale       String
+  score        Int
+  failedChecks String[] @default([])
+  checkedAt    DateTime @default(now())
+  contentHash  String
+
+  @@unique([market, pageKey, locale, contentHash], map: "SeoQualityReport_page_hash_key")
+  @@index([templateKind, score])
+}
+
+model SeoInternalLink {
+  id         String   @id @default(cuid())
+  market     String   @default("EG")
+  fromKey    String
+  toKey      String
+  anchorKind String
+  rule       String
+  rank       Int      @default(0)
+  computedAt DateTime @default(now())
+
+  @@unique([market, fromKey, toKey, anchorKind], map: "SeoInternalLink_edge_key")
+  @@index([fromKey, rank])
+}
+
+model SeoVitalSnapshot {
+  id           String   @id @default(cuid())
+  market       String   @default("EG")
+  templateKind String
+  metric       String
+  p75          Float
+  source       String // LAB FIELD
+  day          DateTime @db.Date
+  sampleSize   Int      @default(0)
+
+  @@unique([market, templateKind, metric, source, day], map: "SeoVitalSnapshot_key")
+}
+
+model SeoIndexationSnapshot {
+  id            String   @id @default(cuid())
+  market        String   @default("EG")
+  day           DateTime @db.Date
+  templateKind  String
+  submitted     Int      @default(0)
+  indexed       Int      @default(0)
+  excluded      Int      @default(0)
+  reasonBuckets Json     @default("{}")
+
+  @@unique([market, day, templateKind], map: "SeoIndexationSnapshot_key")
+}
+
+/// GRW-P4-B2: append-only attribution decision for a partner product fact (order, lab booking, care-plan booking). The commission link of products stays inert (AD-13).
+model GrowthProductDecision {
+  id               String   @id @default(cuid())
+  market           String   @default("EG")
+  product          String // PHARMACY LAB NURSE CLINIC
+  factKind         String // ORDER LAB_BOOKING CARE_PLAN_BOOKING
+  factId           String
+  factStatusRef    String?
+  origin           String // PROVIDER_LED MARKETPLACE UNATTRIBUTED CROSS_PRODUCT
+  reasonCode       String
+  policyVersionId  String
+  inputsHash       String
+  evidenceTouchIds String[] @default([])
+  parentDecisionId String?
+  supersedesId     String?
+  createdAt        DateTime @default(now())
+
+  @@unique([factKind, factId, policyVersionId], map: "GrowthProductDecision_fact_policy_key")
+  @@index([product, origin, createdAt])
+}
+
+/// GRW-P2-S (Kiorex side): signed projection of a clinic-owned sponsored promotion, for quoting and display. The Clinic holds the budget and the wallet.
+model SponsoredPromotionProjection {
+  id                  String    @id @default(cuid())
+  market              String    @default("EG")
+  promotionId         String
+  orgRef              String
+  version             Int
+  status              String
+  nameAr              String    @default("")
+  nameEn              String    @default("")
+  patientCopyAr       String    @default("")
+  patientCopyEn       String    @default("")
+  scope               Json      @default("{}")
+  discount            Json      @default("{}")
+  eligibility         Json      @default("{}")
+  budgetCapMinor      BigInt    @default(0)
+  fundingMode         String    @default("WALLET_ONLY")
+  referencePriceMinor Int       @default(0)
+  contentHash         String    @default("")
+  startsAt            DateTime?
+  endsAt              DateTime?
+  lastEventAt         DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+
+  @@unique([promotionId, version])
+  @@index([orgRef, status])
+}
+
+/// The provider-sponsored discount line on a booking. One promotion per booking (no stacking). State only moves forward (trigger). Shares no row or key with the patient credit tables.
+model BookingSponsoredDiscount {
+  id               String   @id @default(cuid())
+  market           String   @default("EG")
+  bookingIntentId  String   @unique
+  promotionId      String
+  promotionVersion Int
+  amountMinor      Int
+  currency         String   @default("EGP")
+  reservationRef   String   @unique
+  state            String   @default("RESERVED") // RESERVED APPLIED DEBITED RELEASED REVERSED
+  debitRef         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  @@index([promotionId, state])
+}
+
+/// Kiorex review of a sponsored promotion version: content, scope, high value (second approver differs from the requester).
+model SponsoredPromotionReview {
+  id               String    @id @default(cuid())
+  market           String    @default("EG")
+  promotionId      String
+  promotionVersion Int
+  kind             String // CONTENT SCOPE HIGH_VALUE
+  guardResult      Json      @default("{}")
+  requestedBy      String
+  decidedBy        String?
+  decision         String? // APPROVED REJECTED
+  reason           String?
+  createdAt        DateTime  @default(now())
+  decidedAt        DateTime?
+
+  @@index([promotionId, promotionVersion], map: "SponsoredPromotionReview_promotion_idx")
+  @@index([decision, createdAt], map: "SponsoredPromotionReview_decision_idx")
 }

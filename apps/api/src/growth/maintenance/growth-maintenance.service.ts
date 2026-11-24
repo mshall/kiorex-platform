@@ -25,13 +25,16 @@ export class GrowthMaintenanceService {
     const more = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_rewards_engine(${sub}) AS r`;
     // GRW-P1-J: the PatientRegistered fact is keyed by the person's pseudonymous reference, so it leaves with the person (it is a plain row, not append-only)
     const registered = await this.prisma.growthEvent.deleteMany({ where: { dedupeKey: `fact|PatientRegistered|${subRefOf(sub)}` } });
-    const r = { ...rows[0].r, ...more[0].r };
+    // GRW-P3-A (migration 20270107090000): experiment exposures of an authenticated unit
+    const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_experiments(${sub}) AS r`;
+    const r = { ...rows[0].r, ...more[0].r, ...exp[0].r };
     return { ...r, eventsDeleted: Number(r.eventsDeleted) + registered.count };
   }
 
   async purgeExpired(opts: { now?: Date; linkedMonths?: number; unlinkedMonths?: number } = {}): Promise<PurgeResult> {
     const now = opts.now ?? new Date();
     const rows = await this.prisma.$queryRaw<{ r: PurgeResult }[]>`SELECT growth_purge_expired_v2(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
-    return rows[0].r;
+    const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_experiments(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int) AS r`;
+    return { ...rows[0].r, ...exp[0].r } as PurgeResult;
   }
 }
