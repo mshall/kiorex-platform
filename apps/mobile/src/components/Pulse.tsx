@@ -53,16 +53,16 @@ export function Skeleton({ height = 16, width = "100%", radius = 8, style }: { h
   return <Animated.View aria-hidden style={[{ height, width, borderRadius: radius, backgroundColor: colors.subtle, borderWidth: 1, borderColor: colors.hairline, opacity: o }, style]} />;
 }
 
-/** Brand illustration for empty / error / offline states: two soft chevrons with the coral pulse crossing the gap. */
+/** Brand illustration for empty / error / offline states: the soft KIOREX waveform bars with the coral pulse through the centre. */
 export function BrandIllustration({ size = 132, tone = "empty" }: { size?: number; tone?: "empty" | "error" | "offline" }) {
   const { colors, scheme } = useTheme();
-  const chevron = scheme === "dark" ? 0.6 : 0.22; // dark: the light ink at 0.22 vanished on the dark surface (a visible mark needs about 3:1)
+  const barOpacity = scheme === "dark" ? 0.6 : 0.22; // dark: the light ink at 0.22 vanished on the dark surface (a visible mark needs about 3:1)
   const pulse = tone === "error" ? colors.danger : colors.pulse;
   return (
     <View aria-hidden style={{ width: size, height: size * 0.82, alignItems: "center", justifyContent: "center" }}>
       <Svg width={size} height={size * 0.82} viewBox="20 20 110 90">
-        {MASTER.leftBars.map(([x, y, w, h], i) => <Rect key={`l${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink} fillOpacity={chevron} />)}
-        {MASTER.rightBars.map(([x, y, w, h], i) => <Rect key={`r${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink2} fillOpacity={chevron} />)}
+        {MASTER.leftBars.map(([x, y, w, h], i) => <Rect key={`l${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink} fillOpacity={barOpacity} />)}
+        {MASTER.rightBars.map(([x, y, w, h], i) => <Rect key={`r${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} fill={colors.ink2} fillOpacity={barOpacity} />)}
         {tone === "offline"
           ? <Polyline points="24,65 62,65 90,65 126,65" fill="none" stroke={pulse} strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeDasharray="0.1 5" />
           : <Polyline points={PULSE_POINTS} fill="none" stroke={pulse} strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeLinejoin="round" />}

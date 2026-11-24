@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, LogOut, MessagesSquare, Moon, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
+import { Logo, LogoMark } from "@/components/Logo";
 import { useAuth } from "@/auth/AuthProvider";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,7 @@ export function OpsLayout() {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-card/90 px-4 backdrop-blur-sm">
+          <span className="shrink-0 md:hidden" dir="ltr" data-testid="mobile-logo"><LogoMark height={28} title="KIOREX" /></span>
           <nav className="flex gap-1 overflow-x-auto md:hidden" aria-label={t("nav.main")}>
             {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent font-semibold text-accent-foreground")}><span className="inline-flex items-center gap-1.5">{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge className="ms-1" /> : null}</span></NavLink>)}
             <NavLink to="/growth" className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", (isActive || pathname.startsWith("/growth")) && "bg-accent font-semibold text-accent-foreground")} data-testid="mobile-growth-link">{t("growth.nav.group")}</NavLink>

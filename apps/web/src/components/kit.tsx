@@ -2,6 +2,7 @@
 import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MASTER } from "@/brand/kiorex-logo/geometry";
 
 export function PageHeader({ title, hint, icon, actions, badge, className, id }: { title: ReactNode; hint?: ReactNode; icon?: ReactNode; actions?: ReactNode; badge?: ReactNode; className?: string; id?: string }) {
   return (
@@ -86,16 +87,21 @@ export function Stepper({ steps, current, label, className }: { steps: string[];
   );
 }
 
-/** Brand illustration for empty / error / offline / search states: built from the chevron + pulse motif (no stock art). */
+/** Brand illustration for empty / error / offline / search states: the KIOREX waveform mark (founder spec 25 Nov 2026, geometry from the brand module) in a soft disc (no stock art). */
 export function StateArt({ kind = "empty", className }: { kind?: "empty" | "error" | "offline" | "search" | "success"; className?: string }) {
-  const pulse = kind === "error" ? "M10 60 H70 L78 52 L86 76 L94 40 L98 60 H108" : kind === "offline" ? "M10 60 H64 M76 60 H88 M100 60 H110" : kind === "success" ? "M10 60 H52 L62 70 L84 36 L110 60" : "M10 60 H70 L78 52 L86 76 L94 40 L102 66 L108 60 H110";
+  const dim = kind === "offline" ? 0.5 : 1;
+  const pulseCls = kind === "error" ? "stroke-destructive" : kind === "success" ? "stroke-success" : "stroke-pulse";
   return (
     <svg viewBox="0 0 120 120" className={cn("h-24 w-24", className)} aria-hidden="true" focusable="false">
       <circle cx="60" cy="60" r="54" className="fill-accent" />
-      <polyline points="40,28 58,60 40,92" fill="none" strokeWidth="6" strokeLinejoin="miter" className="stroke-primary" opacity={kind === "offline" ? 0.5 : 1} />
-      <polyline points="80,28 62,60 80,92" fill="none" strokeWidth="6" strokeLinejoin="miter" className="stroke-ocean" opacity={kind === "offline" ? 0.5 : 1} />
-      <path d={pulse} fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={cn(kind === "error" ? "stroke-destructive" : kind === "success" ? "stroke-success" : "stroke-pulse", "kx-pulse-draw")} style={{ ["--kx-pulse-len" as string]: 160 }} />
-      {kind === "search" && <circle cx="92" cy="92" r="12" fill="none" strokeWidth="4" className="stroke-primary" />}
+      <svg x="14" y="21" width="92" height="77" viewBox={MASTER.markViewBox}>
+        {MASTER.leftBars.map(([x, y, w, h], i) => <rect key={`l${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} className="fill-primary" opacity={dim} />)}
+        {MASTER.rightBars.map(([x, y, w, h], i) => <rect key={`r${i}`} x={x} y={y} width={w} height={h} rx={MASTER.barRx} className="fill-ocean" opacity={dim} />)}
+        {kind === "offline"
+          ? <polyline points="24,65 126,65" fill="none" strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeDasharray="0.1 5" className="stroke-pulse" />
+          : <polyline points={MASTER.pulsePoints} fill="none" strokeWidth={MASTER.pulseStroke} strokeLinecap="round" strokeLinejoin="round" className={cn(pulseCls, "kx-pulse-draw")} style={{ ["--kx-pulse-len" as string]: 160 }} />}
+      </svg>
+      {kind === "search" && <circle cx="94" cy="94" r="12" fill="none" strokeWidth="4" className="stroke-primary" />}
     </svg>
   );
 }
