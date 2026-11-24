@@ -49,8 +49,9 @@ describe('growth experiments (GRW-P3-A)', () => {
   describe('lifecycle, wall and roles', () => {
     it('creates a DRAFT with a salt, a pre-registered sample and a CREATED history row; the list and catalog answer ops roles', async () => {
       const e = await create({ baselineRate: 0.1, mdeAbs: 0.02, minSample: undefined });
-      expect(e.status).toBe('DRAFT'); expect(e.salt).toHaveLength(32); expect(Math.abs(e.minSample - 3841)).toBeLessThanOrEqual(8);
+      expect(e.status).toBe('DRAFT'); expect(e.salt).toBeUndefined(); expect((await fresh(e.id)).salt).toHaveLength(32); expect(Math.abs(e.minSample - 3841)).toBeLessThanOrEqual(8);
       expect((await c.http().get(BASE).set(ops).expect(200)).body).toHaveLength(1);
+      for (const body of [(await c.http().get(BASE).set(ops)).body, (await c.http().get(`${BASE}/${e.id}`).set(ops)).body, (await c.http().patch(`${BASE}/${e.id}`).set(A).send({ name: 'Renamed' })).body, (await c.http().post(`${BASE}/${e.id}/submit`).set(A)).body]) expect(JSON.stringify(body)).not.toContain((await fresh(e.id)).salt); // the HMAC key of every unit hash never leaves the server
       const cat = (await c.http().get(`${BASE}/catalog`).set(ops).expect(200)).body; expect(cat.surfaces.length).toBeGreaterThan(5); expect(cat.policy.minRunDays).toBe(7);
       expect((await c.http().get(`${BASE}/${e.id}/history`).set(ops).expect(200)).body.map((x: any) => x.kind)).toEqual(['CREATED']);
     });

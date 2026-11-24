@@ -26,6 +26,9 @@ export class ExperimentService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly outbox: OutboxService) {}
   onModuleInit() { for (const t of EXPERIMENT_EVENTS) this.outbox.register(t, async () => undefined); }
 
+  /** The assignment salt is the HMAC key of every unit hash: it never leaves the server (no response, no event, no log carries it). */
+  private pub<T extends { salt?: string }>(row: T): Omit<T, 'salt'> { const { salt: _salt, ...rest } = row; return rest; }
+
   private async must(id: string, tx: Tx | PrismaService = this.prisma) { const e = await tx.growthExperiment.findUnique({ where: { id } }); if (!e) throw notFound('EXPERIMENT_NOT_FOUND', 'Experiment not found'); return e; }
   private async event(tx: Tx, id: string, kind: string, actor: string, reason?: string | null, diff: Record<string, unknown> = {}) { await tx.growthExperimentEvent.create({ data: { experimentId: id, kind, actor, reason: reason ?? null, diff: diff as Prisma.InputJsonValue } }); }
   private async audit(tx: Tx, actor: string, action: string, id: string, metadata: Record<string, unknown>) { await tx.auditLog.create({ data: { actor, action: `growth.experiment.${action}`, resource: 'GrowthExperiment', resourceId: id, metadata: metadata as Prisma.InputJsonValue } }); }
@@ -53,7 +56,7 @@ export class ExperimentService implements OnModuleInit {
       } });
       await this.event(tx, row.id, 'CREATED', actor.sub, null, { key: row.key, surface: row.surface, variants: d.variants, allocationBp: row.allocationBp, primaryMetric: row.primaryMetric, mode: row.mode, minSample: row.minSample });
       await this.audit(tx, actor.sub, 'create', row.id, { key: row.key, surface: row.surface });
-      return row;
+      return this.pub(row);
     });
   }
 
@@ -69,14 +72,14 @@ export class ExperimentService implements OnModuleInit {
     if (d.eligibility) { data.eligibility = d.eligibility as Prisma.InputJsonValue; diff.eligibility = { from: cur.eligibility, to: d.eligibility }; }
     if (d.guardrails) { data.guardrails = d.guardrails as unknown as Prisma.InputJsonValue; diff.guardrails = { from: cur.guardrails, to: d.guardrails }; }
     if (d.minSample !== undefined || (d.baselineRate && d.mdeAbs)) { data.minSample = plannedSample({ ...d, alphaBp: d.alphaBp ?? cur.alphaBp }); diff.minSample = { from: cur.minSample, to: data.minSample }; }
-    return this.prisma.$transaction(async (tx) => { const row = await tx.growthExperiment.update({ where: { id }, data }); await this.event(tx, id, 'EDITED', actor.sub, null, diff); await this.audit(tx, actor.sub, 'update', id, { fields: Object.keys(diff) }); return row; });
+    return this.prisma.$transaction(async (tx) => { const row = await tx.growthExperiment.update({ where: { id }, data }); await this.event(tx, id, 'EDITED', actor.sub, null, diff); await this.audit(tx, actor.sub, 'update', id, { fields: Object.keys(diff) }); return this.pub(row); });
   }
 
   async submit(actor: Actor, id: string) {
     const cur = await this.must(id);
     if (cur.status !== 'DRAFT') throw conflict('EXPERIMENT_INVALID_TRANSITION', `Only a DRAFT can be submitted (this one is ${cur.status})`);
     this.checkDesign({ surface: cur.surface, flagKey: cur.flagKey ?? undefined });
-    return this.prisma.$transaction(async (tx) => { const row = await tx.growthExperiment.update({ where: { id }, data: { status: 'PENDING_APPROVAL' } }); await this.event(tx, id, 'SUBMITTED', actor.sub); await this.audit(tx, actor.sub, 'submit', id, {}); return row; });
+    return this.prisma.$transaction(async (tx) => { const row = await tx.growthExperiment.update({ where: { id }, data: { status: 'PENDING_APPROVAL' } }); await this.event(tx, id, 'SUBMITTED', actor.sub); await this.audit(tx, actor.sub, 'submit', id, {}); return this.pub(row); });
   }
 
   /** A different person approves AND starts. Serialised per (market, surface) with an advisory lock so two starts cannot both pass the concurrency check. */
@@ -96,7 +99,7 @@ export class ExperimentService implements OnModuleInit {
       await this.outbox.enqueue(tx, { type: 'ExperimentStarted', aggregateType: 'GrowthExperiment', aggregateId: id, payload: { experimentId: id, market: cur.market, key: cur.key, surface: cur.surface, at: now.toISOString() }, dedupeKey: `ExperimentStarted:${id}` });
       return r;
     });
-    return row;
+    return this.pub(row);
   }
 
   /** Stopping reverts every unit to control at once: assignment checks the status on every call. */
@@ -109,7 +112,7 @@ export class ExperimentService implements OnModuleInit {
       await this.event(tx, id, 'STOPPED', actor.sub, reason.trim().slice(0, 200), { by: kind });
       await this.audit(tx, actor.sub, 'stop', id, { reason: reason.slice(0, 200), by: kind });
       await this.outbox.enqueue(tx, { type: 'ExperimentStopped', aggregateType: 'GrowthExperiment', aggregateId: id, payload: { experimentId: id, market: cur.market, key: cur.key, reason: reason.slice(0, 200), by: kind, at: now.toISOString() }, dedupeKey: `ExperimentStopped:${id}` });
-      return row;
+      return this.pub(row);
     });
   }
 
@@ -120,7 +123,7 @@ export class ExperimentService implements OnModuleInit {
       const row = await tx.growthExperiment.update({ where: { id }, data: { status: 'CONCLUDED', stoppedAt: now, stopReason: `CONCLUDED:${verdict}` } });
       await this.event(tx, id, 'CONCLUDED', actor.sub, verdict, {});
       await this.outbox.enqueue(tx, { type: 'ExperimentConcluded', aggregateType: 'GrowthExperiment', aggregateId: id, payload: { experimentId: id, market: cur.market, key: cur.key, verdict, at: now.toISOString() }, dedupeKey: `ExperimentConcluded:${id}` });
-      return row;
+      return this.pub(row);
     });
   }
 
@@ -128,10 +131,10 @@ export class ExperimentService implements OnModuleInit {
     return this.prisma.$transaction(async (tx) => {
       const cur = await this.must(id, tx);
       if (cur.status === 'RUNNING' || cur.status === 'PENDING_APPROVAL') throw conflict('EXPERIMENT_INVALID_TRANSITION', `Stop the experiment before archiving it (it is ${cur.status})`);
-      if (cur.status === 'ARCHIVED') return cur;
+      if (cur.status === 'ARCHIVED') return this.pub(cur);
       const row = await tx.growthExperiment.update({ where: { id }, data: { status: 'ARCHIVED' } });
       await this.event(tx, id, 'ARCHIVED', actor.sub); await this.audit(tx, actor.sub, 'archive', id, {});
-      return row;
+      return this.pub(row);
     });
   }
 
@@ -156,7 +159,7 @@ export class ExperimentService implements OnModuleInit {
   }
 
   async list(f: { market?: string; status?: string; surface?: string; take?: number } = {}) {
-    return this.prisma.growthExperiment.findMany({ where: { market: f.market, status: f.status, surface: f.surface }, orderBy: { createdAt: 'desc' }, take: Math.min(Math.max(f.take ?? 100, 1), 200) });
+    return (await this.prisma.growthExperiment.findMany({ where: { market: f.market, status: f.status, surface: f.surface }, orderBy: { createdAt: 'desc' }, take: Math.min(Math.max(f.take ?? 100, 1), 200) })).map((e) => this.pub(e));
   }
   async get(id: string) {
     const e = await this.must(id);
@@ -164,7 +167,7 @@ export class ExperimentService implements OnModuleInit {
       this.prisma.growthExperimentResult.findFirst({ where: { experimentId: id }, orderBy: { computedAt: 'desc' } }),
       this.prisma.growthExperimentEvent.findMany({ where: { experimentId: id }, orderBy: { at: 'asc' }, take: 500 }),
     ]);
-    return { ...e, latestResult: latest ? this.redact(latest, e.status) : null, events };
+    return { ...this.pub(e), latestResult: latest ? this.redact(latest, e.status) : null, events };
   }
   history(id: string) { return this.prisma.growthExperimentEvent.findMany({ where: { experimentId: id }, orderBy: { at: 'asc' }, take: 1000 }); }
   async results(id: string) { const e = await this.must(id); return (await this.prisma.growthExperimentResult.findMany({ where: { experimentId: id }, orderBy: { computedAt: 'desc' }, take: 200 })).map((r) => this.redact(r, e.status)); }
