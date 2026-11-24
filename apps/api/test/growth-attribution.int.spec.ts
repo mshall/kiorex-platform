@@ -167,6 +167,49 @@ describe('attribution decisions', () => {
       expect(rs.filter((r) => r.status === 'fulfilled').length).toBeGreaterThanOrEqual(1);
       expect(await c.prisma.growthAttributionDecision.count({ where: { bookingId: m.id } })).toBeLessThanOrEqual(3);
     });
+
+    /** Concurrent corrections of one booking are serialised on the booking row and each is judged against the TRUE head, never a stale one. */
+    const chain = async (bookingId: string) => {
+      const rows = await c.prisma.growthAttributionDecision.findMany({ where: { bookingId }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+      const heads = rows.filter((r) => !rows.some((o) => o.supersedesId === r.id));
+      expect(heads).toHaveLength(1); // one head, no fork
+      expect(new Set(rows.map((r) => r.supersedesId).filter(Boolean)).size).toBe(rows.length - 1); // each row superseded at most once
+      expect((await c.prisma.bookingIntent.findUniqueOrThrow({ where: { id: bookingId } })).attributionDecisionId).toBe(heads[0]!.id);
+      // fees only ever disappear: once PROVIDER_LED, never a chargeable origin again
+      const ordered: typeof rows = []; for (let r: (typeof rows)[number] | undefined = rows.find((x) => !x.supersedesId); r; r = rows.find((x) => x.supersedesId === r!.id)) ordered.push(r);
+      expect(ordered).toHaveLength(rows.length);
+      const firstLed = ordered.findIndex((r) => r.origin === 'PROVIDER_LED');
+      if (firstLed >= 0) expect(ordered.slice(firstLed).every((r) => r.origin === 'PROVIDER_LED')).toBe(true);
+      return { rows: ordered, head: heads[0]! };
+    };
+
+    it('concurrent corrections of one booking never fail with a spurious "corrected concurrently": each is judged against the real head (20 rounds)', async () => {
+      for (let i = 0; i < 20; i++) {
+        const m = await seedBooking(c);
+        await svc.decideForBooking({ bookingId: m.id }); // UNATTRIBUTED
+        const rs = await Promise.allSettled([
+          svc.correct(SUPER_A, m.id, { origin: 'PROVIDER_LED', note: 'first concurrent correction' }),
+          svc.correct(SUPER_A, m.id, { origin: 'MARKETPLACE', note: 'second concurrent correction' }),
+          svc.correct(SUPER_A, m.id, { origin: 'UNATTRIBUTED', note: 'third concurrent correction' }),
+        ]);
+        const codes = rs.map((r) => (r.status === 'fulfilled' ? 'OK' : (r.reason as { getResponse(): { code: string } }).getResponse().code));
+        expect(codes.filter((x) => x !== 'OK').every((x) => ['NO_CHANGE', 'CORRECTION_CANNOT_ADD_FEE'].includes(x))).toBe(true); // never GROWTH_CONFIG_TRANSITION_FORBIDDEN
+        expect(codes).toContain('OK');
+        const { rows } = await chain(m.id);
+        expect(rows.length - 1).toBe(codes.filter((x) => x === 'OK').length); // one new row per accepted correction
+        expect(await c.prisma.auditLog.count({ where: { action: 'growth.attribution.correct', resourceId: { in: rows.map((r) => r.id) } } })).toBe(rows.length - 1);
+      }
+    });
+
+    it('eight identical concurrent corrections apply exactly once; the other seven are NO_CHANGE', async () => {
+      const m = await seedBooking(c);
+      await svc.decideForBooking({ bookingId: m.id });
+      const rs = await Promise.allSettled(Array.from({ length: 8 }, () => svc.correct(SUPER_A, m.id, { origin: 'PROVIDER_LED', note: 'same correction sent eight times' })));
+      expect(rs.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(rs.filter((r) => r.status === 'rejected').map((r) => (r as PromiseRejectedResult).reason.getResponse().code)).toEqual(Array(7).fill('NO_CHANGE'));
+      expect((await chain(m.id)).rows).toHaveLength(2);
+      expect(await c.prisma.outboxEvent.count({ where: { type: 'AttributionAssigned', aggregateId: m.id } })).toBe(2); // decision + one correction
+    });
   });
 
   describe('GET /growth/v1/evidence/:bookingId', () => {

@@ -121,8 +121,10 @@ export class AttributionService implements OnModuleInit {
   }
 
   /** The newest decision of a booking (a correction supersedes the one it replaces). */
-  async latest(bookingId: string) {
-    const rows = await this.prisma.growthAttributionDecision.findMany({ where: { bookingId }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+  async latest(bookingId: string) { return this.latestIn(this.prisma, bookingId); }
+
+  private async latestIn(db: Pick<PrismaService, 'growthAttributionDecision'>, bookingId: string) {
+    const rows = await db.growthAttributionDecision.findMany({ where: { bookingId }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
     const superseded = new Set(rows.map((r) => r.supersedesId).filter(Boolean));
     return rows.filter((r) => !superseded.has(r.id)).pop() ?? null;
   }
@@ -143,17 +145,26 @@ export class AttributionService implements OnModuleInit {
     if (!actor.roles.includes('super_admin')) throw forbidden('FORBIDDEN_ROLE', 'Insufficient role', { required: ['super_admin'] });
     if (!(ACQUISITION_ORIGINS as readonly string[]).includes(c.origin)) throw badRequest('INVALID_ORIGIN', 'origin must be PROVIDER_LED, MARKETPLACE or UNATTRIBUTED');
     if (!c.note || c.note.trim().length < 10) throw badRequest('NOTE_REQUIRED', 'A reason of at least 10 characters is required for an override');
-    const cur = await this.latest(bookingId);
-    if (!cur) throw growthError('GROWTH_EVIDENCE_NOT_FOUND', 'No decision exists for this booking');
-    if (cur.origin === 'PROVIDER_LED' && c.origin !== 'PROVIDER_LED') throw forbidden('CORRECTION_CANNOT_ADD_FEE', 'Evidence can only remove a fee, never add one: a provider-led decision cannot be turned into a chargeable one');
-    if (cur.origin === c.origin) throw badRequest('NO_CHANGE', 'The decision already has this origin');
     const row = await this.prisma.$transaction(async (tx) => {
+      // Serialise corrections of ONE booking on its BookingIntent row, and read the head decision INSIDE the lock. Reading it before the transaction (as this
+      // method used to) let two concurrent corrections validate against the same stale head: the unique index on supersedesId stopped a fork, but the loser
+      // failed with a spurious "corrected concurrently" error instead of being judged against the winner (NO_CHANGE, CORRECTION_CANNOT_ADD_FEE, or applied as
+      // the next correction), and the fee-removal-only rule was only ever enforced against a snapshot. Now it is enforced against the true head.
+      await tx.$queryRaw`SELECT "id" FROM "BookingIntent" WHERE "id" = ${bookingId} FOR UPDATE`;
+      const cur = await this.latestIn(tx as unknown as PrismaService, bookingId);
+      if (!cur) throw growthError('GROWTH_EVIDENCE_NOT_FOUND', 'No decision exists for this booking');
+      if (cur.origin === 'PROVIDER_LED' && c.origin !== 'PROVIDER_LED') throw forbidden('CORRECTION_CANNOT_ADD_FEE', 'Evidence can only remove a fee, never add one: a provider-led decision cannot be turned into a chargeable one');
+      if (cur.origin === c.origin) throw badRequest('NO_CHANGE', 'The decision already has this origin');
       const r = await tx.growthAttributionDecision.create({ data: { market: cur.market, bookingId, origin: c.origin, reasonCode: 'MANUAL_CORRECTION', policyVersionId: cur.policyVersionId, inputsHash: cur.inputsHash, evidenceTouchIds: cur.evidenceTouchIds, firstTouchId: cur.firstTouchId, lastTouchId: cur.lastTouchId, lastNonDirectTouchId: cur.lastNonDirectTouchId, winningTouchId: cur.winningTouchId, bookingSnapshot: cur.bookingSnapshot as never, supersedesId: cur.id, actor: actor.sub, note: c.note.trim().slice(0, 500) } });
       await tx.bookingIntent.updateMany({ where: { id: bookingId }, data: { acquisitionOrigin: c.origin, attributionDecisionId: r.id } });
       await tx.auditLog.create({ data: { actor: actor.sub, action: 'growth.attribution.correct', resource: 'GrowthAttributionDecision', resourceId: r.id, metadata: { bookingId, from: cur.origin, to: c.origin, supersedes: cur.id } as never } });
       await this.outbox.enqueue(tx, { type: 'AttributionAssigned', aggregateType: 'BookingIntent', aggregateId: bookingId, payload: { bookingId, decisionId: r.id, origin: c.origin, reason: 'MANUAL_CORRECTION', policyVersion: cur.policyVersionId, market: cur.market, decidedAt: r.createdAt.toISOString() }, dedupeKey: `AttributionAssigned:${r.id}` });
       return r;
-    }).catch((e) => { if ((e as { code?: string }).code === 'P2002') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The decision was corrected concurrently: reload and retry'); throw e; });
+    }, { maxWait: 10_000, timeout: 20_000 }).catch((e) => {
+      // backstop only: the row lock makes this unreachable for corrections; the partial unique index on supersedesId stays the last arbiter
+      if ((e as { code?: string }).code === 'P2002') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The decision was corrected concurrently: reload and retry');
+      throw e;
+    });
     return this.stored(row, true);
   }
 
