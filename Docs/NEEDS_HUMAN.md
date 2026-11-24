@@ -188,3 +188,11 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **Continuity entry points** (prescription to pharmacy, ordered test to lab, care plan): product, UX and counsel (health data between products); until built no decision is CROSS_PRODUCT (11.42).
 - **ADR signatures**: ADR-041 to ADR-052 are Proposed; the assistant ADR is ADR-058 in the architecture file and ADR-051 here until the founder confirms the numbering (11.39).
 - **Phase 2 suites** 31, 32, 34, 35, 50, 51 are not written on the real stack (11.43).
+
+## Experiments (GRW-P3-A) and red-team suites (GRW-GC-4): founder, counsel, CMO and infra items
+- **Experiment policy numbers** (`EXPERIMENT_POLICY`: minimum run time 7 days, SRM threshold p 0.001, one running experiment per surface and market, guardrail minimum events 20, conversion window 7 days, k = 10) are proposed defaults in code. The contracts config kind that would make them editable through the maker-checker does not exist yet (launch guide 11.70).
+- **`growth.experiments` only becomes effective after the visitor-analytics gate** (`growth.analytics_visitor`, counsel): until then everyone sees the control, which is the designed state. Nothing in code records that gate.
+- **CloudFront cache key and the `kxe` cookie** (infra; `tofu validate` only, a human applies): the cache key of public pages must include the `kxe` cookie; without it a variant could be cached for everyone. WAF rate rules in `platform/waf-rules.json` are a checklist for the WAFv2 implementation; the numbers are proposals (launch guide 11.71 and 11.74).
+- **Variant copy is marketing copy:** who may propose it, the Arabic and English wording review, and a ban on health claims in a variant are a CMO and counsel procedure (11.72). The win-back subject-line surface sends nothing until `growth.marketing_messaging` has its counsel gate.
+- **Emergency lexicon additions** made by the red team ("not breathing", "stopped breathing", "trouble breathing", Arabic equivalents, "الم شديد في الصدر", "وجع في الصدر") widen the safety triggers only; the CMO still has to approve the whole keyword list and the guidance copy (11.73).
+- **ZAP baseline and the external penetration test:** no scanner is installed on the build machine and pulling a container image needs approval; the external test remains human (11.74).
