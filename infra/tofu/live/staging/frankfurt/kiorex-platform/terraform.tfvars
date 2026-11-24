@@ -31,6 +31,9 @@ env_vars = {
   MESSAGING_MODE  = "log"
   AI_PROVIDER     = "fake"
   SWAGGER_ENABLED = "false"
+  # Staging bring-up only (pentest 2026-11): the sandbox PSP checkout is unauthenticated, and secrets are not wired yet. Remove both when the real values are in Secrets Manager.
+  SANDBOX_PAYMENTS_ALLOWED       = "true"
+  ALLOW_INSECURE_DEFAULT_SECRETS = "true"
 }
 
 domain             = ""

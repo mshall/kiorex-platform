@@ -56,6 +56,8 @@ export const cfg = () => ({
   /** Dev inbox + dev routes (/dev/messaging/*) exist only outside production AND in mock messaging mode. */
   devRoutesEnabled: env('NODE_ENV') !== 'production' && !['SMS', 'EMAIL', 'WHATSAPP'].some((k) => providerEnv(k as 'SMS').mode === 'real') && env('MESSAGING_MODE') !== 'real',
   /** Dev payment simulation (/dev/payments/*): never in production, never when PAYMENT_MODE=real. */
+  /** Sandbox hosted checkout (unauthenticated by design: `fake-checkout/:id/complete` captures a payment). Never in production unless SANDBOX_PAYMENTS_ALLOWED=true (staging). */
+  sandboxPaymentsAllowed: (env('NODE_ENV') !== 'production' || env('SANDBOX_PAYMENTS_ALLOWED') === 'true') && providerEnv('PAYMENT').mode !== 'real',
   payDevRoutesEnabled: env('NODE_ENV') !== 'production' && providerEnv('PAYMENT').mode !== 'real',
   /** SAFETY_DELIVERY_MODE=real pages the on-call phones below through the real SMS provider (ids + district only, never PHI). */
   safetyOncallPhones: env('SAFETY_ONCALL_PHONES').split(',').map((x) => x.trim()).filter(Boolean),

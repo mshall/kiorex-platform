@@ -59,6 +59,7 @@ export class PayController {
   @ApiOkResponse({ description: 'Sandbox hosted checkout page (HTML)', schema: { type: 'string' } })
   @Public() @Get('fake-checkout/:id') @Header('content-type', 'text/html; charset=utf-8')
   async fakePage(@Param('id') id: string, @Query('returnUrl') returnUrl?: string) {
+    if (!cfg().sandboxPaymentsAllowed) throw notFound('NOT_FOUND', 'Not found');
     const p = await this.svc.getIntent(id);
     const ret = safeReturnUrl(returnUrl);
     return `<!doctype html><meta charset="utf-8"><title>Kiorex Pay sandbox</title><body style="font-family:sans-serif;max-width:420px;margin:48px auto"><h2>Kiorex Pay (sandbox)</h2><p>Amount: ${(p.amountMinor / 100).toFixed(2)} ${p.currency}</p><p>Status: ${p.status}</p><form method="post" action="/api/v1/pay/fake-checkout/${p.id}/complete">${ret ? `<input type="hidden" name="returnUrl" value="${escAttr(ret)}">` : ''}<button name="outcome" value="pay">Pay</button> <button name="outcome" value="fail">Fail</button></form></body>`;

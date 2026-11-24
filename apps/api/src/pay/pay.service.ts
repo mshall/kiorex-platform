@@ -449,7 +449,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   // ───────────── fake hosted checkout (sandbox only) ─────────────
 
   async fakeComplete(paymentId: string, outcome: 'pay' | 'fail') {
-    if (cfg().pspMode !== 'sandbox-fake') throw notFound('NOT_FOUND', 'Not found');
+    if (cfg().pspMode !== 'sandbox-fake' || !cfg().sandboxPaymentsAllowed) throw notFound('NOT_FOUND', 'Not found');
     const p = await this.getIntent(paymentId);
     const ev: PspWebhookEvent = { eventId: newId('pspev'), type: outcome === 'pay' ? 'payment.captured' : 'payment.failed', pspRef: p.pspRef ?? '', paymentId: p.id, amountMinor: p.amountMinor, feeMinor: Math.round((p.amountMinor * cfg().pspFeeBps) / 10000), occurredAt: new Date().toISOString() };
     const raw = JSON.stringify(ev);
