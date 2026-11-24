@@ -6,7 +6,7 @@ import { CampaignService, SYSTEM } from '../src/growth/campaigns/campaign.servic
 import { GrowthSpendService } from '../src/growth/growth-public';
 import { GrowthRollupService } from '../src/growth/growth-public';
 import { GROWTH_DEFAULT_PAYLOADS } from '../src/growth/growth-public';
-import { marketTimezone, nextDayBoundary } from '../src/growth/campaigns/market-day';
+import { localDay, marketTimezone, nextDayBoundary } from '../src/growth/campaigns/market-day';
 
 type Auth = { Authorization: string };
 const BASE = '/api/v1/admin/growth/campaigns';
@@ -29,6 +29,8 @@ describe('growth campaigns (GRW-P2-A)', () => {
     A = await c.as('adm_a', { roles: ['ops_admin', 'super_admin'] }); B = await c.as('adm_b', { roles: ['ops_admin', 'super_admin'] }); ops = await c.as('ops_1', { roles: ['ops_admin'] }); patient = await c.as('p_1');
   });
   const now = () => new Date();
+  /** The market day (Cairo), not the UTC date: between 22:00 and 24:00 UTC they differ and a spend booked for the UTC date is yesterday's spend for the daily cap (found by the W8 gate run). */
+  const marketToday = () => localDay(new Date(), marketTimezone('EG'));
   const body = (o: Record<string, unknown> = {}) => ({ key: `camp-${Math.random().toString(36).slice(2, 8)}`, name: 'Ramadan check-up', objective: 'ACQUISITION', budgetTotalMinor: 1_000_000, budgetDailyMinor: 200_000, channels: ['EMAIL'], startsAt: new Date(now().getTime() - 3_600_000).toISOString(), endsAt: new Date(now().getTime() + 30 * DAY).toISOString(), ...o });
   const create = async (o: Record<string, unknown> = {}, who: Auth = A) => (await c.http().post(BASE).set(who).send(body(o)).expect(201)).body;
   const get = async (id: string) => (await c.http().get(`${BASE}/${id}`).set(A).expect(200)).body;
@@ -39,7 +41,7 @@ describe('growth campaigns (GRW-P2-A)', () => {
     return (await c.http().post(`${BASE}/approvals/${a.id}/decide`).set(B).send({ decision: 'APPROVED', snapshotHash: a.snapshotHash }).expect(200)).body;
   };
   const spendLine = async (id: string, amountMinor: number, who: Auth = A, approver: Auth | null = B, day?: string) => {
-    const r = (await c.http().post(`${BASE}/${id}/spend`).set(who).send({ day: day ?? new Date().toISOString().slice(0, 10), amountMinor }).expect(201)).body;
+    const r = (await c.http().post(`${BASE}/${id}/spend`).set(who).send({ day: day ?? marketToday(), amountMinor }).expect(201)).body;
     if (approver) await c.http().post(`${SPEND}/${r.id}/approve`).set(approver).expect(200);
     return r;
   };
@@ -200,7 +202,7 @@ describe('growth campaigns (GRW-P2-A)', () => {
       const hist = (await c.http().get(`${BASE}/${k.id}/history`).set(A)).body; expect(hist.map((h: { reasonCode: string }) => h.reasonCode)).toEqual(expect.arrayContaining(['DAILY_CAP', 'DAILY_RESUME']));
     });
     it('spend lines: positive, not in the future, not on a DRAFT campaign; adapter lines are idempotent on (campaign, day, source, adapterRef); the label of a campaign line is its UTM tag', async () => {
-      const draft = await create(); const day = new Date().toISOString().slice(0, 10);
+      const draft = await create(); const day = marketToday();
       expect((await c.http().post(`${BASE}/${draft.id}/spend`).set(A).send({ day, amountMinor: 1000 })).status).toBe(422);
       const k = await activeCampaign();
       for (const bad of [{ day, amountMinor: 0 }, { day, amountMinor: -5 }, { day, amountMinor: 1.5 }, { day: '2999-01-01', amountMinor: 100 }, { day: 'nope', amountMinor: 100 }]) expect([400, 422]).toContain((await c.http().post(`${BASE}/${k.id}/spend`).set(A).send(bad)).status);
@@ -298,7 +300,7 @@ describe('growth campaigns (GRW-P2-A)', () => {
     it('the report equals the approved spend lines and the metric rows of the campaign dimension; counts under 10 and everything resting on them are "<10"; external numbers are "not connected" until an adapter provided them', async () => {
       const k = await activeCampaign({ budgetTotalMinor: 5_000_000, budgetDailyMinor: 2_000_000, channels: ['EMAIL'] });
       await spendLine(k.id, 120_000); await spendLine(k.id, 30_000);
-      const day = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+      const day = new Date(marketToday() + 'T00:00:00Z');
       const row = (metric: string, value: number, extra: Record<string, unknown> = {}) => ({ market: 'EG', day, metric, value, campaignId: k.id, campaign: k.utmCampaign, sourceKind: 'CAMPAIGN', ...extra });
       await c.prisma.growthMetricDaily.createMany({ data: [row('PageViewed', 1000), row('SearchStarted', 400), row('BookingConfirmed', 50), row('BookingAttended', 40), row('AttendedNewPatient', 30), row('RevenueMinor', 120_000), row('RevenueReversedMinor', 0), row('SlotSelected', 5, { sourceKind: 'CAMPAIGN' }), row('PageViewed', 9, { campaignId: 'cmp_other', campaign: 'eg-other' })] });
       const r = (await c.http().get(`${BASE}/${k.id}/report`).set(A).expect(200)).body;
