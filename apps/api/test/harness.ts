@@ -66,7 +66,11 @@ export async function createCtx(opts: { devMarketGate?: boolean } = {}): Promise
       kiorly.reset();
       app.get(KiorlyClient).resetCircuit();
       const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename <> '_prisma_migrations'`;
-      await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(',')} RESTART IDENTITY CASCADE`);
+      // A fire-and-forget write of the previous test (an outbox flush, a visitor-consent insert) can still hold a row lock when the next reset starts; TRUNCATE then loses the deadlock race (40P01, seen once in three full runs). The victim is retried: the other transaction commits and the truncate goes through.
+      for (let attempt = 1; ; attempt++) {
+        try { await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(',')} RESTART IDENTITY CASCADE`); break; }
+        catch (e) { if (attempt >= 6 || !/40P01|deadlock detected|40001/.test(String((e as { message?: string }).message ?? e))) throw e; await new Promise((r) => setTimeout(r, 150 * attempt)); }
+      }
       await flags.seed();
       // TEST FIXTURE — DEV label, not a real gate: Egypt must be live for the booking/search suites (see prisma/seed.ts)
       // direct insert (no audit/bump/outbox) so suites asserting flag versions and outbox contents stay pristine
