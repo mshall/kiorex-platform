@@ -280,8 +280,14 @@ describe('cross-product journeys (GRW-P4-A)', () => {
       expect(await svc.eraseSubject('sub_amira')).toEqual({ entryPointsDeleted: 1 });
       expect(await c.prisma.crossProductEntryPoint.count()).toBe(0);
       expect(await c.prisma.crossProductContinuity.count()).toBe(1);
-      const ex = await c.http().get('/api/v1/me/export').set(auth);
-      expect([200, 202, 404]).toContain(ex.status);
+      // the data export carries the patient's own consent and prompt states (kind and dates, never a hash or a fact id); account deletion erases the prompt states and keeps the keyed links
+      await c.prisma.crossProductEntryPoint.create({ data: { sub: 'sub_amira', kind: 'RX_TO_PHARMACY', factRef: factRef('RX', 'enc_x'), expiresAt: new Date(Date.now() + DAY) } });
+      const ex = (await c.http().post('/api/v1/me/export').set(auth).expect(200)).body;
+      expect(ex.crossProduct.consent).toMatchObject({ granted: true, draftWording: true }); expect(ex.crossProduct.prompts).toEqual([expect.objectContaining({ kind: 'RX_TO_PHARMACY' })]);
+      expect(JSON.stringify(ex.crossProduct)).not.toMatch(/[a-f0-9]{32}|enc_x|factRef/);
+      await c.http().post('/api/v1/me/deletion').set(auth).send({ confirm: true }).expect(200);
+      expect(await c.prisma.crossProductEntryPoint.count({ where: { sub: 'sub_amira' } })).toBe(0);
+      expect(await c.prisma.crossProductContinuity.count()).toBe(1);
     });
     it('the link table is append-only (update and delete are refused by the database) and rejects clear ids and malformed references', async () => {
       await c.prisma.crossProductContinuity.create({ data: { toProduct: 'PHARMACY', entryPoint: 'RX_TO_PHARMACY', fromFactRef: factRef('CLINIC_BOOKING', 'x'), toFactRef: factRef('PHARMACY_ORDER', 'x'), decisionId: 'd', toOrigin: 'CROSS_PRODUCT', parentOrigin: 'MARKETPLACE' } });

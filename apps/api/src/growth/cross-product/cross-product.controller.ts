@@ -7,7 +7,7 @@ import { CrossProductFunnelService } from './continuity-funnel.service';
 import { CrossProductService } from './continuity.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-class ConsentBody { @IsBoolean() granted!: boolean; @IsOptional() @IsIn(['web', 'app']) source?: 'web' | 'app' }
+class ContinuityConsentBody { @IsBoolean() granted!: boolean; @IsOptional() @IsIn(['web', 'app']) source?: 'web' | 'app' }
 
 /**
  * Patient endpoints of the cross-product journeys. The caller is always the verified session; no endpoint takes another person's id. The cards are the patient's own in-app prompts (no message is
@@ -25,7 +25,7 @@ export class CrossProductController {
   consent(@CurrentUser() u: AuthUser) { return this.svc.consentState(u.sub); }
 
   @Put('consent') @HttpCode(200) @ApiOperation({ summary: 'GRW-P4-A grant or withdraw that consent (effective for the next order; withdrawal also dismisses pending prompts)' }) @ApiOkResponse(OBJ)
-  setConsent(@CurrentUser() u: AuthUser, @Body() b: ConsentBody) { return this.svc.setConsent(u.sub, b.granted, b.source ?? 'app'); }
+  setConsent(@CurrentUser() u: AuthUser, @Body() b: ContinuityConsentBody) { return this.svc.setConsent(u.sub, b.granted, b.source ?? 'app'); }
 
   @Post('cards/:id/dismiss') @HttpCode(200) @ApiOperation({ summary: 'GRW-P4-A hide one of my cards' }) @ApiOkResponse(OBJ)
   dismiss(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.dismiss(u.sub, id.slice(0, 40)); }
