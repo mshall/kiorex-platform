@@ -43,3 +43,10 @@ export { isEligible as isCampaignEligible, validateEligibility as validateCampai
 export { AttributionModelsModule } from './attribution-models/attribution-models.module';
 // GRW-P3-A (wave 7, lane A1)
 export { ExperimentsModule, ExposureService as ExperimentExposureService, variantFor as experimentVariantFor, setCookieFor as experimentSetCookieFor, cacheVaryKey as experimentCacheVaryKey } from './experiments/experiments-public';
+// GRW-P2-S (provider-sponsored promotions, Kiorex side, W7 lane A2)
+export { SponsoredPromotionsModule } from './promotions/promotions.module';
+export { PromotionProjectionService } from './promotions/promotion-projection.service';
+export { PromotionReviewService } from './promotions/promotion-review.service';
+export { SponsoredDiscountService, type SponsoredBlock } from './promotions/sponsored-discount.service';
+export { PromotionQuoteService, type SponsoredQuote } from './promotions/promotion-quote.service';
+export { sponsoredPayoutHoldMinor } from './promotions/promotion-math';

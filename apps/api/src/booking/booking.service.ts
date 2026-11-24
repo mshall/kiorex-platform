@@ -12,7 +12,7 @@ import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/k
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
-import { BOOKING_GROWTH, REWARDS_PORT, type BookingGrowthContext, type BookingGrowthPort, type RewardsPort } from '../growth/growth-ports-public';
+import { BOOKING_GROWTH, REWARDS_PORT, SPONSORED_DISCOUNT_PORT, type BookingGrowthContext, type BookingGrowthPort, type RewardsPort, type SponsoredDiscountPort } from '../growth/growth-ports-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddressService, VisitAddress } from '../address/address-public';
 import { addressForLog } from '../common/district';
@@ -42,6 +42,8 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly catalog: CatalogService, private readonly flags: FlagsService,
     private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService, private readonly markets: MarketService,
     private readonly addresses: AddressService, @Inject(BOOKING_GROWTH) private readonly growth: BookingGrowthPort, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort,
+    /** GRW-P2-S: provider-sponsored discounts (flag growth.sponsored_promotions, launch-locked). Absent or OFF: the booking call is byte-identical to before. */
+    @Optional() @Inject(SPONSORED_DISCOUNT_PORT) private readonly sponsored?: SponsoredDiscountPort,
   ) {}
 
   /** Other modules (family share) subscribe to home status changes without this module importing them. */
@@ -293,9 +295,11 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       // KXM-BK-11: Kiorly's marketplace API accepts MARKETPLACE|CLINIC_LINK today; KIOREX_WHATSAPP is sent only once Kiorly accepts it (KIORLY_ACCEPTS_WHATSAPP_CHANNEL)
       channel: b.channel === 'CLINIC_LINK' ? 'CLINIC_LINK' : b.channel === 'WHATSAPP' && cfg().kiorlyAcceptsWhatsappChannel ? 'KIOREX_WHATSAPP' : 'MARKETPLACE', ...(b.channel === 'CLINIC_LINK' ? { bookingPageSlug: (b.patientSnapshot as any)?.bookingPageSlug } : {}),
     };
+    const sd = await this.sponsored?.reserveForConfirm(b).catch(() => null); // GRW-P2-S: null unless a sponsored promotion applies and the Clinic holds its budget
     try {
-      const { data } = await this.kiorly.createBooking(b.id, body); // Idempotency-Key = Kiorex booking id
+      const { data } = await this.kiorly.createBooking(b.id, sd ? { ...body, sponsoredDiscount: sd } : body); // Idempotency-Key = Kiorex booking id
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /bookings', status: data.status });
+      if (sd) await this.sponsored?.onClinicAnswer(id, data?.sponsoredDiscount).catch(() => undefined);
       await this.adopt(id, data, { evidence: identity.nationalId ? 'PHONE_AND_NATIONAL_ID' : 'PHONE' });
     } catch (e) {
       // A duplicate confirm of the same booking can overtake the first one inside Kiorly (same Idempotency-Key, slot already taken by the first request's own insert) and get a
@@ -303,6 +307,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       // a booking that has moved past HELD is returned as it is, exactly like a double click.
       const cur = await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } });
       if (['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(cur.status)) return this.present(cur);
+      if (sd) await this.sponsored?.releaseForBooking(id, 'BOOKING_CALL_FAILED').catch(() => undefined);
       await this.handleConfirmError(b, e);
     }
     return this.present(await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } }));

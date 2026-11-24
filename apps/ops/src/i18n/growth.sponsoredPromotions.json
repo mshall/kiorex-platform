@@ -1,0 +1,234 @@
+{
+  "en": {
+    "growth": {
+      "sponsored": {
+        "nav": "Sponsored promotions",
+        "title": "Provider-sponsored promotions",
+        "hint": "Review the discounts clinics fund from their own credit: wording, scope and the second approver for large ones.",
+        "queue": "Review queue",
+        "queueHint": "A promotion goes live only after the wording and scope are approved here (and by a second approver when it is large).",
+        "ownerNote": "A sponsored promotion is the clinic's discount, funded from the clinic's own provider credit. Kiorex reviews the wording and scope only: it never edits a promotion, never sets the budget and never touches the clinic's wallet. Patients always see \"sponsored by the clinic\".",
+        "filter": "Filter",
+        "filters": {
+          "IN_REVIEW": "In review",
+          "ACTIVE": "Active",
+          "ALL": "All"
+        },
+        "empty": "No promotions here.",
+        "colName": "Promotion",
+        "colOrg": "Organisation",
+        "colStatus": "Status",
+        "colBudget": "Budget",
+        "colReviews": "Reviews",
+        "colUpdated": "Updated",
+        "colBooking": "Booking",
+        "colLine": "Ledger line",
+        "colAmount": "Amount",
+        "status": {
+          "DRAFT": "Draft",
+          "SUBMITTED": "Submitted",
+          "IN_REVIEW": "In review",
+          "APPROVED": "Approved",
+          "ACTIVE": "Active",
+          "PAUSED": "Paused",
+          "EXHAUSTED": "Budget used",
+          "EXPIRED": "Ended",
+          "REJECTED": "Not approved",
+          "ARCHIVED": "Archived"
+        },
+        "kind": {
+          "CONTENT": "Wording",
+          "SCOPE": "Scope",
+          "HIGH_VALUE": "Second approver"
+        },
+        "back": "Back",
+        "patientText": "What the patient reads",
+        "patientTextHint": "Exactly as the clinic wrote it, in both languages.",
+        "sponsorLine": "The patient always sees \"Discount sponsored by <clinic>\" and the end date; it is never shown as a Kiorex discount.",
+        "rules": "Rules",
+        "discount": "Discount",
+        "window": "Window",
+        "careTypes": "Visit types",
+        "care": {
+          "IN_CLINIC": "In clinic",
+          "VIDEO": "Video",
+          "HOME_VISIT": "Home visit"
+        },
+        "highValue": "High value",
+        "secondApprover": "Needs a second approver",
+        "no": "No",
+        "guard": "Automated wording check",
+        "guardHint": "Blocked wording cannot be approved. The word list is a placeholder until counsel confirms the advertising rules.",
+        "guardOk": "No blocked wording",
+        "guardBlocked": "Blocked wording found",
+        "decisions": "Decisions",
+        "decisionsHint": "The author cannot decide. A large promotion needs a second approver who is not the first reviewer.",
+        "readOnly": "You can read this review. Deciding needs a Super Admin or a growth admin.",
+        "pending": "Waiting",
+        "decision": {
+          "APPROVED": "Approved",
+          "REJECTED": "Not approved",
+          "NEEDS_CHANGES": "Changes needed"
+        },
+        "approve": "Approve",
+        "reject": "Reject",
+        "needsChanges": "Ask for changes",
+        "note": "Reason",
+        "noteHint": "Needed to reject or to ask for changes.",
+        "decided": {
+          "APPROVED": "Approved",
+          "REJECTED": "Rejected",
+          "NEEDS_CHANGES": "Changes requested"
+        },
+        "errors": {
+          "generic": "The decision could not be saved.",
+          "REVIEW_ROLE_REQUIRED": "Only a Super Admin or a growth admin can decide.",
+          "SECOND_APPROVER_REQUIRED": "A second, different approver is needed for this review.",
+          "GUARD_BLOCKS_APPROVAL": "The wording check blocks approval. Reject or ask for changes.",
+          "NOTE_REQUIRED": "Write a short reason.",
+          "CLINIC_REFUSED_DECISION": "The clinic system refused the decision.",
+          "CLINIC_UNAVAILABLE": "The clinic system is busy. Try again.",
+          "REVIEW_ALREADY_DECIDED": "This review is already decided.",
+          "PROMOTION_NOT_IN_REVIEW": "The promotion is no longer in review."
+        },
+        "ledger": "Open the sponsored ledger",
+        "ledgerTitle": "Provider-sponsored discount lines",
+        "ledgerHint": "One line per booking. The clinic funds it from its own credit; it is not Kiorex revenue and not a Kiorex expense.",
+        "ledgerEmpty": "No booking uses this promotion yet.",
+        "lineName": "Provider-sponsored discount",
+        "byState": "By state",
+        "bookings": "{{count}} booking(s)",
+        "lineState": {
+          "RESERVED": "Held",
+          "APPLIED": "Applied",
+          "DEBITED": "Debited",
+          "RELEASED": "Released",
+          "REVERSED": "Reversed"
+        }
+      },
+      "sections": {
+        "sponsored-promotions": {
+          "nav": "Sponsored promotions",
+          "title": "Provider-sponsored promotions",
+          "hint": "Review the discounts clinics fund from their own credit: wording, scope and the second approver for large ones."
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "sponsored": {
+        "nav": "العروض برعاية المزوّد",
+        "title": "عروض برعاية مقدمي الخدمة",
+        "hint": "راجع الخصومات التي تموّلها العيادات من رصيدها: الصياغة والنطاق ومعتمد ثانٍ للعروض الكبيرة.",
+        "queue": "قائمة المراجعة",
+        "queueHint": "لا يبدأ العرض إلا بعد اعتماد الصياغة والنطاق هنا (ومن معتمد ثانٍ إذا كان كبيراً).",
+        "ownerNote": "العرض برعاية المزوّد هو خصم العيادة وتموّله من رصيدها الخاص كمزوّد. تراجع كيوركس الصياغة والنطاق فقط: لا تعدّل العرض ولا تحدد الميزانية ولا تلمس محفظة العيادة. يرى المريض دائماً \"برعاية العيادة\".",
+        "filter": "تصفية",
+        "filters": {
+          "IN_REVIEW": "قيد المراجعة",
+          "ACTIVE": "فعّال",
+          "ALL": "الكل"
+        },
+        "empty": "لا توجد عروض هنا.",
+        "colName": "العرض",
+        "colOrg": "المنشأة",
+        "colStatus": "الحالة",
+        "colBudget": "الميزانية",
+        "colReviews": "المراجعات",
+        "colUpdated": "آخر تحديث",
+        "colBooking": "الحجز",
+        "colLine": "بند السجل",
+        "colAmount": "المبلغ",
+        "status": {
+          "DRAFT": "مسودة",
+          "SUBMITTED": "أُرسل",
+          "IN_REVIEW": "قيد المراجعة",
+          "APPROVED": "معتمد",
+          "ACTIVE": "فعّال",
+          "PAUSED": "متوقف مؤقتاً",
+          "EXHAUSTED": "استُنفدت الميزانية",
+          "EXPIRED": "انتهى",
+          "REJECTED": "غير معتمد",
+          "ARCHIVED": "مؤرشف"
+        },
+        "kind": {
+          "CONTENT": "الصياغة",
+          "SCOPE": "النطاق",
+          "HIGH_VALUE": "معتمد ثانٍ"
+        },
+        "back": "رجوع",
+        "patientText": "ما يقرؤه المريض",
+        "patientTextHint": "كما كتبته العيادة بالضبط، باللغتين.",
+        "sponsorLine": "يرى المريض دائماً \"خصم برعاية <العيادة>\" وتاريخ الانتهاء، ولا يُعرض أبداً كخصم من كيوركس.",
+        "rules": "القواعد",
+        "discount": "الخصم",
+        "window": "الفترة",
+        "careTypes": "أنواع الزيارات",
+        "care": {
+          "IN_CLINIC": "في العيادة",
+          "VIDEO": "فيديو",
+          "HOME_VISIT": "زيارة منزلية"
+        },
+        "highValue": "قيمة كبيرة",
+        "secondApprover": "يحتاج معتمداً ثانياً",
+        "no": "لا",
+        "guard": "فحص الصياغة الآلي",
+        "guardHint": "لا يمكن اعتماد صياغة محظورة. قائمة الكلمات مؤقتة إلى أن يؤكد المستشار القانوني قواعد الإعلان.",
+        "guardOk": "لا توجد صياغة محظورة",
+        "guardBlocked": "وُجدت صياغة محظورة",
+        "decisions": "القرارات",
+        "decisionsHint": "لا يمكن لصاحب الطلب أن يقرر. العرض الكبير يحتاج معتمداً ثانياً غير المراجع الأول.",
+        "readOnly": "يمكنك قراءة هذه المراجعة. القرار يحتاج مدير عام أو مدير نمو.",
+        "pending": "في الانتظار",
+        "decision": {
+          "APPROVED": "معتمد",
+          "REJECTED": "غير معتمد",
+          "NEEDS_CHANGES": "مطلوب تعديل"
+        },
+        "approve": "اعتماد",
+        "reject": "رفض",
+        "needsChanges": "طلب تعديل",
+        "note": "السبب",
+        "noteHint": "مطلوب عند الرفض أو طلب التعديل.",
+        "decided": {
+          "APPROVED": "تم الاعتماد",
+          "REJECTED": "تم الرفض",
+          "NEEDS_CHANGES": "طُلب تعديل"
+        },
+        "errors": {
+          "generic": "تعذّر حفظ القرار.",
+          "REVIEW_ROLE_REQUIRED": "القرار للمدير العام أو مدير النمو فقط.",
+          "SECOND_APPROVER_REQUIRED": "يلزم معتمد ثانٍ مختلف لهذه المراجعة.",
+          "GUARD_BLOCKS_APPROVAL": "فحص الصياغة يمنع الاعتماد. ارفض أو اطلب تعديلاً.",
+          "NOTE_REQUIRED": "اكتب سبباً مختصراً.",
+          "CLINIC_REFUSED_DECISION": "رفض نظام العيادة القرار.",
+          "CLINIC_UNAVAILABLE": "نظام العيادة مشغول. حاول مرة أخرى.",
+          "REVIEW_ALREADY_DECIDED": "هذه المراجعة محسومة بالفعل.",
+          "PROMOTION_NOT_IN_REVIEW": "لم يعد العرض قيد المراجعة."
+        },
+        "ledger": "افتح سجل الخصومات المدعومة",
+        "ledgerTitle": "بنود الخصم برعاية المزوّد",
+        "ledgerHint": "بند واحد لكل حجز. تموّله العيادة من رصيدها، وليس إيراداً ولا مصروفاً على كيوركس.",
+        "ledgerEmpty": "لا يستخدم أي حجز هذا العرض بعد.",
+        "lineName": "خصم برعاية المزوّد",
+        "byState": "حسب الحالة",
+        "bookings": "{{count}} حجز",
+        "lineState": {
+          "RESERVED": "محجوز",
+          "APPLIED": "مطبّق",
+          "DEBITED": "مخصوم",
+          "RELEASED": "أُفرج عنه",
+          "REVERSED": "معكوس"
+        }
+      },
+      "sections": {
+        "sponsored-promotions": {
+          "nav": "العروض برعاية المزوّد",
+          "title": "عروض برعاية مقدمي الخدمة",
+          "hint": "راجع الخصومات التي تموّلها العيادات من رصيدها: الصياغة والنطاق ومعتمد ثانٍ للعروض الكبيرة."
+        }
+      }
+    }
+  }
+}

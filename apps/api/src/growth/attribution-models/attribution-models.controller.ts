@@ -9,7 +9,7 @@ import { ModelReportService } from './model-report.service';
 import { ModelRollupJob } from './model-rollup.job';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-class RollupBody { @IsOptional() @IsInt() @Min(1) @Max(120) days?: number }
+class ModelRollupBody { @IsOptional() @IsInt() @Min(1) @Max(120) days?: number }
 const market = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : 'EG');
 
 /**
@@ -28,5 +28,5 @@ export class AttributionModelsController {
   @Get('lift') @ApiOperation({ summary: 'GRW-P3-B experiment-based lift (holdout against exposed) for a P3-A experiment' }) @ApiOkResponse(OBJ)
   lift(@Query('experimentKey') key: string, @Query('market') m?: string) { return this.reports.lift({ experimentKey: String(key ?? '').slice(0, 80), market: market(m) }); }
   @Roles(...rolesFor('manage')) @RequiresFlag(GROWTH_FLAG.ATTRIBUTION) @Post('rollup') @HttpCode(200) @ApiOperation({ summary: 'GRW-P3-B recompute the last N market days (idempotent)' }) @ApiOkResponse(OBJ)
-  rollup(@Body() b: RollupBody, @Query('market') m?: string) { return this.job.runOnce(market(m), b.days ?? 3); }
+  rollup(@Body() b: ModelRollupBody, @Query('market') m?: string) { return this.job.runOnce(market(m), b.days ?? 3); }
 }

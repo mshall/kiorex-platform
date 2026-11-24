@@ -11,6 +11,7 @@ import growthReferrals from "./growth.referrals.json";
 import growthLifecycle from "./growth.lifecycle.json";
 import growthWhatsapp from "./growth.whatsapp.json";
 import growthAttributionModels from "./growth.attributionModels.json";
+import growthSponsored from "./growth.sponsoredPromotions.json";
 import growthExperiments from "./growth.experiments.json";
 import growthFraudV2 from "./growth.fraudV2.json";
 import growthSeoAutomation from "./growth.seoAutomation.json";
@@ -43,7 +44,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar, growthExperiments.ar, growthFraudV2.ar, growthSeoAutomation.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en, growthExperiments.en, growthFraudV2.en, growthSeoAutomation.en) } },
+    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar, growthSponsored.ar, growthExperiments.ar, growthFraudV2.ar, growthSeoAutomation.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en, growthSponsored.en, growthExperiments.en, growthFraudV2.en, growthSeoAutomation.en) } },
     fallbackLng: "en",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

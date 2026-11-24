@@ -5,7 +5,7 @@ import { GROWTH_SECTIONS } from "@/components/growth/sections";
 
 /** GRW-P2-X1: every Phase 2 to 4 route is registered up front; each owning package replaces pages/growth/<name>/Page.tsx. Until then the page is the honest planned state. */
 const PAGES = import.meta.glob("../pages/growth/*/Page.tsx");
-const KEYS = ["campaigns", "approvals", "promotions", "referrals", "rewards", "whatsapp", "assistant", "lifecycle", "experiments", "attribution-models", "cohorts", "review-queue", "onboarding", "recommendations", "corporate", "loyalty"];
+const KEYS = ["campaigns", "approvals", "promotions", "referrals", "rewards", "whatsapp", "assistant", "lifecycle", "experiments", "attribution-models", "sponsored-promotions", "cohorts", "review-queue", "onboarding", "recommendations", "corporate", "loyalty"];
 
 describe("Phase 2 to 4 growth routes", () => {
   it("every route has a page file and a section row with a phase and a package id", () => {

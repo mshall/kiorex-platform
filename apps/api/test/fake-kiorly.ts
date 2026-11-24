@@ -12,6 +12,8 @@ export class FakeKiorly {
   /** clinicianId -> slots (overrides `slots` for in-clinic queries): lets a test give each provider a different earliest slot. */
   slotsByClinician = new Map<string, { startsAt: string; endsAt: string }[]>();
   bookings = new Map<string, any>();
+  /** GRW-P2-S: provider-sponsored promotion commands. `promotionMode`: 'refuse:BUDGET_EXHAUSTED' (409 with that code on reserve), 'down' (503), 'not-applied' (the booking answer says the discount was dropped), 'review-refuse' (409 on a review decision). */
+  promotionMode: string | undefined; promotionReservations = new Map<string, any>(); promotionReviews: any[] = [];
   holds = new Map<string, any>();
   calls: { method: string; path: string; body: any; headers: Record<string, any> }[] = [];
   deposits = new Map<string, any>();
@@ -54,6 +56,7 @@ export class FakeKiorly {
   reset() {
     this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
+    this.promotionMode = undefined; this.promotionReservations.clear(); this.promotionReviews = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
@@ -117,6 +120,20 @@ export class FakeKiorly {
       return send(201, h);
     }
     if (m === 'DELETE' && path.startsWith('/holds/')) return send(200, { ok: true });
+    const pm = path.match(/^\/promotions\/([^/]+)\/(reserve|release|review-decision)$/);
+    if (m === 'POST' && pm) {
+      const [, pid, action] = pm;
+      if (this.promotionMode === 'down') return send(503, { message: 'down' });
+      if (action === 'reserve') {
+        if (this.promotionMode?.startsWith('refuse:')) return send(409, { code: this.promotionMode.slice(7), message: 'refused' });
+        const prior = this.promotionReservations.get(body.idempotencyKey); if (prior) return send(200, { reservationRef: prior.reservationRef, expiresAt: prior.expiresAt });
+        const r = { ...body, promotionId: pid, reservationRef: `prs_fake_${this.promotionReservations.size + 1}`, expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(), state: 'RESERVED' };
+        this.promotionReservations.set(body.idempotencyKey, r); return send(200, { reservationRef: r.reservationRef, expiresAt: r.expiresAt });
+      }
+      if (action === 'release') { const r = [...this.promotionReservations.values()].find((x) => x.reservationRef === body.reservationRef); if (r) r.state = 'RELEASED'; return send(200, { released: !!r }); }
+      if (this.promotionMode === 'review-refuse') return send(409, { code: 'REVIEW_ALREADY_DECIDED', message: 'decided' });
+      this.promotionReviews.push({ promotionId: pid, ...body }); return send(200, { id: pid, status: 'IN_REVIEW' });
+    }
     if (m === 'POST' && path === '/bookings') {
       const key = req.headers['idempotency-key'] as string;
       if (this.bookings.has(key)) return send(200, this.bookings.get(key));
@@ -197,6 +214,7 @@ export class FakeKiorly {
       appointmentId: `apt_${this.bookings.size + 1}`, clinicId: body.clinicId, clinicianId: body.clinicianId, patientId: `pat_${body.patient.phone}`, typeId: body.typeId, startsAt: body.startsAt, endsAt: body.endsAt,
       status: this.autoConfirm ? 'CONFIRMED' : 'SCHEDULED', externalReference: key, bookingSource: 'KIOREX_MARKETPLACE', marketplaceConfirmationDueAt: this.autoConfirm ? null : new Date(Date.now() + 3600_000).toISOString(),
       cancelledBy: null, cancellationReason: null, depositRefundable: null, rescheduleCount: 0,
+      ...(body.sponsoredDiscount ? { sponsoredDiscount: this.promotionMode === 'not-applied' ? { applied: false, promotionId: body.sponsoredDiscount.promotionId, reservationRef: body.sponsoredDiscount.reservationRef, reason: 'NOT_NEW_TO_CLINIC' } : { applied: true, promotionId: body.sponsoredDiscount.promotionId, reservationRef: body.sponsoredDiscount.reservationRef, amountMinor: body.sponsoredDiscount.amountMinor, currency: body.sponsoredDiscount.currency } } : {}),
     };
   }
   private send(res: ServerResponse, status: number, body: any) {

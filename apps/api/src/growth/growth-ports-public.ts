@@ -81,3 +81,15 @@ export interface ProductGrowthPort {
   acquisitionBlock(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date }): Promise<ProductAcquisitionBlockOut | null>;
 }
 export const PRODUCT_GROWTH = 'GROWTH_PRODUCT_PORT';
+
+// ───────────── GRW-P2-S (wave 7): the booking module reaches provider-sponsored discounts through this port only ─────────────
+export interface SponsoredBlockOut { promotionId: string; promotionVersion: number; reservationRef: string; amountMinor: number; currency: string }
+export interface SponsoredDiscountPort {
+  /** Quotes, asks the Clinic to reserve budget and returns the optional `sponsoredDiscount` block of the booking call; null when nothing applies or the flag is OFF. Never throws: the booking goes on at the full price. */
+  reserveForConfirm(b: { id: string; sub: string; tenantId: string | null; clinicId: string; clinicianId: string; typeId: string; startsAt: Date; feeMinor: number | null; currency: string; serviceLocation: string; telehealth: unknown; providerId: string }): Promise<SponsoredBlockOut | null>;
+  /** The Clinic's answer to the booking call (`sponsoredDiscount.applied`). */
+  onClinicAnswer(bookingId: string, answer: { applied?: boolean; reservationRef?: string } | undefined | null): Promise<void>;
+  /** The booking call failed or the booking died before the Clinic confirmed it: give the budget back (best effort). */
+  releaseForBooking(bookingId: string, reason?: string): Promise<void>;
+}
+export const SPONSORED_DISCOUNT_PORT = 'SPONSORED_DISCOUNT_PORT';

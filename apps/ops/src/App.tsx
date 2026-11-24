@@ -64,6 +64,9 @@ const GrowthLifecycleSendGatePage = lazy(() => import("@/pages/growth/lifecycle/
 const GrowthLifecycleSuppressionPage = lazy(() => import("@/pages/growth/lifecycle/SuppressionPage"));
 const GrowthExperimentsPage = lazy(() => import("@/pages/growth/experiments/Page"));
 const GrowthAttributionModelsPage = lazy(() => import("@/pages/growth/attribution-models/Page"));
+const GrowthSponsoredPage = lazy(() => import("@/pages/growth/sponsored-promotions/Page")); // GRW-P2-S
+const GrowthSponsoredReviewPage = lazy(() => import("@/pages/growth/promotions/PromotionReviewPage"));
+const GrowthSponsoredLedgerPage = lazy(() => import("@/pages/growth/promotions/PromotionLedgerPage"));
 const GrowthCohortsPage = lazy(() => import("@/pages/growth/cohorts/Page"));
 const GrowthReviewQueuePage = lazy(() => import("@/pages/growth/review-queue/Page"));
 const GrowthOnboardingPage = lazy(() => import("@/pages/growth/onboarding/Page"));
@@ -137,6 +140,9 @@ export function AppRoutes() {
           <Route path="growth/lifecycle/:key" element={<GrowthLifecycleJourneyPage />} />
           <Route path="growth/experiments" element={<GrowthExperimentsPage />} />
           <Route path="growth/attribution-models" element={<GrowthAttributionModelsPage />} />
+          <Route path="growth/sponsored-promotions" element={<GrowthSponsoredPage />} />
+          <Route path="growth/sponsored-promotions/:id" element={<GrowthSponsoredReviewPage />} />
+          <Route path="growth/sponsored-promotions/:id/ledger" element={<GrowthSponsoredLedgerPage />} />
           <Route path="growth/cohorts" element={<GrowthCohortsPage />} />
           <Route path="growth/review-queue" element={<GrowthReviewQueuePage />} />
           <Route path="growth/onboarding" element={<GrowthOnboardingPage />} />
