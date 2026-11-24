@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { BookingIntent, Prisma, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
@@ -12,6 +12,7 @@ import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/k
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
+import { BOOKING_GROWTH, type BookingGrowthContext, type BookingGrowthPort } from '../growth/growth-ports-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddressService, VisitAddress } from '../address/address-public';
 import { addressForLog } from '../common/district';
@@ -22,6 +23,8 @@ export interface CreateIntentInput {
   providerId: string; typeId: string; startsAt: string; endsAt?: string; dependantId?: string; channel?: 'MARKETPLACE' | 'CLINIC_LINK' | 'WHATSAPP'; bookingPageSlug?: string;
   /** Rev 2.3 (KXMHV02/03): HOME visits carry the patient's address-book entry; the fee entry of `typeId` decides the location, this only guards mismatches. */
   serviceLocation?: 'IN_CLINIC' | 'HOME'; addressId?: string; carePlanId?: string;
+  /** GRW-P1-C: signed in-session provider link token (`lt`) the request carried. Verified by the attribution function, never trusted here. */
+  lt?: string;
 }
 /** Home sub-state change delivered to listeners (family share, KXMHV07). Carries NO address. */
 export type HomeStatusKind = 'ASSIGNED' | 'EN_ROUTE' | 'ARRIVED' | 'FINISHED' | 'ABORTED_UNSAFE' | 'CONFIRMED';
@@ -38,7 +41,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly catalog: CatalogService, private readonly flags: FlagsService,
     private readonly patients: PatientService, private readonly pay: PayService, private readonly engagement: EngagementService, private readonly outbox: OutboxService, private readonly markets: MarketService,
-    private readonly addresses: AddressService,
+    private readonly addresses: AddressService, @Inject(BOOKING_GROWTH) private readonly growth: BookingGrowthPort,
   ) {}
 
   /** Other modules (family share) subscribe to home status changes without this module importing them. */
@@ -81,8 +84,17 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const r = await this.prisma.bookingIntent.updateMany({ where: { id: b.id, status: b.status }, data: { ...patch, status: to, version: { increment: 1 }, ...(isTerminal(to) ? { terminalAt: new Date() } : {}) } });
     if (!r.count) return null;
     await this.ev(b.id, 'STATE', detail, b.status, to);
+    await this.growthFact(b, to, detail);
     if (isTerminal(to) && b.serviceLocation === 'HOME') await this.addresses.scheduleMask(b.id); // KXMHV10: doorstep lines hidden 24 h after the visit
     return this.prisma.bookingIntent.findUniqueOrThrow({ where: { id: b.id } });
+  }
+
+  /** KX-32 section 06 mapping: BookingConfirmed from CONFIRMED, BookingAttended from CHECKED_IN or COMPLETED, BookingCancelled from CANCELLED. Duplicate facts are suppressed by the growth stream. */
+  private async growthFact(b: BookingIntent, to: BookingStatus, detail?: unknown) {
+    const d = (detail ?? {}) as { newPatient?: boolean; via?: string };
+    if (to === 'CONFIRMED') await this.growth.fact('BookingConfirmed', b, 'EG');
+    else if (to === 'CHECKED_IN' || to === 'COMPLETED') { if (to === 'COMPLETED') await this.growth.onCompleted(b.id); await this.growth.fact('BookingAttended', b, 'EG', d.newPatient === undefined ? {} : { bucket: d.newPatient ? 'new' : 'returning' }); }
+    else if (to === 'CANCELLED') await this.growth.fact('BookingCancelled', b, 'EG', { reason: d.via === 'CANCELLED_BY_PATIENT' ? 'patient' : d.via === 'CANCELLED_BY_CLINIC' ? 'clinic' : 'other' });
   }
 
   private doctorParams(p: Provider | null, b: BookingIntent) {
@@ -156,7 +168,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── create intent + hold (KXM-BK-02) ─────────────
 
-  async createIntent(sub: string, i: CreateIntentInput) {
+  async createIntent(sub: string, i: CreateIntentInput, g: BookingGrowthContext = {}) {
     const p = await this.prisma.provider.findUnique({ where: { id: i.providerId } });
     if (!p) throw notFound('PROVIDER_NOT_FOUND', 'Provider not found');
     await this.markets.assertLive(p.market);
@@ -190,17 +202,19 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const end = i.endsAt ? new Date(i.endsAt) : new Date(start.getTime() + 30 * 60_000);
     const surcharge = home && fee?.homeSurcharge ? Math.round(Number(fee.homeSurcharge) * 100) : 0; // BR56: a separate invoice line, outside S and C
     let b = await this.prisma.bookingIntent.create({
-      data: { id, sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, startsAt: start, endsAt: end, status: 'INTENT', channel: i.channel ?? 'MARKETPLACE', currency: p.currency, feeMinor: this.catalog.feeFor(p, i.typeId), depositStatus: dep.required ? 'REQUIRED' : 'NONE', depositAmountMinor: dep.amountMinor, holdExternalRef: `${id}:hold`, patientSnapshot: i.bookingPageSlug ? ({ bookingPageSlug: i.bookingPageSlug } as any) : undefined,
+      data: { id, sub, dependantId: i.dependantId, providerId: p.id, clinicId: p.clinicId, clinicianId: p.clinicianId, tenantId: p.tenantId, typeId: i.typeId, startsAt: start, endsAt: end, status: 'INTENT', channel: i.channel ?? 'MARKETPLACE', currency: p.currency, feeMinor: this.catalog.feeFor(p, i.typeId), depositStatus: dep.required ? 'REQUIRED' : 'NONE', depositAmountMinor: dep.amountMinor, holdExternalRef: `${id}:hold`, patientSnapshot: i.bookingPageSlug || i.lt ? ({ ...(i.bookingPageSlug ? { bookingPageSlug: i.bookingPageSlug } : {}), ...(i.lt ? { growthLt: i.lt.slice(0, 600) } : {}) } as any) : undefined,
         serviceLocation: location, careType: p.careType, visitDistrict: addressRow?.district, homeSurchargeMinor: surcharge, carePlanId: i.carePlanId },
     });
     if (home && addressRow) await this.addresses.snapshot(id, sub, addressRow); // KXMHV03: the address lives under the patient + this encrypted snapshot, never on the provider projection
     await this.ev(id, 'INTENT', { providerId: p.id, typeId: i.typeId, serviceLocation: location, ...(home ? { address: addressForLog({ district: addressRow?.district, governorate: addressRow?.governorate }) } : {}), ...((dep as any).policy ? { depositPolicy: (dep as any).policy } : {}) });
+    await this.growth.onIntent(b, p.market, { ...g, platform: i.channel === 'WHATSAPP' ? 'whatsapp' : g.platform }); // SlotSelected + BookingInitiated (idempotent facts)
     await this.catalog.track('hold_created', { providerId: p.id, specialtyCode: p.specialty ?? undefined, careType: p.careType, serviceLocation: location, district: addressRow?.district });
     try {
       const { data } = await this.kiorly.createHold({ clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, startsAt: start.toISOString(), endsAt: end.toISOString(), externalRef: b.holdExternalRef!, ...(visit ? { visitAddress: visit } : {}) });
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /holds', holdId: data.id });
       const exp = data.expiresAt ? new Date(data.expiresAt) : new Date(Date.now() + cfg().holdMinutes * 60_000);
       b = (await this.move(b, 'HELD', { holdId: data.id, holdExpiresAt: exp }, { holdId: data.id })) ?? b;
+      await this.growth.decide(id, { ...g, lt: i.lt }); // GRW-P1-C: the decision is stored before any Clinic booking call, so a confirm retry reuses it
     } catch (e) {
       if (e instanceof KiorlyHttpError && e.status === 409) {
         await this.move(b, 'EXPIRED', { failureCode: 'SLOT_TAKEN' }, { alternatives: e.body?.alternatives });
@@ -230,7 +244,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
 
   // ───────────── idempotent confirm (KXM-BK-03/05/06) ─────────────
 
-  async confirm(sub: string, id: string, c: ConfirmInput) {
+  async confirm(sub: string, id: string, c: ConfirmInput, g: BookingGrowthContext = {}) {
     let b = await this.owned(sub, id);
     await this.flags.assertEnabled('kiorex.marketplace', { market: 'EG' });
     if (['PENDING_CLINIC', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(b.status)) return this.present(b); // double click: same result
@@ -249,11 +263,13 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       if (found === 'UNAVAILABLE') throw unavailable('CLINIC_SYSTEM_BUSY', 'Clinic system busy; your booking is pending and will be retried', { bookingId: id, status: 'HELD', retryable: true });
     }
     const identity = await this.patients.bookingIdentity(sub, b.dependantId ?? undefined);
-    await this.prisma.bookingIntent.update({ where: { id }, data: { callState: 'IN_FLIGHT', patientSnapshot: { forDependant: identity.forDependant } as any } });
+    await this.prisma.bookingIntent.update({ where: { id }, data: { callState: 'IN_FLIGHT', patientSnapshot: { ...((b.patientSnapshot as Record<string, unknown> | null) ?? {}), forDependant: identity.forDependant } as any } });
+    const gx = await this.growth.forConfirm(id, { ...g, lt: (b.patientSnapshot as { growthLt?: string } | null)?.growthLt ?? g.lt }); // {} when growth.attribution is OFF: the request is then byte-identical to before
     const body = {
       clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,
       patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn, gender: identity.gender, nationalId: identity.nationalId, email: identity.email },
       notes: c.notes, marketplaceConsentGranted: true, remindersConsentGranted: !!c.remindersConsent, attribution: { source: b.channel === 'WHATSAPP' ? 'kiorex_whatsapp' : 'kiorex' },
+      ...(gx.acquisition ? { acquisition: gx.acquisition } : {}), ...(gx.lt ? { lt: gx.lt } : {}), // GRW-P1-C: signed acquisition block (contracts 1.10.0) and the verified provider-link token
       ...(b.serviceLocation === 'HOME' ? { serviceLocation: 'HOME' } : {}), // the address itself is carried from the hold (KX-09 §03/§08): not re-sent
       // KXM-BK-11: Kiorly's marketplace API accepts MARKETPLACE|CLINIC_LINK today; KIOREX_WHATSAPP is sent only once Kiorly accepts it (KIORLY_ACCEPTS_WHATSAPP_CHANNEL)
       channel: b.channel === 'CLINIC_LINK' ? 'CLINIC_LINK' : b.channel === 'WHATSAPP' && cfg().kiorlyAcceptsWhatsappChannel ? 'KIOREX_WHATSAPP' : 'MARKETPLACE', ...(b.channel === 'CLINIC_LINK' ? { bookingPageSlug: (b.patientSnapshot as any)?.bookingPageSlug } : {}),
@@ -534,7 +550,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const patch: Record<string, unknown> = {};
     if (to === 'CANCELLED') { patch.cancelledBy = meta.cancelledBy ?? (eventType === 'CANCELLED_BY_PATIENT' ? 'PATIENT' : 'CLINIC'); patch.cancellationReason = meta.cancellationReason ?? null; patch.depositRefundable = typeof meta.depositRefundable === 'boolean' ? meta.depositRefundable : null; }
     if (eventType === 'HOME_VISIT_ABORTED_UNSAFE') { Object.assign(patch, { cancelledBy: 'SAFETY', cancellationReason: 'UNSAFE_ABORT', depositRefundable: null, homeState: 'ABORTED_UNSAFE', abortedAt: meta.abortedAt ? new Date(meta.abortedAt) : new Date() }); }
-    const moved = await this.move(cur, to, patch, { via: eventType });
+    const moved = await this.move(cur, to, patch, { via: eventType, ...(typeof meta.isNewPatientAtBooking === 'boolean' ? { newPatient: meta.isNewPatientAtBooking } : {}) });
     if (!moved) return;
     await this.sideEffects(moved, eventType, meta);
   }

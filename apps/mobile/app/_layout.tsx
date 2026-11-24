@@ -19,6 +19,7 @@ import { ApiError } from "@/api/errors";
 import { api } from "@/api/client";
 import { usePushRouting } from "@/hooks/usePushRouting";
 import { useDeepLinkRouting } from "@/hooks/useDeepLinkRouting";
+import { flushGrowth, recordInstallOnce, trackGrowth } from "@/lib/growth";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +36,7 @@ const queryClient = new QueryClient({
 function Shell() {
   usePushRouting();
   useDeepLinkRouting();
+  useEffect(() => { void recordInstallOnce(); trackGrowth("PageViewed", { landingKind: "APP_OPEN" }); void flushGrowth(); }, []); // GRW-P1-J: AppInstalled once per install, one app-open view; sent only per growth consent
   const { t, i18n } = useTranslation();
   const { colors, scheme } = useTheme();
   const common = { headerStyle: { backgroundColor: colors.surface }, headerShadowVisible: false, animation: "slide_from_right" as const, headerLargeTitleShadowVisible: false, headerTintColor: colors.ink, headerTitleStyle: { fontFamily: fontFamily(i18n.language, "semibold"), color: colors.text }, contentStyle: { backgroundColor: colors.ground }, headerBackButtonDisplayMode: "minimal" as const };

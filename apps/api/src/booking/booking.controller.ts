@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Headers, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
@@ -17,6 +17,8 @@ class CreateBody {
   /** Rev 2.3 home visits (KXMHV02/03): HOME needs an address-book entry; the visit type's fee entry decides the location. */
   @IsOptional() @IsIn(['IN_CLINIC', 'HOME']) serviceLocation?: 'IN_CLINIC' | 'HOME';
   @IsOptional() @IsString() addressId?: string;
+  /** GRW-P1-C: signed in-session provider-link token carried from the provider's link, QR or widget. Optional; a forged or expired token is ignored, never an error. */
+  @IsOptional() @IsString() @MaxLength(600) lt?: string;
 }
 class ConfirmBody {
   @IsBoolean() marketplaceConsent!: boolean;
@@ -26,6 +28,18 @@ class ConfirmBody {
 class CancelBody { @IsOptional() @IsString() @MaxLength(500) reason?: string }
 class RescheduleBody { @IsDateString() startsAt!: string; @IsOptional() @IsDateString() endsAt?: string }
 
+type GrowthReq = { headers: Record<string, string | string[] | undefined> };
+const VISITOR_KEY = /^kxv_[A-Za-z0-9_-]{16,64}$/;
+const PLATFORMS = new Set(['web', 'ios', 'android', 'whatsapp', 'widget']);
+/** Visitor key for attribution: header `X-KX-Visitor` (apps) or the `kxv` cookie (web). Only a well-formed key is used; consent is re-checked by the attribution service. */
+export function growthContextOf(req: GrowthReq, platformHeader?: string) {
+  const h = (n: string) => { const v = req.headers[n]; return Array.isArray(v) ? v[0] : v; };
+  const cookie = /(?:^|;\s*)kxv=([^;]+)/.exec(h('cookie') ?? '')?.[1];
+  const raw = h('x-kx-visitor') ?? cookie;
+  const pf = (platformHeader ?? h('x-kx-platform') ?? '').toLowerCase();
+  return { visitorKey: raw && VISITOR_KEY.test(raw) ? raw : null, platform: PLATFORMS.has(pf) ? pf : undefined };
+}
+
 @ApiTags('booking')
 @Controller()
 export class BookingController {
@@ -34,12 +48,12 @@ export class BookingController {
   @ApiCreatedResponse({ type: BookingDto })
 
   @Post('bookings') @ApiOperation({ summary: 'KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered' })
-  create(@CurrentUser() u: AuthUser, @Body() b: CreateBody) { return this.svc.createIntent(u.sub, b); }
+  create(@CurrentUser() u: AuthUser, @Body() b: CreateBody, @Req() req: GrowthReq, @Headers('x-kx-platform') platform?: string) { return this.svc.createIntent(u.sub, b, growthContextOf(req, platform)); }
 
   @ApiOkResponse({ type: BookingDto })
 
   @Post('bookings/:id/confirm') @HttpCode(200) @ApiOperation({ summary: 'KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id)' })
-  confirm(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ConfirmBody) { return this.svc.confirm(u.sub, id, b); }
+  confirm(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ConfirmBody, @Req() req: GrowthReq, @Headers('x-kx-platform') platform?: string) { return this.svc.confirm(u.sub, id, b, growthContextOf(req, platform)); }
 
   @ApiOkResponse({ type: BookingDto })
 

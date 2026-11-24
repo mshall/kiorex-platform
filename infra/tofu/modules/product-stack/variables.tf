@@ -239,6 +239,18 @@ variable "lead_signing_secret_inject" {
   default     = false
 }
 
+variable "growth_link_token_secret" {
+  description = "GRW-P1-C: create the EMPTY Secrets Manager container for the growth link token secret (kiorex-platform only: /kiorex-platform/<env>/growth-link-token = GROWTH_LINK_TOKEN_SECRET, at least 16 characters). The value is written by a human, never by OpenTofu. Without it the API treats `kxl1.` tokens as invalid in production (no guessable key)."
+  type        = bool
+  default     = false
+}
+
+variable "growth_link_token_secret_inject" {
+  description = "Wire the container into the App Runner runtime env. Set true ONLY after a value was written (App Runner cannot start an instance whose secret has no value). Requires growth_link_token_secret."
+  type        = bool
+  default     = false
+}
+
 variable "placeholder_secrets" {
   description = "Secret containers populated by a human (PSP keys, HMAC client secrets, WhatsApp tokens)."
   type        = set(string)

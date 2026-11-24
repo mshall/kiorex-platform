@@ -85,3 +85,7 @@ enable_demo_seed = false # Q10: never seed demo data in prod (the plan fails if 
 #   1. tofu apply (creates the container)  2. kiorex-platform/scripts/setup-partner-lead-secret.sh prod  3. set lead_signing_secret_inject = true and apply.
 lead_signing_secret        = true
 lead_signing_secret_inject = false
+
+# GRW-P1-C growth link token secret: 1. tofu apply with growth_link_token_secret = true (EMPTY container)  2. a human writes the value (>= 16 chars)  3. set growth_link_token_secret_inject = true and apply. NEEDS_HUMAN (CTO, secrets).
+growth_link_token_secret        = false
+growth_link_token_secret_inject = false

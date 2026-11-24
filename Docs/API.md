@@ -51,7 +51,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered |
+| POST | `/api/v1/bookings` | KXM-BK-02 create intent and 5-minute hold; 409 SLOT_TAKEN carries alternatives (BK-04). HOME visit types need addressId (KXMHV03); 422 OUT_OF_COVERAGE when the district is not covered; optional signed provider-link `lt`, header `X-KX-Visitor` or cookie `kxv` feed the GRW-P1-C attribution decision |
 | GET | `/api/v1/bookings` |  |
 | POST | `/api/v1/bookings/{id}/confirm` | KXM-BK-03/05/06 idempotent confirm (Kiorly Idempotency-Key = booking id) |
 | POST | `/api/v1/bookings/{id}/release` |  |
@@ -136,6 +136,28 @@
 | GET | `/api/v1/health/live` |  |
 | GET | `/api/v1/health/providers` |  |
 | GET | `/api/v1/health/ready` |  |
+
+## growth
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/ops/growth-analytics/overview` | GRW-P1-J executive overview (k >= 10; GBV is never revenue) |
+| GET | `/api/v1/ops/growth-analytics/funnel` | GRW-P1-J canonical funnel with step and cumulative conversion (k >= 10) |
+| GET | `/api/v1/ops/growth-analytics/channels` | GRW-P1-J channel table: bookings, ANP, spend, CAC, ROAS, LTV to CAC (k >= 10) |
+| GET | `/api/v1/ops/growth-analytics/breakdown/{dimension}` | GRW-P1-J breakdown by city, district, specialty, provider, doctor, branch, campaign, channel, platform, careType, sourceKind or origin (k >= 10) |
+| GET | `/api/v1/ops/growth-analytics/cohorts` | GRW-P1-J acquisition cohort retention at 30, 90 and 180 days (closed windows only; k >= 10) |
+| GET | `/api/v1/ops/growth-analytics/unit-economics` | GRW-P1-J LTV inputs and definitions |
+| GET | `/api/v1/ops/growth-analytics/export/{report}` | GRW-P1-J CSV export with the same k >= 10 masking |
+| GET | `/api/v1/ops/growth-analytics/spend` | GRW-P1-J spend entries (manual; maker-checker) |
+| POST | `/api/v1/ops/growth-analytics/spend` | GRW-P1-J enter a spend line (PENDING until a different ops user approves it) |
+| POST | `/api/v1/ops/growth-analytics/spend/{id}/approve` | GRW-P1-J approve a spend line (not the author) |
+| POST | `/api/v1/ops/growth-analytics/spend/{id}/reject` | GRW-P1-J reject a spend line (not the author) |
+| POST | `/api/v1/ops/growth-analytics/rollup` | GRW-P1-J recompute the daily rollups for the last N days (idempotent) |
+| GET | `/api/v1/growth/v1/provider-analytics/overview` | GRW-P1-J provider overview (own organisation, signed partner, k >= 10) |
+| GET | `/api/v1/growth/v1/provider-analytics/funnel` | GRW-P1-J provider booking funnel (own organisation) |
+| GET | `/api/v1/growth/v1/provider-analytics/channels` | GRW-P1-J provider channel table (own organisation) |
+| GET | `/api/v1/growth/v1/provider-analytics/cohorts` | GRW-P1-J provider cohort retention (own organisation) |
+| GET | `/api/v1/growth/v1/provider-analytics/export/{report}` | GRW-P1-J provider CSV export (same masking) |
 
 ## home-visits
 

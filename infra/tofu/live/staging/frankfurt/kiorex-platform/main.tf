@@ -85,8 +85,11 @@ module "kiorex_platform" {
   placeholder_secrets        = var.placeholder_secrets
   lead_signing_secret        = var.lead_signing_secret
   lead_signing_secret_inject = var.lead_signing_secret_inject
-  scheduled_jobs             = var.scheduled_jobs
-  safety_alerts              = var.safety_alerts
+
+  growth_link_token_secret        = var.growth_link_token_secret
+  growth_link_token_secret_inject = var.growth_link_token_secret_inject
+  scheduled_jobs                  = var.scheduled_jobs
+  safety_alerts                   = var.safety_alerts
 
   alarm_emails          = var.alarm_emails
   alarm_webhook_urls    = var.alarm_webhook_urls

@@ -18,6 +18,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
 import VisitStatusPage from "@/pages/VisitStatusPage";
 import { ConsentBanner, LandingTouch } from "@/components/consent";
+import { GrowthPageViews } from "@/components/growth/GrowthPageViews";
 
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const AppointmentsPage = lazy(() => import("@/pages/AppointmentsPage"));
@@ -114,6 +115,7 @@ export default function App() {
                 <AppRoutes />
                 <ConsentBanner />
                 <LandingTouch />
+                <GrowthPageViews />
               </BrowserRouter>
               <Toaster position="top-center" offset={76} dir="auto" />
             </TooltipProvider>

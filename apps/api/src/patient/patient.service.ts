@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { PatientProfile } from '../prisma/generated/client';
 import { blindIndex, decryptField, encryptField } from '../common/crypto';
 import { badRequest, forbidden, notFound } from '../common/errors';
@@ -6,6 +6,8 @@ import { AuthUser } from '../common/auth';
 import { AuthSessionService } from '../auth/auth-public';
 import { MarketService } from '../market/market-public';
 import { OutboxService } from '../outbox/outbox-public';
+import { GROWTH_FACTS, type GrowthFactsPort } from '../growth/growth-ports-public';
+import { subRefOf } from '../common/privacy-hash';
 import { PrismaService } from '../prisma/prisma.service';
 import { ALL_CONSENT_PURPOSES, ConsentService, CORE_CONSENT_PURPOSES, type SetConsentOpts } from './consent/consent.service';
 
@@ -27,7 +29,7 @@ const AGE_OF_MAJORITY = 18;
 export class PatientService implements OnModuleInit {
   private exporters = new Map<string, Contributor>();
   private anonymizers = new Map<string, Contributor>();
-  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService, private readonly markets: MarketService, private readonly consentSvc: ConsentService) {}
+  constructor(private readonly prisma: PrismaService, private readonly sessions: AuthSessionService, private readonly outbox: OutboxService, private readonly markets: MarketService, private readonly consentSvc: ConsentService, @Optional() @Inject(GROWTH_FACTS) private readonly growthFacts?: GrowthFactsPort) {}
 
   onModuleInit() {
     this.outbox.register('subject.deleted', async (e) => {
@@ -43,7 +45,10 @@ export class PatientService implements OnModuleInit {
   async ensureProfile(u: AuthUser): Promise<PatientProfile> {
     const existing = await this.prisma.patientProfile.findUnique({ where: { sub: u.sub } });
     if (existing) return existing;
-    return this.prisma.patientProfile.create({ data: { sub: u.sub, phone: u.phone, nameEn: u.name, preferredLocale: u.locale === 'en' ? 'en' : 'ar' } });
+    const created = await this.prisma.patientProfile.create({ data: { sub: u.sub, phone: u.phone, nameEn: u.name, preferredLocale: u.locale === 'en' ? 'en' : 'ar' } });
+    // GRW-P1-J: PatientRegistered, once per person (keyed reference as the natural key, never the sub), best effort
+    await this.growthFacts?.recordFact({ name: 'PatientRegistered', naturalKey: subRefOf(u.sub), props: {} }).catch(() => undefined);
+    return created;
   }
 
   present(p: PatientProfile) {

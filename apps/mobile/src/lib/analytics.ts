@@ -49,6 +49,10 @@ export function mapKeywordToSpecialty(q: string): string | null {
   return null;
 }
 
+import { trackGrowth } from "./growth";
+/** Legacy product events that are also canonical funnel stages (GRW-P1-J); the canonical event carries NO specialty or provider. */
+const CANONICAL: Partial<Record<AnalyticsEvent, "SearchStarted" | "ResultsViewed">> = { search_started: "SearchStarted", results_viewed: "ResultsViewed" };
+
 let sink: Sink | null = null;
 let queue: Evt[] = [];
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -65,6 +69,7 @@ export function flushAnalytics() {
 
 export function track(name: AnalyticsEvent, props?: Props) {
   if (!(CLIENT_EVENTS as readonly string[]).includes(name)) return;
+  const canonical = CANONICAL[name]; if (canonical) trackGrowth(canonical, { careType: "DOCTORS" });
   queue.push({ name, props: sanitize(props) });
   timer ??= setTimeout(flushAnalytics, 1500);
 }

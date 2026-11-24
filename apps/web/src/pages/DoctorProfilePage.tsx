@@ -1,3 +1,4 @@
+import { trackGrowth } from "@/lib/growth";
 import { districtLabel } from "@/lib/districts";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -53,6 +54,9 @@ export default function DoctorProfilePage() {
   const desktop = useMediaQuery("(min-width: 1024px)");
   const [sheetOpen, setSheetOpen] = useState(false);
   const { status: authStatus } = useAuth();
+
+  // GRW-P1-J: one ProviderViewed per profile view (care type only: the stream never carries a provider id)
+  useEffect(() => { if (doctor.data) trackGrowth("ProviderViewed", { landingKind: "DOCTOR", careType: "DOCTORS" }); }, [doctor.isSuccess, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const homeFlag = useFeature("kiorex.home_visits");
   const [locSel, setLocSel] = useState<ServiceLocation | null>(sp.get("loc") === "home" ? "HOME" : null);

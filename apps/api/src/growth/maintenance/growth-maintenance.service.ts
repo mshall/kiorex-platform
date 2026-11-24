@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { subRefOf } from '../../common/privacy-hash';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DEFAULT_RETENTION } from '../config/growth-defaults';
 
@@ -16,7 +17,10 @@ export class GrowthMaintenanceService {
 
   async eraseSubject(sub: string): Promise<EraseResult> {
     const rows = await this.prisma.$queryRaw<{ r: EraseResult }[]>`SELECT growth_erase_subject(${sub}) AS r`;
-    return rows[0].r;
+    // GRW-P1-J: the PatientRegistered fact is keyed by the person's pseudonymous reference, so it leaves with the person (it is a plain row, not append-only)
+    const registered = await this.prisma.growthEvent.deleteMany({ where: { dedupeKey: `fact|PatientRegistered|${subRefOf(sub)}` } });
+    const r = rows[0].r;
+    return { ...r, eventsDeleted: Number(r.eventsDeleted) + registered.count };
   }
 
   async purgeExpired(opts: { now?: Date; linkedMonths?: number; unlinkedMonths?: number } = {}): Promise<PurgeResult> {

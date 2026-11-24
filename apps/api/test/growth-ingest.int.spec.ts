@@ -27,11 +27,11 @@ describe('growth touch, events and visitor consent', () => {
       expect(await c.prisma.growthEvent.count()).toBe(0);
     });
     it('a verified lt token is honoured without consent but stores nothing; a forged or expired token is a 400', async () => {
-      const ok = issueLinkToken(linkTokenKey(), { orgRef: 'org_A', linkCode: '7K2M9X4Q' });
+      const ok = issueLinkToken(linkTokenKey()!, { orgRef: 'org_A', linkCode: '7K2M9X4Q' });
       expect((await touch({ landingKind: 'PROVIDER_LINK', lt: ok }).expect(202)).body.visitorKeySet).toBe(false);
       expect(await c.prisma.growthTouchpoint.count()).toBe(0);
       expect((await touch({ landingKind: 'PROVIDER_LINK', lt: ok.slice(0, -2) + 'xx' }).expect(400)).body.code).toBe('GROWTH_LINK_TOKEN_INVALID');
-      const old = issueLinkToken(linkTokenKey(), { orgRef: 'org_A', linkCode: 'x', now: Date.now() - 2 * 3600_000 });
+      const old = issueLinkToken(linkTokenKey()!, { orgRef: 'org_A', linkCode: 'x', now: Date.now() - 2 * 3600_000 });
       expect((await touch({ landingKind: 'PROVIDER_LINK', lt: old }).expect(400)).body.code).toBe('GROWTH_LINK_TOKEN_EXPIRED');
     });
     it('consent header but the launch-locked flag growth.analytics_visitor not unlocked (counsel gate): still nothing is stored', async () => {
@@ -83,11 +83,11 @@ describe('growth touch, events and visitor consent', () => {
       expect(await c.prisma.growthTouchpoint.count()).toBe(1);
     });
     it('a verified lt token proves the organisation before the link projection exists; a token that contradicts the registered code is ignored', async () => {
-      const lt = issueLinkToken(linkTokenKey(), { orgRef: 'org_B', linkCode: 'ZZZZ1111' });
+      const lt = issueLinkToken(linkTokenKey()!, { orgRef: 'org_B', linkCode: 'ZZZZ1111' });
       await touch({ landingKind: 'PROVIDER_LINK', lt, dwellMs: 1500 }, consented).expect(202);
       expect(await c.prisma.growthTouchpoint.findFirstOrThrow()).toMatchObject({ providerOrgRef: 'org_B', linkCode: 'ZZZZ1111', ltTokenId: expect.any(String) });
       await registerLink(c, 'ZZZZ2222', 'org_A');
-      const mismatch = issueLinkToken(linkTokenKey(), { orgRef: 'org_B', linkCode: 'ZZZZ2222' });
+      const mismatch = issueLinkToken(linkTokenKey()!, { orgRef: 'org_B', linkCode: 'ZZZZ2222' });
       expect((await touch({ landingKind: 'PROVIDER_LINK', ref: 'ZZZZ2222', lt: mismatch }, consented).expect(202)).body.visitorKeySet).toBe(false);
       expect(await c.prisma.growthTouchpoint.count()).toBe(1);
     });

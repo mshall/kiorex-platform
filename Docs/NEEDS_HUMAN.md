@@ -123,3 +123,8 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **`package-lock.json` integrity for the vendored `@kiorex/contracts` 1.10.0 tarball is stale** (commit c59c546 refreshed the tarball but not the lock entry: lock says `sha512-7u89...`, the file hashes to `sha512-YfBX...`). `npm ci` warns and `npm ci --workspace` fails with EINTEGRITY (reproduced in the Docker runner stage). Re-run `npm install` for the lock refresh in whichever package owns the lock (a lead decision: shared file).
 - **Fonts**: IBM Plex Sans Arabic and Jost (SIL Open Font License 1.1) were copied from the Kiorly web build assets into `apps/web/src/public/fonts`; confirm the licence notice requirement with counsel.
 - **Arabic public copy** (`apps/web/src/public/locales/ar.json`) is engineering wording and needs CMO/marketing review before launch (FAQ blocks are package F).
+
+## Growth: booking integration and analytics (GRW-P1-C, GRW-P1-J)
+
+- **`GROWTH_LINK_TOKEN_SECRET`** (at least 16 characters): OpenTofu creates the EMPTY Secrets Manager container `/kiorex-platform/<env>/growth-link-token` (`growth_link_token_secret = true`); a human writes the value, then `growth_link_token_secret_inject = true` (CTO, secrets). The Clinic's provider-link token needs no new secret: Kiorex verifies it with the existing Clinic shared secret (`LINK_TOUCH_SIGNING_SECRET`, else `KIORLY_WEBHOOK_SECRET`; keep it equal to the Clinic's `KIOREX_OUTBOX_WEBHOOK_SECRET`).
+- **Growth analytics inputs (GRW-P1-J)**: who owns marketing spend entry and approval (default: two different ops users), the fee, dispute rate and Pay margin used for LTV (PROPOSED_DEFAULT EGP 40, 4 percent, none), and confirmation of the cohort definition (acquisition cohort by first booking month).

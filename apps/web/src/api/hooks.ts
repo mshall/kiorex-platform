@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "./client";
+import { getLinkToken } from "@/lib/linkToken";
 import type { Booking, ConsentType, SearchParams, Slot } from "./types";
 import { mapBooking, mapConsent, mapDependant, mapPatient, mapProfile, mapReviews, mapSearch, mapSession, mapSlot, mapSpecialty } from "./adapters";
 
@@ -98,7 +99,7 @@ export function useVisitType(b: Booking | undefined) {
 export const useCreateHold = () =>
   useMutation({
     mutationFn: async (v: { providerId: string; slot: Slot; dependantId?: string; home?: { addressId: string } }) =>
-      mapBooking(await unwrap(api.POST("/api/v1/bookings", { body: { providerId: v.providerId, typeId: v.slot.visitTypeId, startsAt: v.slot.startsAt, endsAt: v.slot.endsAt, ...(v.dependantId ? { dependantId: v.dependantId } : {}), ...(v.home ? { serviceLocation: "HOME" as const, addressId: v.home.addressId } : {}) } }))),
+      mapBooking(await unwrap(api.POST("/api/v1/bookings", { body: { providerId: v.providerId, typeId: v.slot.visitTypeId, startsAt: v.slot.startsAt, endsAt: v.slot.endsAt, ...(v.dependantId ? { dependantId: v.dependantId } : {}), ...(getLinkToken() ? ({ lt: getLinkToken() } as object) : {}), ...(v.home ? { serviceLocation: "HOME" as const, addressId: v.home.addressId } : {}) } }))),
   });
 
 export const useConfirmBooking = () => {

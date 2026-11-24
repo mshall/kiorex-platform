@@ -21,7 +21,9 @@
     "onboarding": "Onboarding imports",
     "policy": "Market policy",
     "partnerOnboarding": "Partner onboarding",
-    "partnerLeads": "Partner leads"
+    "partnerLeads": "Partner leads",
+    "growthAnalytics": "Growth analytics",
+    "acquisition": "Acquisition"
   },
   "auth": {
     "signingIn": "Signing you in…",
@@ -856,5 +858,133 @@
         "EXPIRED": "Expired"
       }
     }
+  },
+  "ga": {
+    "title": "Growth analytics",
+    "hint": "Funnel, channels, unit economics and retention from first-party data. Every figure follows the KX-32 definitions; cells built from fewer than 10 people show as <10.",
+    "export": "Export CSV",
+    "filters": "Report filters",
+    "from": "From",
+    "to": "To",
+    "country": "Country",
+    "all": "All",
+    "na": "Not available",
+    "never": "not yet",
+    "freshness": "Rolled up: {{at}}",
+    "kNote": "Minimum cell size 10",
+    "maskedHint": "Fewer than 10 people: hidden to protect privacy",
+    "maskedAria": "Hidden: fewer than 10",
+    "filter": {
+      "city": "City",
+      "district": "District",
+      "specialty": "Specialty",
+      "provider": "Provider",
+      "doctor": "Doctor",
+      "branch": "Branch",
+      "campaign": "Campaign",
+      "channel": "Channel"
+    },
+    "overview": "Executive overview",
+    "funnel": "Funnel",
+    "channels": "Channels",
+    "cohorts": "Cohort retention",
+    "empty": "No data for this period and filters.",
+    "t": {
+      "bookings": "Confirmed bookings",
+      "anp": "Attended new patients",
+      "providerLed": "Provider-led share",
+      "attended": "Booking to attended",
+      "gbv": "Gross booking value (not revenue)",
+      "revenue": "Kiorex revenue",
+      "spend": "Approved spend",
+      "cac": "Blended patient CAC",
+      "mer": "MER",
+      "ltv": "LTV on the fee",
+      "search": "Search to booking",
+      "pending": "Commission pending (not yet revenue)"
+    },
+    "gbvNote": "Gross booking value is the sum of visit fees of confirmed bookings: a volume indicator, never Kiorex revenue. Revenue is commission charges net of reversals; deposits, promotional credits, taxes and provider settlements are not counted.",
+    "coverageNote": "Place, specialty, provider and origin filters apply to booking stages only: the anonymous visitor stream has none of them.",
+    "col": {
+      "stage": "Stage",
+      "count": "Count",
+      "share": "Relative size",
+      "step": "Step conversion",
+      "cumulative": "From first stage",
+      "source": "Source",
+      "bookings": "Bookings",
+      "anp": "Attended new",
+      "spend": "Spend",
+      "revenue": "Revenue",
+      "cac": "CAC",
+      "roas": "ROAS",
+      "ltvCac": "LTV / CAC",
+      "verdict": "Verdict",
+      "cohort": "Cohort (first booking month)",
+      "size": "Size",
+      "r30": "Back in 30 days",
+      "r90": "Back in 90 days",
+      "r180": "Back in 180 days"
+    },
+    "stage": {
+      "PageViewed": "Page viewed",
+      "SearchStarted": "Search started",
+      "ResultsViewed": "Results viewed",
+      "ProviderViewed": "Provider viewed",
+      "SlotSelected": "Slot selected",
+      "BookingInitiated": "Booking initiated",
+      "BookingConfirmed": "Booking confirmed",
+      "BookingAttended": "Booking attended"
+    },
+    "source": {
+      "ORGANIC_SEARCH": "Search and SEO",
+      "CAMPAIGN": "Campaign",
+      "REFERRAL": "Patient referral",
+      "WHATSAPP": "WhatsApp",
+      "DIRECT": "Direct",
+      "PROVIDER_LINK": "Provider link",
+      "PROVIDER_QR": "Provider QR",
+      "WIDGET": "Widget",
+      "OFFLINE": "Offline"
+    },
+    "unallocated": "Not allocated",
+    "verdict": {
+      "NO_DATA": "No data",
+      "SCALE": "Scale",
+      "SUSTAIN": "Sustain",
+      "REVIEW": "Review"
+    },
+    "cohortNote": "A retention window is shown only when it is closed for the whole cohort. Retention is a product measure; it earns no fee by itself.",
+    "spend": {
+      "title": "Marketing spend",
+      "hint": "Manual entry for now. A different ops user must approve each line; only approved lines count in CAC, ROAS and MER.",
+      "day": "Day",
+      "amount": "Amount (EGP)",
+      "note": "Note (no contact details)",
+      "add": "Add spend",
+      "status": "Status",
+      "action": "Action",
+      "approve": "Approve",
+      "reject": "Reject",
+      "needsOther": "Needs another approver",
+      "badAmount": "Enter a positive amount",
+      "s": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      }
+    }
+  },
+  "acq": {
+    "title": "Acquisition",
+    "hint": "Who brought the booking: the provider, the Kiorex marketplace, or nobody we can show. Provider-led bookings never carry the Kiorex fee.",
+    "mix": "Origin mix",
+    "providerLed": "Provider-led bookings",
+    "providerLedHint": "No Kiorex fee",
+    "marketplace": "Kiorex-originated bookings",
+    "marketplaceHint": "Fee applies to attended new patients",
+    "unattributed": "Unattributed bookings",
+    "unattributedHint": "No evidence either way",
+    "providers": "Providers"
   }
 }

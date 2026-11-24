@@ -9057,7 +9057,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "CSV text (cells under k = 10 are <10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "GRW-P1-J CSV export with the same k >= 10 masking",
@@ -9349,7 +9356,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "CSV text (cells under k = 10 are <10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "GRW-P1-J provider CSV export (same masking)",

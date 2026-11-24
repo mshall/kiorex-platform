@@ -1447,11 +1447,23 @@ model GrowthMetricDaily {
   landingKind String   @default("")
   careType    String   @default("")
   origin      String   @default("")
+  // GRW-P1-J dimensions ('' = not applicable). Visitor-stream metrics (up to ProviderViewed) never carry city/district/specialty/provider/doctor/branch.
+  city        String   @default("")
+  district    String   @default("")
+  specialty   String   @default("")
+  providerRef String   @default("") // organisation (tenant) id, a business id, never a patient
+  doctorRef   String   @default("")
+  branchRef   String   @default("")
+  campaign    String   @default("")
+  channel     String   @default("")
+  platform    String   @default("")
+  product     String   @default("")
   value       Int      @default(0)
   updatedAt   DateTime @updatedAt
 
-  @@unique([market, day, metric, sourceKind, landingKind, careType, origin])
+  @@unique([market, day, metric, sourceKind, landingKind, careType, origin, city, district, specialty, providerRef, doctorRef, branchRef, campaign, channel, platform, product], map: "GrowthMetricDaily_dim_key")
   @@index([day])
+  @@index([metric, day])
 }
 
 /// Immutable versioned growth configuration (ARCH section 16). Rows are never edited after leaving DRAFT; rollback = a new version copying an older payload.
@@ -1585,4 +1597,44 @@ model CommunicationSuppression {
 
   @@unique([market, channel, addressHash])
   @@index([addressHash])
+}
+
+/// Kiorex revenue facts (GRW-P1-J, KX-32 section 04): one row per commission charge event from the Clinic. Never GBV, never deposits or promotional credits.
+model GrowthRevenueFact {
+  id            String   @id @default(cuid())
+  market        String   @default("EG")
+  kind          String // CHARGE | REVERSAL
+  chargeId      String
+  appointmentId String
+  bookingId     String?
+  status        String // charge status at the event: PENDING CONFIRMED DISPUTED REVERSED WAIVED BILLED
+  amountMinor   Int
+  currency      String   @default("EGP")
+  origin        String   @default("")
+  occurredAt    DateTime
+  createdAt     DateTime @default(now())
+
+  @@unique([kind, chargeId, status])
+  @@index([occurredAt])
+  @@index([bookingId])
+}
+
+/// Marketing spend entered by hand (maker-checker; GRW-P1-J). Counts only when APPROVED. Later phases fill the same table from campaign budgets and ad-platform adapters.
+model GrowthSpendEntry {
+  id          String    @id @default(cuid())
+  market      String    @default("EG")
+  day         DateTime  @db.Date
+  campaign    String    @default("")
+  channel     String    @default("")
+  sourceKind  String    @default("")
+  amountMinor Int
+  currency    String    @default("EGP")
+  note        String    @default("")
+  status      String    @default("PENDING") // PENDING APPROVED REJECTED
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  decidedBy   String?
+  decidedAt   DateTime?
+
+  @@index([day, status])
 }

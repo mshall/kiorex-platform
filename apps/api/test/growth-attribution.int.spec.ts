@@ -42,13 +42,13 @@ describe('attribution decisions', () => {
 
   it('a booking on the CLINIC_LINK channel is PROVIDER_LED with no touches (today\'s rule), and a verified lt token for the same org too; a token for ANOTHER org is not', async () => {
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c, { channel: 'CLINIC_LINK' })).id })).toMatchObject({ origin: 'PROVIDER_LED', reasonCode: 'EXPLICIT_PROVIDER_CHANNEL' });
-    const lt = issueLinkToken(linkTokenKey(), { orgRef: 'org_A', linkCode: '7K2M9X4Q' });
+    const lt = issueLinkToken(linkTokenKey()!, { orgRef: 'org_A', linkCode: '7K2M9X4Q' });
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id, ltToken: lt })).toMatchObject({ origin: 'PROVIDER_LED', reasonCode: 'EXPLICIT_PROVIDER_CHANNEL' });
-    const other = issueLinkToken(linkTokenKey(), { orgRef: 'org_B', linkCode: '7K2M9X4Q' });
+    const other = issueLinkToken(linkTokenKey()!, { orgRef: 'org_B', linkCode: '7K2M9X4Q' });
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id, ltToken: other })).toMatchObject({ origin: 'UNATTRIBUTED' });
     const forged = lt.slice(0, -3) + 'AAA';
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id, ltToken: forged })).toMatchObject({ origin: 'UNATTRIBUTED' });
-    const expired = issueLinkToken(linkTokenKey(), { orgRef: 'org_A', linkCode: 'x', now: Date.now() - 3 * 3600_000 });
+    const expired = issueLinkToken(linkTokenKey()!, { orgRef: 'org_A', linkCode: 'x', now: Date.now() - 3 * 3600_000 });
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id, ltToken: expired })).toMatchObject({ origin: 'UNATTRIBUTED' });
   });
 

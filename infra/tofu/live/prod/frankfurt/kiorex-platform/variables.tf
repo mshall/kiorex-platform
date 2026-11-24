@@ -222,3 +222,15 @@ variable "demo_seed_env" {
   type        = map(string)
   default     = {}
 }
+
+variable "growth_link_token_secret" {
+  description = "GRW-P1-C: create the EMPTY Secrets Manager container /kiorex-platform/<env>/growth-link-token (GROWTH_LINK_TOKEN_SECRET)."
+  type        = bool
+  default     = false
+}
+
+variable "growth_link_token_secret_inject" {
+  description = "Wire the container into the runtime env once a human wrote a value (at least 16 characters)."
+  type        = bool
+  default     = false
+}

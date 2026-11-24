@@ -4,12 +4,13 @@ import { cfg } from '../../common/config';
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AttributionPolicyResolver } from '../attribution/policy';
-import { verifyLinkToken } from '../consent/link-token';
+import { verifyAnyLinkToken } from '../consent/link-token';
+import { LinkRegistryService } from '../links/link-registry.service';
 import { FraudSignalService } from '../fraud/touch-rules';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
 import { GrowthLimiter, growthLimits } from '../growth-limiter';
-import { growthKey, linkTokenKey, randomToken } from '../growth-secrets';
+import { growthKey, linkTokenKey, providerLinkTouchSecret, randomToken, sha256Hex } from '../growth-secrets';
 import { PROVIDER_OWNED_KINDS } from '../attribution/decide';
 import { sourceKindOf, uaClassOf, referrerHostOf, VISITOR_KEY_PATTERN, type ParsedTouch } from './touch-sanitizer';
 
@@ -40,7 +41,7 @@ const dwellFloorFallback = 1000;
 export class TouchService {
   constructor(
     private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly limiter: GrowthLimiter,
-    private readonly fraud: FraudSignalService, private readonly policies: AttributionPolicyResolver,
+    private readonly fraud: FraudSignalService, private readonly policies: AttributionPolicyResolver, private readonly links: LinkRegistryService,
   ) {}
 
   /** Visitor keys are opaque and unguessable; a cookie that does not match the format is ignored and replaced. */
@@ -53,9 +54,10 @@ export class TouchService {
 
     let claims: { org: string; code: string; n: string } | undefined;
     if (t.lt !== undefined) {
-      const v = verifyLinkToken(linkTokenKey(), t.lt, now.getTime());
+      const v = verifyAnyLinkToken({ kxl1: linkTokenKey(), provider: providerLinkTouchSecret() }, t.lt, now.getTime());
       if (!v.ok) throw growthError(v.reason === 'EXPIRED' ? 'GROWTH_LINK_TOKEN_EXPIRED' : 'GROWTH_LINK_TOKEN_INVALID', v.reason === 'EXPIRED' ? 'The link token expired' : 'The link token is not valid');
-      claims = v.claims;
+      claims = { ...v.claims, n: sha256Hex(t.lt).slice(0, 16) }; // an opaque token id; the token itself is never stored
+      await this.links.learn(v.claims.code, v.claims.org, market); // a code belongs to ONE organisation: on a conflict the registry keeps the first and the mismatch check below ignores the touch
     }
 
     const policy = await this.policies.get(market, now);

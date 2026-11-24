@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { validateEvent } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
@@ -15,6 +15,7 @@ import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 import { PublicSiteCache } from '../public-site/public-site-public';
+import { GROWTH_REVENUE, LINK_REGISTRY, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
 
 const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
 
@@ -22,7 +23,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -106,7 +107,10 @@ export class WebhooksService {
       case 'COMMISSION_CHARGE_CREATED':
       case 'COMMISSION_CHARGE_REVERSED': // reporting only: Kiorly decides attendance/commission (KX-09 §06)
         await this.prisma.auditLog.create({ data: { actor: 'kiorly', action: `finance.${type.toLowerCase()}`, resource: 'Appointment', resourceId: env.aggregateId, metadata: data as any } });
+        await this.revenue.recordFromEvent(type, data, (env as any).occurredAt); // GRW-P1-J: Kiorex revenue facts (charges only, never booking value)
         return 'APPLIED';
+      case 'ReferralLinkCreated': // GRW-P1-C: link code -> organisation mapping from the Clinic (needs the org reference in data)
+        return (await this.linkRegistry.registerFromEvent({ ...data, orgRef: data.orgRef ?? data.tenantId ?? (env as any).tenantId })) === 'IGNORED' ? 'IGNORED' : 'APPLIED';
       default:
         return 'IGNORED'; // unknown / v2 events: acknowledge for forward compatibility
     }

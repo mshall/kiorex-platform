@@ -7,11 +7,12 @@ import { FlagsService } from '../../control-plane/control-plane-public';
 import { OutboxService } from '../../outbox/outbox-public';
 import { ConsentService } from '../../patient/patient-public';
 import { PrismaService } from '../../prisma/prisma.service';
-import { verifyLinkToken } from '../consent/link-token';
+import { verifyAnyLinkToken } from '../consent/link-token';
+import { LinkRegistryService } from '../links/link-registry.service';
 import { FraudSignalService } from '../fraud/touch-rules';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
-import { linkTokenKey } from '../growth-secrets';
+import { linkTokenKey, providerLinkTouchSecret } from '../growth-secrets';
 import { decide, maxWindowMs, type Decision, type DecisionBooking, type DecisionPolicy, type DecisionTouch } from './decide';
 import { AttributionPolicyResolver, toDecisionPolicy, type AttributionPolicyPayload } from './policy';
 
@@ -40,7 +41,7 @@ export class AttributionService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly policies: AttributionPolicyResolver, private readonly flags: FlagsService, private readonly outbox: OutboxService,
     // forwardRef: patient -> market -> growth (flag keys) -> patient is a file-level import cycle; the lazy reference resolves it
-    @Inject(forwardRef(() => ConsentService)) private readonly consents: ConsentService, private readonly fraud: FraudSignalService,
+    @Inject(forwardRef(() => ConsentService)) private readonly consents: ConsentService, private readonly fraud: FraudSignalService, private readonly links: LinkRegistryService,
   ) {}
 
   /** Internal events have no consumer yet (analytics rollups in package J read the tables); a no-op handler keeps the outbox clean instead of dead-lettering them. */
@@ -58,8 +59,10 @@ export class AttributionService implements OnModuleInit {
     if (existing) return this.stored(existing, false);
 
     const touches = await this.touchesFor(booking, i.visitorKey ?? null, policy, market);
-    const lt = i.ltToken ? verifyLinkToken(linkTokenKey(), i.ltToken, booking.createdAt.getTime()) : null;
-    const input: DecisionBooking = { id: booking.id, orgId, clinicId: booking.clinicId, doctorId: booking.clinicianId, createdAt: iso(booking.createdAt), channel: booking.channel, ltValidForOrg: !!(lt && lt.ok && orgId && lt.claims.org === orgId) };
+    const lt = i.ltToken ? verifyAnyLinkToken({ kxl1: linkTokenKey(), provider: providerLinkTouchSecret() }, i.ltToken, booking.createdAt.getTime()) : null;
+    // a verified token proves its organisation; the code-to-organisation registry must not disagree (a code belongs to one organisation)
+    const ltValid = !!(lt && lt.ok && orgId && lt.claims.org === orgId && (await this.links.learn(lt.claims.code, lt.claims.org, market)) !== 'CONFLICT');
+    const input: DecisionBooking = { id: booking.id, orgId, clinicId: booking.clinicId, doctorId: booking.clinicianId, createdAt: iso(booking.createdAt), channel: booking.channel, ltValidForOrg: ltValid };
     const d = decide(input, touches.map(asTouch), policy);
     const row = await this.persist(booking.id, booking.sub, market, input, d, policy, payload, touches);
     if (row.created) await this.fraud.onDecision(orgId); // best effort and cheap; awaited so no query outlives the request

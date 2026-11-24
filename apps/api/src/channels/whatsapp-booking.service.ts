@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { ChannelConversation } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
@@ -8,6 +8,7 @@ import { FlagsService } from '../control-plane/control-plane-public';
 import { MarketService } from '../market/market-public';
 import { InboundMessage, MessagingHub } from '../messaging/messaging-public';
 import { PatientService, SuppressionService } from '../patient/patient-public';
+import { GROWTH_FACTS, type GrowthFactsPort } from '../growth/growth-ports-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { detectEmergency, mapSymptomToSpecialties, normalizeText, SPECIALTY_CODES, SpecialtyCode } from '../safety/safety-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
@@ -38,6 +39,7 @@ export class WhatsAppBookingService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly hub: MessagingHub, private readonly flags: FlagsService, private readonly patients: PatientService, private readonly catalog: CatalogService,
     private readonly booking: BookingService, private readonly waitlist: WaitlistService, private readonly markets: MarketService, private readonly suppression: SuppressionService,
+    @Optional() @Inject(GROWTH_FACTS) private readonly growthFacts?: GrowthFactsPort,
   ) {}
 
   onModuleInit() { this.hub.onInbound('WHATSAPP', (m) => this.handle(m)); }
@@ -53,7 +55,9 @@ export class WhatsAppBookingService implements OnModuleInit {
     const phone = m.from;
     const text = norm(m.buttonPayload ?? m.text);
     const now = new Date();
+    const known = await this.prisma.channelConversation.findUnique({ where: { channel_phone: { channel: 'WHATSAPP', phone } }, select: { id: true } });
     let conv = await this.prisma.channelConversation.upsert({ where: { channel_phone: { channel: 'WHATSAPP', phone } }, create: { phone, lastInboundAt: now, locale: /[؀-ۿ]/.test(m.text ?? '') ? 'ar' : 'en' }, update: {} });
+    if (!known) await this.growthFacts?.recordFact({ name: 'WhatsAppConversationStarted', naturalKey: conv.id, props: { platform: 'whatsapp' } }).catch(() => undefined); // GRW-P1-J: one per new conversation, no phone
     const profile = await this.prisma.patientProfile.findFirst({ where: { phone, deletedAt: null } });
     const lang: Lang = profile ? (profile.preferredLocale === 'en' ? 'en' : 'ar') : /[؀-ۿ]/.test(m.text ?? '') ? 'ar' : (conv.locale as Lang);
     conv = await this.prisma.channelConversation.update({ where: { id: conv.id }, data: { lastInboundAt: now, locale: lang, sub: profile?.sub ?? null } });
