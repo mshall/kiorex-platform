@@ -66,8 +66,8 @@ export class ReferralFraudService {
     const top = Math.max(0, ...byProvider.values());
     const t0 = sibBookings.length ? Math.min(...sibBookings.map((b) => b.createdAt.getTime())) : 0;
     const refPay = await this.identity.hashesOf(rel.referrerSub, 'PAY_FINGERPRINT');
-    const reefPhones = await this.identity.hashesOf(rel.refereeSub, 'PHONE');
-    const refPhones = await this.identity.hashesOf(rel.referrerSub, 'PHONE');
+    const reefPhones = await this.identity.hashesOf(rel.refereeSub, 'STAFF_MATCH');
+    const refPhones = await this.identity.hashesOf(rel.referrerSub, 'STAFF_MATCH');
     const staffMatch = booking ? await this.staff.matches(booking.clinicId, [...reefPhones, ...refPhones]) : false;
     const checkedIn = booking ? !!(await this.prisma.bookingEvent.findFirst({ where: { bookingId: booking.id, kind: 'STATE', toStatus: { in: ['CHECKED_IN', 'COMPLETED'] } }, select: { id: true } })) : true;
     const slotRebooks = booking ? await this.prisma.bookingIntent.count({ where: { sub: rel.refereeSub, providerId: booking.providerId, startsAt: booking.startsAt, status: 'CANCELLED' } }) : 0;

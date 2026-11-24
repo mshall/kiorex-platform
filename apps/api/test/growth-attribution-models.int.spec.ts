@@ -24,6 +24,19 @@ describe('growth attribution models (GRW-P3-B)', () => {
     return { sub, bookingId: b.id, at };
   }
 
+  it('QUARANTINE_TOUCH: a quarantined touch is not counted by the reporting models, and the stored touch and the decision stay as they were', async () => {
+    const o = await conversion({ touches: [{ kind: 'ORGANIC_SEARCH', ageDays: 6 }, { kind: 'CAMPAIGN', ageDays: 2 }] });
+    const touches = await c.prisma.growthTouchpoint.findMany({ where: { sub: o.sub } });
+    const camp = touches.find((x) => x.kind === 'CAMPAIGN')!;
+    const data = c.get((await import('../src/growth/attribution-models/model-data.service')).ModelDataService);
+    const before = await data.touchesOf('EG', [o.sub], new Date(Date.now() - 30 * DAY), new Date());
+    expect(before.map((x) => x.kind).sort()).toEqual(['CAMPAIGN', 'ORGANIC_SEARCH']);
+    await c.prisma.auditLog.create({ data: { actor: 'system:fraud', action: 'growth.fraud.touch_quarantine', resource: 'GrowthTouchpoint', resourceId: camp.id, metadata: { reversible: true } } });
+    const after = await data.touchesOf('EG', [o.sub], new Date(Date.now() - 30 * DAY), new Date());
+    expect(after.map((x) => x.kind)).toEqual(['ORGANIC_SEARCH']);
+    expect(await c.prisma.growthTouchpoint.count({ where: { id: camp.id } })).toBe(1);
+  });
+
   it('every model reconciles to the same conversions and revenue; POSITION_BASED is the default; DATA_DRIVEN says insufficient volume', async () => {
     for (let i = 0; i < 12; i++) await conversion({ touches: [{ kind: 'ORGANIC_SEARCH', ageDays: 6 }, { kind: i % 2 ? 'CAMPAIGN' : 'PROVIDER_LINK', ageDays: 2, linkCode: i % 2 ? undefined : 'LINK0001', org: 'org_A' }, { kind: 'DIRECT', ageDays: 0.1 }], revenue: 4000 + (i === 3 ? 1 : 0) });
     const r = await svc.rollup({ days: 2 });

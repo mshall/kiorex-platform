@@ -4,6 +4,8 @@ import { DAY, setReferralRules, setRewardRules, uid, unlockAll } from './growth-
 import { addressHash } from '../src/common/privacy-hash';
 import { GrowthMaintenanceService } from '../src/growth/growth-public';
 import { OutboxService } from '../src/outbox/outbox-public';
+import { cfg } from '../src/common/config';
+import { staffPhoneMatchHash } from '../src/growth/referral/referral-identity.service';
 import { ReferralClaimService, ReferralExpiryJob, ReferralIdentityService, ReferralQualificationService, MockStaffPhoneMatch } from '../src/growth/referral/referral-public';
 import { RewardLedgerService } from '../src/growth/rewards/rewards-public';
 
@@ -279,7 +281,7 @@ describe('growth referral engine (GRW-P2-B1)', () => {
       expect(await c.prisma.growthFraudSignal.count({ where: { ruleId: 'RF_FAKE_BOOKING' } })).toBe(1);
       const r2 = await referrer('sub_r2', phone(2)); await referee('sub_g', phone(21), r2.code);
       await ident().recordPhone('sub_g', phone(21));
-      c.get(MockStaffPhoneMatch).staff.set('cl_1', new Set([addressHash(phone(21))])); // the Clinic reports a salted hash match only
+      c.get(MockStaffPhoneMatch).staff.set('cl_1', new Set([staffPhoneMatchHash(phone(21), cfg().kiorlyClientSecret)])); // the Clinic reports a salted hash match only
       await completedVisit('sub_g');
       expect((await qual().evaluate((await rel('sub_g')).id, { now: new Date(Date.now() + 8 * DAY) })).result).toBe('PENDING');
       expect(await c.prisma.growthFraudSignal.count({ where: { ruleId: 'RF_PROVIDER_COLLUSION' } })).toBe(1);

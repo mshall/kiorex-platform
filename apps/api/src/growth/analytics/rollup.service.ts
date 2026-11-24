@@ -77,7 +77,7 @@ export class GrowthRollupService {
       SELECT e."occurredAt"::date AS day, e."name" AS metric, COALESCE(e."careType", '') AS "careType", COALESCE(e."props"->>'landingKind', '') AS "landingKind",
              COALESCE(e."props"->>'platform', '') AS platform, COALESCE(t."kind", '') AS "sourceKind", COALESCE(t."utmCampaign", '') AS campaign, COALESCE(t."campaignId", '') AS "campaignId", count(*)::int AS value
       FROM "GrowthEvent" e
-      LEFT JOIN LATERAL (SELECT p."kind", p."utmCampaign", (SELECT CASE WHEN s."sourceKind" = 'CAMPAIGN' THEN s."sourceRef" ELSE '' END FROM "GrowthAcquisitionSource" s WHERE s."id" = p."sourceId") AS "campaignId" FROM "GrowthTouchpoint" p WHERE e."visitorKey" IS NOT NULL AND p."visitorKey" = e."visitorKey" AND p."occurredAt" <= e."occurredAt" ORDER BY p."occurredAt" DESC LIMIT 1) t ON true
+      LEFT JOIN LATERAL (SELECT p."kind", p."utmCampaign", (SELECT CASE WHEN s."sourceKind" = 'CAMPAIGN' THEN s."sourceRef" ELSE '' END FROM "GrowthAcquisitionSource" s WHERE s."id" = p."sourceId") AS "campaignId" FROM "GrowthTouchpoint" p WHERE e."visitorKey" IS NOT NULL AND p."visitorKey" = e."visitorKey" AND p."occurredAt" <= e."occurredAt" AND NOT EXISTS (SELECT 1 FROM "AuditLog" q WHERE q."action" = 'growth.fraud.touch_quarantine' AND q."resourceId" = p."id") ORDER BY p."occurredAt" DESC LIMIT 1) t ON true
       WHERE e."market" = ${market} AND e."bookingId" IS NULL AND e."occurredAt" >= ${from} AND e."occurredAt" < ${end} AND e."name" = ANY(${[...VISITOR_STREAM_METRICS, 'PatientRegistered']})
       GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`);
     return rows.map((r) => ({ ...EMPTY_DIMS, day: r.day.toISOString().slice(0, 10), metric: r.metric as RollupMetric, careType: r.careType, landingKind: r.landingKind, platform: r.platform, sourceKind: r.sourceKind, campaign: r.campaign, campaignId: r.campaignId, value: r.value }));
@@ -95,7 +95,7 @@ export class GrowthRollupService {
       JOIN "BookingIntent" b ON b."id" = x."bookingId" AND b."dependantId" IS NULL
       LEFT JOIN "Provider" p ON p."id" = b."providerId"
       LEFT JOIN LATERAL (SELECT g."origin", g."winningTouchId" FROM "GrowthAttributionDecision" g WHERE g."bookingId" = b."id" AND NOT EXISTS (SELECT 1 FROM "GrowthAttributionDecision" s WHERE s."supersedesId" = g."id") ORDER BY g."createdAt" DESC, g."id" DESC LIMIT 1) d ON true
-      LEFT JOIN "GrowthTouchpoint" t ON t."id" = d."winningTouchId"`;
+      LEFT JOIN "GrowthTouchpoint" t ON t."id" = d."winningTouchId" AND NOT EXISTS (SELECT 1 FROM "AuditLog" q WHERE q."action" = 'growth.fraud.touch_quarantine' AND q."resourceId" = t."id")`;
 
   private async bookingFacts(market: string, from: Date, end: Date): Promise<RollupRow[]> {
     type R = { day: Date; metric: string; value: number; origin: string; sourceKind: string; campaign: string; channel: string; careType: string; city: string; district: string; specialty: string; providerRef: string; doctorRef: string; branchRef: string; platform: string; campaignId: string };
@@ -140,7 +140,7 @@ export class GrowthRollupService {
       JOIN "BookingIntent" b ON b."id" = x."bookingId" AND b."dependantId" IS NULL
       LEFT JOIN "Provider" p ON p."id" = b."providerId"
       LEFT JOIN LATERAL (SELECT g."origin", g."winningTouchId" FROM "GrowthAttributionDecision" g WHERE g."bookingId" = b."id" AND NOT EXISTS (SELECT 1 FROM "GrowthAttributionDecision" s WHERE s."supersedesId" = g."id") ORDER BY g."createdAt" DESC, g."id" DESC LIMIT 1) d ON true
-      LEFT JOIN "GrowthTouchpoint" t ON t."id" = d."winningTouchId"
+      LEFT JOIN "GrowthTouchpoint" t ON t."id" = d."winningTouchId" AND NOT EXISTS (SELECT 1 FROM "AuditLog" q WHERE q."action" = 'growth.fraud.touch_quarantine' AND q."resourceId" = t."id")
       WHERE x."occurredAt" >= ${from} AND x."occurredAt" < ${end}
       GROUP BY 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15`);
     return rows.map((r) => this.toRow(r));

@@ -119,6 +119,10 @@ export class KiorlyClient {
   referralLinks(q: { updatedSince?: string; limit?: number; cursor?: string }) {
     return this.request<{ items: Array<{ code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>; nextCursor: string | null }>({ method: 'GET', path: '/referral-links', query: q });
   }
+  /** RF_PROVIDER_COLLUSION (contracts 1.13.0): keyed staff-phone hashes in, one boolean out. */
+  staffPhoneMatch(clinicId: string, hashes: readonly string[]) {
+    return this.request<{ match: boolean }>({ method: 'GET', path: '/growth/staff-phone-match', query: { clinicId, hashes: hashes.join(',') }, clinicId });
+  }
   rescheduleBooking(ref: string, body: { startsAt: string; endsAt?: string; holdId?: string }, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: `/bookings/${encodeURIComponent(ref)}/reschedule`, body, clinicId });
   }

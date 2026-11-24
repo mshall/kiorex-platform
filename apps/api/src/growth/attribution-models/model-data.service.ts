@@ -43,7 +43,9 @@ export class ModelDataService {
     // consent: analytics WITHDRAWAL stops use of earlier touches (same rule as the decision)
     const withdrawn = new Map<string, number>();
     for (const c of chunks(subs)) for (const r of await this.prisma.consentRecord.findMany({ where: { sub: { in: c }, purpose: 'ANALYTICS_MEASUREMENT' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { sub: true, granted: true, createdAt: true } })) { if (r.granted) withdrawn.delete(r.sub); else withdrawn.set(r.sub, r.createdAt.getTime()); }
-    return [...rows.values()].filter((t) => !(t.sub && withdrawn.has(t.sub) && t.at <= withdrawn.get(t.sub)!));
+    // QUARANTINE_TOUCH (fraud action on the TOUCH surface): reports do not count a quarantined touch; the touch row and every attribution decision stay untouched
+    const quarantined = await this.quarantinedIds(since);
+    return [...rows.values()].filter((t) => !quarantined.has(t.id) && !(t.sub && withdrawn.has(t.sub) && t.at <= withdrawn.get(t.sub)!));
   }
 
   /** Every touch of the market in a window, paged by id (data-driven only: non-converting people are part of the graph). */
@@ -52,9 +54,15 @@ export class ModelDataService {
     for (;;) {
       const page = await this.prisma.growthTouchpoint.findMany({ where: { market, occurredAt: { gte: since, lte: until } }, orderBy: { id: 'asc' }, take: 20_000, ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}), select: { id: true, sub: true, visitorKey: true, occurredAt: true, kind: true, linkCode: true, utmCampaign: true } });
       if (!page.length) break; cursor = page[page.length - 1]!.id;
-      onPage(page.map((t) => { const ref = t.kind === 'CAMPAIGN' ? (t.utmCampaign ?? '') : (t.linkCode ?? ''); const safe = REF.test(ref) ? ref : ''; return { id: t.id, sub: t.sub, visitorKey: t.visitorKey, at: t.occurredAt.getTime(), kind: t.kind, ref: safe, campaignId: t.kind === 'CAMPAIGN' && safe ? (campaigns.get(safe) ?? '') : '' }; }));
+      const q = await this.quarantinedIds(since);
+      onPage(page.filter((t) => !q.has(t.id)).map((t) => { const ref = t.kind === 'CAMPAIGN' ? (t.utmCampaign ?? '') : (t.linkCode ?? ''); const safe = REF.test(ref) ? ref : ''; return { id: t.id, sub: t.sub, visitorKey: t.visitorKey, at: t.occurredAt.getTime(), kind: t.kind, ref: safe, campaignId: t.kind === 'CAMPAIGN' && safe ? (campaigns.get(safe) ?? '') : '' }; }));
       if (page.length < 20_000) break;
     }
+  }
+
+  /** Touch ids quarantined by the fraud engine since `since` (audit rows `growth.fraud.touch_quarantine`, written by FraudHoldService.quarantineTouch). */
+  async quarantinedIds(since: Date): Promise<Set<string>> {
+    return new Set((await this.prisma.auditLog.findMany({ where: { action: 'growth.fraud.touch_quarantine', createdAt: { gte: new Date(since.getTime() - 400 * 86_400_000) } }, select: { resourceId: true }, take: 100_000 })).map((r) => r.resourceId!).filter(Boolean));
   }
 
   private async campaignIds(market: string) { return new Map((await this.prisma.growthCampaign.findMany({ where: { market }, select: { id: true, utmCampaign: true }, take: 5000 })).map((c) => [c.utmCampaign, c.id] as const)); }
