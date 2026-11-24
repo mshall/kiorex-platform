@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loosely typed fixtures and the import console wire shape (resolution tasks carry arbitrary context) */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { rawApi } from "./client";
 

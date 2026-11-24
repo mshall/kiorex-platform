@@ -1281,3 +1281,47 @@ model PartnerFunnelMark {
   @@id([kind, orgRef, stage])
   @@index([stage, firstAt])
 }
+
+// ───────────────────────── lead alerts (ops team is told when a partner lead arrives) ─────────────────────────
+
+/// Kiorex team member seen on the ops console (Passport identity). Contact details come from the verified token claims; `leadAlerts`/`channels`
+/// are the person's own opt-in for "new partner lead" alerts; `leadsSeenAt` drives the unread badge on the ops nav.
+model OpsStaffContact {
+  sub         String    @id
+  name        String?
+  phone       String?
+  email       String?
+  roles       String[]
+  locale      String    @default("en")
+  leadAlerts  Boolean   @default(true)
+  channels    String[]  @default(["EMAIL", "WHATSAPP", "PUSH"])
+  leadsSeenAt DateTime?
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+/// Singleton ("global"): the ops switch for lead alerts and which channels may be used at all.
+model LeadAlertConfig {
+  id        String   @id @default("global")
+  enabled   Boolean  @default(true)
+  channels  String[] @default(["EMAIL", "WHATSAPP", "PUSH"])
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+/// One alert to one person on one channel for one lead event. `dedupeKey` makes a repeat submission or a retry a no-op.
+model LeadAlertDelivery {
+  id           String    @id // la_<id>
+  dedupeKey    String    @unique
+  leadId       String
+  staffSub     String
+  channel      String
+  status       String // SCHEDULED | SENT | SKIPPED | FAILED
+  reason       String?
+  scheduledFor DateTime
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([leadId])
+}

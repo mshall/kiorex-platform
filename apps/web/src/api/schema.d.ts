@@ -2508,6 +2508,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/partners/v1/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a "Talk to us" lead (HMAC-signed with ts.rawBody; idempotent per (kind, orgRef)) */
+        post: operations["PartnerLeadsPublicController_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partners/v1/funnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a privacy-safe funnel marker (kind + org id + stage), signed like a lead */
+        post: operations["PartnerLeadsPublicController_funnel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: partner leads (newest first), status derived from the onboarding request */
+        get: operations["PartnerLeadsOpsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/funnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: interested -> started -> submitted -> live (distinct organisations) with conversion */
+        get: operations["PartnerLeadsOpsController_funnel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: new leads this team member has not seen yet (nav badge) */
+        get: operations["PartnerLeadsOpsController_unread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: mark all current leads as seen (clears the badge) */
+        post: operations["PartnerLeadsOpsController_seen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OP: lead alert settings (switch, channels) and the team members who get them */
+        get: operations["PartnerLeadsOpsController_alertSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** OP (super admin): switch lead alerts on/off and choose the channels */
+        patch: operations["PartnerLeadsOpsController_setAlerts"];
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/alerts/recipients/{sub}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** OP: a team member opts in/out of lead alerts and picks their channels (own row; super admin any row) */
+        patch: operations["PartnerLeadsOpsController_setRecipient"];
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** OP: set the lead status and/or assignee */
+        patch: operations["PartnerLeadsOpsController_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/partner-leads/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OP: add a note to the lead */
+        post: operations["PartnerLeadsOpsController_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/vault": {
         parameters: {
             query?: never;
@@ -5749,6 +5920,21 @@ export interface components {
         PartnerReasonBody: {
             reason: string;
         };
+        AlertConfigBody: {
+            enabled?: boolean;
+            channels?: string[];
+        };
+        AlertRecipientBody: {
+            leadAlerts?: boolean;
+            channels?: string[];
+        };
+        LeadPatchBody: {
+            status?: string;
+            assignee?: string | null;
+        };
+        LeadNoteBody: {
+            text: string;
+        };
         VaultItemDto: {
             id: string;
             /** @enum {string} */
@@ -6586,12 +6772,22 @@ export interface components {
         ProvidersDto: {
             providers: components["schemas"]["ProviderStatusDto"][];
         };
+        LeadSigningDto: {
+            /**
+             * @description PARTNER_LEAD_SIGNING_SECRET present (never the value)
+             * @enum {string}
+             */
+            status: "configured" | "not configured";
+            /** @description A previous secret is also accepted (rotation window) */
+            previousAccepted: boolean;
+        };
         ReadyDto: {
             /** @example ready */
             status: string;
             /** @example up */
             db: string;
             providers: components["schemas"]["ProviderStatusDto"][];
+            leadSigning: components["schemas"]["LeadSigningDto"];
         };
     };
     responses: never;
@@ -10160,6 +10356,271 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartnerConnectionDto"];
+                };
+            };
+        };
+    };
+    PartnerLeadsPublicController_lead: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorly-signature": string;
+                "x-kiorly-timestamp": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsPublicController_funnel: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-kiorly-signature": string;
+                "x-kiorly-timestamp": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_list: {
+        parameters: {
+            query?: {
+                status?: string;
+                kind?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_funnel: {
+        parameters: {
+            query?: {
+                days?: string;
+                kind?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_unread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_seen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_alertSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_setAlerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertConfigBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_setRecipient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sub: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRecipientBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadPatchBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    PartnerLeadsOpsController_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadNoteBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

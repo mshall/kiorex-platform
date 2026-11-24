@@ -13,6 +13,7 @@ export interface AuthUser {
   sub: string;
   roles: string[];
   phone?: string;
+  email?: string;
   name?: string;
   locale?: string;
   sid?: string;

@@ -30,6 +30,7 @@ export class JwtAuthGuard implements CanActivate {
       sub: String(payload.sub),
       roles,
       phone: payload.phone_number as string | undefined,
+      email: typeof payload.email === 'string' ? payload.email : undefined,
       name: payload.name as string | undefined,
       locale: payload.locale as string | undefined,
       sid: (payload.sid as string | undefined) ?? undefined,

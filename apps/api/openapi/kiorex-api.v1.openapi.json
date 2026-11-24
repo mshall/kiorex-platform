@@ -5639,7 +5639,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "Submit a \"Talk to us\" lead (HMAC-signed with ts.rawBody; idempotent per (kind, orgRef))",
@@ -5671,7 +5679,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "Record a privacy-safe funnel marker (kind + org id + stage), signed like a lead",
@@ -5703,7 +5719,18 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "OP: partner leads (newest first), status derived from the onboarding request",
@@ -5735,10 +5762,160 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "OP: interested -> started -> submitted -> live (distinct organisations) with conversion",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/unread": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_unread",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: new leads this team member has not seen yet (nav badge)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/seen": {
+      "post": {
+        "operationId": "PartnerLeadsOpsController_seen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: mark all current leads as seen (clears the badge)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/alerts": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_alertSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: lead alert settings (switch, channels) and the team members who get them",
+        "tags": [
+          "ops-onboarding"
+        ]
+      },
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_setAlerts",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertConfigBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP (super admin): switch lead alerts on/off and choose the channels",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/alerts/recipients/{sub}": {
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_setRecipient",
+        "parameters": [
+          {
+            "name": "sub",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRecipientBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: a team member opts in/out of lead alerts and picks their channels (own row; super admin any row)",
         "tags": [
           "ops-onboarding"
         ]
@@ -5769,7 +5946,15 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "OP: set the lead status and/or assignee",
@@ -5803,7 +5988,15 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "OP: add a note to the lead",
@@ -16085,6 +16278,34 @@
         "required": [
           "reason"
         ]
+      },
+      "AlertConfigBody": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AlertRecipientBody": {
+        "type": "object",
+        "properties": {
+          "leadAlerts": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "LeadPatchBody": {
         "type": "object",

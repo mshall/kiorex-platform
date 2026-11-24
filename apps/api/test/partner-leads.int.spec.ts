@@ -13,7 +13,7 @@ const lead = (orgRef: string, extra: object = {}) => JSON.stringify({ nonce: new
 
 describe('partner leads ("Talk to us") and the onboarding funnel', () => {
   let c: TestCtx; let ops: { Authorization: string };
-  const post = (path: string, body: string, headers = sign(body)) => c.http().post(path).set(headers).send(body);
+  const post = (path: string, body: string, headers: Record<string, string> = sign(body)) => c.http().post(path).set(headers).send(body);
   beforeAll(async () => { c = await createCtx(); ops = await c.as('ops_leads', { roles: ['ops_admin'] }); });
   afterAll(async () => { await c.close(); });
   beforeEach(async () => { await resetLeadLimits(); for (const k of ['LEAD_RATE_IP_PER_MIN', 'LEAD_RATE_ORG_PER_HOUR', 'LEAD_RATE_FAILED_PER_10MIN']) delete process.env[k]; });

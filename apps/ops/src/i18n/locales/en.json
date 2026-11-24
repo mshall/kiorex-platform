@@ -605,6 +605,28 @@
     "superAdminOnly": "Only a super admin can change policies."
   },
   "leads": {
+    "alerts": {
+      "title": "Lead alerts",
+      "hint": "Who on the Kiorex team is told when a new partner lead arrives. Alerts use the shared notification layer (mock providers for now), respect quiet hours and never repeat for the same lead.",
+      "enabled": "Send alerts for new leads",
+      "channels": "Channels",
+      "ch": {
+        "EMAIL": "E-mail",
+        "WHATSAPP": "WhatsApp",
+        "PUSH": "Push"
+      },
+      "team": "Team members",
+      "me": "You",
+      "optIn": "Gets alerts",
+      "noRecipients": "Nobody has opened the ops console yet. People appear here the first time they sign in.",
+      "noContact": "No phone or e-mail on file for this person, so only push can reach them.",
+      "superOnly": "Only a super admin can change the global switch and channels. You can change your own row.",
+      "saved": "Alert settings saved",
+      "failed": "Could not save the alert settings",
+      "lastSeen": "Last seen {{when}}",
+      "open": "Alert settings",
+      "unread": "{{count}} new leads"
+    },
     "title": "Partner leads",
     "hint": "Organisations that pressed Talk to us in a Kiorly product. Contact them within the time they asked for; the status follows their onboarding request automatically.",
     "none": "No leads yet",

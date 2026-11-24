@@ -259,6 +259,11 @@
 | POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` | OP: apply a pending credential rotation after a passing handshake |
 | GET | `/api/v1/admin/partner-leads` | OP: partner leads (newest first), status derived from the onboarding request |
 | GET | `/api/v1/admin/partner-leads/funnel` | OP: interested -> started -> submitted -> live (distinct organisations) with conversion |
+| GET | `/api/v1/admin/partner-leads/unread` | OP: new leads this team member has not seen yet (nav badge) |
+| POST | `/api/v1/admin/partner-leads/seen` | OP: mark all current leads as seen (clears the badge) |
+| GET | `/api/v1/admin/partner-leads/alerts` | OP: lead alert settings (switch, channels) and the team members who get them |
+| PATCH | `/api/v1/admin/partner-leads/alerts` | OP (super admin): switch lead alerts on/off and choose the channels |
+| PATCH | `/api/v1/admin/partner-leads/alerts/recipients/{sub}` | OP: a team member opts in/out of lead alerts and picks their channels (own row; super admin any row) |
 | PATCH | `/api/v1/admin/partner-leads/{id}` | OP: set the lead status and/or assignee |
 | POST | `/api/v1/admin/partner-leads/{id}/notes` | OP: add a note to the lead |
 

@@ -20,3 +20,21 @@ export function useLeadAction() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["leads"] }),
   });
 }
+
+// ── lead alerts (who is told, unread badge) ──
+export type AlertChannel = "EMAIL" | "WHATSAPP" | "PUSH";
+export interface AlertRecipient { sub: string; name: string | null; roles: string[]; leadAlerts: boolean; channels: AlertChannel[]; hasPhone: boolean; hasEmail: boolean; lastSeenAt: string }
+export interface AlertSettings { enabled: boolean; channels: AlertChannel[]; availableChannels: AlertChannel[]; recipients: AlertRecipient[] }
+export const useLeadsUnread = () => useQuery({ queryKey: ["leads", "unread"], queryFn: () => rawApi<{ count: number }>("GET", `${B}/unread`), refetchInterval: 30_000, retry: false });
+export function useMarkLeadsSeen() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: () => rawApi<{ count: number }>("POST", `${B}/seen`, {}), onSuccess: (d) => qc.setQueryData(["leads", "unread"], d) });
+}
+export const useLeadAlertSettings = () => useQuery({ queryKey: ["leads", "alerts"], queryFn: () => rawApi<AlertSettings>("GET", `${B}/alerts`) });
+export function useLeadAlertChange() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { config?: { enabled?: boolean; channels?: AlertChannel[] }; sub?: string; recipient?: { leadAlerts?: boolean; channels?: AlertChannel[] } }) => v.sub ? rawApi("PATCH", `${B}/alerts/recipients/${encodeURIComponent(v.sub)}`, v.recipient ?? {}) : rawApi("PATCH", `${B}/alerts`, v.config ?? {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["leads", "alerts"] }),
+  });
+}

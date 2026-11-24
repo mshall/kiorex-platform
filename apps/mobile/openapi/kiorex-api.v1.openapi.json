@@ -5616,6 +5616,395 @@
         ]
       }
     },
+    "/api/v1/partners/v1/leads": {
+      "post": {
+        "operationId": "PartnerLeadsPublicController_lead",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Submit a \"Talk to us\" lead (HMAC-signed with ts.rawBody; idempotent per (kind, orgRef))",
+        "tags": [
+          "partner-leads"
+        ]
+      }
+    },
+    "/api/v1/partners/v1/funnel": {
+      "post": {
+        "operationId": "PartnerLeadsPublicController_funnel",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Record a privacy-safe funnel marker (kind + org id + stage), signed like a lead",
+        "tags": [
+          "partner-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: partner leads (newest first), status derived from the onboarding request",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/funnel": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_funnel",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: interested -> started -> submitted -> live (distinct organisations) with conversion",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/unread": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_unread",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: new leads this team member has not seen yet (nav badge)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/seen": {
+      "post": {
+        "operationId": "PartnerLeadsOpsController_seen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: mark all current leads as seen (clears the badge)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/alerts": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_alertSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: lead alert settings (switch, channels) and the team members who get them",
+        "tags": [
+          "ops-onboarding"
+        ]
+      },
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_setAlerts",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertConfigBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP (super admin): switch lead alerts on/off and choose the channels",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/alerts/recipients/{sub}": {
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_setRecipient",
+        "parameters": [
+          {
+            "name": "sub",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRecipientBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: a team member opts in/out of lead alerts and picks their channels (own row; super admin any row)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/{id}": {
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadPatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: set the lead status and/or assignee",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/{id}/notes": {
+      "post": {
+        "operationId": "PartnerLeadsOpsController_note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadNoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: add a note to the lead",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",
@@ -15890,6 +16279,60 @@
           "reason"
         ]
       },
+      "AlertConfigBody": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AlertRecipientBody": {
+        "type": "object",
+        "properties": {
+          "leadAlerts": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LeadPatchBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "assignee": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 80
+          }
+        }
+      },
+      "LeadNoteBody": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "VaultItemDto": {
         "type": "object",
         "properties": {
@@ -18862,6 +19305,27 @@
           "providers"
         ]
       },
+      "LeadSigningDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "not configured"
+            ],
+            "description": "PARTNER_LEAD_SIGNING_SECRET present (never the value)"
+          },
+          "previousAccepted": {
+            "type": "boolean",
+            "description": "A previous secret is also accepted (rotation window)"
+          }
+        },
+        "required": [
+          "status",
+          "previousAccepted"
+        ]
+      },
       "ReadyDto": {
         "type": "object",
         "properties": {
@@ -18878,12 +19342,16 @@
             "items": {
               "$ref": "#/components/schemas/ProviderStatusDto"
             }
+          },
+          "leadSigning": {
+            "$ref": "#/components/schemas/LeadSigningDto"
           }
         },
         "required": [
           "status",
           "db",
-          "providers"
+          "providers",
+          "leadSigning"
         ]
       }
     }

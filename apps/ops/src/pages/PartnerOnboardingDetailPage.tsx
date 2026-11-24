@@ -73,7 +73,7 @@ export default function PartnerOnboardingDetailPage() {
   const [reason, setReason] = useState("");
   if (q.isLoading) return <CardSkeleton rows={4} />; if (q.error || !q.data) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   const d = q.data; const locked = ["LIVE", "REJECTED"].includes(d.status);
-  const call = (path: string, body?: unknown, ok?: string) => act.mutate({ path, body }, { onSuccess: () => { ok && toast.success(ok); setReason(""); }, onError: (e) => toast.error(e instanceof ApiError ? t(`pob.err.${e.code}`, { defaultValue: e.message }) : t("pob.err.generic")) });
+  const call = (path: string, body?: unknown, ok?: string) => act.mutate({ path, body }, { onSuccess: () => { if (ok) toast.success(ok); setReason(""); }, onError: (e) => toast.error(e instanceof ApiError ? t(`pob.err.${e.code}`, { defaultValue: e.message }) : t("pob.err.generic")) });
   const auto = d.steps.filter((s) => s.type === "AUTO"); const humanSteps = d.steps.filter((s) => s.type === "HUMAN");
   return (
     <div>

@@ -6,6 +6,14 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/auth/AuthProvider";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+import { useLeadsUnread } from "@/api/partnerLeads";
+
+/** Unread count on the Partner leads entry (new leads this person has not opened yet). */
+function LeadsBadge({ className }: { className?: string }) {
+  const { t } = useTranslation(); const n = useLeadsUnread().data?.count ?? 0;
+  if (n < 1) return null;
+  return <span className={cn("kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground", className)} data-testid="nav-leads-badge" role="status" aria-label={t("leads.alerts.unread", { count: n })}>{n > 99 ? "99+" : n}</span>;
+}
 
 const NAV = [
   { to: "/providers", icon: Building2, key: "providers" }, { to: "/bookings", icon: Route, key: "bookings" }, { to: "/outbox", icon: Activity, key: "outbox" },
@@ -26,7 +34,7 @@ export function OpsLayout() {
         <nav className="flex flex-1 flex-col gap-1">
           {NAV.map(({ to, icon: Icon, key }) => (
             <NavLink key={to} to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-accent", isActive && "bg-accent text-accent-foreground ring-1 ring-pulse/40")}>
-              <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}
+              <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge /> : null}
             </NavLink>
           ))}
         </nav>
@@ -35,7 +43,7 @@ export function OpsLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-card/90 px-4 backdrop-blur-sm">
           <nav className="flex gap-1 overflow-x-auto md:hidden" aria-label={t("nav.main")}>
-            {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent font-semibold text-accent-foreground")}>{t(`nav.${key}`)}</NavLink>)}
+            {NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent font-semibold text-accent-foreground")}><span className="inline-flex items-center gap-1.5">{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge className="ms-1" /> : null}</span></NavLink>)}
           </nav>
           <div className="ms-auto flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} data-testid="lang-toggle"><Languages aria-hidden="true" /><span lang={next}>{next === "ar" ? "العربية" : "English"}</span></Button>

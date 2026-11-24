@@ -6,6 +6,7 @@ import { ApiError, badRequest, notFound } from '../common/errors';
 import { newId } from '../common/ids';
 import { PgRateLimiter, SlidingWindowLimiter, type RateLimiter } from '../common/rate-limit';
 import { PrismaService } from '../prisma/prisma.service';
+import { LeadAlertsService } from './lead-alerts.service';
 import { leadSigningKeys } from './lead-signing';
 import { LEAD_KINDS, LEAD_STATUSES, parseFunnelBody, parseLeadBody, type LeadStatus } from './lead-validation';
 
@@ -33,7 +34,7 @@ const effective = (stored: string, conn: string | undefined, started: boolean): 
 export class PartnerLeadsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('partner-leads');
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService) { limiter = process.env.RATE_LIMIT_STORE === 'memory' ? new SlidingWindowLimiter() : new PgRateLimiter(prisma as never); }
+  constructor(private readonly prisma: PrismaService, private readonly alerts: LeadAlertsService) { limiter = process.env.RATE_LIMIT_STORE === 'memory' ? new SlidingWindowLimiter() : new PgRateLimiter(prisma as never); }
   onModuleInit() {
     if (!cfg().jobsEnabled || !(limiter instanceof PgRateLimiter)) return;
     const pg = limiter; this.timer = setInterval(() => void pg.sweep().catch((e) => this.log.warn(`sweep failed: ${e.message}`)), 10 * 60_000); this.timer.unref();
@@ -65,6 +66,7 @@ export class PartnerLeadsService implements OnModuleInit, OnModuleDestroy {
     const r = existing
       ? await this.prisma.partnerLead.update({ where: { id: existing.id }, data: { ...data, ...(existing.status === 'CLOSED' ? { status: 'NEW' } : {}) } })
       : await this.prisma.partnerLead.create({ data: { id: newId('pl'), kind: b.kind, orgRef: b.orgRef, ...data } });
+    if (!existing || existing.status === 'CLOSED') await this.alerts.onLead({ id: r.id, kind: r.kind, orgName: r.orgName }, existing ? r.updatedAt : r.createdAt); // new or re-opened only; a plain refresh never alerts again
     await this.prisma.partnerFunnelMark.upsert({ where: { kind_orgRef_stage: { kind: b.kind, orgRef: b.orgRef, stage: 'INTERESTED' } }, create: { kind: b.kind, orgRef: b.orgRef, stage: 'INTERESTED' }, update: {} });
     await this.prisma.auditLog.create({ data: { actor: 'partner', action: 'partner_lead.submitted', resource: 'PartnerLead', resourceId: r.id, metadata: { kind: b.kind, created: !existing } as never } }).catch(() => undefined);
     return { id: r.id, created: !existing };

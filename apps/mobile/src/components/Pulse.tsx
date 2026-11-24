@@ -54,13 +54,14 @@ export function Skeleton({ height = 16, width = "100%", radius = 8, style }: { h
 
 /** Brand illustration for empty / error / offline states: two soft chevrons with the coral pulse crossing the gap. */
 export function BrandIllustration({ size = 132, tone = "empty" }: { size?: number; tone?: "empty" | "error" | "offline" }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const chevron = scheme === "dark" ? 0.6 : 0.22; // dark: the light ink at 0.22 vanished on the dark surface (a visible mark needs about 3:1)
   const pulse = tone === "error" ? colors.danger : colors.pulse;
   return (
     <View aria-hidden style={{ width: size, height: size * 0.62, alignItems: "center", justifyContent: "center" }}>
       <Svg width={size} height={size * 0.62} viewBox="150 190 800 520">
-        <Path d="M373 237 L505 440 L373 643" fill="none" stroke={colors.ink} strokeOpacity={0.22} strokeWidth={46} strokeLinejoin="miter" />
-        <Path d="M720 237 L588 440 L720 643" fill="none" stroke={colors.ink2} strokeOpacity={0.22} strokeWidth={46} strokeLinejoin="miter" />
+        <Path d="M373 237 L505 440 L373 643" fill="none" stroke={colors.ink} strokeOpacity={chevron} strokeWidth={46} strokeLinejoin="miter" />
+        <Path d="M720 237 L588 440 L720 643" fill="none" stroke={colors.ink2} strokeOpacity={chevron} strokeWidth={46} strokeLinejoin="miter" />
         {tone === "offline"
           ? <Path d="M222 440 H420 M580 440 H877" fill="none" stroke={pulse} strokeWidth={13} strokeLinecap="round" strokeDasharray="1 26" />
           : <Path d={PULSE_D} fill="none" stroke={pulse} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" />}

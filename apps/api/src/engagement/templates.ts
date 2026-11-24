@@ -4,7 +4,7 @@
  */
 export type NotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKING_CHANGED' | 'BOOKING_CANCELLED' | 'BOOKING_CANCELLED_BY_CLINIC' | 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION' | 'DEPOSIT_REFUNDED' | 'BOOKING_EXPIRED'
   | 'HOME_VISIT_ASSIGNED' | 'HOME_VISIT_EN_ROUTE' | 'HOME_VISIT_ABORTED' | 'HOME_VISIT_FAMILY_INVITE' | 'HOME_VISIT_FAMILY_UPDATE' | 'CARE_PLAN_CONFIRMED'
-  | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_OUT_FOR_DELIVERY' | 'PHARMACY_ORDER_PARTIAL_REFUND' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY';
+  | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_OUT_FOR_DELIVERY' | 'PHARMACY_ORDER_PARTIAL_REFUND' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY' | 'OPS_LEAD_ALERT';
 
 export interface Template { templateId: string; reminder: boolean; bypassQuiet?: boolean; en: string; ar: string }
 
@@ -36,6 +36,8 @@ export const TEMPLATES: Record<NotifyKind, Template> = {
   HOME_VISIT_FAMILY_INVITE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_invite', reminder: false, bypassQuiet: true, en: '{patient} shared a home-visit status with you. Follow it here: {link} (reply STOP to stop).', ar: 'شاركك {patient} حالة زيارة منزلية. تابعها من هنا: {link} (أرسل STOP للإيقاف).' },
   HOME_VISIT_FAMILY_UPDATE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_update', reminder: false, bypassQuiet: true, en: 'Visit update for {patient}: {status}. {link}', ar: 'تحديث الزيارة لـ {patient}: {status}. {link}' },
   CARE_PLAN_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_care_plan_confirmed', reminder: false, en: 'Your care plan with {doctor} is confirmed: {count} visits scheduled.', ar: 'تم تأكيد خطة الرعاية مع {doctor}: {count} زيارات مجدولة.' },
+  // Kiorex team alert (no patient data): a partner organisation asked to talk. Copy is a draft for AR/EN review; the Meta template id is a placeholder (NEEDS_HUMAN).
+  OPS_LEAD_ALERT: { templateId: 'TODO_NEEDS_HUMAN_ops_lead_alert', reminder: false, en: 'New Kiorex partner lead: {org} ({kindLabel}). Open Ops > Partner leads.', ar: 'عميل شريك جديد على كيوريكس: {org} ({kindLabel}). افتح العمليات > العملاء المحتملون.' },
   DEPOSIT_REFUNDED: { templateId: 'TODO_NEEDS_HUMAN_deposit_refunded', reminder: false, en: 'Your deposit was refunded.', ar: 'تم رد العربون.' },
 };
 
