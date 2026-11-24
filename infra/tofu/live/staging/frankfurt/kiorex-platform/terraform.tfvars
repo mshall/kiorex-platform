@@ -77,3 +77,8 @@ safety_alerts = {
 }
 
 enable_demo_seed = true # Q10: staging demo data (non-production only; seeded by hand via scripts/seed-staging.sh)
+
+# ADR-040 front door: EMPTY container /kiorex-platform/staging/partner-lead-signing. Founder steps (docs: kiorex-platform Docs/NEEDS_HUMAN.md "Partner lead signing secret"):
+#   1. tofu apply (creates the container)  2. kiorex-platform/scripts/setup-partner-lead-secret.sh staging  3. set lead_signing_secret_inject = true and apply.
+lead_signing_secret        = true
+lead_signing_secret_inject = false

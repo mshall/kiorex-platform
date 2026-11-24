@@ -6,10 +6,13 @@ import { buildOpenApi, setupApp } from './app.setup';
 import { cfg } from './common/config';
 import { installProcessSafetyNet } from './common/outbound-http';
 import { logProviderStartup } from './common/providers/startup';
+import { verifyLeadSigningStartup } from './partner-leads/partner-leads-public';
 
 async function bootstrap() {
   installProcessSafetyNet();
   logProviderStartup(); // fail-fast: <KIND>_MODE=real without URL/credentials aborts startup (names only, never values)
+  const lead = verifyLeadSigningStartup(); // fail-fast in production without PARTNER_LEAD_SIGNING_SECRET (variable name only, never the value)
+  console.log(`lead signing: ${lead.status}`);
   const app = await NestFactory.create(AppModule, { rawBody: true });
   setupApp(app);
   app.enableCors({ origin: true, credentials: true });

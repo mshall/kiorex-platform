@@ -257,6 +257,10 @@
 | POST | `/api/v1/admin/onboarding/partners/{id}/pause` | OP: pause a live partner with a reason |
 | POST | `/api/v1/admin/onboarding/partners/{id}/resume` | OP: resume a paused partner |
 | POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` | OP: apply a pending credential rotation after a passing handshake |
+| GET | `/api/v1/admin/partner-leads` | OP: partner leads (newest first), status derived from the onboarding request |
+| GET | `/api/v1/admin/partner-leads/funnel` | OP: interested -> started -> submitted -> live (distinct organisations) with conversion |
+| PATCH | `/api/v1/admin/partner-leads/{id}` | OP: set the lead status and/or assignee |
+| POST | `/api/v1/admin/partner-leads/{id}/notes` | OP: add a note to the lead |
 
 ## partner-connections
 
@@ -264,6 +268,13 @@
 |---|---|---|
 | POST | `/api/v1/partners/v1/connection-requests` | Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef) |
 | GET | `/api/v1/partners/v1/connection-requests/{id}` | Partner polls its own status with the status token returned at creation |
+
+## partner-leads
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/partners/v1/leads` | Submit a "Talk to us" lead (HMAC-signed with ts.rawBody; idempotent per (kind, orgRef)) |
+| POST | `/api/v1/partners/v1/funnel` | Record a privacy-safe funnel marker (kind + org id + stage), signed like a lead |
 
 ## patient
 

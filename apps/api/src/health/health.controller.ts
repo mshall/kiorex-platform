@@ -3,6 +3,7 @@ import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { providerStatus } from '../common/providers/startup';
+import { leadSigningStatus } from '../partner-leads/partner-leads-public';
 import { LiveDto, ProvidersDto, ReadyDto } from './health.dto';
 
 @ApiTags('health')
@@ -30,7 +31,7 @@ export class HealthController {
   async ready() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { status: 'ready', db: 'up', providers: providerStatus() };
+      return { status: 'ready', db: 'up', providers: providerStatus(), leadSigning: leadSigningStatus() };
     } catch {
       throw new ServiceUnavailableException({ code: 'NOT_READY', message: 'database unavailable' });
     }

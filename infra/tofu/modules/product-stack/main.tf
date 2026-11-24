@@ -80,16 +80,25 @@ data "aws_route53_zone" "this" {
 # ---------------------------------------------------------------------------------------------------------
 # secrets (+ customer-managed KMS keys)
 # ---------------------------------------------------------------------------------------------------------
+locals {
+  # ADR-040 front door: shared signing secret for "Talk to us" leads. Same value in Kiorex (verifier) and in every product (signer).
+  is_kiorex_platform = var.product == "kiorex-platform"
+  lead_secret_name   = "/${var.product}/${var.env}/${local.is_kiorex_platform ? "partner-lead-signing" : "kiorex-lead-signing"}"
+  lead_secret_env    = local.is_kiorex_platform ? "PARTNER_LEAD_SIGNING_SECRET" : "KIOREX_LEAD_SIGNING_SECRET"
+  lead_secret_inject = var.lead_signing_secret && var.lead_signing_secret_inject
+}
+
 module "secrets" {
   source = "../aws/secrets"
 
-  name                 = local.name
-  kms_purposes         = var.use_cmk ? toset(compact([var.enable_database ? "rds" : "", var.enable_uploads ? "uploads" : "", "secrets", "alerts"])) : toset([])
-  generated_secrets    = local.generated_secrets
-  placeholder_secrets  = var.placeholder_secrets
-  openai_secret_name   = var.openai_secret_name
-  recovery_window_days = var.env == "prod" ? 30 : 0
-  tags                 = local.tags
+  name                      = local.name
+  kms_purposes              = var.use_cmk ? toset(compact([var.enable_database ? "rds" : "", var.enable_uploads ? "uploads" : "", "secrets", "alerts"])) : toset([])
+  generated_secrets         = local.generated_secrets
+  placeholder_secrets       = var.placeholder_secrets
+  named_placeholder_secrets = toset(var.lead_signing_secret ? [local.lead_secret_name] : [])
+  openai_secret_name        = var.openai_secret_name
+  recovery_window_days      = var.env == "prod" ? 30 : 0
+  tags                      = local.tags
 }
 
 locals {
@@ -208,6 +217,8 @@ locals {
       UPLOAD_STORAGE   = "s3"
       S3_UPLOAD_BUCKET = module.uploads[0].bucket_id
     } : {},
+    # Startup fails fast without the secret in production; until the value is wired (see lead_signing_secret_inject) it is only reported by /health/ready.
+    local.is_kiorex_platform ? { PARTNER_LEAD_SIGNING_OPTIONAL = local.lead_secret_inject ? "false" : "true" } : {},
     var.env_vars,
   )
 
@@ -215,6 +226,7 @@ locals {
     { JWT_SECRET = module.secrets.secret_field_arns["jwt"] },
     local.has_jobs ? { INTERNAL_JOB_KEY = module.secrets.secret_field_arns["internal-jobs"] } : {},
     module.secrets.openai_secret_arn == null ? {} : { OPENAI_API_KEY = "${module.secrets.openai_secret_arn}:apiKey::" },
+    local.lead_secret_inject ? { (local.lead_secret_env) = module.secrets.named_placeholder_secret_arns[local.lead_secret_name] } : {},
     var.runtime_secrets,
   )
 }

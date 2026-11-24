@@ -21,7 +21,7 @@ Rows marked **STOP** block the related capability from going live; code ships wi
 | 15 | Contracts | Cancellation payload fields (`depositRefundable`, `reason`) are optional in Kiorly today | Tolerated (see #3) | — | Kiorly |
 | 16 | Market | Gate evidence for `market.eg.live` (a human records it in the super admin). Enforcement is implemented: not live => hidden from sign-up (`GET /markets`) and search, 403 on profile/slots/booking | Dev seed (`prisma/seed.ts`) and the test harness insert an explicitly labelled DEV gate row (`DEV-ONLY-NOT-A-REAL-GATE`); it must never exist in production (`seed` refuses when `NODE_ENV=production`) | **STOP** before public launch | Founder |
 | 17 | Ops metrics | Slots/day for liquidity dashboard needs a Kiorly count API | Reported as TODO | — | Kiorly |
-| 18 | Secrets | Production `FIELD_ENCRYPTION_KEY` (KMS), product flag secrets, Kiorly client secret rotation (90 days) | Dev defaults in `.env.example` only | **STOP** | DevOps |
+| 18 | Secrets | Production `FIELD_ENCRYPTION_KEY` (KMS), product flag secrets, Kiorly client secret rotation (90 days), the partner lead signing secret (`PARTNER_LEAD_SIGNING_SECRET` = `KIOREX_LEAD_SIGNING_SECRET`; see **Partner lead signing secret** below) | Dev defaults in `.env.example` only | **STOP** | DevOps |
 | 19 | Kiorly gap (BK-12) | Kiorly's waitlist (FS03, `clinic.waitlist_autofill`) is staff/WhatsApp driven: no marketplace endpoint or event exposes it to Kiorex patients. Needed: `POST /marketplace/v1/waitlist` (join with clinicId, clinicianId, typeId, window, patient identity), `DELETE /marketplace/v1/waitlist/{id}`, and outbox events `WAITLIST_OFFER_CREATED` / `WAITLIST_OFFER_EXPIRED` so Kiorly's FS03 is the single system of record | Kiorex keeps its own waitlist; offers come from slots API + `SLOTS_CHANGED`; accept = normal hold. Honours the Kiorly org flag `clinic.waitlist_autofill` | — | Kiorly |
 | 20 | Kiorly gap (BK-11) | Marketplace `POST /bookings` accepts `channel` `MARKETPLACE`\|`CLINIC_LINK` only; Kiorly has `BookingSource.KIOREX_WHATSAPP` internally. Needed: accept `channel: KIOREX_WHATSAPP` (commission rules for that source) | Kiorex sends `MARKETPLACE` + `attribution.source=kiorex_whatsapp`; set `KIORLY_ACCEPTS_WHATSAPP_CHANNEL=true` once Kiorly accepts it | — | Kiorly |
 | 21 | Kiorly gap (RC-02/03) | `PRESCRIPTION_SHARED` carries only encounterId/clinicId/signedAt (no line items) and `VISIT_SUMMARY_SHARED` carries no follow-up interval. Needed: Rx `items[]` (additive, signed like the summary) and `summary.followUp.intervalDays` | Rx view shows `items: null, itemsAvailable: false`; follow-up reminders are patient-set unless Kiorly sends `followUp.intervalDays` (already honoured) | — | Kiorly / CMO |
@@ -56,6 +56,26 @@ Founder decision 19 Nov 2026. Each integration sits behind an adapter with `MODE
 | Safety-alert delivery (KXMOP12, <= 60 s) | `homecare/safety-delivery.adapter.ts` (`SAFETY_DELIVERY_MODE=mock\|real`) | Records a deterministic on-call delivery per alert and escalation level | On-call paging provider (voice/SMS/app) + rota, delivery-latency alarm wired to the OpenTofu alarms already added for SAFETY_ALERT_RAISED, a staging drill proving <= 60 s (GHV2 safety drill), `SAFETY_ONCALL` contacts |
 
 Verification before flipping any provider: staging run of the golden flow with real credentials, delivery-state webhooks received, no PHI in provider-side logs, cost caps set, rollback = flip the mode back to `mock` (data in `MessageLog` is retained).
+
+
+## Partner lead signing secret (ADR-040 front door): CONFIG ONLY, founder steps
+
+One random 256-bit value signs the "Talk to us" leads and funnel markers. It is the SAME value in Kiorex (`PARTNER_LEAD_SIGNING_SECRET`, the verifier) and in each product (`KIOREX_LEAD_SIGNING_SECRET`, the signer). Outside production a fixed dev value is used; in production an unset or short (<32 characters) value means nothing authenticates, and the Kiorex API refuses to start. Values never appear in code, tfvars, OpenTofu state or logs.
+
+| Where | Secrets Manager name (product KMS key, 30-day recovery, readable only by that service's runtime role) | Env var the code reads |
+|---|---|---|
+| Kiorex Platform | `/kiorex-platform/<env>/partner-lead-signing` | `PARTNER_LEAD_SIGNING_SECRET` |
+| Kiorly Clinic | `/kiorly-clinic/<env>/kiorex-lead-signing` | `KIOREX_LEAD_SIGNING_SECRET` |
+| Kiorly Pharmacy | `/kiorly-pharmacy/<env>/kiorex-lead-signing` | `KIOREX_LEAD_SIGNING_SECRET` |
+| Kiorly Lab | `/kiorly-lab/<env>/kiorex-lead-signing` | `KIOREX_LEAD_SIGNING_SECRET` |
+
+Go-live (per environment, staging first; prod needs the production account and an explicit `--profile`):
+1. In each product's live stack, `lead_signing_secret = true` is already set in `terraform.tfvars`; run `tofu plan` and `tofu apply` there (creates the EMPTY containers only; `lead_signing_secret_inject` stays `false`, and Kiorex runs with `PARTNER_LEAD_SIGNING_OPTIONAL=true` until step 3).
+2. `scripts/setup-partner-lead-secret.sh <env> [--profile <aws-profile>]` (this repo). Generates one value locally, writes it by stdin to the four secrets, prints only status and ARNs. Idempotent: re-running changes nothing; a service holding a different value is reported as MISMATCH.
+3. Set `lead_signing_secret_inject = true` in each live stack (App Runner cannot start an instance whose secret has no value, which is why this is a separate step) and `tofu apply`; the next deployment of each service picks the secret up.
+4. Verify: `GET /api/v1/health/ready` on Kiorex shows `leadSigning: { status: "configured" }` and each product's `/health/ready` the same; submit Talk to us from a product and see the lead in Kiorex ops (Partner leads). `not configured` is reported without the value.
+
+Rotation (at least yearly and whenever someone with access leaves): `scripts/setup-partner-lead-secret.sh <env> --rotate` sets Kiorex to `<new>,<old>` (both verify; at most two are ever read) and every product to `<new>`; redeploy Kiorex and all products (secrets are read when an instance starts); check Talk to us from each product; then `--finish-rotation` (refuses unless every product holds the new value) and redeploy Kiorex so `previousAccepted` is `false`. Emergency (suspected leak): rotate and finish immediately; the old value stops verifying as soon as Kiorex is redeployed after `--finish-rotation`.
 
 
 

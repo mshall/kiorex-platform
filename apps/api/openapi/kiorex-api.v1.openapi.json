@@ -5616,6 +5616,202 @@
         ]
       }
     },
+    "/api/v1/partners/v1/leads": {
+      "post": {
+        "operationId": "PartnerLeadsPublicController_lead",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Submit a \"Talk to us\" lead (HMAC-signed with ts.rawBody; idempotent per (kind, orgRef))",
+        "tags": [
+          "partner-leads"
+        ]
+      }
+    },
+    "/api/v1/partners/v1/funnel": {
+      "post": {
+        "operationId": "PartnerLeadsPublicController_funnel",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Record a privacy-safe funnel marker (kind + org id + stage), signed like a lead",
+        "tags": [
+          "partner-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: partner leads (newest first), status derived from the onboarding request",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/funnel": {
+      "get": {
+        "operationId": "PartnerLeadsOpsController_funnel",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: interested -> started -> submitted -> live (distinct organisations) with conversion",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/{id}": {
+      "patch": {
+        "operationId": "PartnerLeadsOpsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadPatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: set the lead status and/or assignee",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/partner-leads/{id}/notes": {
+      "post": {
+        "operationId": "PartnerLeadsOpsController_note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadNoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: add a note to the lead",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",
@@ -15890,6 +16086,32 @@
           "reason"
         ]
       },
+      "LeadPatchBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "assignee": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 80
+          }
+        }
+      },
+      "LeadNoteBody": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "VaultItemDto": {
         "type": "object",
         "properties": {
@@ -18862,6 +19084,27 @@
           "providers"
         ]
       },
+      "LeadSigningDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "not configured"
+            ],
+            "description": "PARTNER_LEAD_SIGNING_SECRET present (never the value)"
+          },
+          "previousAccepted": {
+            "type": "boolean",
+            "description": "A previous secret is also accepted (rotation window)"
+          }
+        },
+        "required": [
+          "status",
+          "previousAccepted"
+        ]
+      },
       "ReadyDto": {
         "type": "object",
         "properties": {
@@ -18878,12 +19121,16 @@
             "items": {
               "$ref": "#/components/schemas/ProviderStatusDto"
             }
+          },
+          "leadSigning": {
+            "$ref": "#/components/schemas/LeadSigningDto"
           }
         },
         "required": [
           "status",
           "db",
-          "providers"
+          "providers",
+          "leadSigning"
         ]
       }
     }

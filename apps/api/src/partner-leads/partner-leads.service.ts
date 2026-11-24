@@ -1,11 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { deriveIntakeSigningKey, verifyIntakeSignature } from '@kiorex/contracts';
+import { verifyIntakeSignature } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { ApiError, badRequest, notFound } from '../common/errors';
 import { newId } from '../common/ids';
 import { PgRateLimiter, SlidingWindowLimiter, type RateLimiter } from '../common/rate-limit';
 import { PrismaService } from '../prisma/prisma.service';
+import { leadSigningKeys } from './lead-signing';
 import { LEAD_KINDS, LEAD_STATUSES, parseFunnelBody, parseLeadBody, type LeadStatus } from './lead-validation';
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -13,11 +14,7 @@ const RANK: Record<string, number> = { NEW: 0, CONTACTED: 1, STARTED: 2, SUBMITT
 const tooMany = (retryAfterSec: number) => new ApiError(429, 'RATE_LIMITED', 'Too many requests, try again later', { retryAfterSec });
 const UNAUTHORIZED = () => new ApiError(401, 'LEAD_UNAUTHORIZED', 'Request could not be authenticated');
 
-/** Lead / funnel signing secret: PARTNER_LEAD_SIGNING_SECRET in every deployment; a fixed dev value ONLY outside production. Without one nothing authenticates. */
-export function leadSigningKey(env: Record<string, string | undefined> = process.env): string | null {
-  const s = env.PARTNER_LEAD_SIGNING_SECRET?.trim() || (env.NODE_ENV === 'production' ? '' : 'kiorex-dev-lead-signing-secret');
-  return s ? deriveIntakeSigningKey(s) : null;
-}
+export { leadSigningKey } from './lead-signing';
 const lim = (name: string, def: number) => { const n = Number(process.env[name]); return Number.isFinite(n) && n > 0 ? n : def; };
 
 let limiter: RateLimiter = new SlidingWindowLimiter();
@@ -45,8 +42,9 @@ export class PartnerLeadsService implements OnModuleInit, OnModuleDestroy {
 
   /** Uniform 401 for every failure (no key, bad signature, stale timestamp, replayed nonce). Nonce is stored only after a valid signature. */
   private async authenticate(raw: string, h: { signature?: string; timestamp?: string }, nonceKey: string, ip: string) {
-    const key = leadSigningKey();
-    let ok = !!key && verifyIntakeSignature({ signingKey: key, body: raw, timestamp: h.timestamp, signature: h.signature });
+    // current secret first, then the previous one while a rotation window is open (PARTNER_LEAD_SIGNING_SECRET="new,old")
+    let ok = false;
+    for (const signingKey of leadSigningKeys()) if (verifyIntakeSignature({ signingKey, body: raw, timestamp: h.timestamp, signature: h.signature })) ok = true;
     if (ok) { try { await this.prisma.partnerIntakeNonce.create({ data: { id: sha(`lead|${nonceKey}`) } }); } catch { ok = false; } }
     if (!ok) { await limiter.hit(`lfail:${ip}`, 1_000_000, 600_000); throw UNAUTHORIZED(); }
   }
