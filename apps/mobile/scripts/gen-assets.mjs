@@ -8,5 +8,5 @@ const out = join(here, "../assets");
 const src = join(here, "../../../../_brand/dist/expo");
 if (!existsSync(src)) { console.error("brand kit not found at", src, "- keeping the committed assets"); process.exit(0); }
 mkdirSync(out, { recursive: true });
-for (const [from, to] of [["icon.png", "icon.png"], ["adaptive-foreground.png", "adaptive-icon.png"], ["splash-icon.png", "splash-icon.png"], ["splash-icon-dark.png", "splash-icon-dark.png"], ["favicon.png", "favicon.png"]]) copyFileSync(join(src, from), join(out, to));
+for (const [from, to] of [["icon.png", "icon.png"], ["adaptive-foreground.png", "adaptive-icon.png"], ["splash-icon.png", "splash-icon.png"], ["splash-icon-dark.png", "splash-icon-dark.png"], ["favicon.png", "favicon.png"], ["notification-icon.png", "notification-icon.png"]]) copyFileSync(join(src, from), join(out, to));
 console.log("assets copied from", src);
