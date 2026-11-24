@@ -9,6 +9,7 @@ import { StatusChip } from "@/components/kit";
 import { DataTable } from "@/components/DataTable";
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { BarList } from "@/components/growth/BarList";
+import { ChannelPerformancePanel } from "@/components/growth/ChannelPerformancePanel";
 import { DaysSelect, GrowthPage, MarketSelect, Section, useGrowthMarket } from "@/components/growth/GrowthPage";
 import { formatDateTime } from "@/lib/format";
 
@@ -37,6 +38,7 @@ export default function GrowthChannelsPage() {
             ]} />
           </Section>
         </>)}
+      <ChannelPerformancePanel market={g.market} days={days} />
     </GrowthPage>
   );
 }

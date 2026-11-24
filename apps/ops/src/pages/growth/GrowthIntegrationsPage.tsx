@@ -6,12 +6,14 @@ import { StatusChip } from "@/components/kit";
 import { DataTable } from "@/components/DataTable";
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { GrowthPage, MarketSelect, Section, useGrowthMarket } from "@/components/growth/GrowthPage";
+import { IntegrationsPanel } from "@/components/growth/IntegrationsPanel";
 
 /** Integration management: mode and readiness per provider. Secrets appear only as REFERENCES (the variable name and whether it is set); there is no field that can show or accept a secret value. */
 export default function GrowthIntegrationsPage() {
   const { t } = useTranslation(); const g = useGrowthMarket(); const q = useIntegrations(g.market);
   return (
     <GrowthPage section="integrations" toolbar={<MarketSelect g={g} />}>
+      <IntegrationsPanel market={g.market} />
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : q.data && (
         <>
           <p className="flex items-start gap-2 rounded-xl border bg-card p-3 text-sm" data-testid="secret-rule"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />{t("growth.integrations.secretRule")}</p>

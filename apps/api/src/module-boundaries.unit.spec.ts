@@ -67,7 +67,7 @@ describe('module boundaries', () => {
     }
     // nothing outside the growth family imports growth internals (only growth-public); the family never reaches into booking/pay internals
     for (const f of all) {
-      if (['growth', 'public-site', 'widget'].includes(moduleOf(f))) continue;
+      if (['growth', 'public-site', 'widget', 'platform'].includes(moduleOf(f))) continue; // platform: adapter folders are named after their consumer, the façade re-exports them
       for (const spec of importsOf(f).filter((x) => /\/(growth|public-site|widget)\//.test(x))) expect(`${relative(SRC, f)} -> ${spec}`).toMatch(/-public$/);
     }
   });
