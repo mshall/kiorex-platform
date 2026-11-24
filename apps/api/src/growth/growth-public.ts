@@ -31,3 +31,8 @@ export { ReferralModule } from './referral/referral-public';
 export { RewardsModule } from './rewards/rewards-public';
 export { LifecycleModule } from './lifecycle/lifecycle-public';
 export { IntegrationsModule } from './integrations/integrations-public';
+// GRW-P2-A
+export { CampaignService, SYSTEM as CAMPAIGN_SYSTEM_ACTOR, type Actor as CampaignActor } from './campaigns/campaign.service';
+export { CampaignBudgetService } from './campaigns/campaign-budget.service';
+export { evaluateTransition as evaluateCampaignTransition, type CampaignStatus } from './campaigns/campaign.state';
+export { isEligible as isCampaignEligible, validateEligibility as validateCampaignEligibility, type Eligibility as CampaignEligibility, type EligibilityFacts as CampaignEligibilityFacts } from './campaigns/campaign-eligibility';

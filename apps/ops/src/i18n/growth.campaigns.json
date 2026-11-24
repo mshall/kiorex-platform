@@ -1,1 +1,612 @@
-{ "en": {}, "ar": {} }
+{
+  "en": {
+    "growth": {
+      "campaigns": {
+        "list": {
+          "empty": "No campaigns yet",
+          "emptyHint": "A campaign is a plan: channels, budget, tracking and audience. Nothing is spent or published on an ad platform.",
+          "new": "New campaign",
+          "newPromo": "New promotional campaign",
+          "search": "Search by name or key",
+          "allStatuses": "All states",
+          "colName": "Campaign",
+          "colStatus": "State",
+          "colBudget": "Budget",
+          "colSpent": "Spent",
+          "colWindow": "Window",
+          "colChannels": "Channels",
+          "open": "Open",
+          "readOnly": "You can read campaigns; creating and changing them needs a super admin.",
+          "plansOnly": "Plans only: Kiorex never creates, edits or spends on an ad platform from here. Spend arrives as entries that a second person approves.",
+          "utilisation": "{{pct}} used"
+        },
+        "promo": {
+          "banner": "Time-boxed promotional campaigns: window, audience (non-clinical), budget cap, creatives and landing page. A promotion here does not change a patient price, and it cannot discount a visit: reward credit (patient rewards) and clinic-sponsored promotions are separate packages with their own approvals.",
+          "hint": "Only campaigns with the objective Promotion appear here."
+        },
+        "status": {
+          "DRAFT": "Draft",
+          "PENDING_APPROVAL": "Waiting for approval",
+          "SCHEDULED": "Scheduled",
+          "ACTIVE": "Active",
+          "PAUSED": "Paused",
+          "COMPLETED": "Completed",
+          "ARCHIVED": "Archived"
+        },
+        "objective": {
+          "AWARENESS": "Awareness",
+          "ACQUISITION": "New patients",
+          "REACTIVATION": "Reactivation",
+          "PROMOTION": "Promotion",
+          "APP_INSTALL": "App installs",
+          "PROVIDER_GROWTH": "Provider growth"
+        },
+        "channel": {
+          "ORGANIC_SEARCH": "Organic search",
+          "EMAIL": "E-mail",
+          "SMS": "SMS",
+          "WHATSAPP": "WhatsApp",
+          "PUSH": "Push",
+          "IN_APP": "In app",
+          "PARTNER": "Partner",
+          "PAID_SEARCH": "Paid search",
+          "PAID_SOCIAL": "Paid social",
+          "PAID_VIDEO": "Paid video",
+          "OFFLINE": "Offline",
+          "REFERRAL": "Referral"
+        },
+        "wizard": {
+          "title": "New campaign",
+          "steps": {
+            "basics": "Basics",
+            "budget": "Budget and channels",
+            "audience": "Audience",
+            "tracking": "Tracking",
+            "review": "Review"
+          },
+          "back": "Back",
+          "next": "Next",
+          "create": "Create draft",
+          "creating": "Creating",
+          "name": "Name",
+          "nameHint": "Shown to your team only.",
+          "key": "Key",
+          "keyHint": "Lower-case letters, numbers and hyphens. It becomes the campaign tag and cannot change once the campaign has run.",
+          "objective": "Objective",
+          "startsAt": "Starts",
+          "endsAt": "Ends",
+          "total": "Total budget (EGP)",
+          "totalHint": "Planned spend. Nothing is bought here.",
+          "daily": "Daily cap (EGP)",
+          "dailyHint": "The campaign pauses for the day when approved spend reaches it.",
+          "channels": "Channels",
+          "channelsHint": "Paid channels are labels only.",
+          "sensitive": "WhatsApp and SMS marketing always need a second approver.",
+          "audience": "Audience",
+          "audienceHint": "Non-clinical only: place, platform, language, new or returning, care type. Never a specialty, a provider or a health attribute.",
+          "patientType": "Patients",
+          "patientTypes": {
+            "ANY": "Everyone",
+            "NEW": "New",
+            "RETURNING": "Returning"
+          },
+          "cities": "Cities (comma separated)",
+          "districts": "Districts (comma separated)",
+          "platforms": "Platforms",
+          "languages": "Languages",
+          "careTypes": "Care types",
+          "careType": {
+            "IN_CLINIC": "In clinic",
+            "VIDEO": "Video",
+            "HOME_VISIT": "Home visit"
+          },
+          "platform": {
+            "web": "Web",
+            "ios": "iOS",
+            "android": "Android"
+          },
+          "language": {
+            "ar": "Arabic",
+            "en": "English"
+          },
+          "source": "Source (utm_source)",
+          "medium": "Medium (utm_medium)",
+          "content": "Content (utm_content)",
+          "term": "Term (utm_term)",
+          "targetPath": "Landing path",
+          "targetHint": "A path on the Kiorex site, for example /doctors.",
+          "preview": "Tracked links",
+          "campaignTag": "Campaign tag",
+          "webUrl": "Web link",
+          "appLink": "App link",
+          "copy": "Copy",
+          "copied": "Copied",
+          "reviewHint": "Check the plan. It is created as a draft; nothing is live until it is approved (when needed), scheduled and its start time arrives.",
+          "needsApproval": "This campaign will need a second approver before it can run.",
+          "noApproval": "No second approver is required by the current policy.",
+          "created": "Draft created",
+          "invalid": "Please fix the highlighted fields",
+          "datesRequired": "Dates are needed before the campaign can be scheduled"
+        },
+        "detail": {
+          "back": "All campaigns",
+          "tabs": {
+            "overview": "Overview",
+            "approvals": "Approvals",
+            "spend": "Spend",
+            "creatives": "Creatives",
+            "report": "Performance",
+            "history": "History"
+          },
+          "budget": "Budget",
+          "approvedSpend": "Approved spend",
+          "pendingSpend": "Pending approval",
+          "remaining": "Remaining",
+          "daily": "Daily cap",
+          "window": "Window",
+          "owner": "Owner",
+          "tag": "Campaign tag",
+          "links": "Tracked links",
+          "eligibility": "Audience",
+          "none": "Everyone in the market",
+          "approvalState": "Approval",
+          "approvalNeeded": "A second approver is needed",
+          "approvalReasons": {
+            "BUDGET_ABOVE_THRESHOLD": "budget above the policy threshold",
+            "SENSITIVE_CHANNEL": "a sensitive channel (WhatsApp or SMS)",
+            "POLICY_FLAG": "policy requires approval for every campaign"
+          },
+          "approvalCurrent": "Covered by an approval",
+          "approvalMissing": "Not covered by an approval",
+          "actions": "Actions",
+          "actionLabel": {
+            "DRAFT": "Back to draft",
+            "PENDING_APPROVAL": "Send for approval",
+            "SCHEDULED": "Schedule",
+            "ACTIVE": "Start or resume",
+            "PAUSED": "Pause",
+            "COMPLETED": "Complete",
+            "ARCHIVED": "Archive"
+          },
+          "reasonPrompt": "Reason (required)",
+          "confirm": "Confirm",
+          "cancel": "Cancel",
+          "moved": "State changed",
+          "pauseReason": {
+            "BUDGET": "Paused: budget used",
+            "MANUAL": "Paused by a person",
+            "GUARDRAIL": "Paused until the next day (daily cap)"
+          },
+          "autoExpires": "Ends automatically at {{at}}",
+          "edit": "Edit",
+          "save": "Save",
+          "saved": "Saved",
+          "readOnly": "Read only: changes need a super admin."
+        },
+        "approvals": {
+          "title": "Approvals",
+          "none": "Nothing waiting for a decision.",
+          "request": "Ask for approval",
+          "requestBudget": "Request a budget increase",
+          "newTotal": "New total (EGP)",
+          "newDaily": "New daily cap (EGP)",
+          "requestReactivate": "Request reactivation",
+          "requested": "Approval requested",
+          "kind": {
+            "ACTIVATE": "Activation",
+            "BUDGET_INCREASE": "Budget increase",
+            "REACTIVATE": "Reactivation"
+          },
+          "by": "Requested by {{who}}",
+          "decision": {
+            "APPROVED": "Approved",
+            "REJECTED": "Rejected"
+          },
+          "approve": "Approve",
+          "reject": "Reject",
+          "reasonLabel": "Reason",
+          "payload": "What is being approved",
+          "hash": "Reviewed payload",
+          "self": "You asked for this approval, so a different super admin must decide it.",
+          "decided": "Decided",
+          "pending": "Waiting",
+          "history": "Decided",
+          "reviewed": "Decision recorded"
+        },
+        "spend": {
+          "title": "Spend lines",
+          "hint": "A spend line is a record entered by a person and approved by a different person on the Finance page. Only approved lines count against the budget.",
+          "add": "Add spend line",
+          "day": "Day",
+          "amount": "Amount (EGP)",
+          "note": "Note (no contact details)",
+          "added": "Spend line added",
+          "none": "No spend recorded yet.",
+          "daily": "Daily utilisation",
+          "status": {
+            "PENDING": "Waiting",
+            "APPROVED": "Approved",
+            "REJECTED": "Rejected"
+          },
+          "finance": "Approve on the Finance page"
+        },
+        "creatives": {
+          "title": "Creative references",
+          "hint": "Only a reference: an object-store key under this campaign or a link on an allowed host. Files are never stored here.",
+          "kind": "Type",
+          "kinds": {
+            "IMAGE": "Image",
+            "VIDEO": "Video",
+            "COPY": "Copy",
+            "LANDING": "Landing page",
+            "LINK": "Link"
+          },
+          "ref": "Reference",
+          "locale": "Language",
+          "add": "Add reference",
+          "added": "Reference added",
+          "none": "No creative references yet."
+        },
+        "report": {
+          "title": "Performance",
+          "from": "From",
+          "to": "To",
+          "notConnected": "Not connected",
+          "notConnectedHint": "No ad-platform numbers are connected. Impressions and clicks are shown only when a read-only integration provides them; a missing number is never shown as zero.",
+          "connected": "External numbers from {{kinds}}",
+          "funnel": "Funnel",
+          "stage": {
+            "PageViewed": "Page views",
+            "SearchStarted": "Searches",
+            "ResultsViewed": "Results viewed",
+            "ProviderViewed": "Provider pages",
+            "SlotSelected": "Slots chosen",
+            "BookingInitiated": "Bookings started",
+            "BookingConfirmed": "Bookings confirmed",
+            "BookingAttended": "Attended",
+            "AttendedNewPatient": "New patients attended"
+          },
+          "kpi": "Unit costs",
+          "cpa": "Cost per booking",
+          "cac": "Cost per new patient",
+          "roas": "Return on spend",
+          "conversion": "Conversion",
+          "revenue": "Net Kiorex revenue",
+          "daily": "By day",
+          "bySource": "By source",
+          "day": "Day",
+          "spend": "Spend",
+          "views": "Page views",
+          "bookings": "Bookings",
+          "source": "Source",
+          "masked": "Fewer than 10 people: hidden to protect privacy",
+          "budgetUsed": "Budget used",
+          "nothing": "No activity in this period."
+        },
+        "history": {
+          "title": "History",
+          "none": "No state changes yet.",
+          "by": "by {{who}}"
+        },
+        "err": {
+          "CAMPAIGN_INVALID": "The campaign is not valid.",
+          "CAMPAIGN_INVALID_TRANSITION": "That change is not allowed from the current state.",
+          "CAMPAIGN_CEILING_EXCEEDED": "The monthly ceiling for campaign budgets would be exceeded.",
+          "CAMPAIGN_APPROVAL_REQUIRED": "A second approver is needed first.",
+          "CAMPAIGN_SELF_APPROVAL": "A different super admin must decide this.",
+          "CAMPAIGN_BUDGET_EXHAUSTED": "The budget is used up: a budget increase approved by a second person is needed.",
+          "CAMPAIGN_LOCKED": "The campaign changed or is locked: reload and try again.",
+          "CAMPAIGN_KEY_TAKEN": "A campaign with this key already exists.",
+          "CAMPAIGN_NOT_FOUND": "Campaign not found.",
+          "FEATURE_DISABLED": "Campaigns are switched off for this market (flag growth.campaigns).",
+          "generic": "Something went wrong."
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "campaigns": {
+        "list": {
+          "empty": "لا توجد حملات بعد",
+          "emptyHint": "الحملة خطة: قنوات وميزانية وتتبع وجمهور. لا يُنفق ولا يُنشر شيء على أي منصة إعلانات.",
+          "new": "حملة جديدة",
+          "newPromo": "حملة ترويجية جديدة",
+          "search": "ابحث بالاسم أو المفتاح",
+          "allStatuses": "كل الحالات",
+          "colName": "الحملة",
+          "colStatus": "الحالة",
+          "colBudget": "الميزانية",
+          "colSpent": "المنفق",
+          "colWindow": "الفترة",
+          "colChannels": "القنوات",
+          "open": "فتح",
+          "readOnly": "يمكنك قراءة الحملات؛ إنشاؤها وتعديلها يحتاج مشرفاً عاماً.",
+          "plansOnly": "خطط فقط: كيوريكس لا ينشئ ولا يعدّل ولا ينفق على منصة إعلانات من هنا. يصل الإنفاق كسجلات يعتمدها شخص ثانٍ.",
+          "utilisation": "استُخدم {{pct}}"
+        },
+        "promo": {
+          "banner": "حملات ترويجية محددة المدة: الفترة والجمهور (غير سريري) وسقف الميزانية والمواد وصفحة الهبوط. الترويج هنا لا يغيّر سعراً للمريض ولا يخصم من زيارة: رصيد المكافآت للمرضى والعروض التي ترعاها العيادات حزمتان منفصلتان بموافقاتهما.",
+          "hint": "تظهر هنا الحملات التي هدفها «ترويج» فقط."
+        },
+        "status": {
+          "DRAFT": "مسودة",
+          "PENDING_APPROVAL": "بانتظار الموافقة",
+          "SCHEDULED": "مجدولة",
+          "ACTIVE": "نشطة",
+          "PAUSED": "متوقفة مؤقتاً",
+          "COMPLETED": "مكتملة",
+          "ARCHIVED": "مؤرشفة"
+        },
+        "objective": {
+          "AWARENESS": "التعريف",
+          "ACQUISITION": "مرضى جدد",
+          "REACTIVATION": "إعادة التنشيط",
+          "PROMOTION": "ترويج",
+          "APP_INSTALL": "تثبيت التطبيق",
+          "PROVIDER_GROWTH": "نمو مقدمي الخدمة"
+        },
+        "channel": {
+          "ORGANIC_SEARCH": "بحث عضوي",
+          "EMAIL": "بريد إلكتروني",
+          "SMS": "رسائل نصية",
+          "WHATSAPP": "واتساب",
+          "PUSH": "إشعارات",
+          "IN_APP": "داخل التطبيق",
+          "PARTNER": "شريك",
+          "PAID_SEARCH": "بحث مدفوع",
+          "PAID_SOCIAL": "تواصل اجتماعي مدفوع",
+          "PAID_VIDEO": "فيديو مدفوع",
+          "OFFLINE": "خارج الإنترنت",
+          "REFERRAL": "إحالة"
+        },
+        "wizard": {
+          "title": "حملة جديدة",
+          "steps": {
+            "basics": "الأساسيات",
+            "budget": "الميزانية والقنوات",
+            "audience": "الجمهور",
+            "tracking": "التتبع",
+            "review": "المراجعة"
+          },
+          "back": "رجوع",
+          "next": "التالي",
+          "create": "إنشاء مسودة",
+          "creating": "جارٍ الإنشاء",
+          "name": "الاسم",
+          "nameHint": "يظهر لفريقك فقط.",
+          "key": "المفتاح",
+          "keyHint": "أحرف إنجليزية صغيرة وأرقام وشرطات. يصبح وسم الحملة ولا يتغير بعد تشغيلها.",
+          "objective": "الهدف",
+          "startsAt": "البداية",
+          "endsAt": "النهاية",
+          "total": "إجمالي الميزانية (ج.م)",
+          "totalHint": "إنفاق مخطط. لا يُشترى شيء هنا.",
+          "daily": "السقف اليومي (ج.م)",
+          "dailyHint": "تتوقف الحملة لباقي اليوم عندما يبلغ الإنفاق المعتمد هذا السقف.",
+          "channels": "القنوات",
+          "channelsHint": "القنوات المدفوعة مجرد تسميات.",
+          "sensitive": "التسويق عبر واتساب والرسائل النصية يحتاج دائماً معتمداً ثانياً.",
+          "audience": "الجمهور",
+          "audienceHint": "غير سريري فقط: المكان والمنصة واللغة وجديد أو عائد ونوع الرعاية. لا تخصص ولا مقدم خدمة ولا سمة صحية أبداً.",
+          "patientType": "المرضى",
+          "patientTypes": {
+            "ANY": "الجميع",
+            "NEW": "جدد",
+            "RETURNING": "عائدون"
+          },
+          "cities": "المدن (مفصولة بفواصل)",
+          "districts": "الأحياء (مفصولة بفواصل)",
+          "platforms": "المنصات",
+          "languages": "اللغات",
+          "careTypes": "أنواع الرعاية",
+          "careType": {
+            "IN_CLINIC": "في العيادة",
+            "VIDEO": "فيديو",
+            "HOME_VISIT": "زيارة منزلية"
+          },
+          "platform": {
+            "web": "الويب",
+            "ios": "آي أو إس",
+            "android": "أندرويد"
+          },
+          "language": {
+            "ar": "العربية",
+            "en": "الإنجليزية"
+          },
+          "source": "المصدر (utm_source)",
+          "medium": "الوسيط (utm_medium)",
+          "content": "المحتوى (utm_content)",
+          "term": "الكلمة (utm_term)",
+          "targetPath": "مسار الهبوط",
+          "targetHint": "مسار على موقع كيوريكس مثل /doctors.",
+          "preview": "الروابط المتتبَّعة",
+          "campaignTag": "وسم الحملة",
+          "webUrl": "رابط الويب",
+          "appLink": "رابط التطبيق",
+          "copy": "نسخ",
+          "copied": "تم النسخ",
+          "reviewHint": "راجع الخطة. تُنشأ كمسودة ولا يكون شيء حياً قبل الاعتماد (عند الحاجة) والجدولة وحلول وقت البداية.",
+          "needsApproval": "ستحتاج هذه الحملة معتمداً ثانياً قبل أن تعمل.",
+          "noApproval": "لا تتطلب السياسة الحالية معتمداً ثانياً.",
+          "created": "تم إنشاء المسودة",
+          "invalid": "يرجى تصحيح الحقول المظللة",
+          "datesRequired": "التواريخ مطلوبة قبل جدولة الحملة"
+        },
+        "detail": {
+          "back": "كل الحملات",
+          "tabs": {
+            "overview": "نظرة عامة",
+            "approvals": "الموافقات",
+            "spend": "الإنفاق",
+            "creatives": "المواد",
+            "report": "الأداء",
+            "history": "السجل"
+          },
+          "budget": "الميزانية",
+          "approvedSpend": "الإنفاق المعتمد",
+          "pendingSpend": "بانتظار الاعتماد",
+          "remaining": "المتبقي",
+          "daily": "السقف اليومي",
+          "window": "الفترة",
+          "owner": "المالك",
+          "tag": "وسم الحملة",
+          "links": "الروابط المتتبَّعة",
+          "eligibility": "الجمهور",
+          "none": "كل من في السوق",
+          "approvalState": "الموافقة",
+          "approvalNeeded": "يلزم معتمد ثانٍ",
+          "approvalReasons": {
+            "BUDGET_ABOVE_THRESHOLD": "الميزانية فوق حد السياسة",
+            "SENSITIVE_CHANNEL": "قناة حساسة (واتساب أو رسائل نصية)",
+            "POLICY_FLAG": "تتطلب السياسة موافقة لكل حملة"
+          },
+          "approvalCurrent": "مشمولة بموافقة",
+          "approvalMissing": "غير مشمولة بموافقة",
+          "actions": "الإجراءات",
+          "actionLabel": {
+            "DRAFT": "العودة إلى مسودة",
+            "PENDING_APPROVAL": "إرسال للموافقة",
+            "SCHEDULED": "جدولة",
+            "ACTIVE": "بدء أو استئناف",
+            "PAUSED": "إيقاف مؤقت",
+            "COMPLETED": "إكمال",
+            "ARCHIVED": "أرشفة"
+          },
+          "reasonPrompt": "السبب (مطلوب)",
+          "confirm": "تأكيد",
+          "cancel": "إلغاء",
+          "moved": "تغيّرت الحالة",
+          "pauseReason": {
+            "BUDGET": "متوقفة: نفدت الميزانية",
+            "MANUAL": "أوقفها شخص",
+            "GUARDRAIL": "متوقفة حتى اليوم التالي (السقف اليومي)"
+          },
+          "autoExpires": "تنتهي تلقائياً في {{at}}",
+          "edit": "تعديل",
+          "save": "حفظ",
+          "saved": "تم الحفظ",
+          "readOnly": "للقراءة فقط: التغييرات تحتاج مشرفاً عاماً."
+        },
+        "approvals": {
+          "title": "الموافقات",
+          "none": "لا شيء بانتظار قرار.",
+          "request": "طلب موافقة",
+          "requestBudget": "طلب زيادة الميزانية",
+          "newTotal": "الإجمالي الجديد (ج.م)",
+          "newDaily": "السقف اليومي الجديد (ج.م)",
+          "requestReactivate": "طلب إعادة التفعيل",
+          "requested": "تم طلب الموافقة",
+          "kind": {
+            "ACTIVATE": "التفعيل",
+            "BUDGET_INCREASE": "زيادة الميزانية",
+            "REACTIVATE": "إعادة التفعيل"
+          },
+          "by": "طلبها {{who}}",
+          "decision": {
+            "APPROVED": "تمت الموافقة",
+            "REJECTED": "مرفوض"
+          },
+          "approve": "موافقة",
+          "reject": "رفض",
+          "reasonLabel": "السبب",
+          "payload": "ما الذي تتم الموافقة عليه",
+          "hash": "المحتوى الذي روجع",
+          "self": "أنت من طلب هذه الموافقة، لذا يجب أن يقرر مشرف عام آخر.",
+          "decided": "تم البت",
+          "pending": "بانتظار",
+          "history": "تم البت فيها",
+          "reviewed": "تم تسجيل القرار"
+        },
+        "spend": {
+          "title": "سجلات الإنفاق",
+          "hint": "سجل الإنفاق يدخله شخص ويعتمده شخص مختلف في صفحة المالية. الأسطر المعتمدة فقط تُحتسب من الميزانية.",
+          "add": "إضافة سجل إنفاق",
+          "day": "اليوم",
+          "amount": "المبلغ (ج.م)",
+          "note": "ملاحظة (دون بيانات اتصال)",
+          "added": "تمت إضافة السجل",
+          "none": "لا يوجد إنفاق مسجل بعد.",
+          "daily": "الاستخدام اليومي",
+          "status": {
+            "PENDING": "بانتظار",
+            "APPROVED": "معتمد",
+            "REJECTED": "مرفوض"
+          },
+          "finance": "يُعتمد في صفحة المالية"
+        },
+        "creatives": {
+          "title": "مراجع المواد",
+          "hint": "مجرد مرجع: مفتاح تخزين تحت هذه الحملة أو رابط على مضيف مسموح. لا تُحفظ الملفات هنا.",
+          "kind": "النوع",
+          "kinds": {
+            "IMAGE": "صورة",
+            "VIDEO": "فيديو",
+            "COPY": "نص",
+            "LANDING": "صفحة هبوط",
+            "LINK": "رابط"
+          },
+          "ref": "المرجع",
+          "locale": "اللغة",
+          "add": "إضافة مرجع",
+          "added": "تمت إضافة المرجع",
+          "none": "لا توجد مراجع مواد بعد."
+        },
+        "report": {
+          "title": "الأداء",
+          "from": "من",
+          "to": "إلى",
+          "notConnected": "غير متصل",
+          "notConnectedHint": "لا توجد أرقام من منصات إعلانات متصلة. تظهر مرات الظهور والنقرات فقط عندما يوفرها تكامل للقراءة فقط، ولا يُعرض الرقم الناقص صفراً أبداً.",
+          "connected": "أرقام خارجية من {{kinds}}",
+          "funnel": "القمع",
+          "stage": {
+            "PageViewed": "مشاهدات الصفحة",
+            "SearchStarted": "عمليات البحث",
+            "ResultsViewed": "عرض النتائج",
+            "ProviderViewed": "صفحات مقدمي الخدمة",
+            "SlotSelected": "المواعيد المختارة",
+            "BookingInitiated": "حجوزات بدأت",
+            "BookingConfirmed": "حجوزات مؤكدة",
+            "BookingAttended": "تم الحضور",
+            "AttendedNewPatient": "مرضى جدد حضروا"
+          },
+          "kpi": "تكلفة الوحدة",
+          "cpa": "تكلفة الحجز",
+          "cac": "تكلفة المريض الجديد",
+          "roas": "العائد على الإنفاق",
+          "conversion": "التحويل",
+          "revenue": "صافي إيراد كيوريكس",
+          "daily": "حسب اليوم",
+          "bySource": "حسب المصدر",
+          "day": "اليوم",
+          "spend": "الإنفاق",
+          "views": "مشاهدات الصفحة",
+          "bookings": "الحجوزات",
+          "source": "المصدر",
+          "masked": "أقل من ١٠ أشخاص: مخفي لحماية الخصوصية",
+          "budgetUsed": "المستخدم من الميزانية",
+          "nothing": "لا نشاط في هذه الفترة."
+        },
+        "history": {
+          "title": "السجل",
+          "none": "لا تغييرات في الحالة بعد.",
+          "by": "بواسطة {{who}}"
+        },
+        "err": {
+          "CAMPAIGN_INVALID": "الحملة غير صالحة.",
+          "CAMPAIGN_INVALID_TRANSITION": "هذا التغيير غير مسموح من الحالة الحالية.",
+          "CAMPAIGN_CEILING_EXCEEDED": "سيتم تجاوز السقف الشهري لميزانيات الحملات.",
+          "CAMPAIGN_APPROVAL_REQUIRED": "يلزم معتمد ثانٍ أولاً.",
+          "CAMPAIGN_SELF_APPROVAL": "يجب أن يقرر مشرف عام آخر.",
+          "CAMPAIGN_BUDGET_EXHAUSTED": "نفدت الميزانية: يلزم رفع ميزانية يعتمده شخص ثانٍ.",
+          "CAMPAIGN_LOCKED": "تغيّرت الحملة أو هي مقفلة: أعد التحميل وحاول مجدداً.",
+          "CAMPAIGN_KEY_TAKEN": "توجد حملة بهذا المفتاح.",
+          "CAMPAIGN_NOT_FOUND": "الحملة غير موجودة.",
+          "FEATURE_DISABLED": "الحملات متوقفة في هذا السوق (العلم growth.campaigns).",
+          "generic": "حدث خطأ ما."
+        }
+      }
+    }
+  }
+}

@@ -48,6 +48,8 @@ const GrowthConfigPage = lazy(() => import("@/pages/growth/GrowthConfigPage"));
 // every Phase 2 to 4 route is registered up front (GRW-P2-X1); the owning package replaces pages/growth/<name>/Page.tsx
 const GrowthCampaignsPage = lazy(() => import("@/pages/growth/campaigns/Page"));
 const GrowthApprovalsPage = lazy(() => import("@/pages/growth/approvals/Page"));
+const GrowthCampaignWizardPage = lazy(() => import("@/pages/growth/campaigns/CampaignWizard"));
+const GrowthCampaignDetailPage = lazy(() => import("@/pages/growth/campaigns/CampaignDetailPage"));
 const GrowthPromotionsPage = lazy(() => import("@/pages/growth/promotions/Page"));
 const GrowthReferralsPage = lazy(() => import("@/pages/growth/referrals/Page"));
 const GrowthRewardsPage = lazy(() => import("@/pages/growth/rewards/Page"));
@@ -112,6 +114,8 @@ export function AppRoutes() {
           <Route path="growth/audit" element={<GrowthAuditPage />} />
           <Route path="growth/config" element={<GrowthConfigPage />} />
           <Route path="growth/campaigns" element={<GrowthCampaignsPage />} />
+          <Route path="growth/campaigns/new" element={<GrowthCampaignWizardPage />} />
+          <Route path="growth/campaigns/:id" element={<GrowthCampaignDetailPage />} />
           <Route path="growth/approvals" element={<GrowthApprovalsPage />} />
           <Route path="growth/promotions" element={<GrowthPromotionsPage />} />
           <Route path="growth/referrals" element={<GrowthReferralsPage />} />

@@ -47,6 +47,6 @@ import { TouchService } from './touch/touch.service';
     AttributionService, EvidenceService, LinkRegistryService, LinkRegistryJob, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthRollupJob, GrowthMetricsService, GrowthExportService, GrowthSpendService, SlugService,
     { provide: BOOKING_GROWTH, useExisting: BookingGrowthService }, { provide: GROWTH_REVENUE, useExisting: GrowthRevenueService }, { provide: LINK_REGISTRY, useExisting: LinkRegistryService }, { provide: GROWTH_FACTS, useExisting: GrowthEventsService }, RetentionJob, SubjectDeletedConsumer, ConsentWiring,
   ],
-  exports: [GROWTH_FACTS, BOOKING_GROWTH, GROWTH_REVENUE, LINK_REGISTRY, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthMetricsService, GrowthSpendService, GrowthMaintenanceService, GrowthConfigService, AttributionService, GrowthEventsService, SlugService, FraudSignalService, AttributionPolicyResolver],
+  exports: [GrowthLimiter, GROWTH_FACTS, BOOKING_GROWTH, GROWTH_REVENUE, LINK_REGISTRY, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthMetricsService, GrowthSpendService, GrowthMaintenanceService, GrowthConfigService, AttributionService, GrowthEventsService, SlugService, FraudSignalService, AttributionPolicyResolver],
 })
 export class GrowthModule {}

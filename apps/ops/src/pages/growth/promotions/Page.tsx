@@ -1,4 +1,4 @@
-import GrowthPlannedPage from "@/pages/growth/GrowthPlannedPage";
+import PromotionsPage from "@/pages/growth/campaigns/PromotionsPage";
 
-/** GRW-P2-X1 route placeholder. The owning package replaces this file (and flips its `status` line in components/growth/sections.ts); nobody else edits it. */
-export default function PromotionsPage() { return <GrowthPlannedPage section="promotions" />; }
+/** GRW-P2-A: Promotional Campaigns (replaces the GRW-P2-X1 placeholder). */
+export default function PromotionalCampaignsPage() { return <PromotionsPage />; }

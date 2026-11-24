@@ -10915,6 +10915,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11182,6 +11190,694 @@
           }
         },
         "summary": "GRW-P1-J provider CSV export (same masking)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns": {
+      "get": {
+        "operationId": "CampaignsAdminController_list",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objective",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "promotional",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A list campaigns (filters: status, q, objective, promotional=1)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      },
+      "post": {
+        "operationId": "CampaignsAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A create a campaign plan (DRAFT)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/approvals": {
+      "get": {
+        "operationId": "CampaignsAdminController_listApprovals",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A approval requests (status=pending|decided)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/approvals/{id}": {
+      "get": {
+        "operationId": "CampaignsAdminController_getApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A one approval with the campaign it covers",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/approvals/{id}/decide": {
+      "post": {
+        "operationId": "CampaignsAdminController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A approve or reject (never the requester)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/scheduler/run": {
+      "post": {
+        "operationId": "CampaignsAdminController_runScheduler",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A run the 1-minute scheduler once (idempotent; also what the job does)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}": {
+      "get": {
+        "operationId": "CampaignsAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A one campaign with tracking links, approval state, budget and the transitions possible now",
+        "tags": [
+          "growth-campaigns"
+        ]
+      },
+      "patch": {
+        "operationId": "CampaignsAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A edit (optimistic version; money-relevant edits invalidate an approval)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/transition": {
+      "post": {
+        "operationId": "CampaignsAdminController_transition",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A move to another state (409 CAMPAIGN_INVALID_TRANSITION when not allowed)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/approvals": {
+      "post": {
+        "operationId": "CampaignsAdminController_requestApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A ask a second person to approve activation, a budget increase or reactivation",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/report": {
+      "get": {
+        "operationId": "CampaignsAdminController_getReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A performance: funnel, spend, utilisation, CPA, CAC, ROAS by day and source (k >= 10); external numbers only from read-only adapters",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/history": {
+      "get": {
+        "operationId": "CampaignsAdminController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A every state change with actor and reason",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/creatives": {
+      "get": {
+        "operationId": "CampaignsAdminController_creatives",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A creative asset references",
+        "tags": [
+          "growth-campaigns"
+        ]
+      },
+      "post": {
+        "operationId": "CampaignsAdminController_addCreative",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCreativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A add a creative REFERENCE (object-store key under the campaign prefix or an allowlisted https URL)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{id}/spend": {
+      "get": {
+        "operationId": "CampaignsAdminController_spendOf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A spend lines booked against the campaign, with the daily utilisation",
+        "tags": [
+          "growth-campaigns"
+        ]
+      },
+      "post": {
+        "operationId": "CampaignsAdminController_addSpend",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignSpendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page)",
+        "tags": [
+          "growth-campaigns"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/campaign/resolve": {
+      "get": {
+        "operationId": "CampaignsPublicController_resolve",
+        "parameters": [
+          {
+            "name": "utm_campaign",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-market",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-A resolve an ACTIVE campaign UTM to its landing target and campaign token",
         "tags": [
           "growth"
         ]
@@ -22353,10 +23049,17 @@
           "kind": {
             "type": "string",
             "enum": [
+              "ASSISTANT_POLICY",
               "ATTRIBUTION_POLICY",
+              "CAMPAIGN_POLICY",
               "CONSENT_DEFAULTS",
+              "INTEGRATION",
+              "LIFECYCLE_POLICY",
               "MARKET_GROWTH",
+              "REFERRAL_RULES",
+              "REWARD_RULES",
               "SEO",
+              "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY"
             ]
           },
@@ -22442,10 +23145,17 @@
           "kind": {
             "type": "string",
             "enum": [
+              "ASSISTANT_POLICY",
               "ATTRIBUTION_POLICY",
+              "CAMPAIGN_POLICY",
               "CONSENT_DEFAULTS",
+              "INTEGRATION",
+              "LIFECYCLE_POLICY",
               "MARKET_GROWTH",
+              "REFERRAL_RULES",
+              "REWARD_RULES",
               "SEO",
+              "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY"
             ]
           },
@@ -22541,6 +23251,10 @@
           "note": {
             "type": "string",
             "maxLength": 300
+          },
+          "campaignId": {
+            "type": "string",
+            "maxLength": 64
           }
         },
         "required": [
@@ -22557,6 +23271,34 @@
             "maximum": 400
           }
         }
+      },
+      "CreateCampaignDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DecideApprovalDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCampaignDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TransitionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RequestApprovalDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddCreativeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CampaignSpendDto": {
+        "type": "object",
+        "properties": {}
       },
       "LiveDto": {
         "type": "object",

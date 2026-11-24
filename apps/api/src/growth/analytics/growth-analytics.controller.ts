@@ -27,6 +27,8 @@ class SpendBody {
   @IsOptional() @IsString() @MaxLength(64) channel?: string;
   @IsOptional() @IsString() @MaxLength(32) sourceKind?: string;
   @IsOptional() @IsString() @MaxLength(300) note?: string;
+  /** GRW-P2-A: books the line against a campaign (the campaign budget guardrails count it once approved). */
+  @IsOptional() @IsString() @MaxLength(64) campaignId?: string;
 }
 class RollupBody { @IsOptional() @IsInt() @Min(1) @Max(400) days?: number }
 
@@ -57,7 +59,7 @@ export class GrowthAnalyticsOpsController {
   csv(@Param('report') r: string, @Query() q: Record<string, unknown>) { return this.exporter.csv(reportOf(r), parseFilters(q), this.ops, { dimension: typeof q.dimension === 'string' ? dimOf(q.dimension) : undefined }); }
 
   @Get('spend') @ApiOperation({ summary: 'GRW-P1-J spend entries (manual; maker-checker)' }) @ApiOkResponse(OBJ)
-  listSpend(@Query('status') status?: string, @Query('from') from?: string, @Query('to') to?: string) { return this.spend.list({ status, from, to }); }
+  listSpend(@Query('status') status?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('campaignId') campaignId?: string) { return this.spend.list({ status, from, to, campaignId }); }
   @Post('spend') @ApiOperation({ summary: 'GRW-P1-J enter a spend line (PENDING until a different ops user approves it)' }) @ApiOkResponse(OBJ)
   createSpend(@CurrentUser() u: AuthUser, @Body() b: SpendBody) { return this.spend.create(u.sub, b); }
   @Post('spend/:id/approve') @HttpCode(200) @ApiOperation({ summary: 'GRW-P1-J approve a spend line (not the author)' }) @ApiOkResponse(OBJ)

@@ -6,7 +6,7 @@
  *   support      `ops_admin` + `support`: also reviews fraud signals
  * One table, so the controllers, the UI capability endpoint and the tests cannot disagree. A new role is one line here.
  */
-export const GROWTH_CAPABILITIES = ['read', 'readFinance', 'writeConfig', 'approveConfig', 'reviewFraud', 'manage'] as const;
+export const GROWTH_CAPABILITIES = ['read', 'readFinance', 'writeConfig', 'approveConfig', 'reviewFraud', 'manage', 'manageCampaigns'] as const;
 export type GrowthCapability = (typeof GROWTH_CAPABILITIES)[number];
 
 export const GROWTH_ACCESS: Record<GrowthCapability, readonly string[]> = {
@@ -16,6 +16,7 @@ export const GROWTH_ACCESS: Record<GrowthCapability, readonly string[]> = {
   approveConfig: ['super_admin'],
   reviewFraud: ['super_admin', 'support'],
   manage: ['super_admin'], // channels, widget registrations
+  manageCampaigns: ['super_admin'], // GRW-P2-A: create, edit, transition, request and decide campaign approvals (two-person rule)
 };
 
 export const rolesFor = (cap: GrowthCapability): string[] => [...GROWTH_ACCESS[cap]];

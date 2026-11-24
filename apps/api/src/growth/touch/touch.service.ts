@@ -84,17 +84,28 @@ export class TouchService {
       if (kind === 'REFERRAL' && !linkCode) return { accepted: true, visitorKeySet: false, persisted: false };
       if (claims && orgRef && claims.org !== orgRef) return { accepted: true, visitorKeySet: false, persisted: false }; // token and code disagree: ignore, never guess
     }
-    const source = await this.source(market, kind, sourceRef);
+    // GRW-P2-A: a touch carrying the utm_campaign of a campaign is a CAMPAIGN touch; the source ref is the campaign id ONLY while that campaign is ACTIVE (an expired, paused or unknown one stays a CAMPAIGN touch with no id)
+    const campaign = await this.campaignOf(t.utm.campaign, market, kind);
+    const touchKind = campaign ? 'CAMPAIGN' : kind;
+    const source = await this.source(market, touchKind, campaign ? campaign.ref : sourceRef);
     const visitorKey = ctx.cookieVisitorKey && VISITOR_KEY_PATTERN.test(ctx.cookieVisitorKey) ? ctx.cookieVisitorKey : this.newVisitorKey();
     const touch = await this.prisma.growthTouchpoint.create({
       data: {
-        market, visitorKey, sourceId: source.id, kind, providerOrgRef: orgRef, linkCode, landingKind: t.landingKind, localeAt: ctx.locale === 'en' ? 'en' : 'ar',
+        market, visitorKey, sourceId: source.id, kind: touchKind, providerOrgRef: orgRef, linkCode, landingKind: t.landingKind, localeAt: ctx.locale === 'en' ? 'en' : 'ar',
         utmSource: t.utm.source, utmMedium: t.utm.medium, utmCampaign: t.utm.campaign, utmContent: t.utm.content, utmTerm: t.utm.term,
         clickIdKind: t.clickId?.kind, clickIdHash: t.clickId ? this.clickHash(t.clickId.kind, t.clickId.value) : undefined,
         referrerHost, dwellMs: t.dwellMs, ltTokenId: claims?.n, occurredAt: now, ipHash: ctx.ipHash, uaClass: uaClassOf(ctx.userAgent),
       },
     });
     return { accepted: true, visitorKeySet: true, visitorKey, persisted: true, touchId: touch.id };
+  }
+
+  /** Provider-owned, widget and referral touches are never re-labelled; with the flag growth.campaigns OFF nothing is tagged (past tags stay). */
+  private async campaignOf(utm: string | undefined, market: string, kind: string): Promise<{ ref: string } | null> {
+    if (!utm || (PROVIDER_OWNED_KINDS as readonly string[]).includes(kind) || kind === 'WIDGET' || kind === 'REFERRAL') return null;
+    if (!(await this.flags.isEnabled(GROWTH_FLAG.CAMPAIGNS, { market }).catch(() => false))) return null;
+    const c = await this.prisma.growthCampaign.findFirst({ where: { market, utmCampaign: utm }, select: { id: true, status: true } });
+    return c ? { ref: c.status === 'ACTIVE' ? c.id : '' } : null;
   }
 
   private async source(market: string, kind: string, ref: string) {

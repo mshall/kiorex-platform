@@ -181,6 +181,7 @@
 | GET | `/api/v1/growth/v1/provider-analytics/channels` | GRW-P1-J provider channel table (own organisation) |
 | GET | `/api/v1/growth/v1/provider-analytics/cohorts` | GRW-P1-J provider cohort retention (own organisation) |
 | GET | `/api/v1/growth/v1/provider-analytics/export/{report}` | GRW-P1-J provider CSV export (same masking) |
+| GET | `/api/v1/growth/v1/campaign/resolve` | GRW-P2-A resolve an ACTIVE campaign UTM to its landing target and campaign token |
 
 ## growth-admin
 
@@ -220,6 +221,27 @@
 | GET | `/api/v1/ops/growth/markets` | GRW-P1-K per-market configuration summary |
 | GET | `/api/v1/ops/growth/analytics` | GRW-P1-K daily growth events and decisions (raw tables until analytics v1 serves them) |
 | GET | `/api/v1/ops/growth/finance` | GRW-P1-K financial performance: decisions by origin and revenue facts (finance role) |
+
+## growth-campaigns
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/campaigns` | GRW-P2-A list campaigns (filters: status, q, objective, promotional=1) |
+| POST | `/api/v1/admin/growth/campaigns` | GRW-P2-A create a campaign plan (DRAFT) |
+| GET | `/api/v1/admin/growth/campaigns/approvals` | GRW-P2-A approval requests (status=pending|decided) |
+| GET | `/api/v1/admin/growth/campaigns/approvals/{id}` | GRW-P2-A one approval with the campaign it covers |
+| POST | `/api/v1/admin/growth/campaigns/approvals/{id}/decide` | GRW-P2-A approve or reject (never the requester) |
+| POST | `/api/v1/admin/growth/campaigns/scheduler/run` | GRW-P2-A run the 1-minute scheduler once (idempotent; also what the job does) |
+| GET | `/api/v1/admin/growth/campaigns/{id}` | GRW-P2-A one campaign with tracking links, approval state, budget and the transitions possible now |
+| PATCH | `/api/v1/admin/growth/campaigns/{id}` | GRW-P2-A edit (optimistic version; money-relevant edits invalidate an approval) |
+| POST | `/api/v1/admin/growth/campaigns/{id}/transition` | GRW-P2-A move to another state (409 CAMPAIGN_INVALID_TRANSITION when not allowed) |
+| POST | `/api/v1/admin/growth/campaigns/{id}/approvals` | GRW-P2-A ask a second person to approve activation, a budget increase or reactivation |
+| GET | `/api/v1/admin/growth/campaigns/{id}/report` | GRW-P2-A performance: funnel, spend, utilisation, CPA, CAC, ROAS by day and source (k >= 10); external numbers only from read-only adapters |
+| GET | `/api/v1/admin/growth/campaigns/{id}/history` | GRW-P2-A every state change with actor and reason |
+| GET | `/api/v1/admin/growth/campaigns/{id}/creatives` | GRW-P2-A creative asset references |
+| POST | `/api/v1/admin/growth/campaigns/{id}/creatives` | GRW-P2-A add a creative REFERENCE (object-store key under the campaign prefix or an allowlisted https URL) |
+| GET | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A spend lines booked against the campaign, with the daily utilisation |
+| POST | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page) |
 
 ## health
 

@@ -4,14 +4,14 @@ import { BarChart3, Building2, Code2, FileText, FlaskConical, Gift, Globe, Heart
 export interface GrowthSection { key: string; to: string; icon: LucideIcon; status: "live" | "planned"; phase?: 2 | 3 | 4; pkg?: string }
 export const GROWTH_SECTIONS: readonly GrowthSection[] = [
   { key: "overview", to: "/growth", icon: LayoutDashboard, status: "live" },
-  { key: "campaigns", to: "/growth/campaigns", icon: Megaphone, status: "planned", phase: 2, pkg: "GRW-P2-A" },
-  { key: "approvals", to: "/growth/approvals", icon: ClipboardCheck, status: "planned", phase: 2, pkg: "GRW-P2-A" },
+  { key: "campaigns", to: "/growth/campaigns", icon: Megaphone, status: "live" },
+  { key: "approvals", to: "/growth/approvals", icon: ClipboardCheck, status: "live" },
   { key: "channels", to: "/growth/channels", icon: Radio, status: "live" },
   { key: "providers", to: "/growth/providers", icon: Building2, status: "live" },
   { key: "patients", to: "/growth/patients", icon: Users, status: "live" },
   { key: "referrals", to: "/growth/referrals", icon: Gift, status: "planned", phase: 2, pkg: "GRW-P2-B1" },
   { key: "rewards", to: "/growth/rewards", icon: Award, status: "planned", phase: 2, pkg: "GRW-P2-B2" },
-  { key: "promotions", to: "/growth/promotions", icon: Percent, status: "planned", phase: 2, pkg: "GRW-P2-A" },
+  { key: "promotions", to: "/growth/promotions", icon: Percent, status: "live" },
   { key: "seo", to: "/growth/seo", icon: Search, status: "live" },
   { key: "landing", to: "/growth/landing-pages", icon: FileText, status: "live" },
   { key: "widgets", to: "/growth/widgets", icon: Code2, status: "live" },
