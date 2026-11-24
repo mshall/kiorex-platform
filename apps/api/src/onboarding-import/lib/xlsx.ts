@@ -9,7 +9,7 @@ function unzip(buf: Buffer): Map<string, Buffer> {
   let eocd = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i--) if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
   if (eocd < 0) throw new Error('XLSX_BAD_ZIP');
-  let off = buf.readUInt32LE(eocd + 16); const n = buf.readUInt16LE(eocd + 10); let total = 0;
+  let off = buf.readUInt32LE(eocd + 16); const n = buf.readUInt16LE(eocd + 10); let total = 0; let actual = 0;
   for (let k = 0; k < n; k++) {
     if (buf.readUInt32LE(off) !== 0x02014b50) throw new Error('XLSX_BAD_ZIP');
     const method = buf.readUInt16LE(off + 10); const csize = buf.readUInt32LE(off + 20); const usize = buf.readUInt32LE(off + 24);
@@ -20,7 +20,13 @@ function unzip(buf: Buffer): Map<string, Buffer> {
     total += usize; if (total > MAX_UNZIPPED) throw new Error('XLSX_TOO_LARGE');
     const lnlen = buf.readUInt16LE(lho + 26); const lelen = buf.readUInt16LE(lho + 28);
     const data = buf.subarray(lho + 30 + lnlen + lelen, lho + 30 + lnlen + lelen + csize);
-    out.set(name, method === 0 ? data : inflateRawSync(data, { maxOutputLength: MAX_UNZIPPED }));
+    // pentest 2026-11: the declared size (usize) is attacker-controlled, so the budget is enforced on the bytes ACTUALLY produced, shared across all entries
+    // (many entries each declaring 0 used to be able to inflate MAX_UNZIPPED apiece).
+    const budget = Math.max(1, MAX_UNZIPPED - actual);
+    let plain: Buffer;
+    try { plain = method === 0 ? data : inflateRawSync(data, { maxOutputLength: budget }); } catch (e) { if ((e as { code?: string }).code === 'ERR_BUFFER_TOO_LARGE') throw new Error('XLSX_TOO_LARGE'); throw e; }
+    actual += plain.length; if (actual > MAX_UNZIPPED) throw new Error('XLSX_TOO_LARGE');
+    out.set(name, plain);
   }
   return out;
 }
