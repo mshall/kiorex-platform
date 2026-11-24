@@ -427,3 +427,14 @@
 | POST | `/api/v1/webhooks/kiorly` | Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId |
 | POST | `/api/v1/webhooks/pharmacy` | Kiorly Pharmacy outbox webhook (OrderReady / OrderOutForDelivery / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET |
 | POST | `/api/v1/webhooks/lab` | Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET |
+
+## widget
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/widget/v1/session` | GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF |
+| GET | `/api/v1/widget/v1/config` | GRW-P1-G widget data: clinic, bookable doctors with visit types and fees (IN_CLINIC only), specialties. Needs X-KX-Widget |
+| GET | `/api/v1/widget/v1/ops/audit` | GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes |
+| GET | `/api/v1/widget/v1/ops/registrations` | GRW-P1-G widget registrations (verified origins per clinic) |
+
+The embed document, SDK and popup return page live at the root of the widget host, not under `/api/v1`: see [WIDGET.md](WIDGET.md).

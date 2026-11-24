@@ -23,6 +23,8 @@ export class FakeKiorly {
   unknownPatients = new Set<string>();
   bookingMode: Mode;
   holdMode: Mode;
+  /** GRW-P1-G: a hold on a slot (clinician + start) that is already held answers 409 SLOT_TAKEN with alternatives, like the Clinic's transactional hold. */
+  exclusiveHolds = false;
   /** Rev 2.3 (contracts 1.5.0): '422-coverage' answers every HOME slot query with 422 OUT_OF_COVERAGE regardless of the provider's coverage list. */
   slotsMode: Mode;
   carePlanMode: undefined | '422-not-offered';
@@ -50,7 +52,7 @@ export class FakeKiorly {
   reset() {
     this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined;
-    this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
+    this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
 
@@ -89,6 +91,7 @@ export class FakeKiorly {
     if (m === 'POST' && path === '/holds') {
       if (this.holdMode === '409') return send(409, { code: 'SLOT_TAKEN', message: 'Slot not available', alternatives: this.slots.slice(1, 4) });
       if (this.holdMode === '5xx') return send(503, { message: 'down' });
+      if (this.exclusiveHolds && [...this.holds.values()].some((h) => h.clinicianId === body.clinicianId && h.startsAt === body.startsAt)) return send(409, { code: 'SLOT_TAKEN', message: 'Slot not available', alternatives: this.slots.filter((x) => x.startsAt !== body.startsAt).slice(0, 3) });
       const prov = this.providers.find((p) => p.clinicianId === body.clinicianId);
       const fee = prov?.provider?.fees?.find((f: any) => f.appointmentTypeId === body.typeId);
       const homeType = (fee?.serviceLocation ?? (prov?.serviceLocations?.length === 1 ? prov.serviceLocations[0] : 'IN_CLINIC')) === 'HOME';

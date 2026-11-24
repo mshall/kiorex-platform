@@ -15,6 +15,7 @@ import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrustService } from '../trust/trust-public';
 import { PublicSiteCache } from '../public-site/public-site-public';
+import { WidgetRegistrationService } from '../widget/widget-public';
 import { GROWTH_REVENUE, LINK_REGISTRY, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
 
 const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
@@ -23,7 +24,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -65,6 +66,7 @@ export class WebhooksService {
         return 'APPLIED';
       case 'PROVIDER_PROFILE_UPDATED':
       case 'LISTING_STATUS_CHANGED': // reindex; PAUSED listings are hidden by the sync (status column)
+        if (type === 'PROVIDER_PROFILE_UPDATED') await this.widgets.upsertFromProfile(data).catch((e: Error) => this.log.warn(`widget registration sync failed: ${e.message}`)); // GRW-P1-G: the Clinic allow-list (widgetOrigins) -> WidgetRegistration
         this.catalog.invalidateSlots(data.clinicianId);
         await this.catalog.syncOnce();
         await this.publicSite.onListingChanged([data.listingId, data.clinicianId, data.clinicId, env.aggregateId]).catch((e) => this.log.warn(`public site purge failed: ${(e as Error).message}`)); // GRW-P1-E: pages and sitemaps within 15 min

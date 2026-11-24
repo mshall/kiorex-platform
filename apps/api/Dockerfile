@@ -11,15 +11,17 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/ops/package.json apps/ops/
+COPY apps/widget/package.json apps/widget/
 COPY vendor ./vendor
 RUN npm ci
 
 FROM deps AS build
 COPY apps/api ./apps/api
 COPY apps/web ./apps/web
+COPY apps/widget ./apps/widget
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public"
 # API (prisma generate + nest build), patient SPA (dist/), public site client + SSR bundle (dist-public/)
-RUN npm run build -w apps/api && npm run build:site -w apps/web
+RUN npm run build -w apps/api && npm run build:site -w apps/web && npm run build -w apps/widget
 
 FROM node:26-bookworm-slim AS runner
 WORKDIR /repo
@@ -28,6 +30,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/ops/package.json apps/ops/
+COPY apps/widget/package.json apps/widget/
 COPY vendor ./vendor
 # runtime dependencies of the API only; the Prisma CLI runs `migrate deploy` on boot; the Secrets Manager client is used by the entrypoint only (never by src/)
 RUN npm ci --omit=dev --workspace apps/api --include-workspace-root=false \
@@ -40,13 +43,17 @@ COPY --from=build /repo/apps/api/dist ./apps/api/dist
 # the patient SPA shell (fallback and flag-OFF response) and the public site: hydration assets (/_p/*) plus the self-contained SSR bundle
 COPY --from=build /repo/apps/web/dist/index.html ./apps/web/dist/index.html
 COPY --from=build /repo/apps/web/dist-public ./apps/web/dist-public
+# the booking widget host (GRW-P1-G, ADR-044): hashed app files, the versioned SDK and its SRI manifest; served at the root of WIDGET_HOST (default book.kiorex.com in production)
+COPY --from=build /repo/apps/widget/dist/app ./apps/widget/dist/app
+COPY --from=build /repo/apps/widget/dist/sdk ./apps/widget/dist/sdk
 
 ENV NODE_ENV=production
 ENV SITE_ROLE=all
 # SITE_ENVIRONMENT must be set explicitly to `production` for robots.txt and sitemaps to allow indexing (staging and unset block everything).
 ENV SITE_SSR_BUNDLE=/repo/apps/web/dist-public/server/entry-server.cjs \
     SITE_PUBLIC_CLIENT_DIR=/repo/apps/web/dist-public/client \
-    SITE_SPA_SHELL=/repo/apps/web/dist/index.html
+    SITE_SPA_SHELL=/repo/apps/web/dist/index.html \
+    WIDGET_DIST=/repo/apps/widget/dist
 WORKDIR /repo/apps/api
 EXPOSE 4000
 ENV PORT=4000

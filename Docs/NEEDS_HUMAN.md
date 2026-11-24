@@ -128,3 +128,11 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 
 - **`GROWTH_LINK_TOKEN_SECRET`** (at least 16 characters): OpenTofu creates the EMPTY Secrets Manager container `/kiorex-platform/<env>/growth-link-token` (`growth_link_token_secret = true`); a human writes the value, then `growth_link_token_secret_inject = true` (CTO, secrets). The Clinic's provider-link token needs no new secret: Kiorex verifies it with the existing Clinic shared secret (`LINK_TOUCH_SIGNING_SECRET`, else `KIORLY_WEBHOOK_SECRET`; keep it equal to the Clinic's `KIOREX_OUTBOX_WEBHOOK_SECRET`).
 - **Growth analytics inputs (GRW-P1-J)**: who owns marketing spend entry and approval (default: two different ops users), the fee, dispute rate and Pay margin used for LTV (PROPOSED_DEFAULT EGP 40, 4 percent, none), and confirmation of the cohort definition (acquisition cohort by first booking month).
+
+## Booking widget and SDK (GRW-P1-G): founder, counsel and infra items
+- **Widget host name** `book.kiorex.com` (staging `book.staging.kiorex.com` is a placeholder), its DNS and CloudFront distribution (cdn-edge routes the host to the API image; not deployed, tofu not touched). Same value as kiorex-account `config/domains.json` `widget`.
+- **Passport client `kiorex-widget`** (public, PKCE, popup redirect `https://<widget host>/v1/embed/auth/callback`) is in `kiorex-account/config/idp.json`; the Cognito app client for staging and production is created from it (CTO). The running dev Passport must be restarted to load it (not done in this session).
+- **Consent wording** shown in the widget (marketplace processing consent, reminders, anonymous analytics), AR and EN, is a draft with a visible marker; counsel must approve before launch. The analytics checkbox is unticked and sends a touch only when ticked.
+- **SDK versions and SRI**: only the current build is in the image; keep every released `sdk.<hash>.js` on the CDN origin so SRI-pinned provider pages keep working after a later release (CTO).
+- **Hold limit and rate ceilings** (3 active widget holds per person, 10 holds per minute per ip hash, 60 slot reads per minute) are `PROPOSED_DEFAULT` (`WIDGET_POLICY` and `WIDGET_RATE_*`).
+- **No CAPTCHA**: bot protection is rate limits plus the sign-in requirement for any hold; adding a CAPTCHA provider is a human product and vendor decision.

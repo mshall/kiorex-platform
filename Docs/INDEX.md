@@ -18,6 +18,7 @@ Start with the [README](../README.md), then pick a document.
 | [UPGRADE_NOTES.md](UPGRADE_NOTES.md) | Nov 2026 dependency and toolchain upgrade: versions, migration changes, pins and why |
 | [TEST_DATA.md](TEST_DATA.md) | Synthetic QA data (DEV ONLY) |
 | [kiorex-cursor-build-sequence.md](kiorex-cursor-build-sequence.md) | Build sequence and progress tracker |
+| [WIDGET.md](WIDGET.md) | Embeddable booking widget and JS SDK: embed host, per-organisation frame-ancestors, session token, postMessage protocol, SRI, limits, tests (GRW-P1-G) |
 
 Per-folder READMEs: [apps/api](../apps/api/README.md) · [apps/web](../apps/web/README.md) · [apps/ops](../apps/ops/README.md) · [apps/mobile](../apps/mobile/README.md) · [infra](../infra/README.md) · [infra/tofu](../infra/tofu/README.md).
 

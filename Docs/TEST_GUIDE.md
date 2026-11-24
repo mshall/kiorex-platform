@@ -107,3 +107,9 @@ Patient web :5180; chips on Passport. Routes: `/search`, `/doctors/:id`, `/appoi
 6. **Org flag for the staff app.** Switch `mobile_staff_app` OFF at org scope for Nile Care: the staff-app bootstrap reports `FLAG_OFF` (workspace guide 4.8 step 4).
 
 Deeper script list and role matrix: `DEMO_DATA.md` (K1-K16) and `Docs/TEST_DATA.md`; org onboarding import design: `Docs/ORG_ONBOARDING_IMPORT.md`.
+
+## Booking widget and SDK (GRW-P1-G)
+- API unit: `npm run test:unit -w apps/api -- --testPathPatterns src/widget`. API integration (builds `apps/widget` first when stale): `NODE_OPTIONS=--experimental-vm-modules npx jest --selectProjects integration --runInBand --testPathPatterns test/widget.int` in `apps/api` (CSP per organisation, forbidden origin, revocation, rate limits, hold limit, 12 widgets racing for one slot, SRI bytes).
+- Widget unit: `npm test -w apps/widget` (postMessage protocol, the built SDK bundle in jsdom, strings). Size budget: `npm run check:budget -w apps/widget` (SDK <= 10 KB gzip, app <= 40 KB gzip).
+- Browser: `npm run e2e -w apps/widget` starts its own API on :4393 (own database, dropped on exit), a Passport stand-in on :4394 and provider test sites on :4392 (`http://localhost:4392` is allow-listed, `http://127.0.0.1:4392` is not): end to end booking from another origin, Arabic RTL, 360 px, blocked origin, forged postMessages, failure states, axe. Use `--project=desktop` or `--project=mobile` for one profile.
+- Manual: `http://localhost:4000/v1/sandbox?org=<clinic booking slug>` on the local dev stack (the Passport popup needs the `kiorex-widget` client from `kiorex-account/config/idp.json`: restart Passport once to load it).

@@ -9371,6 +9371,173 @@
           "growth"
         ]
       }
+    },
+    "/api/v1/widget/v1/session": {
+      "post": {
+        "operationId": "WidgetController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF",
+        "tags": [
+          "widget"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "org",
+                  "parentOrigin"
+                ],
+                "properties": {
+                  "org": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "parentOrigin": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "sandbox": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/widget/v1/config": {
+      "get": {
+        "operationId": "WidgetController_config",
+        "parameters": [
+          {
+            "name": "doctor",
+            "required": false,
+            "in": "query",
+            "description": "Provider id or Kiorex doctor slug",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specialty",
+            "required": false,
+            "in": "query",
+            "description": "Specialty code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G widget data: clinic, bookable doctors with visit types and fees (IN_CLINIC only), specialties. Needs X-KX-Widget",
+        "tags": [
+          "widget"
+        ]
+      }
+    },
+    "/api/v1/widget/v1/ops/audit": {
+      "get": {
+        "operationId": "WidgetController_opsAudit",
+        "parameters": [
+          {
+            "name": "org",
+            "required": false,
+            "in": "query",
+            "description": "Clinic id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "1 to 500",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G ops-visible audit: refused origins, invalid tokens and allow-list changes (AuditLog resource WidgetRegistration)",
+        "tags": [
+          "widget"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/widget/v1/ops/registrations": {
+      "get": {
+        "operationId": "WidgetController_opsRegistrations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-G widget registrations (verified origins per clinic, synced from PROVIDER_PROFILE_UPDATED)",
+        "tags": [
+          "widget"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "info": {
