@@ -8,8 +8,8 @@ import { fmtN } from "@/lib/growthFormat";
 
 const money = (v: Masked) => (v === "<10" ? "<10" : fmtN(Math.round(v / 100)));
 const ym = (d: string) => d.slice(0, 7);
-/** A rate cell: opacity follows the rate, the figure is always printed (colour is never the only signal). */
-const shade = (rate: number | "<10" | null) => (typeof rate === "number" ? { backgroundColor: `color-mix(in srgb, var(--brand-ocean, #0e7490) ${Math.max(6, Math.min(80, rate))}%, transparent)` } : undefined);
+/** A rate bar under the printed figure (a bar, not a cell fill, so the text keeps full contrast in light and dark and the figure is never the colour's job). */
+const Bar = ({ rate }: { rate: number | "<10" | null }) => (typeof rate === "number" ? <span aria-hidden="true" className="mt-1 block h-1.5 rounded-full bg-primary" style={{ width: `${Math.max(2, Math.min(100, rate))}%` }} /> : null);
 
 /** Cohort table and retention heatmap. Basis, dimension and value are selectable; every cell under 10 people reads "fewer than 10" and carries no money. */
 export default function CohortsPage() {
@@ -53,7 +53,7 @@ export default function CohortsPage() {
                   <table className="w-full min-w-[520px] border-separate border-spacing-0 text-start text-sm" data-testid="cohort-heatmap">
                     <caption className="sr-only">{t("growth.cohorts.heatCaption")}</caption>
                     <thead><tr><th scope="col" className="border-b bg-muted px-3 py-2.5 text-start text-xs font-semibold text-muted-foreground">{t("growth.cohorts.col.cohort")}</th>{Array.from({ length: Math.max(1, ...ret.data.rows.map((r) => r.cells.length)) }, (_, i) => <th key={i} scope="col" className="border-b bg-muted px-3 py-2.5 text-start text-xs font-semibold text-muted-foreground">{t("growth.cohorts.month", { n: i })}</th>)}</tr></thead>
-                    <tbody>{ret.data.rows.map((r) => <tr key={r.cohortMonth}><th scope="row" className="border-b border-border/60 px-3 py-2.5 text-start font-medium" dir="ltr">{ym(r.cohortMonth)}</th>{r.suppressed ? <td className="border-b border-border/60 px-3 py-2.5 text-muted-foreground" colSpan={4}>{small}</td> : r.cells.map((c) => <td key={c.monthIndex} className="border-b border-border/60 px-3 py-2.5 tabular-nums" style={shade(c.rate)} data-testid={`heat-${ym(r.cohortMonth)}-${c.monthIndex}`}>{c.rate === "<10" ? small : c.rate === null ? "-" : `${fmtN(c.rate)}%`}</td>)}</tr>)}</tbody>
+                    <tbody>{ret.data.rows.map((r) => <tr key={r.cohortMonth}><th scope="row" className="border-b border-border/60 px-3 py-2.5 text-start font-medium" dir="ltr">{ym(r.cohortMonth)}</th>{r.suppressed ? <td className="border-b border-border/60 px-3 py-2.5 text-muted-foreground" colSpan={4}>{small}</td> : r.cells.map((c) => <td key={c.monthIndex} className="border-b border-border/60 px-3 py-2.5 tabular-nums" data-testid={`heat-${ym(r.cohortMonth)}-${c.monthIndex}`}>{c.rate === "<10" ? small : c.rate === null ? "-" : `${fmtN(c.rate)}%`}<Bar rate={c.rate} /></td>)}</tr>)}</tbody>
                   </table>
                 </div>
               </Section>
