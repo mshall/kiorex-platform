@@ -1,13 +1,15 @@
 import { quietUntil, type QuietHours } from '@kiorex/contracts/notify';
+import { DEFAULT_MARKET, marketQuietHours } from '../../market/market-core-public';
 
 /** Policy quiet hours as LIFECYCLE_POLICY stores them ("21:00" to "09:00" in an IANA zone). */
 export interface PolicyQuiet { start: string; end: string; timezone: string }
-export const DEFAULT_QUIET: PolicyQuiet = { start: '21:00', end: '09:00', timezone: 'Africa/Cairo' };
+/** The quiet window of a market: its MARKET_PROFILE (configuration first, code fallback second), never a literal zone. */
+export const defaultQuiet = (market: string = DEFAULT_MARKET): PolicyQuiet => marketQuietHours(market);
 
 const hourOf = (hhmm: string) => { const h = Number(hhmm.slice(0, 2)); return Number.isInteger(h) && h >= 0 && h <= 23 ? h : 0; };
 
 /** A person's own window (whole local hours, NotificationPreference) overrides the policy window; the zone stays the policy zone. */
-export function quietWindow(policy: PolicyQuiet = DEFAULT_QUIET, personal?: { start: number | null; end: number | null } | null): QuietHours {
+export function quietWindow(policy: PolicyQuiet = defaultQuiet(), personal?: { start: number | null; end: number | null } | null): QuietHours {
   const own = personal && personal.start !== null && personal.end !== null ? personal : null;
   return { startHour: own ? own.start! : hourOf(policy.start), endHour: own ? own.end! : hourOf(policy.end), tzOffsetMinutes: 0, zone: policy.timezone };
 }

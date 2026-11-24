@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { notFound } from '../../common/errors';
 import { FlagsService } from '../../control-plane/control-plane-public';
@@ -29,7 +30,7 @@ export class PromotionQuoteService {
   /** Quote for an intent row (the booking service calls this at confirm). Null when the flag is OFF, the booking has no organisation or no visit fee, or nothing is eligible. */
   async quoteFor(b: QuoteIntent, now = new Date()): Promise<SponsoredQuote | null> {
     if (!b.tenantId || !b.feeMinor || b.feeMinor <= 0) return null;
-    if (!(await this.flags.isEnabled(GROWTH_FLAG.SPONSORED_PROMOTIONS, { market: 'EG', orgId: b.tenantId }).catch(() => false))) return null;
+    if (!(await this.flags.isEnabled(GROWTH_FLAG.SPONSORED_PROMOTIONS, { market: DEFAULT_MARKET, orgId: b.tenantId }).catch(() => false))) return null;
     const rows = await this.prisma.sponsoredPromotionProjection.findMany({ where: { orgRef: b.tenantId, status: 'ACTIVE', endsAt: { gt: now } }, take: 100 });
     if (!rows.length) return null;
     const careType: CareType = b.serviceLocation === 'HOME' ? 'HOME_VISIT' : b.telehealth ? 'VIDEO' : 'IN_CLINIC';

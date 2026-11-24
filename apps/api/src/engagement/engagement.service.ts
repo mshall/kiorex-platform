@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketTimezone } from '../market/market-core-public';
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit, forwardRef } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
@@ -14,14 +15,14 @@ export const DEVICE_PLATFORMS = ['IOS', 'ANDROID', 'WEB'] as const;
 
 export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 
-/** Date-times travel through the app as ISO strings; a patient must read them in Cairo time and their own language ("Mon 23 Nov, 6:45 PM"), never "2026-11-23T16:45:00.000Z". */
-export function humanizeTimes(params: Record<string, unknown>, locale: string): Record<string, unknown> {
+/** Date-times travel through the app as ISO strings; a patient must read them in the market's local time (the zone argument, default the default market's) and their own language ("Mon 23 Nov, 6:45 PM"), never "2026-11-23T16:45:00.000Z". */
+export function humanizeTimes(params: Record<string, unknown>, locale: string, zone: string = marketTimezone(DEFAULT_MARKET)): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(params)) {
     // a date-only value (a reward expiry) reads as "26 Mar 2027" in the person's language: a raw 2027-03-26 also looks like a phone number to the PHI guard
     if (k === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))) { out[k] = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${v}T00:00:00Z`)); continue; }
     out[k] = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) && !Number.isNaN(Date.parse(v))
-      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Africa/Cairo' }).format(new Date(v))
+      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: zone }).format(new Date(v))
       : v;
   }
   return out;
@@ -44,7 +45,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
         enabled: (sub) => this.marketingEnabled(sub),
         suppressed: async (sub, channel) => {
           const p = await this.patients.profileBySub(sub);
-          return this.suppression.isSuppressed(channel === 'EMAIL' ? [p?.email] : channel === 'PUSH' || channel === 'INAPP' ? [] : [p?.phone], channel, p?.market ?? 'EG');
+          return this.suppression.isSuppressed(channel === 'EMAIL' ? [p?.email] : channel === 'PUSH' || channel === 'INAPP' ? [] : [p?.phone], channel, p?.market ?? DEFAULT_MARKET);
         },
         defaultQuiet: async (at) => { const d = await this.prefCentre.consentDefaults(); return { zone: d.quietHoursTimezone, startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
       },
@@ -53,7 +54,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
 
   private async marketingEnabled(sub: string): Promise<boolean> {
     const p = await this.patients.profileBySub(sub);
-    return this.flags.isEnabled('growth.marketing_messaging', { market: p?.market ?? 'EG' }).catch(() => false);
+    return this.flags.isEnabled('growth.marketing_messaging', { market: p?.market ?? DEFAULT_MARKET }).catch(() => false);
   }
 
   /**

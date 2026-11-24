@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Inject } from '@nestjs/common';
@@ -17,7 +18,7 @@ const dayOf = (d: Date) => new Date(`${d.toISOString().slice(0, 10)}T00:00:00Z`)
 export class SeoIndexationService {
   constructor(private readonly prisma: PrismaService, @Inject(SEO_SITE) private readonly site: SeoSitePort, private readonly seo: SeoAutomationService) {}
 
-  async snapshot(now = new Date(), market = 'EG') {
+  async snapshot(now = new Date(), market = DEFAULT_MARKET) {
     const entries = await this.site.entries(market); const day = dayOf(now);
     const submitted = new Map<string, number>(); for (const e of entries) submitted.set(groupOf(e.type), (submitted.get(groupOf(e.type)) ?? 0) + 2); // both locales
     const rows = await this.seo.latestReports(market);
@@ -39,7 +40,7 @@ export class SeoIndexationService {
     return out;
   }
 
-  async overview(market = 'EG') {
+  async overview(market = DEFAULT_MARKET) {
     const latest = await this.prisma.$queryRaw<{ templateKind: string; submitted: number; indexed: number; excluded: number; reasonBuckets: Record<string, unknown>; day: Date }[]>`
       SELECT DISTINCT ON ("templateKind") "templateKind", "submitted", "indexed", "excluded", "reasonBuckets", "day" FROM "SeoIndexationSnapshot" WHERE "market" = ${market} ORDER BY "templateKind", "day" DESC`;
     return { rows: latest.map((r) => { const known = (r.reasonBuckets as { indexedKnown?: boolean }).indexedKnown === true; const { indexedKnown: _k, ...reasons } = r.reasonBuckets as Record<string, unknown>; return { templateKind: r.templateKind, day: r.day.toISOString().slice(0, 10), submitted: r.submitted, indexed: known ? r.indexed : null, excluded: r.excluded, reasons, indexedKnown: known }; }), note: 'Indexed counts need Search Console index-coverage data; until it is connected they are shown as not measured.' };

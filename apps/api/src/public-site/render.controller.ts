@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -147,7 +148,7 @@ export class RenderController {
 
   private async notFound(req: Request, res: Response, path: string, reason: string, status: 404 | 410): Promise<void> {
     this.cache.metrics.inc(`status_${status}`);
-    const cc = /^\/(?:ar|en)\/([a-z]{2})/i.exec(path)?.[1]?.toLowerCase() ?? 'eg';
+    const cc = /^\/(?:ar|en)\/([a-z]{2})/i.exec(path)?.[1]?.toLowerCase() ?? DEFAULT_MARKET.toLowerCase();
     const locale = (/^\/(ar|en)\//i.exec(path)?.[1]?.toLowerCase() ?? 'ar') as Locale;
     this.send(req, res, await this.notFoundResponse(path, reason, status, locale, cc), 'MISS');
   }

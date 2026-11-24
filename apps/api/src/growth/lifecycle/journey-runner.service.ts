@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { newId } from '../../common/ids';
 import { ConsentService, MARKETING_CONSENT_PURPOSES } from '../../patient/patient-public';
@@ -44,7 +45,7 @@ export class JourneyRunnerService {
     const now = i.now ?? new Date();
     const profile = await this.patients.profileBySub(i.sub);
     if (!profile || (profile as { deletedAt?: Date | null }).deletedAt) return { enrolled: false, reason: 'NO_PERSON' };
-    const market = profile.market ?? 'EG';
+    const market = profile.market ?? DEFAULT_MARKET;
     if (!(await this.policies.journeysOn(market))) return { enrolled: false, reason: 'FLAG_OFF' };
     const policy = await this.policies.resolve(market);
     if (!this.policies.journeyPolicy(policy, def).enabled) return { enrolled: false, reason: 'JOURNEY_DISABLED' };
@@ -160,7 +161,7 @@ export class JourneyRunnerService {
 
   /** The reminders already handled by engagement.service.ts are recorded as decisions so the log is the single place to look (no second send). */
   async recordLegacyReminder(i: { sub: string; market?: string; step: 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION'; decision: 'SEND' | 'SKIP'; reason: string; messageLogId?: string }) {
-    return this.prisma.lifecycleMessageDecision.create({ data: { id: newId('kx_lmd'), sub: i.sub, market: i.market ?? 'EG', journeyKey: 'reminders', step: i.step === 'REMINDER_24H' ? 101 : i.step === 'REMINDER_2H' ? 102 : 103, messageClass: 'TRANSACTIONAL', channel: 'ALL', templateKey: i.step, decision: i.decision, reason: i.reason, messageLogId: i.messageLogId ?? null } });
+    return this.prisma.lifecycleMessageDecision.create({ data: { id: newId('kx_lmd'), sub: i.sub, market: i.market ?? DEFAULT_MARKET, journeyKey: 'reminders', step: i.step === 'REMINDER_24H' ? 101 : i.step === 'REMINDER_2H' ? 102 : 103, messageClass: 'TRANSACTIONAL', channel: 'ALL', templateKey: i.step, decision: i.decision, reason: i.reason, messageLogId: i.messageLogId ?? null } });
   }
 
   catalogue() { return JOURNEYS; }

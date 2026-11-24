@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '../../common/auth';
@@ -8,7 +9,7 @@ import { growthError } from '../growth-errors';
 import { IntegrationService, isKind } from './integration.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-const marketOf = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : 'EG');
+const marketOf = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : DEFAULT_MARKET);
 
 /**
  * Integration management and advanced acquisition analytics (GRW-P2-F). Reads: every Growth ops role. Pulls: super admin; a `real` pull needs a second super admin. Nothing here accepts or returns a secret:

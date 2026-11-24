@@ -2724,3 +2724,36 @@ model SponsoredPromotionReview {
   @@index([promotionId, promotionVersion], map: "SponsoredPromotionReview_promotion_idx")
   @@index([decision, createdAt], map: "SponsoredPromotionReview_decision_idx")
 }
+
+/// GRW-P3-G (wave 8, lane A2; migration 20270128091000): market onboarding plan, one per country. `steps` holds the wizard answers (references and booleans only: legal texts stay NEEDS_HUMAN). The plan never makes a market live: `market.<cc>.live` stays the human gate.
+model MarketOnboardingPlan {
+  id          String    @id @default(cuid())
+  cc          String    @unique
+  status      String    @default("DRAFT") // DRAFT READY PUBLISHED CANCELLED
+  steps       Json      @default("{}")
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  readyAt     DateTime?
+  publishedAt DateTime?
+}
+
+/// GRW-P3-G: imported geography of a market (cities and districts) with unique slugs per locale. Reference data, no person data.
+model MarketGeography {
+  id        String   @id @default(cuid())
+  market    String
+  level     String // CITY DISTRICT
+  key       String
+  parentKey String   @default("")
+  nameAr    String
+  nameEn    String
+  slugAr    String
+  slugEn    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([market, level, key])
+  @@unique([market, level, slugAr], map: "MarketGeography_slugAr_key")
+  @@unique([market, level, slugEn], map: "MarketGeography_slugEn_key")
+  @@index([market, level, parentKey])
+}

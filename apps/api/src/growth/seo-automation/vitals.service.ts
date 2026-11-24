@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -21,7 +22,7 @@ export class SeoVitalsService {
   /** The audit output location: SEO_LIGHTHOUSE_SUMMARY, else the web app's default output folder. */
   summaryPath(): string { return process.env.SEO_LIGHTHOUSE_SUMMARY ?? resolve(join(__dirname, '..', '..', '..', '..', 'web', '.lighthouseci', 'summary.json')); }
 
-  async store(points: VitalPoint[], day: Date, market = 'EG'): Promise<number> {
+  async store(points: VitalPoint[], day: Date, market = DEFAULT_MARKET): Promise<number> {
     for (const p of points) {
       const data = { p75: p.p75, sampleSize: p.sampleSize };
       await this.prisma.seoVitalSnapshot.upsert({ where: { market_templateKind_metric_source_day: { market, templateKind: p.templateKind, metric: p.metric, source: p.source, day } }, create: { market, templateKind: p.templateKind, metric: p.metric, source: p.source, day, ...data }, update: data });
@@ -30,7 +31,7 @@ export class SeoVitalsService {
   }
 
   /** Lab: ingest the audit summary (a JSON value, or the file on disk). Returns `measured: false` when there is nothing to read. */
-  async ingestLab(summary?: unknown, now = new Date(), market = 'EG'): Promise<{ measured: boolean; points: number; reason?: string }> {
+  async ingestLab(summary?: unknown, now = new Date(), market = DEFAULT_MARKET): Promise<{ measured: boolean; points: number; reason?: string }> {
     let json = summary;
     if (json === undefined) {
       const f = this.summaryPath();
@@ -43,7 +44,7 @@ export class SeoVitalsService {
   }
 
   /** Field: the CrUX adapter's recent rows (mock mode today). */
-  async ingestField(now = new Date(), market = 'EG'): Promise<{ measured: boolean; points: number; reason?: string }> {
+  async ingestField(now = new Date(), market = DEFAULT_MARKET): Promise<{ measured: boolean; points: number; reason?: string }> {
     const rows = await this.prisma.growthExternalMetricDaily.findMany({ where: { market, kind: 'crux', day: { gte: new Date(now.getTime() - 7 * DAY) }, dimensionKey: { startsWith: 'template:' } }, select: { dimensionKey: true, metric: true, value: true } });
     if (!rows.length) return { measured: false, points: 0, reason: 'CRUX_NOT_CONNECTED' };
     const by = new Map<string, { dimensionKey: string; metric: string; values: number[] }>();
@@ -53,7 +54,7 @@ export class SeoVitalsService {
   }
 
   /** Compare the newest snapshot of every template and metric with the budgets; raise one event per breach and day. */
-  async check(now = new Date(), market = 'EG') {
+  async check(now = new Date(), market = DEFAULT_MARKET) {
     const cfg = await this.seo.config(market);
     const rows = await this.prisma.$queryRaw<{ templateKind: string; metric: string; source: string; p75: number; sampleSize: number; day: Date }[]>`
       SELECT DISTINCT ON ("templateKind", "metric", "source") "templateKind", "metric", "source", "p75", "sampleSize", "day" FROM "SeoVitalSnapshot" WHERE "market" = ${market} ORDER BY "templateKind", "metric", "source", "day" DESC`;
@@ -63,7 +64,7 @@ export class SeoVitalsService {
     return { breaches: found, measuredLab: points.some((p) => p.source === 'LAB'), measuredField: points.some((p) => p.source === 'FIELD') };
   }
 
-  async overview(now = new Date(), market = 'EG') {
+  async overview(now = new Date(), market = DEFAULT_MARKET) {
     const cfg = await this.seo.config(market); const since = new Date(now.getTime() - 30 * DAY);
     const rows = await this.prisma.seoVitalSnapshot.findMany({ where: { market, day: { gte: since } }, orderBy: [{ templateKind: 'asc' }, { metric: 'asc' }, { day: 'asc' }] });
     const trend = rows.map((r) => ({ templateKind: r.templateKind, metric: r.metric, source: r.source, day: r.day.toISOString().slice(0, 10), p75: Number(r.p75), sampleSize: r.sampleSize }));

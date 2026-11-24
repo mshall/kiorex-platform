@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable } from '@nestjs/common';
 import { GROWTH_CONFIG_SCHEMAS, type GrowthConfigKind } from '@kiorex/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,7 +16,7 @@ const clampDays = (d: unknown, def = 30) => { const n = Number(d); return Number
 const clampTake = (t: unknown, def = 100, max = 200) => { const n = Number(t); return Number.isInteger(n) ? Math.min(max, Math.max(1, n)) : def; };
 export const EDITABLE: GrowthConfigKind[] = Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[];
 const MARKET = /^[A-Z]{2}$/;
-export const marketOf = (m?: string) => (m && MARKET.test(m) ? m : 'EG');
+export const marketOf = (m?: string) => (m && MARKET.test(m) ? m : DEFAULT_MARKET);
 
 /** Growth flag keys shown next to the integrations and market pages (read-only; switches stay in the flag control plane). */
 const MARKETING_FLAGS = ['growth.marketing_messaging', 'growth.analytics_visitor', 'growth.campaigns', 'growth.patient_referral', 'growth.rewards'] as const;

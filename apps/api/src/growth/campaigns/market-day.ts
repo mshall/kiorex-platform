@@ -1,10 +1,8 @@
 /**
- * Market-local calendar helpers for campaigns (GRW-P2-A). PURE. A "day" is a calendar day in the market's time zone (Africa/Cairo for EG), not a UTC day: the daily cap
- * rolls over at local midnight, including on the two nights a year the zone changes its offset. The zone table is reference data, like MARKET_FACTS: adding a market
- * adds a row (P3-G moves it to the MARKET_PROFILE config kind); nothing branches on a country.
+ * Market-local calendar helpers for campaigns (GRW-P2-A). PURE. A "day" is a calendar day in the market's time zone (the market's IANA zone from its MARKET_PROFILE), not a UTC day: the daily cap
+ * rolls over at local midnight, including on the two nights a year the zone changes its offset. The zone comes from the market registry (MARKET_PROFILE configuration first, code fallback second); nothing branches on a country.
  */
-export const MARKET_TIMEZONES: Readonly<Record<string, string>> = { EG: 'Africa/Cairo', SA: 'Asia/Riyadh', AE: 'Asia/Dubai' };
-export const marketTimezone = (market: string): string => MARKET_TIMEZONES[market.toUpperCase()] ?? 'UTC';
+export { marketTimezone } from '../../market/market-core-public';
 
 const fmts = new Map<string, Intl.DateTimeFormat>();
 const fmt = (zone: string) => { let f = fmts.get(zone); if (!f) { f = new Intl.DateTimeFormat('en-CA', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }); fmts.set(zone, f); } return f; };

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, Inject, Param, Post, Query, forwardRef } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
@@ -38,7 +39,7 @@ export class LifecycleAdminController {
   ) {}
 
   @Get() @ApiOperation({ summary: 'GRW-P2-E journeys with their steps, class, policy state and active enrolments; the policy in force' }) @ApiOkResponse(OBJ)
-  async overview(@Query('market') market = 'EG') {
+  async overview(@Query('market') market = DEFAULT_MARKET) {
     const policy = await this.policies.resolve(market);
     const active = await this.prisma.lifecycleEnrollment.findMany({ where: { state: 'ACTIVE', market }, select: { journeyKey: true } });
     const count = (key: string) => active.filter((a) => a.journeyKey === key || a.journeyKey.startsWith(`${key}#`)).length;
@@ -54,10 +55,10 @@ export class LifecycleAdminController {
   }
 
   @Get('funnel') @ApiOperation({ summary: 'GRW-P2-E stage funnel; a stage with fewer than 10 people shows no count' }) @ApiOkResponse(ARR)
-  funnel(@Query('market') market = 'EG') { return this.state.funnel(market, 10); }
+  funnel(@Query('market') market = DEFAULT_MARKET) { return this.state.funnel(market, 10); }
 
   @Get('decisions') @ApiOperation({ summary: 'GRW-P2-E send-gate decisions by journey, decision and reason code over the last N days (aggregate)' }) @ApiOkResponse(ARR)
-  async decisions(@Query('days') daysRaw = '7', @Query('market') market = 'EG') {
+  async decisions(@Query('days') daysRaw = '7', @Query('market') market = DEFAULT_MARKET) {
     const days = Math.max(1, Math.min(90, Number(daysRaw) || 7));
     const rows = await this.prisma.lifecycleMessageDecision.groupBy({ by: ['journeyKey', 'messageClass', 'decision', 'reason'], where: { market, at: { gte: new Date(Date.now() - days * 86_400_000) } }, _count: { _all: true }, orderBy: [{ journeyKey: 'asc' }] });
     return rows.map((r) => ({ journeyKey: r.journeyKey, messageClass: r.messageClass, decision: r.decision, reason: r.reason, count: r._count._all }));

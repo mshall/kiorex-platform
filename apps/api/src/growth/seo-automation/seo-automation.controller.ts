@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/auth';
@@ -19,7 +20,7 @@ export class SeoAutomationController {
   overview() { return this.seo.overview(); }
   @Get('reports') @ApiOperation({ summary: 'GRW-P3-F latest quality reports' }) @ApiOkResponse(OBJ)
   async reports(@Query('templateKind') templateKind?: string, @Query('locale') locale?: string, @Query('failed') failed?: string) {
-    const rows = (await this.seo.latestReports('EG')).filter((r) => (!templateKind || r.templateKind === templateKind) && (!locale || r.locale === locale) && (failed !== 'true' || r.failedChecks.some((c) => !c.startsWith('~'))));
+    const rows = (await this.seo.latestReports(DEFAULT_MARKET)).filter((r) => (!templateKind || r.templateKind === templateKind) && (!locale || r.locale === locale) && (failed !== 'true' || r.failedChecks.some((c) => !c.startsWith('~'))));
     return { rows: rows.slice(0, 500).map((r) => ({ pageKey: r.pageKey, templateKind: r.templateKind, locale: r.locale, score: r.score, failedChecks: r.failedChecks.filter((c) => !c.startsWith('~')), noindex: r.failedChecks.includes('~noindex'), checkedAt: r.checkedAt })) };
   }
   @Get('config') @ApiOperation({ summary: 'GRW-P3-F effective SEO_AUTOMATION configuration (read-only)' }) @ApiOkResponse(OBJ)
@@ -27,7 +28,7 @@ export class SeoAutomationController {
   @Get('links') @ApiOperation({ summary: 'GRW-P3-F computed internal links of one page, or the totals' }) @ApiOkResponse(OBJ)
   async links(@Query('from') from?: string) {
     if (!from) return { totals: (await this.seo.overview()).links };
-    return { from, groups: await this.seo.computedLinks('EG', from, 'en') };
+    return { from, groups: await this.seo.computedLinks(DEFAULT_MARKET, from, 'en') };
   }
   @Get('vitals') @ApiOperation({ summary: 'GRW-P3-F lab and field Core Web Vitals by template with budgets (not measured is said plainly)' }) @ApiOkResponse(OBJ)
   vitalsOverview() { return this.vitals.overview(); }

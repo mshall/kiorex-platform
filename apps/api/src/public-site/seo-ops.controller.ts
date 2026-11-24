@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, OpsOnly } from '../common/auth';
@@ -9,7 +10,7 @@ import { SeoPagesService } from './seo-pages.service';
 import { SitemapService } from './sitemap.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-const market = (m?: string): string => (m && /^[A-Za-z]{2}$/.test(m) ? m.toUpperCase() : 'EG');
+const market = (m?: string): string => (m && /^[A-Za-z]{2}$/.test(m) ? m.toUpperCase() : DEFAULT_MARKET);
 const lim = (n: unknown, d = 100, max = 500): number => { const v = Number(n); return Number.isInteger(v) && v >= 1 ? Math.min(v, max) : d; };
 
 /**

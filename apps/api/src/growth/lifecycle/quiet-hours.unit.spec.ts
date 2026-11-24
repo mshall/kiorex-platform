@@ -1,4 +1,4 @@
-import { quietEnd, quietWindow, DEFAULT_QUIET } from './quiet-hours';
+import { quietEnd, quietWindow, defaultQuiet } from './quiet-hours';
 
 const iso = (s: string) => Date.parse(s);
 
@@ -7,7 +7,7 @@ const iso = (s: string) => Date.parse(s);
  * ends an hour late in spring and an hour early in autumn. With the zone, the window ends at 09:00 local wall time on both nights.
  */
 describe('quiet hours across the Cairo offset-change nights', () => {
-  const q = quietWindow(DEFAULT_QUIET);
+  const q = quietWindow(defaultQuiet());
   it('is outside the window during the day', () => {
     expect(quietEnd(iso('2027-03-10T10:00:00Z'), q)).toBeNull(); // 12:00 local
     expect(quietEnd(iso('2027-03-10T18:59:00Z'), q)).toBeNull(); // 20:59 local
@@ -31,12 +31,12 @@ describe('quiet hours across the Cairo offset-change nights', () => {
     expect(quietEnd(iso('2026-10-29T20:00:00Z'), q)).toBe(iso('2026-10-30T07:00:00Z'));
   });
   it('the person own whole-hour window overrides the policy window and keeps the zone', () => {
-    const own = quietWindow(DEFAULT_QUIET, { start: 22, end: 7 });
+    const own = quietWindow(defaultQuiet(), { start: 22, end: 7 });
     expect(own).toMatchObject({ startHour: 22, endHour: 7, zone: 'Africa/Cairo' });
     expect(quietEnd(iso('2027-03-10T19:30:00Z'), own)).toBeNull(); // 21:30 local is outside 22 to 07
     expect(quietEnd(iso('2027-03-10T20:30:00Z'), own)).toBe(iso('2027-03-11T05:00:00Z'));
   });
   it('a window that starts and ends at the same hour is no window', () => {
-    expect(quietEnd(iso('2027-03-10T20:00:00Z'), quietWindow(DEFAULT_QUIET, { start: 9, end: 9 }))).toBeNull();
+    expect(quietEnd(iso('2027-03-10T20:00:00Z'), quietWindow(defaultQuiet(), { start: 9, end: 9 }))).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { ASSISTANT_FLAG } from './assistant.growth-bridge';
@@ -34,7 +35,7 @@ export class AssistantRouter {
   ) {}
 
   async route(inbound: InboundText, conv: ConversationRef, profile: ProfileRef | null): Promise<RouteDecision> {
-    const market = profile?.market ?? 'EG';
+    const market = profile?.market ?? DEFAULT_MARKET;
     try {
       if (isOptOut(inbound.text)) return 'DETERMINISTIC'; // STOP is a legal opt-out handled by the machine, never by the assistant
       if (!(await this.flags.evaluate(ASSISTANT_FLAG.ASSISTANT, { market })).effective) return 'DETERMINISTIC';

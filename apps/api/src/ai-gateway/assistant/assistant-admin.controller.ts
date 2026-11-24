@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '../../common/auth';
@@ -31,7 +32,7 @@ export class AssistantAdminController {
     private readonly sessions: AssistantSessionService, private readonly audit: AssistantAudit, private readonly models: AssistantModelFactory) {}
 
   @Get('status') @ApiOperation({ summary: 'GRW-P2-D assistant mode, gate status, budgets and breaker' }) @ApiOkResponse(OBJ)
-  async status(@Query('market') market = 'EG') {
+  async status(@Query('market') market = DEFAULT_MARKET) {
     const policy = await this.policies.get(market);
     const chain = await this.models.get(policy, market);
     const [a, r] = await Promise.all([this.flags.evaluate(ASSISTANT_FLAG.ASSISTANT, { market }), this.flags.evaluate(ASSISTANT_FLAG.REAL_MODEL, { market })]);
@@ -49,7 +50,7 @@ export class AssistantAdminController {
   }
 
   @Get('conversations') @ApiOperation({ summary: 'GRW-P2-D assistant conversations (no phone, no subject)' }) @ApiOkResponse(ARR)
-  async conversations(@Query('state') state?: string, @Query('limit') limit?: string, @Query('market') market = 'EG') {
+  async conversations(@Query('state') state?: string, @Query('limit') limit?: string, @Query('market') market = DEFAULT_MARKET) {
     const rows = await this.prisma.assistantSession.findMany({ where: { market, ...(state ? { state } : {}) }, orderBy: { createdAt: 'desc' }, take: num(limit, 50, 200), include: { escalations: { select: { id: true, status: true } } } });
     return rows.map((s) => ({ id: s.id, createdAt: s.createdAt, state: s.state, language: s.language, turns: s.turns, tokens: s.tokenBudgetUsed, costMinor: s.costMinorUsed, verified: !!s.sub, escalated: s.escalations.length > 0, escalationStatus: s.escalations[0]?.status ?? null, expiresAt: s.expiresAt }));
   }
@@ -83,16 +84,16 @@ export class AssistantAdminController {
   async close(@CurrentUser() u: AuthUser, @Param('id') id: string) { if (!(await this.escalations.close(id, u.sub))) throw notFound('ASSISTANT_ESCALATION_NOT_FOUND', 'Escalation not found or already closed'); return { closed: true }; }
 
   @Get('budgets') @ApiOperation({ summary: 'GRW-P2-D budgets, today usage and the last 14 days' }) @ApiOkResponse(OBJ)
-  async budgets(@Query('market') market = 'EG') {
+  async budgets(@Query('market') market = DEFAULT_MARKET) {
     const policy = await this.policies.get(market);
     const days = await this.prisma.assistantUsageDaily.findMany({ where: { market }, orderBy: { day: 'desc' }, take: 14 });
     return { market, budgets: policy.budgets, rateLimits: policy.rateLimits, days: days.map((d) => ({ day: d.day.toISOString().slice(0, 10), tokens: d.tokens, costMinor: d.costMinor, conversations: d.conversations, breakerTripped: d.breakerTripped })) };
   }
   @Roles('super_admin') @Post('budgets/reset-breaker') @HttpCode(200) @ApiOperation({ summary: 'GRW-P2-D reset the daily cost breaker (super admin, audited)' }) @ApiOkResponse(OBJ)
-  async reset(@CurrentUser() u: AuthUser, @Query('market') market = 'EG') { await this.cost.reset(market, u.sub); return { reset: true }; }
+  async reset(@CurrentUser() u: AuthUser, @Query('market') market = DEFAULT_MARKET) { await this.cost.reset(market, u.sub); return { reset: true }; }
 
   @Get('metrics') @ApiOperation({ summary: 'GRW-P2-D containment, handoff, completion, cost per booking, p95 latency; masked below k = 10 conversations' }) @ApiOkResponse(OBJ)
-  async metrics(@Query('days') days?: string, @Query('market') market = 'EG') {
+  async metrics(@Query('days') days?: string, @Query('market') market = DEFAULT_MARKET) {
     const since = new Date(Date.now() - num(days, 30, 365) * 86_400_000);
     const sessions = await this.prisma.assistantSession.count({ where: { market, createdAt: { gte: since } } });
     if (sessions < K_MIN) return { masked: true, k: K_MIN, sessions: null, containmentRate: null, handoffRate: null, bookingCompletionRate: null, costPerBookingMinor: null, p95LatencyMs: null };

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { CanActivate, ExecutionContext, Inject, Injectable, Optional } from '@nestjs/common';
 import { GROWTH_ERROR_STATUS } from '@kiorex/contracts';
 import { ApiError, forbidden } from '../common/errors';
@@ -62,7 +63,7 @@ export class WidgetRequestGuard implements CanActivate {
     const { org, origin } = v.claims;
     // GRW-P3-D: an origin the fraud rules throttled (enforced rule, reversible, ends by itself) answers 429 like any rate limit
     if (await this.fraud?.originThrottled(origin)) throw new ApiError(429, 'WIDGET_ORIGIN_THROTTLED', 'Too many requests from this site, try again later');
-    await this.flags.assertEnabled('growth.widgets', { market: 'EG' });
+    await this.flags.assertEnabled('growth.widgets', { market: DEFAULT_MARKET });
     const route = ROUTES.find((r) => r.m === method && r.re.test(path));
     if (!route) { await this.deny(org, origin, 'ROUTE_NOT_ALLOWED', `${method} ${path}`); throw forbidden('WIDGET_ROUTE_NOT_ALLOWED', 'This request is not available to the widget'); }
     const reg = await this.regs.byOrg(org);

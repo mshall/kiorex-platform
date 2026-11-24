@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { subRefOf } from '../../common/privacy-hash';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -71,7 +72,7 @@ export class SponsoredDiscountService implements SponsoredPayPort {
     const l = await this.prisma.bookingSponsoredDiscount.findUnique({ where: { bookingIntentId: bookingId } });
     if (!l || !['APPLIED', 'DEBITED'].includes(l.state) || l.amountMinor <= 0) return null;
     const b = await this.prisma.bookingIntent.findUnique({ where: { id: bookingId }, select: { tenantId: true } });
-    if (!(await this.flags.isEnabled(GROWTH_FLAG.SPONSORED_PROMOTIONS, { market: 'EG', orgId: b?.tenantId ?? undefined }).catch(() => false))) return null;
+    if (!(await this.flags.isEnabled(GROWTH_FLAG.SPONSORED_PROMOTIONS, { market: DEFAULT_MARKET, orgId: b?.tenantId ?? undefined }).catch(() => false))) return null;
     return { amountMinor: l.amountMinor, currency: l.currency, reservationRef: l.reservationRef };
   }
 

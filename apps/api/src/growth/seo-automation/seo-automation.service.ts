@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { OutboxService } from '../../outbox/outbox-public';
@@ -40,7 +41,7 @@ export class SeoAutomationService implements SeoQualityPort {
 
   invalidate(): void { this.cfgCache.clear(); this.qCache.clear(); this.lCache.clear(); this.labelCache.clear(); }
 
-  async config(market = 'EG'): Promise<SeoAutomationConfig & { version: number | null }> {
+  async config(market = DEFAULT_MARKET): Promise<SeoAutomationConfig & { version: number | null }> {
     const hit = this.cfgCache.get(market);
     if (hit && Date.now() - hit.at < (process.env.NODE_ENV === 'test' ? 0 : 15_000)) return { ...hit.cfg, version: hit.version };
     let cfg = SEO_AUTOMATION_DEFAULTS(); let version: number | null = null; const now = new Date();
@@ -168,7 +169,7 @@ export class SeoAutomationService implements SeoQualityPort {
   }
 
   async run(o: { market?: string; persist?: boolean; actor?: string } = {}): Promise<RunResult> {
-    const market = o.market ?? 'EG'; const persist = o.persist !== false;
+    const market = o.market ?? DEFAULT_MARKET; const persist = o.persist !== false;
     const cfg = await this.config(market);
     const base: RunResult = { market, measured: false, pages: 0, reports: 0, failedPages: 0, wouldNoindex: 0, edges: 0, orphans: 0, orphansFixed: 0, dropped: {}, autoNoindex: cfg.autoNoindex };
     if (!this.site.available()) return { ...base, reason: 'SSR_BUNDLE_MISSING' };
@@ -226,7 +227,7 @@ export class SeoAutomationService implements SeoQualityPort {
   }
 
   /** Summary for the ops Quality and Links tabs. */
-  async overview(market = 'EG') {
+  async overview(market = DEFAULT_MARKET) {
     const cfg = await this.config(market); const rows = await this.latestReports(market);
     const reports = rows.map((r) => ({ pageKey: r.pageKey, templateKind: r.templateKind, locale: r.locale as PageLocale, score: r.score, failedChecks: r.failedChecks.filter((c) => !c.startsWith(DECISION_PREFIX)), blockingFailed: [] as never[], details: {}, contentHash: '', wouldNoindex: r.failedChecks.includes(NOINDEX_MARK), omitAlternates: [] as PageLocale[] }));
     const links = await this.prisma.seoInternalLink.groupBy({ by: ['rule'], where: { market }, _count: { _all: true } });

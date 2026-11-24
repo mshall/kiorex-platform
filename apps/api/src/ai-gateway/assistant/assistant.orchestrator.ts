@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import { BookingService } from '../../booking/booking-public';
 import { CatalogService } from '../../catalog/catalog-public';
@@ -42,7 +43,7 @@ export class AssistantOrchestrator {
 
   async turn(i: TurnInput): Promise<RouteDecision> {
     const t0 = Date.now(); const now = i.now ?? new Date();
-    const market = i.profile?.market ?? 'EG'; const sub = i.profile?.sub ?? null; const verified = !!sub; const phone = i.conversation.phone;
+    const market = i.profile?.market ?? DEFAULT_MARKET; const sub = i.profile?.sub ?? null; const verified = !!sub; const phone = i.conversation.phone;
     const policy = await this.policies.get(market);
     const loaded = await this.sessions.load({ conversationId: i.conversation.id, phone, sub, market, language: i.conversation.locale === 'en' ? 'en' : 'ar', now });
     const { session } = loaded; let ctx = loaded.ctx;

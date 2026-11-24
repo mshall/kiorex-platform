@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { randomInt } from 'node:crypto';
 import { REFERRAL_CODE_ALPHABET, REFERRAL_CODE_PATTERN } from '@kiorex/contracts';
 
@@ -35,7 +36,7 @@ const HOST = () => (process.env.SITE_CANONICAL_HOST?.replace(/\/+$/, '') || 'htt
 /** `https://kiorex.com/{locale}/{cc}/invite/<code>` (SSR page: noindex, shows the inviter only as "a friend"). */
 export function inviteUrl(code: string, o: { locale?: string; market?: string } = {}): string {
   const loc = o.locale === 'en' ? 'en' : 'ar';
-  const cc = /^[A-Z]{2}$/.test(o.market ?? '') ? (o.market as string).toLowerCase() : 'eg';
+  const cc = /^[A-Z]{2}$/.test(o.market ?? '') ? (o.market as string).toLowerCase() : DEFAULT_MARKET.toLowerCase();
   return `${HOST()}/${loc}/${cc}/invite/${code}`;
 }
 export const inviteDeepLink = (code: string) => `kiorex://invite/${code}`;

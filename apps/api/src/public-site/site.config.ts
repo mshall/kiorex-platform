@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { resolve } from 'node:path';
 
 /**
@@ -53,6 +54,6 @@ export const siteCfg = () => {
     frameAncestors: [] as string[],
     /** mock = record the paths a CDN purge would invalidate (default); real = NEEDS_HUMAN, not implemented. */
     cdnPurgeMode: (env('SITE_CDN_PURGE_MODE', 'mock') === 'real' ? 'real' : 'mock') as 'mock' | 'real',
-    defaultMarket: env('DEFAULT_MARKET', 'EG').toLowerCase(),
+    defaultMarket: env('DEFAULT_MARKET', DEFAULT_MARKET).toLowerCase(),
   };
 };

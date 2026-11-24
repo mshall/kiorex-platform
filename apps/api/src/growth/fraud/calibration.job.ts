@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { cfg as appCfg } from '../../common/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -17,7 +18,7 @@ export class FraudCalibrationService {
   constructor(private readonly prisma: PrismaService, private readonly cfg: FraudConfigService, private readonly configs: GrowthConfigService) {}
 
   /** Recompute the per-day, per-rule counts of the last `days` days (idempotent upsert). */
-  async refresh(days = 30, now = new Date(), market = 'EG'): Promise<number> {
+  async refresh(days = 30, now = new Date(), market = DEFAULT_MARKET): Promise<number> {
     const since = new Date(now.getTime() - days * DAY);
     const rows = await this.prisma.$queryRaw<{ day: Date; ruleId: string; flagged: bigint; confirmed: bigint; dismissed: bigint }[]>`
       SELECT date_trunc('day', s."at")::date AS day, s."ruleId",
@@ -33,14 +34,14 @@ export class FraudCalibrationService {
     return rows.length;
   }
 
-  async stats(days = 90, now = new Date(), market = 'EG'): Promise<Partial<Record<FraudRuleId, RuleStats>>> {
+  async stats(days = 90, now = new Date(), market = DEFAULT_MARKET): Promise<Partial<Record<FraudRuleId, RuleStats>>> {
     const rows = await this.prisma.fraudCalibration.findMany({ where: { market, day: { gte: new Date(now.getTime() - days * DAY) } } });
     const out: Partial<Record<FraudRuleId, RuleStats>> = {};
     for (const r of rows) { const s = (out[r.ruleId as FraudRuleId] ??= { flagged: 0, confirmed: 0, dismissed: 0 }); s.flagged += r.flagged; s.confirmed += r.confirmed; s.dismissed += r.dismissed; }
     return out;
   }
 
-  async report(days = 90, now = new Date(), market = 'EG') {
+  async report(days = 90, now = new Date(), market = DEFAULT_MARKET) {
     const cfg = await this.cfg.get(market);
     const rules = shadowReport(cfg, await this.stats(days, now, market));
     const wouldHold = await this.prisma.fraudCase.count({ where: { market, mode: 'SHADOW', band: 'HIGH', createdAt: { gte: new Date(now.getTime() - days * DAY) } } });
@@ -48,7 +49,7 @@ export class FraudCalibrationService {
   }
 
   /** A DRAFT FRAUD_RULES version with proposed weights, created by the system actor so a super admin (not the creator) must approve it. Never applied. */
-  async propose(now = new Date(), market = 'EG') {
+  async propose(now = new Date(), market = DEFAULT_MARKET) {
     const cfg = await this.cfg.get(market);
     const p = proposeWeights(cfg, await this.stats(90, now, market));
     if (!p.changes.length) return { proposed: false as const, changes: [] };
@@ -64,7 +65,7 @@ export class FraudCalibrationService {
   }
 
   /** Weekly aggregate HOLD rate by language and by governorate (k >= 10 masked). Never a person, never a health attribute. */
-  async fairness(weekStart: Date, market = 'EG') {
+  async fairness(weekStart: Date, market = DEFAULT_MARKET) {
     const end = new Date(weekStart.getTime() + 7 * DAY);
     const byLang = await this.prisma.$queryRaw<{ g: string; total: bigint; held: bigint }[]>`
       SELECT coalesce(p."preferredLocale", 'unknown') AS g, count(*) AS total,

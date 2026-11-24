@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ApiError, forbidden } from '../common/errors';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PrismaService } from '../prisma/prisma.service';
+import { MarketProfileService } from './market-profile.service';
 
 const KEY = (cc: string) => `market.${cc.toLowerCase()}.live`;
 
@@ -12,10 +13,11 @@ const KEY = (cc: string) => `market.${cc.toLowerCase()}.live`;
  */
 @Injectable()
 export class MarketService {
-  constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly profiles: MarketProfileService) {}
 
   /** Markets that have a market.<cc>.live definition in the registry (EG seeded; more via the admin definitions endpoint). */
   async known(): Promise<string[]> {
+    await this.profiles.ensureFresh(); // a market created by the wizard (MARKET_PROFILE) needs its flag definition, but its facts come from the configuration
     const rows = await this.prisma.flagDefinition.findMany({ where: { key: { startsWith: 'market.', endsWith: '.live' } }, select: { key: true } });
     return rows.map((r) => r.key.split('.')[1].toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)).sort();
   }

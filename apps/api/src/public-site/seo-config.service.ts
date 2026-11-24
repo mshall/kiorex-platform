@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { GROWTH_DEFAULT_PAYLOADS } from '../growth/growth-public';
 import { ConfigReaders } from '../growth/growth-readers-public';
@@ -42,7 +43,7 @@ export class SeoConfigService {
 
   invalidate(): void { this.cache.clear(); }
 
-  async get(market = 'EG'): Promise<SeoConfig> {
+  async get(market = DEFAULT_MARKET): Promise<SeoConfig> {
     const hit = this.cache.get(market);
     if (hit && Date.now() - hit.at < 30_000) { await this.report(hit.used); return hit.cfg; }
     const now = new Date();

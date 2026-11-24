@@ -8,11 +8,13 @@ import { GROWTH_DEFAULT_PAYLOADS } from '../config/growth-defaults';
 import { GrowthConfigService, MONEY_POLICY_KINDS, type ConfigScope } from '../config/growth-config.service';
 import { SEO_EXTENSION_DEFAULTS, TEMPLATE_KEYS, TEMPLATE_PLACEHOLDERS } from '../seo/seo-public';
 import { rolesFor } from './growth-access';
+import { LTV_POLICY_SCHEMA } from '../cohorts/ltv-policy';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
 /** Kinds with a contract JSON Schema are the ones the console can edit in Phase 1 (the other kinds arrive with their phase). */
-export const EDITABLE_KINDS = Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[];
+export const EDITABLE_KINDS = [...(Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[]), 'LTV_POLICY' as GrowthConfigKind]; // LTV_POLICY (GRW-P3-C): its schema is local until contracts 1.13.0
+const LOCAL_SCHEMAS: Record<string, unknown> = { LTV_POLICY: LTV_POLICY_SCHEMA };
 const KIND_NOTES: Record<string, string> = {
   ATTRIBUTION_POLICY: 'Who gets credit for a booking: windows, precedence, dwell. Money policy: 7 days notice and a provider announcement.',
   SEO: 'Public site rules: canonical host, locales, thin-page thresholds, sitemap shard size, cache lifetimes.',
@@ -25,6 +27,7 @@ const KIND_NOTES: Record<string, string> = {
   ASSISTANT_POLICY: 'WhatsApp assistant: languages, tools per state, token and cost budgets, retention, escalation SLA, model mode.',
   SPONSORED_PROMOTION_POLICY: 'Provider-sponsored promotions: commission basis, high-value review thresholds, funding defaults. Money: 7 days notice and an announcement.',
   INTEGRATION: 'Read-only marketing integrations by kind: mode, secret reference names, pull schedule, rate budget, retention.',
+  LTV_POLICY: 'Cohort LTV model: horizon, tail fit window, discount rate, cost inclusion, bootstrap and the k-anonymity floor (never below 10). Reporting only.',
   MARKET_GROWTH: 'Per-market growth facts: currency, phone code, locales, booking link host, integrations on/off, secret references.',
 };
 
@@ -74,7 +77,7 @@ export class GrowthConfigAdminController {
   @Get('kinds') @ApiOperation({ summary: 'GRW-P1-K editable config kinds with their JSON Schema, PROPOSED_DEFAULT payload and money-policy flag' }) @ApiOkResponse(ARR)
   kinds() {
     return EDITABLE_KINDS.map((kind) => {
-      const schema = (GROWTH_CONFIG_SCHEMAS as Record<string, { properties: Record<string, unknown> }>)[kind]!;
+      const schema = (LOCAL_SCHEMAS[kind] ?? (GROWTH_CONFIG_SCHEMAS as Record<string, unknown>)[kind]) as { properties: Record<string, unknown> };
       if (kind !== 'SEO') return { kind, note: KIND_NOTES[kind] ?? '', moneyPolicy: MONEY_POLICY_KINDS.includes(kind), schema, defaults: GROWTH_DEFAULT_PAYLOADS[kind] ?? null };
       // SEO: the contract keys plus package F's keys (metadata templates, pagination, review markup), so one form edits the whole versioned payload
       const ext = { ...schema, properties: { ...schema.properties,
