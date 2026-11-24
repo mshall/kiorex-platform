@@ -113,6 +113,32 @@ describe('product ingest and decision (GRW-P4-B2)', () => {
     });
   });
 
+  describe('ops summary', () => {
+    it('counts by product and origin, ops roles only, no identifiers; a lone small cell is masked together with the smallest visible one (secondary suppression)', async () => {
+      for (let i = 0; i < 12; i += 1) await svc.decide(base({ sub: `sub_k${i}` }));
+      for (let i = 0; i < 12; i += 1) await svc.decide(base({ product: 'LAB', factKind: 'LAB_BOOKING', orgRef: 'org_LB1', sub: `sub_m${i}` }));
+      for (let i = 0; i < 3; i += 1) await svc.decide(base({ product: 'LAB', factKind: 'LAB_BOOKING', orgRef: 'org_LB1', sub: `sub_l${i}` }));
+      const admin = await c.as('adm1', { roles: ['super_admin', 'ops_admin'] });
+      const r = (await c.http().get('/api/v1/ops/growth/product-decisions?days=7').set(admin).expect(200)).body;
+      expect(r.commissionLink).toBe('INERT');
+      expect(r.cells.map((x: any) => x.key).sort()).toEqual(['LAB:UNATTRIBUTED', 'PHARMACY:UNATTRIBUTED']);
+      expect(r.cells.find((x: any) => x.key === 'PHARMACY:UNATTRIBUTED')).toMatchObject({ count: 12, masked: false });
+      expect(r.cells.find((x: any) => x.key === 'LAB:UNATTRIBUTED')).toMatchObject({ count: 15, masked: false });
+      expect(r.cells.every((x: any) => x.count === '<10' || x.count >= 10)).toBe(true);
+      expect(JSON.stringify(r)).not.toMatch(/kx_ph_|sub_|org_/);
+      const small = await svc.summary(7);
+      expect(small.cells).toHaveLength(2);
+      // a single small cell next to a large one: both are masked (secondary suppression)
+      await seedTouch(c, { kind: 'ORGANIC_SEARCH', sub: 'sub_org1', ageMs: DAY });
+      await svc.decide(base({ sub: 'sub_org1' }));
+      const masked = (await svc.summary(7)).cells;
+      expect(masked.find((x) => x.key === 'PHARMACY:MARKETPLACE')).toMatchObject({ count: '<10', masked: true });
+      expect(masked.find((x) => x.key === 'PHARMACY:UNATTRIBUTED')).toMatchObject({ masked: true });
+      await c.http().get('/api/v1/ops/growth/product-decisions').set(await c.as('sub_amira')).expect(403);
+      await c.http().get('/api/v1/ops/growth/product-decisions').expect(401);
+    });
+  });
+
   describe('registry (partner products)', () => {
     it('a partner ReferralLinkCreated stores the product; revoke applies; a code owned by another organisation is a CONFLICT whatever the product; a signed touch registered first is relabelled by the event', async () => {
       const reg = c.get(LinkRegistryService);

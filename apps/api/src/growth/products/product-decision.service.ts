@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AttributionPolicyResolver, type AttributionPolicyPayload } from '../attribution/policy';
 import { AttributionService } from '../attribution/attribution.service';
 import type { DecisionTouch } from '../attribution/decide';
+import { applyKAnonymity } from '../analytics/kanon';
 import { GROWTH_FAILURE, recordGrowthFailure } from '../growth-failures';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
 import type { ProductAcquisitionBlockOut, ProductGrowthFactKind, ProductGrowthPort, ProductGrowthProduct } from '../growth-ports-public';
@@ -122,5 +123,15 @@ export class GrowthProductBookingService implements ProductGrowthPort {
       if (r?.created) out.decided += 1; else if (!r) out.failed += 1;
     }
     return out;
+  }
+
+  /**
+   * Counters for the ops view and the partner numbers: decisions per product and origin in the period, k-anonymity applied (cells under 10 are masked, with the secondary suppression).
+   * Counts only; no fact id, no organisation, no person. A decision is a decision of Kiorex, not a charge: the commission link of products is inert.
+   */
+  async summary(days = 30, market = GROWTH_DEFAULT_MARKET) {
+    const since = new Date(Date.now() - Math.min(Math.max(days, 1), 365) * 86_400_000);
+    const rows = await this.prisma.growthProductDecision.groupBy({ by: ['product', 'origin'], where: { market, createdAt: { gte: since }, supersedesId: null }, _count: { _all: true } });
+    return { days, market, cells: applyKAnonymity(rows.map((r) => ({ key: `${r.product}:${r.origin}`, count: r._count._all }))), commissionLink: 'INERT' as const };
   }
 }
