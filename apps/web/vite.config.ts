@@ -10,7 +10,12 @@ export default defineConfig({
   server: {
     port: 5180,
     strictPort: true,
-    proxy: { "/api": { target: process.env.KIOREX_API_URL ?? "http://localhost:4000", changeOrigin: true } },
+    proxy: {
+      "/api": { target: process.env.KIOREX_API_URL ?? "http://localhost:4000", changeOrigin: true },
+      // GRW-P1-E: public SSR pages, robots, sitemaps and their hashed assets are served by the Kiorex API (role `all`); the SPA owns everything else
+      "^/(ar|en)/[a-z]{2}(/|$)": { target: process.env.KIOREX_API_URL ?? "http://localhost:4000", changeOrigin: true },
+      "^/(robots\\.txt|sitemap\\.xml|sitemaps/|_p/|_site/)": { target: process.env.KIOREX_API_URL ?? "http://localhost:4000", changeOrigin: true },
+    },
   },
   preview: { port: 5180, strictPort: true },
   test: {

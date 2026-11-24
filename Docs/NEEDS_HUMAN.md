@@ -113,3 +113,13 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 **Startup behaviour:** `MODE=real` with a missing key aborts boot with e.g. `Provider configuration invalid: WHATSAPP_VERIFY_TOKEN is required when WHATSAPP_PROVIDER=meta; PUSH_MODE=real needs PUSH_FCM_SERVICE_ACCOUNT_JSON ...` (names only). Mock in `NODE_ENV=production` boots with a warning listing the mocked providers.
 
 **Unverified against live vendors (must be exercised in each vendor sandbox before production):** exact Paymob `transaction_inquiry` / `void_refund` payloads, Fawry `FawryPay.jsp` signature item order and status v2, Meta template parameter layouts for each approved template, SES SNS payload variations. The adapters follow the vendors' published contracts and are tested against recorded-shape fakes, not live endpoints.
+
+## Public SEO site (GRW-P1-E): founder and counsel items
+- **One service or two** (work-packages open decision 25, cost and KX-21 sizing): the SSR role runs inside the existing API service (`SITE_ROLE=all`) and can split later with `SITE_ROLE=site` plus `site_origin_domain`. No deploy until the founder says so.
+- **Staging host and indexing**: only `SITE_ENVIRONMENT=production` is indexable; the staging public host name (`www.staging.kiorex.com` is a placeholder) and the production canonical host decision are NEEDS_HUMAN.
+- **Search Console and Rich Results**: property verification, sitemap submission and the manual structured-data checklist (package F).
+- **Real CDN invalidation**: `SITE_CDN_PURGE_MODE=real` needs the CloudFront distribution id and an IAM role; until then the purger only records the paths.
+- **`apps/api/Dockerfile` did not exist** although `.github/workflows/deploy.yml` references it; a proposed one (with `docker-entrypoint.mjs`) was added in package E. Review it against KX-21 before the first deploy. `apps/api/Dockerfile.seed` also copies `packages/`, which does not exist in this repository.
+- **`package-lock.json` integrity for the vendored `@kiorex/contracts` 1.10.0 tarball is stale** (commit c59c546 refreshed the tarball but not the lock entry: lock says `sha512-7u89...`, the file hashes to `sha512-YfBX...`). `npm ci` warns and `npm ci --workspace` fails with EINTEGRITY (reproduced in the Docker runner stage). Re-run `npm install` for the lock refresh in whichever package owns the lock (a lead decision: shared file).
+- **Fonts**: IBM Plex Sans Arabic and Jost (SIL Open Font License 1.1) were copied from the Kiorly web build assets into `apps/web/src/public/fonts`; confirm the licence notice requirement with counsel.
+- **Arabic public copy** (`apps/web/src/public/locales/ar.json`) is engineering wording and needs CMO/marketing review before launch (FAQ blocks are package F).

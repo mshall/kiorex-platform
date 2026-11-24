@@ -6,6 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:public": "vite build --config ./vite.public.config.ts && vite build --config ./vite.public.config.ts --ssr src/entry-server.tsx",
+    "build:site": "npm run build && npm run build:public",
+    "dev:public": "concurrently -n client,ssr \"vite build --config ./vite.public.config.ts --watch\" \"vite build --config ./vite.public.config.ts --ssr src/entry-server.tsx --watch\"",
+    "check:public-budget": "node scripts/check-public-budget.mjs",
+    "smoke:site": "node scripts/ssr-smoke.mjs",
     "preview": "vite preview --port 5180",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src e2e --max-warnings 0",

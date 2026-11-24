@@ -12,3 +12,4 @@ apps/web/test-results
 apps/web/playwright-report
 apps/mobile
 .e2e
+**/dist-public

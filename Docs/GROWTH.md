@@ -31,3 +31,6 @@ All growth tables carry `market` (default `EG`); no code branches on a country.
 
 ## Default configuration
 `src/growth/config/growth-defaults.ts` holds the PROPOSED_DEFAULT payloads (30 day provider window, 7 day campaign window, `PROVIDER_FIRST`, 1000 ms dwell, 25/13 month retention, thin-page guard 3 providers and 70 % overlap, widget 10 origins). They validate against the contract JSON Schemas and are the fallback when no ACTIVE version exists.
+
+## Public site SSR (Wave 2, GRW-P1-E)
+`src/public-site` is no longer a stub: hybrid server rendering of the public pages, robots, sitemaps, slug redirects and CDN-friendly caching as a role of the same API image. See [SEO.md](SEO.md). Flag `growth.ssr_public_pages` OFF serves the SPA shell.

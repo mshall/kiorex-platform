@@ -12,4 +12,5 @@ coverage/
 apps/api/.data/
 .turbo/
 dist-seed
+dist-public/
 apps/api/src/prisma/generated/

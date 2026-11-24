@@ -316,3 +316,22 @@ variable "safety_alerts" {
   })
   default = {}
 }
+
+# GRW-P1-E public SEO site (SSR role of the same API image). All OFF by default; turning them on is a founder-approved change (no deploy until then).
+variable "site_enabled" {
+  description = "Route the public SSR namespaces to the site role at the CDN (see modules/aws/cdn-edge). Also set env_vars SITE_ROLE (all|site) and SITE_ENVIRONMENT (production only in prod)."
+  type        = bool
+  default     = false
+}
+
+variable "site_origin_domain" {
+  description = "Separate site-role service origin host; null = the API service (role all)."
+  type        = string
+  default     = null
+}
+
+variable "spa_noindex_header" {
+  description = "Send X-Robots-Tag noindex and the frame ban on the SPA behaviour of the CDN."
+  type        = bool
+  default     = false
+}

@@ -9,6 +9,7 @@ Start with the [README](../README.md), then pick a document.
 | [RUNBOOK.md](RUNBOOK.md) | Local run, env, seeds, mock providers, home-visit operations |
 | [API.md](API.md) | Generated route reference |
 | [GROWTH.md](GROWTH.md) | Growth and acquisition engine data model, SQL functions, flags, default config (Wave 1) |
+| [SEO.md](SEO.md) | Public site: hybrid SSR role, canonical/hreflang, robots, sitemaps, caching, fallbacks, CWV, build and tests (GRW-P1-E) |
 | [PROVIDERS.md](PROVIDERS.md) | SMS / Email / WhatsApp / Payment provider contract: env, neutral payloads, webhooks, mock simulators, go-live |
 | [NEEDS_HUMAN.md](NEEDS_HUMAN.md) | Open decisions and STOP flags |
 | [VERTICALS.md](VERTICALS.md) | Pharmacy, Lab, telemedicine and records design notes |

@@ -11,6 +11,9 @@ npm run typecheck -w apps/web && npm run lint -w apps/web && npm test -w apps/we
 
 Types come from the generated contract (`src/api/schema.d.ts`, `npm run gen:api`); `src/api/services.ts` (Phase 2/3 hooks) uses them directly and `src/api/adapters.ts` only maps them to bilingual/whole-EGP presentation models. There is **no MSW in app code paths**: MSW lives under `src/test/mocks` and is used by unit tests only.
 
+## Public site (SSR, GRW-P1-E)
+Public pages under `/{ar,en}/{cc}/...` are rendered by the Kiorex API (role `all`) from `src/entry-server.tsx` and hydrated by `src/entry-client.tsx`; the SPA (`dist/`) is unchanged and `noindex`. `npm run build:public` builds the client and the SSR bundle into `dist-public/`; `npm run dev:public` watches both; the dev server proxies `/{ar,en}/{cc}/*`, `/_p`, robots and sitemaps to the API. Templates live in `src/public/templates` (registry: `src/public/registry.ts`). Details, config and tests: [`Docs/SEO.md`](../../Docs/SEO.md).
+
 ## Features (Phase 2/3)
 Waitlist (join from the no-slot state; 409 `SLOTS_AVAILABLE` shows "book directly"; offers inbox), records vault (list/view/download/delete/upload, per-scope sharing consent, prescriptions with QR, follow-ups, read-only banner), pharmacy (search, cart, delivery, Kiorex Pay sandbox checkout, order tracking, cancel, rejected/refunded states), lab bookings (home-collection slots, result delivered into the vault), telemedicine (providers, sessions, mock video room), services hub + WhatsApp info, market selector (`market.<cc>.live`), booking channel badges, sponsored label, whitelisted analytics (`POST /analytics/events`). Launch-locked flags render "awaiting approval"; test/sandbox providers are called out via `MockNotice`. Set `VITE_WHATSAPP_NUMBER` once the real number exists (NEEDS_HUMAN); consent-centre and prescription copy needs legal/clinical review before launch.
 

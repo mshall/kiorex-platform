@@ -14,9 +14,9 @@ describe("i18n", () => {
   it("ar and en have the same keys (plural suffixes aside)", () => {
     expect([...E].filter((k) => !A.has(k))).toEqual([]); expect([...A].filter((k) => !E.has(k))).toEqual([]);
   });
-  it("every static t('key') used in source exists in both locales", () => {
+  it("every static t('key') used in source exists in both locales (the public site has its own catalogue and test)", () => {
     const used = new Set<string>();
-    for (const f of files(src)) for (const m of readFileSync(f, "utf8").matchAll(/\bt\(\s*["']([a-zA-Z0-9_.]+)["']/g)) used.add(m[1]);
+    for (const f of files(src).filter((x) => !/[\\/]src[\\/]public[\\/]/.test(x))) for (const m of readFileSync(f, "utf8").matchAll(/\bt\(\s*["']([a-zA-Z0-9_.]+)["']/g)) used.add(m[1]);
     expect([...used].filter((k) => !E.has(k) || !A.has(k))).toEqual([]);
   });
   it("Arabic has the full plural set for counted strings", () => {

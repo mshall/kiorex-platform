@@ -301,6 +301,9 @@ module "cdn" {
   aliases                         = local.has_domain ? concat([var.domain], var.alias_domains) : []
   certificate_arn                 = local.has_domain ? module.dns_certs[0].certificate_arns["site"] : null
   web_acl_arn                     = var.waf_enabled ? module.waf[0].web_acl_arn : null
+  site_enabled                    = var.site_enabled
+  site_origin_domain              = var.site_origin_domain
+  spa_noindex_header              = var.spa_noindex_header
   tags                            = local.tags
 }
 
