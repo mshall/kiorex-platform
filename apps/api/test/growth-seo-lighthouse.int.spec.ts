@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -29,6 +29,9 @@ const on = process.env.KX_LIGHTHOUSE === '1';
     await s('b', { clinicId: 'cl_a', specialty: 'paediatrics', nameEn: 'Dr Hany Fawzy', nameAr: 'د. هاني فوزي', area: 'Maadi', governorate: 'Cairo', fee: 350, languages: ['ar'] });
     await s('c', { clinicId: 'cl_c', specialty: 'paediatrics', nameEn: 'Dr Dina Salem', nameAr: 'د. دينا سالم', area: 'Dokki', governorate: 'Cairo', fee: 280, languages: ['ar', 'en'] });
     await s('d', { clinicId: 'cl_d', specialty: 'cardiology', nameEn: 'Dr Omar Nabil', nameAr: 'د. عمر نبيل', area: 'Heliopolis', governorate: 'Cairo', fee: 400, languages: ['ar'] });
+    // a second city, so the Cairo location hub is not a copy of the whole market (the thin-page guard would, rightly, noindex it and Lighthouse would report 'blocked from indexing')
+    await s('e', { clinicId: 'cl_e', specialty: 'cardiology', nameEn: 'Dr Karim Fouad', nameAr: 'د. كريم فؤاد', area: 'Haram', governorate: 'Giza', fee: 320, languages: ['ar', 'en'] });
+    await s('f', { clinicId: 'cl_f', specialty: 'paediatrics', nameEn: 'Dr Salma Reda', nameAr: 'د. سلمى رضا', area: 'Haram', governorate: 'Giza', fee: 260, languages: ['ar'] });
     await c.get(SlugBootstrapService).runOnce();
     await c.get(SeoAutomationService).run(); c.get(SeoAutomationService).invalidate();
     await c.app.listen(0, '127.0.0.1'); port = (c.app.getHttpServer().address() as AddressInfo).port;
@@ -37,7 +40,12 @@ const on = process.env.KX_LIGHTHOUSE === '1';
 
   it('audits the five templates in both locales; accessibility, SEO and best-practices meet the budgets; the summary feeds the vitals page', async () => {
     const out = mkdtempSync(join(tmpdir(), 'kx-lh-')); const web = resolve(__dirname, '..', '..', 'web');
-    const r = spawnSync('node', ['scripts/lighthouse-audit.mjs', '--base', `http://127.0.0.1:${port}`, '--runs', '1', '--only', 'mobile', '--out', out], { cwd: web, encoding: 'utf8', timeout: 600_000 });
+    // async spawn on purpose: the server under test lives in THIS process, so a blocking spawn would starve it of its own event loop
+    const r = await new Promise<{ status: number | null; stdout: string; stderr: string }>((done) => {
+      const p = spawn('node', ['scripts/lighthouse-audit.mjs', '--base', `http://127.0.0.1:${port}`, '--runs', '1', '--only', 'mobile', '--out', out], { cwd: web });
+      let stdout = ''; let stderr = ''; p.stdout.on('data', (d) => (stdout += d)); p.stderr.on('data', (d) => (stderr += d));
+      const t = setTimeout(() => p.kill('SIGKILL'), 600_000); p.on('close', (status) => { clearTimeout(t); done({ status, stdout, stderr }); });
+    });
     // eslint-disable-next-line no-console
     console.log(`lighthouse exit ${r.status}\n${r.stdout}${r.stderr.slice(0, 500)}`);
     expect(existsSync(join(out, 'summary.json'))).toBe(true);
