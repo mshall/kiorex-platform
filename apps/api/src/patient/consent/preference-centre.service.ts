@@ -47,7 +47,9 @@ export class PreferenceCentreService {
   setDefaultsProvider(fn: ConsentDefaultsProvider) { this.defaults = fn; this.consents.setTextVersionProvider(async (m) => (await fn(m)).textVersionIds); }
   consentDefaults(market = 'EG') { return this.defaults(market).catch(() => FALLBACK_CONSENT_DEFAULTS); }
 
-  async get(sub: string, market = 'EG') {
+  /** `market` absent means the person's own market (ZY readiness), then the default market. */
+  async get(sub: string, marketArg?: string) {
+    const market = marketArg ?? (await this.prisma.patientProfile.findUnique({ where: { sub }, select: { market: true } }).catch(() => null))?.market ?? 'EG';
     const d = await this.consentDefaults(market);
     const states = await this.consents.states(sub, ['REMINDERS', 'ANALYTICS_MEASUREMENT', ...MARKETING_CONSENT_PURPOSES]);
     const prefs = await this.prisma.notificationPreference.findMany({ where: { sub } });
