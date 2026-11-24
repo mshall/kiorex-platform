@@ -278,6 +278,9 @@ model BookingIntent {
   abortedAt             DateTime?
   carePlanId            String?
   telehealth            Json? // Clinic-owned video visit (P2P WebRTC): {sessionId, joinUrl, opensAt, closesAt, state, movedFrom}; see src/booking/telehealth.ts. Kiorex mints nothing.
+  // Growth engine (GRW-P1-B0, additive and nullable): commission-relevant origin decided by the attribution function; null = decided before the engine existed or flag OFF (treated as UNATTRIBUTED).
+  acquisitionOrigin     String? // PROVIDER_LED | MARKETPLACE | UNATTRIBUTED
+  attributionDecisionId String? // GrowthAttributionDecision.id
 
   events BookingEvent[]
 
@@ -1324,4 +1327,236 @@ model LeadAlertDelivery {
 
   @@index([status, scheduledFor])
   @@index([leadId])
+}
+
+// ───────────────────────── growth engine (GRW-P1-B0, ARCH sections 6, 7, 16) ─────────────────────────
+// Every table carries `market` (ISO alpha-2, default EG: one live market; the API stays multi-market). GrowthTouchpoint and
+// GrowthAttributionDecision are append-only (DB triggers, see migration 20261128100000_growth_core). All values below marked
+// PROPOSED_DEFAULT in the work-package doc stay configuration, never code branches on a country.
+
+/// Stable source label (sourceKind, sourceRef), e.g. PROVIDER_LINK:<code>, ORGANIC_SEARCH:google, DIRECT. Taxonomy is config.
+model GrowthAcquisitionSource {
+  id         String   @id @default(cuid())
+  market     String   @default("EG")
+  sourceKind String // PROVIDER_LINK PROVIDER_QR WIDGET ORGANIC_SEARCH DIRECT REFERRAL CAMPAIGN WHATSAPP OFFLINE
+  sourceRef  String   @default("")
+  label      String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  touchpoints GrowthTouchpoint[]
+
+  @@unique([market, sourceKind, sourceRef])
+}
+
+/// Append-only observation. No IP (keyed hash with daily-rotating salt, blanked after 24 h by growth_purge_expired), no full UA, no full referrer.
+model GrowthTouchpoint {
+  id            String   @id @default(cuid())
+  market        String   @default("EG")
+  visitorKey    String? // only after analytics consent (cookie kxv)
+  sub           String? // Passport sub, linked to earlier touches only with consent
+  sourceId      String
+  kind          String // mirrors GrowthAcquisitionSource.sourceKind at touch time
+  providerOrgRef String? // provider-owned touches only
+  linkCode      String?
+  utmSource     String?  @db.VarChar(64)
+  utmMedium     String?  @db.VarChar(64)
+  utmCampaign   String?  @db.VarChar(64)
+  utmContent    String?  @db.VarChar(64)
+  utmTerm       String?  @db.VarChar(64)
+  clickIdKind   String?
+  clickIdHash   String?
+  referrerHost  String?  @db.VarChar(255)
+  landingKind   String
+  localeAt      String   @default("ar")
+  dwellMs       Int?
+  ltTokenId     String?
+  occurredAt    DateTime @default(now())
+  ipHash        String   @default("")
+  uaClass       String   @default("unknown") // browser family and platform class only
+
+  source GrowthAcquisitionSource @relation(fields: [sourceId], references: [id])
+
+  @@index([visitorKey, occurredAt])
+  @@index([sub, occurredAt])
+  @@index([providerOrgRef, occurredAt])
+  @@index([market, occurredAt])
+  @@index([sourceId])
+}
+
+/// Append-only. One decision per booking and policy version (unique). Corrections insert a new row with supersedesId; old rows stay. Holds no personal data.
+model GrowthAttributionDecision {
+  id                   String   @id @default(cuid())
+  market               String   @default("EG")
+  bookingId            String
+  origin               String // PROVIDER_LED | MARKETPLACE | UNATTRIBUTED
+  reasonCode           String
+  policyVersionId      String
+  inputsHash           String
+  evidenceTouchIds     String[]
+  firstTouchId         String?
+  lastTouchId          String?
+  lastNonDirectTouchId String?
+  supersedesId         String?
+  actor                String? // set only on a correction (a human or system actor)
+  note                 String? // correction reason; never patient data
+  createdAt            DateTime @default(now())
+
+  policyVersion GrowthConfigVersion @relation(fields: [policyVersionId], references: [id])
+
+  @@unique([bookingId, policyVersionId])
+  @@index([bookingId])
+  @@index([market, createdAt])
+  @@index([supersedesId])
+}
+
+/// Canonical funnel event (names in @kiorex/contracts GROWTH_EVENT_NAMES). props is allow-listed and PHI-guarded by the service; specialty and provider ids never land here.
+model GrowthEvent {
+  id         String   @id @default(cuid())
+  market     String   @default("EG")
+  name       String
+  visitorKey String?
+  bookingId  String?
+  careType   String?
+  props      Json     @default("{}")
+  occurredAt DateTime @default(now())
+
+  @@index([name, occurredAt])
+  @@index([market, occurredAt])
+  @@index([visitorKey])
+  @@index([bookingId])
+}
+
+/// Daily rollup by dimensions (k-anonymity is applied at read). Unique on the full dimension key so the rollup job is idempotent. Dimension columns use '' for "not applicable".
+model GrowthMetricDaily {
+  id          String   @id @default(cuid())
+  market      String   @default("EG")
+  day         DateTime @db.Date
+  metric      String
+  sourceKind  String   @default("")
+  landingKind String   @default("")
+  careType    String   @default("")
+  origin      String   @default("")
+  value       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([market, day, metric, sourceKind, landingKind, careType, origin])
+  @@index([day])
+}
+
+/// Immutable versioned growth configuration (ARCH section 16). Rows are never edited after leaving DRAFT; rollback = a new version copying an older payload.
+/// scopeId is '' for GLOBAL scope so the unique key works. One ACTIVE row per (kind, scope, scopeId): partial unique index in the migration.
+model GrowthConfigVersion {
+  id            String    @id @default(cuid())
+  kind          String // ATTRIBUTION_POLICY SEO WIDGET_POLICY CONSENT_DEFAULTS COMMS_CAPS CAMPAIGN_GUARDRAILS REWARDS INTEGRATIONS EXPERIMENT_GUARDRAILS MARKET_GROWTH
+  scope         String    @default("GLOBAL") // GLOBAL | MARKET
+  scopeId       String    @default("") // market code for MARKET scope
+  version       Int
+  status        String    @default("DRAFT") // DRAFT PENDING_APPROVAL APPROVED ACTIVE SUPERSEDED REJECTED ROLLED_BACK
+  payload       Json
+  schemaVersion Int       @default(1)
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  createdBy     String
+  createdAt     DateTime  @default(now())
+  approvedBy    String?
+  approvedAt    DateTime?
+  ticket        String?
+  reason        String?
+  checksum      String
+  supersedesId  String?
+
+  decisions GrowthAttributionDecision[]
+
+  @@unique([kind, scope, scopeId, version])
+  @@index([kind, scope, scopeId, status])
+}
+
+/// Current slug of an entity (lowercase ASCII, identical in AR and EN). Kiorex owns it (a provider renaming their Kiorly link never changes the SEO URL silently).
+model GrowthSlug {
+  id         String   @id @default(cuid())
+  market     String   @default("EG")
+  entityType String // DOCTOR CLINIC PHARMACY LAB SPECIALTY CITY DISTRICT
+  entityId   String
+  slug       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([market, entityType, slug])
+  @@unique([market, entityType, entityId])
+}
+
+/// Every slug an entity ever had; old slugs answer 301 to the current one. Never deleted while the entity exists.
+model GrowthSlugHistory {
+  id           String   @id @default(cuid())
+  market       String   @default("EG")
+  entityType   String
+  entityId     String
+  slug         String
+  replacedBy   String? // the slug that replaced it
+  supersededAt DateTime @default(now())
+
+  @@unique([market, entityType, slug])
+  @@index([entityType, entityId])
+}
+
+/// Generated page descriptor (indexability and guard result). paramsKey is the canonical string of params so the unique key is stable.
+model GrowthLandingPage {
+  id             String    @id @default(cuid())
+  market         String    @default("EG")
+  pageType       String // HOME SPECIALTY_CITY SPECIALTY_DISTRICT CARE_TYPE_DISTRICT HUB DOCTOR CLINIC
+  locale         String
+  paramsKey      String
+  params         Json
+  indexable      Boolean   @default(false)
+  guardResult    Json?
+  lastRenderedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([market, pageType, locale, paramsKey])
+  @@index([market, indexable])
+}
+
+/// Widget origins verified from the Clinic profile projection (PROVIDER_PROFILE_UPDATED.widgetOrigins). Exact https origins only, at most 10 (constraint in the migration).
+model WidgetRegistration {
+  id        String   @id @default(cuid())
+  market    String   @default("EG")
+  orgRef    String   @unique
+  orgSlug   String?
+  origins   String[]
+  status    String   @default("ACTIVE") // ACTIVE | DISABLED
+  syncedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgSlug])
+}
+
+model GrowthFraudSignal {
+  id          String   @id @default(cuid())
+  market      String   @default("EG")
+  ruleId      String
+  subjectHash String // keyed hash; never an identifier
+  score       Int      @default(0)
+  evidenceRef String?
+  createdAt   DateTime @default(now())
+
+  @@index([ruleId, createdAt])
+  @@index([subjectHash])
+}
+
+/// Marketing suppression list (STOP / إلغاء, bounces, complaints, withdrawal). addressHash is a keyed hash of phone or email: the raw value is never stored here.
+model CommunicationSuppression {
+  id          String    @id @default(cuid())
+  market      String    @default("EG")
+  channel     String // WHATSAPP SMS EMAIL PUSH ALL
+  addressHash String
+  reason      String // STOP BOUNCE COMPLAINT WITHDRAWAL MANUAL
+  source      String    @default("system")
+  createdAt   DateTime  @default(now())
+  liftedAt    DateTime?
+
+  @@unique([market, channel, addressHash])
+  @@index([addressHash])
 }

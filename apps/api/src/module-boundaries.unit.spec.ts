@@ -58,6 +58,20 @@ describe('module boundaries', () => {
     for (const m of mods) expect(readdirSync(join(SRC, m))).toContain(`${m}-public.ts`);
   });
 
+  it('the growth family (growth, public-site, widget) is registered, façaded, and reaches other contexts only through *-public', () => {
+    const app = readFileSync(join(SRC, 'app.module.ts'), 'utf8');
+    for (const [dir, cls] of [['growth', 'GrowthModule'], ['public-site', 'PublicSiteModule'], ['widget', 'WidgetModule']] as const) {
+      expect(readdirSync(join(SRC, dir))).toContain(`${dir}-public.ts`);
+      expect(app).toContain(`${cls} } from './${dir}/${dir}-public'`);
+      expect(app).toMatch(new RegExp(`imports: \\[[^\\]]*\\b${cls}\\b`));
+    }
+    // nothing outside the growth family imports growth internals (only growth-public); the family never reaches into booking/pay internals
+    for (const f of all) {
+      if (['growth', 'public-site', 'widget'].includes(moduleOf(f))) continue;
+      for (const spec of importsOf(f).filter((x) => /\/(growth|public-site|widget)\//.test(x))) expect(`${relative(SRC, f)} -> ${spec}`).toMatch(/-public$/);
+    }
+  });
+
   it('no AWS SDK outside src/platform/adapters; no imports of other products\' source', () => {
     for (const f of all) {
       for (const spec of importsOf(f)) {

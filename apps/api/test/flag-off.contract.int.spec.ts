@@ -54,7 +54,11 @@ describe('flag-OFF contract per Kiorex flag', () => {
   it('every Kiorex flag of the catalogue has a contract action (none forgotten)', () => {
     // Rev 2.3 home-visit flags list gate ids (GHV1+GHV2, GPR1) and have their own contract suite: test/flag-off.home-visits.contract.int.spec.ts
     const rev23 = ['kiorex.home_visits', 'kiorex.category.physiotherapy', 'kiorex.category.nursing', 'kiorex.visit_tracking'];
-    expect(Object.keys(actions).sort()).toEqual(KIOREX_OWN_FLAGS.filter((k) => !rev23.includes(k)).sort());
+    // Growth flags (contracts 1.10.0) are registered in Wave 1 before any endpoint they guard exists; each package that adds a guarded
+    // endpoint adds its OFF contract to its own spec (growth.attribution: B/C, ssr: E, widgets: G, ...). test/growth-flags.int.spec.ts asserts the registrations.
+    const growth = KIOREX_OWN_FLAGS.filter((k) => k.startsWith('growth.') || k === 'kiorex.whatsapp_ai_assistant');
+    expect(growth.length).toBeGreaterThanOrEqual(10);
+    expect(Object.keys(actions).sort()).toEqual(KIOREX_OWN_FLAGS.filter((k) => !rev23.includes(k) && !growth.includes(k)).sort());
     expect(KIOREX_OWN_FLAGS.length).toBe(FLAG_CATALOGUE.filter((f) => f.product === 'kiorex').length);
   });
 
