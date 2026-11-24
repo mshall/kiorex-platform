@@ -4,7 +4,7 @@ import { createCtx, TestCtx } from './harness';
 describe('onboarding import: hostile uploads', () => {
   let c: TestCtx; let ops: { Authorization: string };
   beforeAll(async () => { c = await createCtx({ devMarketGate: false }); });
-  afterAll(async () => { await c.close(); });
+  afterAll(async () => { await c.reset(); await c.close(); }); // leave the shared test database empty for the next spec
   beforeEach(async () => { await c.reset(); ops = await c.as('ops_1', { roles: ['ops_admin'] }); });
   const B = '/api/v1/admin/onboarding/imports';
   const batch = async () => (await c.http().post(B).set(ops).send({ orgId: 'org_edge', orgName: 'Edge' }).expect(201)).body.id as string;

@@ -7,7 +7,7 @@ describe('Kiorex Pay edge cases', () => {
   let c: TestCtx; let auth: { Authorization: string }; let pid: string;
   const slot = futureSlot(72);
   beforeAll(async () => { c = await createCtx(); });
-  afterAll(async () => { await c.close(); });
+  afterAll(async () => { await c.reset(); await c.close(); }); // leave the shared test database empty for the next spec
   beforeEach(async () => {
     await c.reset(); c.kiorly.slots = [slot];
     pid = await seedProvider(c, { depositAmount: 150 });
