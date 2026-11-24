@@ -38,7 +38,10 @@ export interface PartialSettlement {
  */
 export function computePartialSettlement(o: { items: OrderLine[]; deliveryMethod: string; deliveryFeeMinor: number; dispensed: DispensedLine[]; deliveryMade?: boolean }, policy: Pick<PartialFulfilmentPolicy, 'refundDeliveryFeeIfNotDelivered'>): PartialSettlement {
   const bySku = new Map<string, number>();
-  for (const d of o.dispensed) bySku.set(d.sku, (bySku.get(d.sku) ?? 0) + Math.max(0, Math.floor(d.quantityDispensed)));
+  for (const d of o.dispensed) {
+    const q = Number(d.quantityDispensed); // a partner payload is untrusted input: NaN / a string / null must count as 0 dispensed, never poison the refund amount with NaN
+    bySku.set(d.sku, (bySku.get(d.sku) ?? 0) + (Number.isFinite(q) ? Math.max(0, Math.floor(q)) : q === Infinity ? Number.MAX_SAFE_INTEGER : 0));
+  }
   const lines: PartialRefundLine[] = o.items.map((i) => {
     const want = bySku.get(i.sku) ?? 0;
     const fulfilled = Math.min(i.qty, want);

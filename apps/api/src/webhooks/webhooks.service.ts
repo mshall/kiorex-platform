@@ -34,8 +34,13 @@ export class WebhooksService {
     if (!secret || !verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
     let env: any;
     try { env = JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Body is not JSON'); }
+    // A signed sender is trusted, but a malformed envelope (null, array, numeric eventId, object type, 5 kB id) must be a 400 the sender can see, not a TypeError / Prisma
+    // validation error that answers 500 and is retried forever (poison message).
+    if (!env || typeof env !== 'object' || Array.isArray(env)) throw new ApiError(400, 'INVALID_ENVELOPE', 'Body must be a JSON object');
     const eventId: string = env.eventId ?? h.eventIdHeader;
-    if (!eventId || !env.type) throw new ApiError(400, 'INVALID_ENVELOPE', 'eventId and type required');
+    if (typeof eventId !== 'string' || !eventId || eventId.length > 200 || typeof env.type !== 'string' || !env.type || env.type.length > 120) throw new ApiError(400, 'INVALID_ENVELOPE', 'eventId and type required (strings)');
+    if (env.data !== undefined && env.data !== null && (typeof env.data !== 'object' || Array.isArray(env.data))) throw new ApiError(400, 'INVALID_ENVELOPE', 'data must be an object');
+    if (env.aggregateId !== undefined && env.aggregateId !== null && (typeof env.aggregateId !== 'string' || env.aggregateId.length > 200)) throw new ApiError(400, 'INVALID_ENVELOPE', 'aggregateId must be a string');
     if (!cfg().isProd) {
       const v = validateEvent(env.type, env); // schema drift is logged, never rejected (forward compatible)
       if (!v.valid) this.log.warn(`event ${env.type} failed contract schema: ${(v as any).errors?.slice(0, 2).join('; ')}`);
