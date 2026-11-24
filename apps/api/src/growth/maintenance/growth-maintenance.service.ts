@@ -34,7 +34,7 @@ export class GrowthMaintenanceService {
   async purgeExpired(opts: { now?: Date; linkedMonths?: number; unlinkedMonths?: number } = {}): Promise<PurgeResult> {
     const now = opts.now ?? new Date();
     const rows = await this.prisma.$queryRaw<{ r: PurgeResult }[]>`SELECT growth_purge_expired_v2(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
-    const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_experiments(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int) AS r`;
+    const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_experiments(${now}::timestamptz, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
     return { ...rows[0].r, ...exp[0].r } as PurgeResult;
   }
 }

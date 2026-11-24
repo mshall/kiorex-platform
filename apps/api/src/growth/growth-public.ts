@@ -38,3 +38,5 @@ export { evaluateTransition as evaluateCampaignTransition, type CampaignStatus }
 export { isEligible as isCampaignEligible, validateEligibility as validateCampaignEligibility, type Eligibility as CampaignEligibility, type EligibilityFacts as CampaignEligibilityFacts } from './campaigns/campaign-eligibility';
 // GRW-P3-B (reporting attribution models, W7 lane A2)
 export { AttributionModelsModule } from './attribution-models/attribution-models.module';
+// GRW-P3-A (wave 7, lane A1)
+export { ExperimentsModule, ExposureService as ExperimentExposureService, variantFor as experimentVariantFor, setCookieFor as experimentSetCookieFor, cacheVaryKey as experimentCacheVaryKey } from './experiments/experiments-public';
