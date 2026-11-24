@@ -13,8 +13,8 @@ export class LeadSigningDto {
 }
 export class ReadyDto {
   @ApiProperty({ example: 'ready' }) status!: string;
-  @ApiProperty({ example: 'up' }) db!: string;
-  @ApiProperty({ type: [ProviderStatusDto] }) providers!: ProviderStatusDto[];
-  @ApiProperty({ type: LeadSigningDto }) leadSigning!: LeadSigningDto;
+  @ApiProperty({ example: 'up', required: false, description: 'Internal callers only (loopback / private address without a proxy header, or X-Health-Token); the public answer is just `status`' }) db?: string;
+  @ApiProperty({ type: [ProviderStatusDto], required: false, description: 'Internal callers only' }) providers?: ProviderStatusDto[];
+  @ApiProperty({ type: LeadSigningDto, required: false, description: 'Internal callers only' }) leadSigning?: LeadSigningDto;
 }
 export class ProvidersDto { @ApiProperty({ type: [ProviderStatusDto] }) providers!: ProviderStatusDto[] }

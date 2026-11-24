@@ -31,6 +31,22 @@ type Outcome = 'APPLIED' | 'IGNORED' | 'UNMAPPED_PATIENT';
  * Records & continuity (KXM-RC-01..03, KX-11). Clinical content is AES-GCM encrypted at rest, returned only to the owning
  * patient, redacted from webhook receipts, and NEVER written to logs or analytics.
  */
+
+/**
+ * True when `v` is a non-empty string made only of base64 characters and whitespace. A single regex over the whole text (`/^[A-Za-z0-9+/=\s]+$/`) overflows V8's regexp
+ * backtrack stack on a multi-megabyte upload and throws `RangeError: Maximum call stack size exceeded`, which surfaced as an intermittent 500 for files near the 5 MB limit
+ * (found by the integration suite, RC-01). A linear scan has no such limit.
+ */
+export function isBase64Text(v: unknown): boolean {
+  if (typeof v !== 'string' || v.length === 0) return false;
+  for (let k = 0; k < v.length; k++) {
+    const c = v.charCodeAt(k);
+    const ok = (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 43 || c === 47 || c === 61 || c === 32 || c === 9 || c === 10 || c === 13 || c === 12 || c === 11 || c === 160 || c === 0xfeff || (c >= 0x2000 && c <= 0x200a) || c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000 || c === 0x1680;
+    if (!ok) return false;
+  }
+  return true;
+}
+
 @Injectable()
 export class RecordsService implements OnModuleInit {
   private readonly log = new Logger('records');
@@ -119,7 +135,7 @@ export class RecordsService implements OnModuleInit {
   async upload(sub: string, i: { fileName: string; mimeType: string; contentBase64: string; title?: string }) {
     const check = UPLOAD_MIME[i.mimeType];
     if (!check) throw badRequest('UNSUPPORTED_FILE_TYPE', 'Only PDF, JPEG and PNG files can be uploaded', { allowed: Object.keys(UPLOAD_MIME) });
-    if (!/^[A-Za-z0-9+/=\s]+$/.test(i.contentBase64 ?? '')) throw badRequest('INVALID_CONTENT', 'contentBase64 must be base64');
+    if (!isBase64Text(i.contentBase64)) throw badRequest('INVALID_CONTENT', 'contentBase64 must be base64');
     const buf = Buffer.from(i.contentBase64, 'base64');
     if (!buf.length) throw badRequest('EMPTY_FILE', 'File is empty');
     if (buf.length > cfg().vaultMaxBytes) throw badRequest('FILE_TOO_LARGE', `Max ${cfg().vaultMaxBytes} bytes`, { maxBytes: cfg().vaultMaxBytes });

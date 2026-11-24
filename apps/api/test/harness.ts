@@ -43,7 +43,7 @@ export async function createCtx(opts: { devMarketGate?: boolean } = {}): Promise
   const { privateKey, jwk } = await getKeys();
   const verifier = new JoseTokenVerifier(createLocalJWKSet({ keys: [jwk] }) as any);
   const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(TOKEN_VERIFIER).useValue(verifier).compile();
-  const app = mod.createNestApplication({ rawBody: true, logger: false });
+  const app = mod.createNestApplication({ rawBody: true, logger: process.env.KX_TEST_LOGGER ? ['error'] : false }); // KX_TEST_LOGGER=1 prints the stack of every 500 (the HTTP filter logs it at error level)
   setupApp(app);
   await app.init();
   const prisma = app.get(PrismaService);

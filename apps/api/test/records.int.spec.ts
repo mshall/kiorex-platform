@@ -71,7 +71,11 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
     const v = await c.http().get(`/api/v1/rx/verify?t=${encodeURIComponent(d.body.verification.token)}`).expect(200);
     expect(v.body).toEqual({ valid: true, status: 'ACTIVE', clinicId: 'cl_1', signedAt: '2026-11-18T10:00:00.000Z' }); // no patient data
     expect((await c.http().get('/api/v1/rx/verify?t=kxrx1.kx_rec_x.AAAAAAAAAAAAAAAAAAAAAAAA')).body.valid).toBe(false);
-    expect((await c.http().get(`/api/v1/rx/verify?t=${encodeURIComponent(d.body.verification.token.slice(0, -1) + 'x')}`)).body.valid).toBe(false);
+    // tamper with a character in the MIDDLE of the signature and guarantee it really changes (replacing the LAST base64 char with 'x' was a no-op when it already was 'x',
+    // and changes only unused padding bits for some lengths: the test failed about one run in 20 on a valid token)
+    const tok: string = d.body.verification.token; const at = tok.length - 8; const flipped = tok.slice(0, at) + (tok[at] === 'A' ? 'B' : 'A') + tok.slice(at + 1);
+    expect(flipped).not.toBe(tok);
+    expect((await c.http().get(`/api/v1/rx/verify?t=${encodeURIComponent(flipped)}`)).body.valid).toBe(false);
     await c.http().delete(`/api/v1/me/vault/${l.body[0].id}`).set(auth).expect(200);
     expect((await c.http().get(`/api/v1/rx/verify?t=${encodeURIComponent(d.body.verification.token)}`)).body).toEqual({ valid: false, status: 'REVOKED' });
   });
@@ -166,7 +170,8 @@ describe('records & continuity — vault, record shares, prescriptions, follow-u
 
   it('RC-01 large (3 MB) upload passes the body limit while webhook raw-body HMAC still works', async () => {
     const big = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(3 * 1024 * 1024, 7)]);
-    await c.http().post('/api/v1/me/vault/uploads').set(auth).send({ fileName: 'big.pdf', mimeType: 'application/pdf', contentBase64: big.toString('base64') }).expect(201);
+    const bigUp = await c.http().post('/api/v1/me/vault/uploads').set(auth).send({ fileName: 'big.pdf', mimeType: 'application/pdf', contentBase64: big.toString('base64') });
+    if (bigUp.status !== 201) throw new Error(`upload answered ${bigUp.status}: ${JSON.stringify(bigUp.body)}`);
     expect((await share()).status).toBe(200);
   }, 120_000); // a 4 MB JSON body, AES-GCM at rest and a signed webhook in one test: on a loaded machine (parallel suites, a docker build) it can pass the 30 s default; the assertions are unchanged
 

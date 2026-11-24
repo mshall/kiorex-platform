@@ -14970,14 +14970,19 @@
         "type": "object",
         "properties": {
           "token": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "clinicId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "amountMinor": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "currency": {
             "type": "string"
@@ -17194,11 +17199,14 @@
             "type": "string"
           },
           "reason": {
-            "type": "string"
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 300
           },
           "amountMinor": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           }
         },
         "required": [
@@ -17568,10 +17576,12 @@
         "type": "object",
         "properties": {
           "psp": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 60
           },
           "pspRef": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200
           },
           "kind": {
             "type": "string",
@@ -17581,10 +17591,14 @@
             ]
           },
           "amountMinor": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "feeMinor": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "date": {
             "type": "string"
@@ -17602,6 +17616,7 @@
         "type": "object",
         "properties": {
           "lines": {
+            "maxItems": 20000,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SettlementLine"
@@ -22629,23 +22644,27 @@
           },
           "db": {
             "type": "string",
-            "example": "up"
+            "example": "up",
+            "description": "Internal callers only (loopback / private address without a proxy header, or X-Health-Token); the public answer is just `status`"
           },
           "providers": {
+            "description": "Internal callers only",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProviderStatusDto"
             }
           },
           "leadSigning": {
-            "$ref": "#/components/schemas/LeadSigningDto"
+            "description": "Internal callers only",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LeadSigningDto"
+              }
+            ]
           }
         },
         "required": [
-          "status",
-          "db",
-          "providers",
-          "leadSigning"
+          "status"
         ]
       }
     }

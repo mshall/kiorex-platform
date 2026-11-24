@@ -31,6 +31,12 @@ describe('growth analytics v1', () => {
   const ops = { kind: 'OPS' as const };
 
   describe('rollup', () => {
+    it('schema guard: the only unique index on GrowthMetricDaily is the full-dimension key (a narrower one makes distinct rollup rows collide; regression for the order-dependent failure after the migration replay test)', async () => {
+      const idx = await c.prisma.$queryRaw<{ indexname: string; indexdef: string }[]>`SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'GrowthMetricDaily' AND indexdef LIKE '%UNIQUE%' AND indexname <> 'GrowthMetricDaily_pkey'`;
+      expect(idx.map((i) => i.indexname)).toEqual(['GrowthMetricDaily_dim_key']);
+      for (const col of ['city', 'providerRef', 'doctorRef', 'branchRef', 'channel', 'platform', 'product']) expect(idx[0].indexdef).toContain(col);
+    });
+
     it('is idempotent: running it three times (and concurrently) gives identical rows', async () => {
       await seedProvider(c, { id: 'lst_a', tenantId: 'org_A', specialty: 'dermatology', governorate: 'Cairo', area: 'Maadi' });
       await bookings({ n: 12, providerId: 'lst_a', org: 'org_A', attended: 3 }); await stream('PageViewed', 5);
