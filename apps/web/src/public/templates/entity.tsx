@@ -6,6 +6,7 @@ import { imageModel } from "../seo/image";
 import { breadcrumbs, medicalClinic, physician } from "../seo/jsonld";
 import { day, money } from "../format";
 import { feeText, inWhere, sep } from "./shared";
+import { variantCopy } from "../experiments";
 
 // ── doctor and nurse profile ──────────────────────────────────────────────────────────────────────────────────
 const whereOf = (p: DoctorData["provider"], ctx: TemplateCtx) => [p.area, p.governorate].filter(Boolean).join(sep(ctx));
@@ -29,7 +30,7 @@ registerTemplate<DoctorData>({
             <p><Stars avg={p.rating.average} count={p.rating.count} ctx={ctx} /></p>
           </div>
         </div>
-        {data.bookable ? <p><a className="kxp-btn kxp-btn-lg" href={data.bookPath} rel="nofollow">{ctx.t("doctor.book")}</a></p> : <p className="kxp-notice" role="status">{ctx.t("doctor.paused")}</p>}
+        {data.bookable ? <p><a className="kxp-btn kxp-btn-lg" href={data.bookPath} rel="nofollow">{variantCopy(ctx, "landing.provider.cta_label", "cta") ?? ctx.t("doctor.book")}</a></p> : <p className="kxp-notice" role="status">{ctx.t("doctor.paused")}</p>}
         <dl className="kxp-dl">
           {p.clinicName.en || p.clinicName.ar ? <><dt>{ctx.t("doctor.clinic")}</dt><dd>{ctx.pick(p.clinicName)}</dd></> : null}
           {where ? <><dt>{ctx.t("doctor.location")}</dt><dd>{where}</dd></> : null}

@@ -155,7 +155,11 @@ describe('growth experiments (GRW-P3-A)', () => {
       await c.http().get(`${PUB}/me/assignments`).expect(401);
     });
     it('weights hold at scale: 600 consented visitors split 50/50 within sampling noise, and the same visitor is always in the same arm', async () => {
-      process.env.GROWTH_RATE_TOUCH_PER_MIN = '100000'; await start(); const n: Record<string, number> = { control: 0, b: 0 };
+      process.env.GROWTH_RATE_TOUCH_PER_MIN = '100000';
+      // the salt is random per experiment, so a 600-unit split would fail the +-45 window about once in 4,000 runs (3.7 sigma): pin the salt of this draft so the test is deterministic
+      const d = await create(); await c.prisma.growthExperiment.update({ where: { id: d.id }, data: { salt: 'w7-fixed-split-salt-0123456789ab' } });
+      await c.http().post(`${BASE}/${d.id}/submit`).set(A).expect(200); await svc().approveAndStart({ sub: 'adm_b', kind: 'USER' }, d.id, new Date());
+      const n: Record<string, number> = { control: 0, b: 0 };
       for (let i = 0; i < 600; i++) { const r = await c.http().get(`${PUB}/assignments`).set({ 'X-KX-Consent': 'analytics', Cookie: `kxv=kxv_v${String(i).padStart(24, '0')}` }); n[r.body.assignments[0].variant]!++; }
       expect(n.control! + n.b!).toBe(600); expect(Math.abs(n.control! - 300)).toBeLessThan(45); delete process.env.GROWTH_RATE_TOUCH_PER_MIN;
     }, 60_000);

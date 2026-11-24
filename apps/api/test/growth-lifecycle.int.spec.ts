@@ -14,6 +14,11 @@ type Auth = { Authorization: string };
 const BASE = '/api/v1/admin/growth/lifecycle';
 const H = 3_600_000;
 const iso = (s: string) => new Date(s);
+/**
+ * The send gate honours quiet hours (21:00 to 08:00 Cairo), so a test that runs the journeys at the REAL clock fails between 19:00 and 06:00 UTC (the order-dependence / time-of-day bug of the W7 exit gate).
+ * Every run uses this injected clock instead: the next 10:00 UTC (12:00 or 13:00 in Cairo) at or after the real time, never inside quiet hours and always after anything seeded "now".
+ */
+const daytime = (): Date => { const n = new Date(); const t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 10)); return t.getTime() >= n.getTime() ? t : new Date(t.getTime() + 24 * H); };
 const MARKETING_TEMPLATE_IDS = Object.values(TEMPLATES).filter((t) => t.marketing).map((t) => t.templateId);
 
 /**
@@ -87,7 +92,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       const sub = await person({ daysOld: 0 });
       const t = c.get(LifecycleTriggersService);
       await t.scan(); await t.scan();
-      const r1 = await runner().runDue(new Date()); const r2 = await runner().runDue(new Date());
+      const r1 = await runner().runDue(daytime()); const r2 = await runner().runDue(daytime());
       expect(r1.sent).toBe(1); expect(r2.picked).toBe(0);
       const m = await messages(sub);
       expect(m.map((x) => [x.channel, x.status, x.params && (x.params as { kind: string }).kind])).toEqual([['INAPP', 'SENT', 'WELCOME']]);
@@ -98,11 +103,11 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       const sub = await person();
       await consent(sub, ['MARKETPLACE_PROCESSING']);
       await c.get(LifecycleService).signal({ kind: 'REGISTERED', sub, confirmationRequested: true });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       const e = await c.prisma.lifecycleEnrollment.findFirstOrThrow({ where: { sub } });
       expect(e.step).toBe(1);
       await c.prisma.lifecycleEnrollment.update({ where: { id: e.id }, data: { nextRunAt: new Date(Date.now() - 1000) } });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       expect((await messages(sub)).map((m) => m.channel).sort()).toEqual(['INAPP', 'WHATSAPP']);
       expect(await reasons(sub, 'welcome')).toEqual(['INAPP:SEND:OK', 'WHATSAPP:SEND:OK']);
     });
@@ -113,14 +118,14 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       for (const s of [withConsent, without, booked]) await intent(s, { status: 'EXPIRED', holdExpiresAt: expired, updatedAt: new Date(), createdAt: new Date(expired.getTime() - 10 * 60_000), startsAt: new Date(Date.now() + DAY) });
       await intent(booked, { status: 'CONFIRMED', createdAt: new Date(), startsAt: new Date(Date.now() + 3 * DAY) });
       await c.get(LifecycleTriggersService).scan();
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       expect((await reasons(withConsent, 'booking-recovery'))[0]).toBe('WHATSAPP:SEND:OK');
       expect(await c.prisma.message.count({ where: { sub: withConsent, status: 'SENT' } })).toBeGreaterThan(0);
       expect((await reasons(without, 'booking-recovery')).every((r) => r.endsWith('SKIP:NO_CONSENT'))).toBe(true);
       expect((await nonWelcome(without)).filter((m) => m.status === 'SENT')).toHaveLength(0);
       expect(await reasons(booked, 'booking-recovery')).toEqual(['WHATSAPP:SKIP:STOPPED']);
       expect((await c.prisma.lifecycleEnrollment.findFirstOrThrow({ where: { sub: booked } })).endReason).toBe('STOPPED:bookedAfterAnchor');
-      await c.get(LifecycleTriggersService).scan(); await runner().runDue(new Date()); // idempotent per (person, journey, anchor)
+      await c.get(LifecycleTriggersService).scan(); await runner().runDue(daytime()); // idempotent per (person, journey, anchor)
       expect(await c.prisma.lifecycleEnrollment.count({ where: { sub: withConsent, journeyKey: { startsWith: 'booking-recovery' } } })).toBe(1);
       expect((await decisions(withConsent, 'booking-recovery')).filter((d) => d.decision === 'SEND')).toHaveLength(1);
     });
@@ -131,14 +136,14 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       const ia = await intent(a, { id: 'kx_bk_pv_a', status: 'COMPLETED', updatedAt: done }); const ib = await intent(b, { id: 'kx_bk_pv_b', status: 'COMPLETED', updatedAt: done });
       void ia;
       await c.prisma.review.create({ data: { bookingId: ib.id, sub: b, providerId: 'lst_1', clinicId: 'cl_1', clinicianId: 'dr_1', kiorlyAppointmentId: 'apt_b', rating: 5, editableUntil: new Date(Date.now() + DAY) } });
-      await c.get(LifecycleTriggersService).scan(); await runner().runDue(new Date());
+      await c.get(LifecycleTriggersService).scan(); await runner().runDue(daytime());
       expect((await reasons(a, 'post-visit'))[0]).toMatch(/SEND:OK$/);
       expect(await reasons(b, 'post-visit')).toEqual(['PUSH:SKIP:STOPPED']);
     });
     it('first attended visit: an in-app referral card and a family card, no message and no consent needed, marketing step waits 3 and 7 days', async () => {
       const sub = await person();
       await intent(sub, { id: 'kx_bk_first', status: 'COMPLETED', updatedAt: new Date(Date.now() - 2 * H) });
-      await c.get(LifecycleTriggersService).scan(); await runner().runDue(new Date());
+      await c.get(LifecycleTriggersService).scan(); await runner().runDue(daytime());
       const kinds = (await nonWelcome(sub)).map((m) => (m.params as { kind: string }).kind).sort();
       expect(kinds).toEqual(['FAMILY_ONBOARDING_CARD', 'REFERRAL_INVITE_CARD']);
       const follow = await c.prisma.lifecycleEnrollment.findMany({ where: { sub, state: 'ACTIVE', journeyKey: { in: ['referral-invite', 'family-onboarding'] } } });
@@ -151,7 +156,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       const svc = c.get(LifecycleService);
       for (const k of ['REWARD_ISSUED', 'REWARD_ISSUED', 'REWARD_REDEEMED', 'REWARD_REVERSED'] as const) await svc.signal({ kind: k, sub, rewardId: 'rw_1' });
       await svc.signal({ kind: 'REWARD_EXPIRING', sub, rewardId: 'rw_1', expiresAt: new Date(Date.now() + 10 * DAY) });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       const sent = (await messages(sub)).filter((m) => m.channel === 'INAPP').map((m) => (m.params as { kind: string }).kind).sort();
       expect(sent).toEqual(['REWARD_EXPIRING', 'REWARD_ISSUED', 'REWARD_REDEEMED', 'REWARD_REVERSED']);
       expect(await c.prisma.lifecycleEnrollment.count({ where: { sub } })).toBe(4);
@@ -164,7 +169,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       const ib = await intent(b, { id: 'kx_bk_dep_b', status: 'PENDING_CLINIC', depositStatus: 'REQUIRED', startsAt: starts, createdAt: new Date() });
       await c.get(LifecycleTriggersService).scan();
       await c.prisma.bookingIntent.update({ where: { id: ib.id }, data: { depositStatus: 'PAID' } });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       expect((await reasons(a, 'reminders'))[0]).toBe('WHATSAPP:SEND:OK');
       expect(await reasons(b, 'reminders')).toEqual(['WHATSAPP:SKIP:STOPPED']);
     });
@@ -179,7 +184,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
     const dormant = async (marketingConsent = ['MARKETING_PUSH', 'MARKETING_WHATSAPP', 'MARKETING_SMS', 'MARKETING_EMAIL']) => {
       const sub = await person({ daysOld: 200 }); await consent(sub, marketingConsent); await state().refresh(sub); return sub;
     };
-    const enrolRe = (sub: string, now = new Date()) => runner().enrol({ sub, journeyKey: 'reengagement', anchorId: 'd1', anchorAt: new Date(now.getTime() - 1000), now });
+    const enrolRe = (sub: string, now = daytime()) => runner().enrol({ sub, journeyKey: 'reengagement', anchorId: 'd1', anchorAt: new Date(now.getTime() - 1000), now });
 
     it('ACCEPTANCE: with growth.marketing_messaging OFF (the launch-locked default) no MARKETING message is ever created, across every journey, even with every consent granted', async () => {
       const subs: string[] = [];
@@ -196,8 +201,10 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
     });
 
     it('with the flag ON and consent: re-engagement sends once on the best channel (push) with the generic text; a person without any marketing consent gets nothing and the journey ends', async () => {
-      await marketingOn();
+      await marketingOn(); 
       const yes = await dormant(['MARKETING_PUSH']); const no = await dormant([]);
+      // the journey runs at a fixed daytime `day`, but the notification layer (engagement) judges quiet hours on the REAL clock: this test is about the send, so the person's own channel preference switches quiet hours off (the quiet-hours cases below own that rule)
+      await c.prisma.notificationPreference.create({ data: { sub: yes, channel: 'PUSH', enabled: true, quietStart: 0, quietEnd: 0 } });
       const day = iso('2027-03-10T10:00:00Z');
       for (const s of [yes, no]) { expect((await enrolRe(s, day)).enrolled).toBe(true); await c.prisma.lifecycleEnrollment.updateMany({ where: { sub: s }, data: { nextRunAt: day } }); }
       await runner().runDue(day);
@@ -307,7 +314,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       await c.http().put('/api/v1/admin/flags/growth.lifecycle_journeys/values').set(A).send({ scope: 'GLOBAL', value: 'OFF', reason: 't', ticket: 'T-9', emergency: false }).then(() => c.flags.invalidate());
       expect(await runner().enrol({ sub: await person(), journeyKey: 'welcome' })).toEqual({ enrolled: false, reason: 'FLAG_OFF' });
       await c.prisma.lifecycleEnrollment.updateMany({ where: { sub }, data: { nextRunAt: new Date(Date.now() - 1000) } });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       expect((await c.prisma.lifecycleEnrollment.findFirstOrThrow({ where: { sub } })).endReason).toBe('FLAG_OFF');
       expect(await messages(sub)).toHaveLength(0);
       await c.get(PatientService).setConsent(sub, 'MARKETPLACE_PROCESSING', true, 'app');
@@ -319,7 +326,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
       await runner().enrol({ sub, journeyKey: 'welcome' });
       await c.prisma.patientProfile.update({ where: { sub }, data: { deletedAt: new Date() } });
       await c.prisma.lifecycleEnrollment.updateMany({ where: { sub }, data: { nextRunAt: new Date(Date.now() - 1000) } });
-      await runner().runDue(new Date());
+      await runner().runDue(daytime());
       expect((await c.prisma.lifecycleEnrollment.findFirstOrThrow({ where: { sub } })).endReason).toBe('STOPPED:accountDeleted');
       expect(await messages(sub)).toHaveLength(0);
     });
@@ -350,7 +357,7 @@ describe('growth lifecycle CRM (GRW-P2-E)', () => {
     });
     it('decisions are aggregate by reason; the DPO lookup is audited', async () => {
       const sub = await person({ daysOld: 0 });
-      await runner().enrol({ sub, journeyKey: 'welcome' }); await runner().runDue(new Date());
+      await runner().enrol({ sub, journeyKey: 'welcome' }); await runner().runDue(daytime());
       const d = (await c.http().get(`${BASE}/decisions?days=7`).set(ops).expect(200)).body as Array<{ journeyKey: string; reason: string; count: number }>;
       expect(d.find((x) => x.journeyKey === 'welcome' && x.reason === 'OK')!.count).toBe(1);
       expect(JSON.stringify(d)).not.toContain(sub);

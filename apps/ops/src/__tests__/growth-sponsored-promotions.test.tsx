@@ -37,7 +37,7 @@ describe("Review queue (GRW-P2-S)", () => {
 
 describe("Review page (GRW-P2-S)", () => {
   it("shows both languages exactly as written, the rules, the automated check and a second-approver flag; a decision is posted with the version, kind and note", async () => {
-    let body: any = null;
+    let body: Record<string, unknown> | null = null;
     server.use(http.get(`${G}/access`, () => caps()), http.get(`${A}/prm_1`, () => HttpResponse.json(detail())), http.post(`${A}/prm_1/decisions`, async ({ request }) => { body = await request.json(); return HttpResponse.json(detail()); }));
     renderOps(page(), { route: "/growth/sponsored-promotions/prm_1" });
     const text = await screen.findByTestId("sponsored-text"); expect(within(text).getByText("A discount on the visit fee, sponsored by the clinic")).toBeInTheDocument(); expect(within(text).getByText("خصم على سعر الكشف برعاية العيادة")).toBeInTheDocument();

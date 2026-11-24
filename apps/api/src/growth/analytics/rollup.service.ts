@@ -26,6 +26,7 @@ export const BOOKING_ONLY_DIMS = ['city', 'district', 'specialty', 'providerRef'
 
 export interface RollupRow extends Dims { day: string; metric: RollupMetric; value: number }
 
+// "occurredAt" is a naive UTC timestamp: cast it to date directly (an AT TIME ZONE round trip depends on the DB session TimeZone and shifted the day for events after 20:00 UTC on a Dubai-time cluster)
 const dayStart = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 
 /**
@@ -73,7 +74,7 @@ export class GrowthRollupService {
   private async visitorStream(market: string, from: Date, end: Date): Promise<RollupRow[]> {
     // sourceKind and campaign only with a consented visitor key (the key joins the latest touch before the event); otherwise ''. NO specialty, provider or place.
     const rows = await this.prisma.$queryRaw<Array<{ day: Date; metric: string; careType: string; landingKind: string; platform: string; sourceKind: string; campaign: string; campaignId: string; value: number }>>(Prisma.sql`
-      SELECT (e."occurredAt" AT TIME ZONE 'UTC')::date AS day, e."name" AS metric, COALESCE(e."careType", '') AS "careType", COALESCE(e."props"->>'landingKind', '') AS "landingKind",
+      SELECT e."occurredAt"::date AS day, e."name" AS metric, COALESCE(e."careType", '') AS "careType", COALESCE(e."props"->>'landingKind', '') AS "landingKind",
              COALESCE(e."props"->>'platform', '') AS platform, COALESCE(t."kind", '') AS "sourceKind", COALESCE(t."utmCampaign", '') AS campaign, COALESCE(t."campaignId", '') AS "campaignId", count(*)::int AS value
       FROM "GrowthEvent" e
       LEFT JOIN LATERAL (SELECT p."kind", p."utmCampaign", (SELECT CASE WHEN s."sourceKind" = 'CAMPAIGN' THEN s."sourceRef" ELSE '' END FROM "GrowthAcquisitionSource" s WHERE s."id" = p."sourceId") AS "campaignId" FROM "GrowthTouchpoint" p WHERE e."visitorKey" IS NOT NULL AND p."visitorKey" = e."visitorKey" AND p."occurredAt" <= e."occurredAt" ORDER BY p."occurredAt" DESC LIMIT 1) t ON true
@@ -100,18 +101,18 @@ export class GrowthRollupService {
     type R = { day: Date; metric: string; value: number; origin: string; sourceKind: string; campaign: string; channel: string; careType: string; city: string; district: string; specialty: string; providerRef: string; doctorRef: string; branchRef: string; platform: string; campaignId: string };
     // plain count per canonical server event
     const counts = await this.prisma.$queryRaw<R[]>(Prisma.sql`
-      SELECT (x."occurredAt" AT TIME ZONE 'UTC')::date AS day, x."name" AS metric, count(*)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
+      SELECT x."occurredAt"::date AS day, x."name" AS metric, count(*)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
       FROM "GrowthEvent" x ${GrowthRollupService.BOOKING_JOINS}
       WHERE x."market" = ${market} AND x."occurredAt" >= ${from} AND x."occurredAt" < ${end} AND x."bookingId" IS NOT NULL AND x."name" IN ('SlotSelected','BookingInitiated','BookingConfirmed','BookingAttended','BookingCancelled')
       GROUP BY 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16`);
     const anp = await this.prisma.$queryRaw<R[]>(Prisma.sql`
-      SELECT (x."occurredAt" AT TIME ZONE 'UTC')::date AS day, 'AttendedNewPatient' AS metric, count(*)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
+      SELECT x."occurredAt"::date AS day, 'AttendedNewPatient' AS metric, count(*)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
       FROM "GrowthEvent" x ${GrowthRollupService.BOOKING_JOINS}
       WHERE x."market" = ${market} AND x."occurredAt" >= ${from} AND x."occurredAt" < ${end} AND x."bookingId" IS NOT NULL AND x."name" = 'BookingAttended' AND x."props"->>'bucket' = 'new'
       GROUP BY 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16`);
     // gross booking value: the visit fee of CONFIRMED bookings. A volume indicator, NEVER revenue (its own metric name, never summed into RevenueMinor).
     const gbv = await this.prisma.$queryRaw<R[]>(Prisma.sql`
-      SELECT (x."occurredAt" AT TIME ZONE 'UTC')::date AS day, 'GbvMinor' AS metric, COALESCE(sum(b."feeMinor"), 0)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
+      SELECT x."occurredAt"::date AS day, 'GbvMinor' AS metric, COALESCE(sum(b."feeMinor"), 0)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, COALESCE(x."props"->>'platform', '') AS platform
       FROM "GrowthEvent" x ${GrowthRollupService.BOOKING_JOINS}
       WHERE x."market" = ${market} AND x."occurredAt" >= ${from} AND x."occurredAt" < ${end} AND x."bookingId" IS NOT NULL AND x."name" = 'BookingConfirmed'
       GROUP BY 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16`);
@@ -134,7 +135,7 @@ export class GrowthRollupService {
           WHERE f."market" = ${market} AND f."kind" = 'CHARGE' AND f."status" = 'PENDING'
             AND NOT EXISTS (SELECT 1 FROM "GrowthRevenueFact" e WHERE e."chargeId" = f."chargeId" AND (e."kind" = 'REVERSAL' OR e."status" IN ('CONFIRMED','BILLED','WAIVED')))
       )
-      SELECT (x."occurredAt" AT TIME ZONE 'UTC')::date AS day, x.metric AS metric, COALESCE(sum(x."amountMinor"), 0)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, '' AS platform
+      SELECT x."occurredAt"::date AS day, x.metric AS metric, COALESCE(sum(x."amountMinor"), 0)::int AS value, ${GrowthRollupService.BOOKING_DIMS}, '' AS platform
       FROM rev x
       JOIN "BookingIntent" b ON b."id" = x."bookingId" AND b."dependantId" IS NULL
       LEFT JOIN "Provider" p ON p."id" = b."providerId"

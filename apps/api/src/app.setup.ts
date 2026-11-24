@@ -2,9 +2,13 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { RejectNulBytesPipe } from './common/reject-nul-bytes.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
+import { json as expressJson } from 'express';
 import { AllExceptionsFilter } from './common/errors';
 
 export const API_PREFIX = 'api/v1';
+/** Public growth and widget endpoints take small JSON only (events, touches, consent, referral, assignments): 32 KiB, enforced while streaming (also without Content-Length). Vault uploads keep the global 8 MB. */
+export const GROWTH_PUBLIC_BODY_LIMIT_BYTES = 32 * 1024;
+export const GROWTH_PUBLIC_BODY_PREFIXES: readonly string[] = [`/${API_PREFIX}/growth/v1`, `/${API_PREFIX}/widget/v1`];
 
 export function setupApp(app: INestApplication) {
   // GRW-P1-H: well-known app-link files and the mobile web fallback pages live at the host root (they must be served without a path prefix)
@@ -15,6 +19,16 @@ export function setupApp(app: INestApplication) {
     if (req.method === 'POST' && len > INTAKE_MAX_BODY_BYTES) { res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' }); return; }
     next();
   });
+  // GRW-P3 hardening: a small JSON bound for the public growth endpoints, parsed BEFORE the global 8 MB parser (which then skips the already-parsed body); rawBody is kept for the HMAC and size checks
+  const use = (app as unknown as { use?: (p: string, ...f: unknown[]) => void }).use;
+  for (const prefix of GROWTH_PUBLIC_BODY_PREFIXES) {
+    use?.call(app, prefix,
+      expressJson({ limit: GROWTH_PUBLIC_BODY_LIMIT_BYTES, verify: (req: any, _res: unknown, buf: Buffer) => { req.rawBody = buf; } }),
+      (err: any, _req: unknown, res: any, next: (e?: unknown) => void) => {
+        if (err?.type === 'entity.too.large') { res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' }); return; }
+        next(err);
+      });
+  }
   // vault uploads are JSON/base64 (<= VAULT_MAX_BYTES 5 MB => ~6.7 MB); rawBody (webhook HMAC) is preserved by Nest's parser options
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
   // org-onboarding quarantine uploads: raw bytes (SQL dumps up to 50 MB, scanned and size-checked per kind in the service)

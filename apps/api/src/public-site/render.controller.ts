@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, sep } from 'node:path';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { GROWTH_FLAG } from '../growth/growth-public';
+import { SsrVariantService, type SsrVariant } from '../growth/experiments/experiments-public';
 import { pageKeyOf, SEO_QUALITY, type ComputedLinkGroup, type SeoQualityPort } from '../growth/seo-automation/seo-automation-public';
 import { PublicSiteCache } from './cache-tags';
 import { composeDocument, escapeHtml } from './head';
@@ -36,6 +37,7 @@ export class RenderController {
     private readonly data: SiteDataService, private readonly renderer: SiteRenderer, private readonly redirects: RedirectsService, private readonly seo: SeoConfigService,
     private readonly flags: FlagsService, private readonly index: SiteIndexService, private readonly cache: PublicSiteCache,
     @Optional() @Inject(SEO_QUALITY) private readonly quality?: SeoQualityPort,
+    @Optional() private readonly variants?: SsrVariantService,
   ) {}
 
   // ── pages ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -61,7 +63,9 @@ export class RenderController {
       if (!(await this.index.marketLive(market))) { await this.notFound(req, res, req.path, 'MARKET_NOT_LIVE', 404); return; }
       if (!(await this.flags.isEnabled(GROWTH_FLAG.SSR_PUBLIC_PAGES, { market }))) { this.cache.metrics.inc('flag_off'); await this.spaShell(req, res, 'FLAG_OFF'); return; }
       const q = readPageQuery(req.query as Record<string, unknown>);
-      const key = cacheKey(req.path, q);
+      // GRW-P3-A SSR slot: a variant only for a consented visitor holding the `kxe` cookie on a page type with a copy slot; otherwise null and the shared cache key below is unchanged
+      const sv = await this.variants?.resolve({ cookieHeader: req.headers.cookie, pageType: route.type, market, locale: route.locale }).catch(() => null) ?? null;
+      const key = cacheKey(req.path, q) + (sv ? `|x:${sv.experiment}:${sv.variant}` : '');
       const hit = this.cache.pages.get(key);
       if (hit) { this.cache.metrics.inc('cache_hit'); this.send(req, res, hit, 'HIT'); return; }
       const seo = await this.seo.get(market);
@@ -69,7 +73,7 @@ export class RenderController {
       let response: CachedResponse;
       if (loaded.status === 301) response = this.redirectResponse(loaded.to, seo.edgeCacheSeconds);
       else if (loaded.status !== 200) response = await this.notFoundResponse(req.path, loaded.reason, loaded.status, route.locale, route.cc);
-      else response = await this.renderPage(route, q, loaded, seo.edgeCacheSeconds, seo.staleWhileRevalidateSeconds, seo.reviewMarkupEnabled, seo.templates);
+      else response = await this.renderPage(route, q, loaded, seo.edgeCacheSeconds, seo.staleWhileRevalidateSeconds, seo.reviewMarkupEnabled, seo.templates, sv);
       this.cache.metrics.observeRender(performance.now() - started);
       this.cache.metrics.inc(`status_${response.status}`);
       this.cache.pages.set(key, response);
@@ -81,7 +85,7 @@ export class RenderController {
     }
   };
 
-  private async renderPage(route: NonNullable<ReturnType<typeof parsePublicPath> & { kind: 'match' }>['value'], q: ReturnType<typeof readPageQuery>, loaded: Extract<LoadResult, { status: 200 }>, sMaxAge: number, swr: number, reviewMarkup: boolean, templates: Record<string, Record<string, { title?: string; description?: string }>> = {}): Promise<CachedResponse> {
+  private async renderPage(route: NonNullable<ReturnType<typeof parsePublicPath> & { kind: 'match' }>['value'], q: ReturnType<typeof readPageQuery>, loaded: Extract<LoadResult, { status: 200 }>, sMaxAge: number, swr: number, reviewMarkup: boolean, templates: Record<string, Record<string, { title?: string; description?: string }>> = {}, sv: SsrVariant | null = null): Promise<CachedResponse> {
     const cfg = siteCfg();
     // GRW-P3-F: stored quality decisions and the computed internal links (read from the database tables, cached; with SEO_AUTOMATION.autoNoindex off nothing here changes a page's indexing)
     const market = route.cc.toUpperCase(); const pageKey = pageKeyOf(route.type, route.params);
@@ -89,7 +93,8 @@ export class RenderController {
     const omitted = (await this.quality?.omittedAlternates(market, pageKey, route.locale).catch(() => [])) ?? [];
     const computed = loaded.data.kind === 'not-found' ? [] : await this.computedLinks(market, pageKey, route.locale, loaded.data);
     const pageData = computed.length ? ({ ...loaded.data, computedLinks: computed } as typeof loaded.data) : loaded.data;
-    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: pageData, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null } });
+    const experiments = sv ? { [sv.surface]: { experiment: sv.experiment, variant: sv.variant } } : undefined;
+    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: pageData, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null }, ...(experiments ? { experiments } : {}) });
     const indexable = cfg.indexable && loaded.indexable && !blockedByGate;
     const path = this.pathOf(route);
     // an incomplete locale is not offered as an alternate, and x-default then points at the locale that is complete
@@ -100,12 +105,12 @@ export class RenderController {
     const { html, styleHash } = composeDocument({
       locale: route.locale, cc: route.cc, canonical: canonicalUrl(cfg.canonicalHost, path, q), alternates, indexable, title: out.meta.title, description: out.meta.description,
       ogImage: out.meta.ogImage ?? `${cfg.canonicalHost}/og-image.png`, siteName: 'Kiorex', jsonLd: out.jsonLd, bodyHtml: out.html,
-      state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: pageData }, assets,
+      state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: pageData, ...(experiments ? { experiments } : {}) }, assets,
       ...(route.type === 'home' && cfg.indexable ? { verification: { google: verificationCfg().googleMeta, bing: verificationCfg().bingMeta } } : {}),
     });
     const headers: Record<string, string> = {
       ...securityHeaders({ styleHashes: assets.css ? [styleHash] : [], frameAncestors: cfg.frameAncestors }),
-      'Content-Type': 'text/html; charset=utf-8', 'Content-Language': route.locale, 'Cache-Control': publicCacheControl({ sMaxAge, staleWhileRevalidate: swr }), Vary: 'Accept-Encoding',
+      'Content-Type': 'text/html; charset=utf-8', 'Content-Language': route.locale, ...(sv ? { 'Cache-Control': 'private, no-cache', Vary: 'Accept-Encoding, Cookie' } : { 'Cache-Control': publicCacheControl({ sMaxAge, staleWhileRevalidate: swr }), Vary: 'Accept-Encoding' }),
       ...(loaded.lastModified ? { 'Last-Modified': loaded.lastModified.toUTCString() } : {}),
       ...(indexable ? {} : { 'X-Robots-Tag': 'noindex' }),
     };

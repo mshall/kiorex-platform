@@ -2,6 +2,7 @@ import type { HomeData } from "../types";
 import { Chips, Faq, SearchBox, Emergency } from "../components/parts";
 import { registerTemplate } from "../registry";
 import { metaFromTemplate } from "../seo/meta-templates";
+import { variantCopy } from "../experiments";
 import { organization, website } from "../seo/jsonld";
 
 /** Country page (the home of a market): real counts, the specialty and city hubs that pass the guard, availability hubs and care types. */
@@ -10,8 +11,8 @@ registerTemplate<HomeData>({
   Component: ({ data, ctx }) => (
     <>
       <section className="kxp-hero">
-        <h1>{ctx.t("home.h1")}</h1>
-        <p className="kxp-lead">{ctx.t("home.lead")}</p>
+        <h1>{variantCopy(ctx, "landing.home.hero_copy", "h1") ?? ctx.t("home.h1")}</h1>
+        <p className="kxp-lead">{variantCopy(ctx, "landing.home.hero_copy", "lead") ?? ctx.t("home.lead")}</p>
         <SearchBox ctx={ctx} />
         {data.liveProviders > 0 ? <p className="kxp-muted">{ctx.t("home.live", { count: data.liveProviders })}</p> : <p className="kxp-muted">{ctx.t("home.empty")}</p>}
       </section>

@@ -20,7 +20,7 @@ export interface DocumentInput {
   locale: Locale; cc: string; canonical: string; alternates: Alternate[]; indexable: boolean;
   title: string; description: string; ogImage: string; siteName: string;
   jsonLd: unknown[]; bodyHtml: string;
-  state: { locale: Locale; cc: string; type: string; path: string; query: PageQuery; data: PageData };
+  state: { locale: Locale; cc: string; type: string; path: string; query: PageQuery; data: PageData; experiments?: Record<string, { experiment: string; variant: string }> };
   assets: ClientAssets;
   /** noindex even if the page is indexable (staging, flag OFF, fallbacks). */
   forceNoindex?: boolean;

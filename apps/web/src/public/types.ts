@@ -96,6 +96,8 @@ export interface PageQuery { page: number; sort: "rating" | "fee" | "earliest" |
 export interface SsrInput {
   locale: Locale; cc: string; type: PublicPageType; path: string; query: PageQuery; data: PageData;
   site: { canonicalHost: string; reviewMarkup: boolean; templates?: MetaTemplates; imageCdn?: string | null };
+  /** GRW-P3-A: experiment variant per SSR surface for THIS request (surface key -> variant key). Absent or empty = control everywhere. Only the API sets it, never for forbidden surfaces. */
+  experiments?: Record<string, { experiment: string; variant: string }>;
 }
 /** Versioned SEO configuration: title and description templates per locale and page type (see seo/meta-templates.ts). */
 export type MetaTemplates = Partial<Record<Locale, Record<string, { title?: string; description?: string }>>>;
@@ -116,6 +118,8 @@ export interface TemplateCtx {
   templates: MetaTemplates;
   imageCdn: string | null;
   query: PageQuery;
+  /** Variant key per experiment surface (empty = control). */
+  variants?: Record<string, string>;
   /** Translate a key of the `public` catalogue. */
   t: (key: string, vars?: Record<string, string | number>) => string;
   /** Pick the AR or EN half of a bilingual value. */

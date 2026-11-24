@@ -285,7 +285,9 @@ describe('Growth admin API (package K)', () => {
       const t = (await api('get', '/templates', ops).expect(200)).body as Array<{ kind: string; consentClass: string; purpose: string; metaApproval: string }>;
       expect(t.find((x) => x.kind === 'BOOKING_CONFIRMED')).toMatchObject({ purpose: 'TRANSACTIONAL', consentClass: 'NONE_REQUIRED', metaApproval: 'NEEDS_HUMAN' });
       expect(t.find((x) => x.kind === 'REMINDER_24H')).toMatchObject({ purpose: 'REMINDER', consentClass: 'REMINDERS_CONSENT' });
-      expect(t.some((x) => x.purpose === 'MARKETING')).toBe(false); // none ships
+      // GRW-P2-E ships the marketing templates (re-engagement, referral nudge, family onboarding), all behind the launch-locked marketing flag: each needs its own consent class and a Meta/counsel approval that is still NEEDS_HUMAN
+      const mk = t.filter((x) => x.purpose === 'MARKETING'); expect(mk.map((x) => x.kind).sort()).toEqual(['FAMILY_ONBOARDING', 'REENGAGE_DORMANT', 'REFERRAL_NUDGE']);
+      for (const x of mk) expect(x).toMatchObject({ consentClass: 'MARKETING_CONSENT_PER_CHANNEL', metaApproval: 'NEEDS_HUMAN' });
       const m = (await api('get', '/markets', ops).expect(200)).body as Array<{ code: string; live: boolean; marketing: { flags: Array<{ key: string; effective: boolean }> } }>;
       expect(m.find((x) => x.code === 'EG')).toMatchObject({ live: true });
       expect(m[0]!.marketing.flags.find((f) => f.key === 'growth.marketing_messaging')!.effective).toBe(false); // launch-locked, no gate evidence

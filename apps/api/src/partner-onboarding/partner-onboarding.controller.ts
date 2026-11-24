@@ -75,7 +75,7 @@ export class PartnerOnboardingController {
 @Controller('admin/onboarding/verification-updates')
 export class VerificationUpdateController {
   constructor(private readonly svc: VerificationUpdateService) {}
-  @Get() @ApiOperation({ summary: 'OP: provider verification update requests (open first)' }) list(@Query('status') status?: string) { return this.svc.list({ status }); }
-  @Get(':ref') @ApiOperation({ summary: 'OP: one request with the requested value and evidence references read live from the Clinic' }) get(@Param('ref') ref: string) { return this.svc.detail(ref); }
-  @Post(':ref/decide') @HttpCode(200) @ApiOperation({ summary: 'OP: approve, reject or ask for more information; the decision is delivered to the Clinic (ProviderVerificationDecided)' }) decide(@CurrentUser() u: AuthUser, @Param('ref') ref: string, @Body() b: VerificationDecisionBody) { return this.svc.decide(u.sub, ref, b.decision, b.note); }
+  @Get() @ApiOperation({ summary: 'OP: provider verification update requests (open first)' }) @ApiOkResponse({ schema: { type: 'array', items: { type: 'object', additionalProperties: true } } }) list(@Query('status') status?: string) { return this.svc.list({ status }); }
+  @Get(':ref') @ApiOperation({ summary: 'OP: one request with the requested value and evidence references read live from the Clinic' }) @ApiOkResponse({ schema: { type: 'object', additionalProperties: true } }) get(@Param('ref') ref: string) { return this.svc.detail(ref); }
+  @Post(':ref/decide') @HttpCode(200) @ApiOperation({ summary: 'OP: approve, reject or ask for more information; the decision is delivered to the Clinic (ProviderVerificationDecided)' }) @ApiOkResponse({ schema: { type: 'object', additionalProperties: true } }) decide(@CurrentUser() u: AuthUser, @Param('ref') ref: string, @Body() b: VerificationDecisionBody) { return this.svc.decide(u.sub, ref, b.decision, b.note); }
 }

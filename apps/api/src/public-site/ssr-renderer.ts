@@ -9,6 +9,8 @@ import { siteCfg } from './site.config';
 /** Contract with the Vite SSR bundle (apps/web/src/entry-server.tsx exports `render`). Plain JSON in, plain JSON and an HTML string out. */
 export interface SsrInput {
   locale: Locale; cc: string; type: string; path: string; query: PageQuery; data: PageData;
+  /** GRW-P3-A: the experiment variant of this request per SSR surface (only for a consented `kxe` visitor; absent = control) */
+  experiments?: Record<string, { experiment: string; variant: string }>;
   site: { canonicalHost: string; reviewMarkup: boolean; /** versioned SEO config: title and description templates per locale and page type (validated, may be empty) */ templates?: Record<string, Record<string, { title?: string; description?: string }>>; /** optional image resizing CDN base (SITE_IMAGE_CDN), null = originals */ imageCdn?: string | null };
 }
 export interface SsrOutput {

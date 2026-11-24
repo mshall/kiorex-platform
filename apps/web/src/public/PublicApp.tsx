@@ -7,7 +7,7 @@ import { getTemplate } from "./registry";
 import type { PublicState, TemplateCtx } from "./types";
 
 export function buildCtx(state: PublicState, i18n: ReturnType<typeof createPublicI18n>): TemplateCtx {
-  return makeCtx(i18n, { locale: state.locale, cc: state.cc, path: state.path, canonicalHost: state.site?.canonicalHost ?? "", reviewMarkup: state.site?.reviewMarkup ?? false, templates: state.site?.templates ?? {}, imageCdn: state.site?.imageCdn ?? null, query: state.query });
+  return makeCtx(i18n, { locale: state.locale, cc: state.cc, path: state.path, canonicalHost: state.site?.canonicalHost ?? "", reviewMarkup: state.site?.reviewMarkup ?? false, templates: state.site?.templates ?? {}, imageCdn: state.site?.imageCdn ?? null, query: state.query, variants: Object.fromEntries(Object.entries(state.experiments ?? {}).map(([k, v]) => [k, v.variant])) });
 }
 
 /** The public tree: identical on the server (renderToPipeableStream) and on the client (hydrateRoot). No router, no auth, no query client: public data only. */

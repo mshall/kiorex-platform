@@ -4739,7 +4739,18 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "OP: provider verification update requests (open first)",
@@ -4763,7 +4774,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "OP: one request with the requested value and evidence references read live from the Clinic",
@@ -4797,7 +4816,15 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "summary": "OP: approve, reject or ask for more information; the decision is delivered to the Clinic (ProviderVerificationDecided)",
@@ -13744,7 +13771,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RollupBody"
+                "$ref": "#/components/schemas/ModelRollupBody"
               }
             }
           }
@@ -14327,6 +14354,914 @@
         "summary": "GRW-P3-A record that the signed-in person saw its variant (idempotent)",
         "tags": [
           "growth-experiments"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/sponsored-promotions": {
+      "get": {
+        "operationId": "PromotionsAdminController_queue",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-S review queue (status IN_REVIEW by default; ACTIVE or ALL)",
+        "tags": [
+          "growth-sponsored-promotions"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/sponsored-promotions/{id}": {
+      "get": {
+        "operationId": "PromotionsAdminController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-S one promotion: public text, scope, rules, automated guard result, high-value reasons, review state",
+        "tags": [
+          "growth-sponsored-promotions"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/sponsored-promotions/{id}/ledger": {
+      "get": {
+        "operationId": "PromotionsAdminController_ledgerOf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-S the distinct provider-sponsored discount line per booking",
+        "tags": [
+          "growth-sponsored-promotions"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/sponsored-promotions/{id}/decisions": {
+      "post": {
+        "operationId": "PromotionsAdminController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionDecideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-S decide a review (not the author; a second approver for HIGH_VALUE)",
+        "tags": [
+          "growth-sponsored-promotions"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/promotions/quote": {
+      "get": {
+        "operationId": "PromotionsPublicController_quote",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P2-S the sponsored discount line for my booking, if any",
+        "tags": [
+          "growth-sponsored-promotions"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases": {
+      "get": {
+        "operationId": "FraudAdminController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "band",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "breached",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D review queue",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/summary": {
+      "get": {
+        "operationId": "FraudAdminController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D open cases by kind, band and mode, and SLA breaches",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}": {
+      "get": {
+        "operationId": "FraudAdminController_one",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D evidence viewer: signals, check rows, decision log (hashed references only)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/bulk-dismiss": {
+      "post": {
+        "operationId": "FraudAdminController_bulk",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudBulkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D bulk dismiss LOW and MEDIUM cases with a reason",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}/assign": {
+      "post": {
+        "operationId": "FraudAdminController_assign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudAssignBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D assign a case",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}/decision": {
+      "post": {
+        "operationId": "FraudAdminController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D CONFIRM (reversing reward value needs a second person) or DISMISS",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}/appeal": {
+      "post": {
+        "operationId": "FraudAdminController_appeal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudAppealBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D file an appeal for a confirmed case (support, inside the appeal window)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}/appeal-decision": {
+      "post": {
+        "operationId": "FraudAdminController_appealDecision",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudAppealDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D decide an appeal (a different reviewer)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/cases/{id}/identity": {
+      "post": {
+        "operationId": "FraudAdminController_identity",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FraudIdentityBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D account references of a case (DPO role, audited)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/rules": {
+      "get": {
+        "operationId": "FraudAdminController_rules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D rules, weights, enforce switches and thresholds (read-only; change through the FRAUD_RULES configuration)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/shadow-report": {
+      "get": {
+        "operationId": "FraudAdminController_shadow",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D precision and volume by rule",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/fairness": {
+      "get": {
+        "operationId": "FraudAdminController_fairness",
+        "parameters": [
+          {
+            "name": "weekStart",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D weekly HOLD rate by language and city (aggregate, k >= 10)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/jobs/run": {
+      "post": {
+        "operationId": "FraudAdminController_run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D run the hourly job now (SLA sweep, housekeeping, calibration counts)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/fraud/calibration/propose": {
+      "post": {
+        "operationId": "FraudAdminController_propose",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-D propose weight changes as a draft (never applied)",
+        "tags": [
+          "growth-fraud"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/overview": {
+      "get": {
+        "operationId": "SeoAutomationController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F quality overview by template, worst pages, link counts, orphans",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/reports": {
+      "get": {
+        "operationId": "SeoAutomationController_reports",
+        "parameters": [
+          {
+            "name": "templateKind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "failed",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F latest quality reports",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/config": {
+      "get": {
+        "operationId": "SeoAutomationController_config",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F effective SEO_AUTOMATION configuration (read-only)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/links": {
+      "get": {
+        "operationId": "SeoAutomationController_links",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F computed internal links of one page, or the totals",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/vitals": {
+      "get": {
+        "operationId": "SeoAutomationController_vitalsOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F lab and field Core Web Vitals by template with budgets (not measured is said plainly)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/indexation": {
+      "get": {
+        "operationId": "SeoAutomationController_indexationOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F submitted, excluded and indexed per template group",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/run": {
+      "post": {
+        "operationId": "SeoAutomationController_run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F run the quality gate and the link builder now",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/seo-automation/vitals/ingest": {
+      "post": {
+        "operationId": "SeoAutomationController_ingest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-F ingest the Lighthouse summary (body or file) and the CrUX field rows, then check budgets",
+        "tags": [
+          "growth-seo-automation"
         ]
       }
     },
@@ -26106,7 +27041,7 @@
           "days": {
             "type": "number",
             "minimum": 1,
-            "maximum": 120
+            "maximum": 400
           }
         }
       },
@@ -26397,6 +27332,155 @@
         "required": [
           "kind",
           "channel"
+        ]
+      },
+      "ModelRollupBody": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 120
+          }
+        }
+      },
+      "PromotionDecideBody": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CONTENT",
+              "SCOPE",
+              "HIGH_VALUE"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "NEEDS_CHANGES"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "version",
+          "kind",
+          "decision"
+        ]
+      },
+      "FraudBulkBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "ids",
+          "reason"
+        ]
+      },
+      "FraudAssignBody": {
+        "type": "object",
+        "properties": {
+          "assignTo": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "assignTo"
+        ]
+      },
+      "FraudDecisionBody": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "CONFIRM",
+              "DISMISS"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "reverseRewards": {
+            "type": "boolean"
+          },
+          "suspendDays": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 730
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "FraudAppealBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "FraudAppealDecisionBody": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "CONFIRM",
+              "DISMISS"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "decision",
+          "note"
+        ]
+      },
+      "FraudIdentityBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "LiveDto": {
