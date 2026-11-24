@@ -59,6 +59,9 @@ const GrowthRewardsFinancePage = lazy(() => import("@/pages/growth/rewards/Rewar
 const GrowthWhatsappPage = lazy(() => import("@/pages/growth/whatsapp/Page"));
 const GrowthAssistantPage = lazy(() => import("@/pages/growth/assistant/Page"));
 const GrowthLifecyclePage = lazy(() => import("@/pages/growth/lifecycle/Page"));
+const GrowthLifecycleJourneyPage = lazy(() => import("@/pages/growth/lifecycle/JourneyDetailPage"));
+const GrowthLifecycleSendGatePage = lazy(() => import("@/pages/growth/lifecycle/SendGatePage"));
+const GrowthLifecycleSuppressionPage = lazy(() => import("@/pages/growth/lifecycle/SuppressionPage"));
 const GrowthExperimentsPage = lazy(() => import("@/pages/growth/experiments/Page"));
 const GrowthAttributionModelsPage = lazy(() => import("@/pages/growth/attribution-models/Page"));
 const GrowthCohortsPage = lazy(() => import("@/pages/growth/cohorts/Page"));
@@ -129,6 +132,9 @@ export function AppRoutes() {
           <Route path="growth/whatsapp" element={<GrowthWhatsappPage />} />
           <Route path="growth/assistant" element={<GrowthAssistantPage />} />
           <Route path="growth/lifecycle" element={<GrowthLifecyclePage />} />
+          <Route path="growth/lifecycle/send-gate" element={<GrowthLifecycleSendGatePage />} />
+          <Route path="growth/lifecycle/suppression" element={<GrowthLifecycleSuppressionPage />} />
+          <Route path="growth/lifecycle/:key" element={<GrowthLifecycleJourneyPage />} />
           <Route path="growth/experiments" element={<GrowthExperimentsPage />} />
           <Route path="growth/attribution-models" element={<GrowthAttributionModelsPage />} />
           <Route path="growth/cohorts" element={<GrowthCohortsPage />} />

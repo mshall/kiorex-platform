@@ -8,6 +8,7 @@ import growthStubs from "./growth.stubs.json";
 import growthCampaigns from "./growth.campaigns.json";
 import growthIntegrations from "./growth.integrations.json";
 import growthReferrals from "./growth.referrals.json";
+import growthLifecycle from "./growth.lifecycle.json";
 
 /** Deep merge: the namespaced per-package files (GRW-P2-X1: `growth.<pkg>.json`, shape {en,ar}) add keys and never reorder or overwrite the main catalogue. */
 type Tree = { [key: string]: unknown };
@@ -37,7 +38,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en) } },
+    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en) } },
     fallbackLng: "en",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

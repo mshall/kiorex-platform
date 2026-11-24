@@ -1,13 +1,37 @@
-import { createPlatformRegistry, consentPurposeOf, PlatformPreferenceStore, platformTemplate } from './notification.layer';
-import { TEMPLATES, type NotifyKind } from './templates';
+import { createPlatformRegistry, consentPurposeOf, PlatformPreferenceStore, platformTemplate, templateClassView } from './notification.layer';
+import { MESSAGE_CLASSES } from './message-class';
+import { messageClassOf, TEMPLATES, type NotifyKind } from './templates';
 
 /** GRW-P1-I: a template is bound to exactly one purpose at definition time; marketing can never ride another purpose, and the consent gate cannot be skipped. */
 describe('template to purpose binding', () => {
-  it('every shipped template is bound to TRANSACTIONAL or REMINDER; none is MARKETING (copy and licence are NEEDS_HUMAN)', () => {
+  it('every shipped template is bound to ONE purpose; only the three lifecycle marketing templates are MARKETING, all with copy review PENDING (copy and licence are NEEDS_HUMAN)', () => {
     const r = createPlatformRegistry();
+    const marketing: string[] = [];
     for (const [kind, t] of Object.entries(TEMPLATES) as [NotifyKind, (typeof TEMPLATES)[NotifyKind]][]) {
-      expect(r.get(kind)!.purpose).toBe(t.reminder ? 'REMINDER' : 'TRANSACTIONAL');
-      expect(t.marketing ?? false).toBe(false);
+      expect(r.get(kind)!.purpose).toBe(t.marketing ? 'MARKETING' : t.reminder ? 'REMINDER' : 'TRANSACTIONAL');
+      if (t.marketing) { marketing.push(kind); expect(t.copyReview).toBe('PENDING'); }
+    }
+    expect(marketing.sort()).toEqual(['FAMILY_ONBOARDING', 'REENGAGE_DORMANT', 'REFERRAL_NUDGE']);
+  });
+  it('AD-6 class view: exactly four classes; the class of a template agrees with its purpose (MARKETING <=> marketing purpose); a non-marketing template never carries promotional content', () => {
+    expect([...MESSAGE_CLASSES]).toEqual(['TRANSACTIONAL', 'SECURITY', 'CLINICAL', 'MARKETING']);
+    for (const v of templateClassView()) {
+      expect(MESSAGE_CLASSES).toContain(v.messageClass);
+      expect(v.messageClass === 'MARKETING').toBe(v.purpose === 'MARKETING');
+      if (v.messageClass !== 'MARKETING') expect(v.promotional).toBe(false);
+      if (v.messageClass === 'SECURITY' || v.messageClass === 'CLINICAL') expect(v.purpose).not.toBe('MARKETING');
+    }
+    expect(messageClassOf('NEW_DEVICE_NOTICE')).toBe('SECURITY');
+    expect(messageClassOf('LAB_RESULT_RELEASED')).toBe('CLINICAL');
+    expect(messageClassOf('BOOKING_CONFIRMED')).toBe('TRANSACTIONAL');
+    expect(messageClassOf('REMINDER_24H')).toBe('TRANSACTIONAL'); // the REMINDER purpose maps to the TRANSACTIONAL class
+    expect(messageClassOf('REWARD_EXPIRING')).toBe('TRANSACTIONAL'); // plain text, no promotion
+    expect(messageClassOf('REENGAGE_DORMANT')).toBe('MARKETING');
+  });
+  it('a TRANSACTIONAL template cannot carry the promotional flag, and a MARKETING template without the flag is a definition error', () => {
+    for (const [kind, t] of Object.entries(TEMPLATES) as [NotifyKind, (typeof TEMPLATES)[NotifyKind]][]) {
+      if (messageClassOf(kind) !== 'MARKETING') expect(t.promotional ?? false).toBe(false);
+      else expect(t.promotional).toBe(true);
     }
   });
   it('a marketing template is bound to MARKETING and to nothing else, whatever its reminder flag says', () => {

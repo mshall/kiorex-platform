@@ -71,6 +71,16 @@ function PreferencesBody() {
               </Row>
             ))}
           </Card>
+          <Card style={{ gap: 10 }} testID="prefs-classes">
+            <T variant="h2">{t("prefs.classesTitle")}</T>
+            <T variant="small" muted>{t("prefs.classesBody")}</T>
+            {(["TRANSACTIONAL", "SECURITY", "CLINICAL", "MARKETING"] as const).map((c) => (
+              <View key={c} testID={`prefs-class-${c}`} style={{ gap: 2 }} accessible accessibilityLabel={`${t(`prefs.classes.${c}.name`)}. ${c === "MARKETING" ? t("prefs.classOptional") : t("prefs.classRequired")}. ${t(`prefs.classes.${c}.body`)}`}>
+                <Row gap={8} style={{ justifyContent: "space-between" }}><T weight="semibold">{t(`prefs.classes.${c}.name`)}</T><T variant="caption" weight="semibold" color={c === "MARKETING" ? colors.muted : colors.success}>{c === "MARKETING" ? t("prefs.classOptional") : t("prefs.classRequired")}</T></Row>
+                <T variant="small" muted>{t(`prefs.classes.${c}.body`)}</T>
+              </View>
+            ))}
+          </Card>
           <Card style={{ gap: 14 }}>
             <Choice id="pref-reminders" title={t("prefs.remindersTitle")} body={t("prefs.remindersBody")} value={q.data.reminders.consent} disabled={update.isPending} onChange={(v) => change({ reminders: v })} />
             <Choice id="pref-analytics" title={t("prefs.analyticsTitle")} body={t("prefs.analyticsBody")} value={q.data.analytics.consent} disabled={update.isPending} onChange={(v) => change({ analytics: v })} />

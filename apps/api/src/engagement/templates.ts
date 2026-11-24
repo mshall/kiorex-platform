@@ -2,14 +2,19 @@
  * Notification templates (KXM-NT-01..03). WhatsApp template ids are placeholders: Meta approval and final copy
  * are NEEDS_HUMAN (see Docs/NEEDS_HUMAN.md). In-app copy is a draft for AR/EN review.
  */
-export type NotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKING_CHANGED' | 'BOOKING_CANCELLED' | 'BOOKING_CANCELLED_BY_CLINIC' | 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION' | 'DEPOSIT_REFUNDED' | 'BOOKING_EXPIRED'
+import { GROWTH_TEMPLATES, type GrowthKind } from './templates.growth';
+import type { MessageClass } from './message-class';
+
+export type BaseNotifyKind = 'BOOKING_CONFIRMED' | 'BOOKING_PENDING_CLINIC' | 'BOOKING_CHANGED' | 'BOOKING_CANCELLED' | 'BOOKING_CANCELLED_BY_CLINIC' | 'REMINDER_24H' | 'REMINDER_2H' | 'REVIEW_INVITATION' | 'DEPOSIT_REFUNDED' | 'BOOKING_EXPIRED'
   | 'HOME_VISIT_ASSIGNED' | 'HOME_VISIT_EN_ROUTE' | 'HOME_VISIT_ABORTED' | 'HOME_VISIT_FAMILY_INVITE' | 'HOME_VISIT_FAMILY_UPDATE' | 'CARE_PLAN_CONFIRMED'
   | 'WAITLIST_OFFER' | 'FOLLOW_UP_DUE' | 'RECORD_SHARED' | 'PHARMACY_ORDER_READY' | 'PHARMACY_ORDER_OUT_FOR_DELIVERY' | 'PHARMACY_ORDER_PARTIAL_REFUND' | 'PHARMACY_ORDER_DISPENSED' | 'PHARMACY_ORDER_REJECTED' | 'LAB_BOOKING_CONFIRMED' | 'LAB_RESULT_RELEASED' | 'TELE_SESSION_READY' | 'OPS_LEAD_ALERT';
+/** Base kinds plus the lifecycle kinds of templates.growth.ts (GRW-P2-E, merged by the engagement owner). */
+export type NotifyKind = BaseNotifyKind | GrowthKind;
 
 /** `marketing: true` binds the template to the MARKETING purpose (per-channel consent, suppression, quiet hours, frequency caps, growth.marketing_messaging). No shipped template is marketing yet: copy and licence are NEEDS_HUMAN. */
-export interface Template { templateId: string; reminder: boolean; marketing?: boolean; bypassQuiet?: boolean; en: string; ar: string }
+export interface Template { templateId: string; reminder: boolean; marketing?: boolean; bypassQuiet?: boolean; en: string; ar: string; messageClass?: MessageClass; promotional?: boolean; copyReview?: 'PENDING' | 'APPROVED' }
 
-export const TEMPLATES: Record<NotifyKind, Template> = {
+const BASE_TEMPLATES: Record<BaseNotifyKind, Template> = {
   BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_booking_confirmed', reminder: false, en: 'Your visit with {doctor} is confirmed for {time}.', ar: 'تم تأكيد زيارتك مع {doctor} في {time}.' },
   BOOKING_PENDING_CLINIC: { templateId: 'TODO_NEEDS_HUMAN_booking_pending', reminder: false, en: 'Your request with {doctor} is awaiting clinic confirmation.', ar: 'طلبك مع {doctor} في انتظار تأكيد العيادة.' },
   BOOKING_CHANGED: { templateId: 'TODO_NEEDS_HUMAN_booking_changed', reminder: false, en: 'Your visit with {doctor} moved to {time}.', ar: 'تم تغيير موعدك مع {doctor} إلى {time}.' },
@@ -41,5 +46,16 @@ export const TEMPLATES: Record<NotifyKind, Template> = {
   OPS_LEAD_ALERT: { templateId: 'TODO_NEEDS_HUMAN_ops_lead_alert', reminder: false, en: 'New Kiorex partner lead: {org} ({kindLabel}). Open Ops > Partner leads.', ar: 'عميل شريك جديد على كيوريكس: {org} ({kindLabel}). افتح العمليات > العملاء المحتملون.' },
   DEPOSIT_REFUNDED: { templateId: 'TODO_NEEDS_HUMAN_deposit_refunded', reminder: false, en: 'Your deposit was refunded.', ar: 'تم رد العربون.' },
 };
+
+/** The class of a template (AD-6): explicit when declared; otherwise marketing -> MARKETING, everything else shipped before the lifecycle package is a TRANSACTIONAL service message except the clinical ones named here. */
+const CLINICAL_KINDS: ReadonlySet<string> = new Set(['LAB_RESULT_RELEASED', 'HOME_VISIT_ABORTED', 'RECORD_SHARED', 'FOLLOW_UP_DUE']);
+export const TEMPLATES: Record<NotifyKind, Template> = { ...BASE_TEMPLATES, ...GROWTH_TEMPLATES };
+export function messageClassOf(kind: string): MessageClass {
+  const t = (TEMPLATES as Record<string, Template | undefined>)[kind];
+  if (!t) return 'TRANSACTIONAL';
+  if (t.messageClass) return t.messageClass;
+  if (t.marketing) return 'MARKETING';
+  return CLINICAL_KINDS.has(kind) ? 'CLINICAL' : 'TRANSACTIONAL';
+}
 
 export const render = (t: string, p: Record<string, unknown> = {}) => t.replace(/\{(\w+)\}/g, (_, k) => String(p[k] ?? ''));

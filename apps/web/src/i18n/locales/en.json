@@ -462,7 +462,12 @@
       "marketingTitle": "Marketing messages",
       "marketingBody": "News and offers from Kiorex, one channel at a time. Nothing is ticked for you.",
       "marketingNotActive": "Marketing messages are not being sent yet. Your choice is saved for when they start.",
-      "channel": { "WHATSAPP": "WhatsApp", "SMS": "SMS", "EMAIL": "Email", "PUSH": "App notifications" },
+      "channel": {
+        "WHATSAPP": "WhatsApp",
+        "SMS": "SMS",
+        "EMAIL": "Email",
+        "PUSH": "App notifications"
+      },
       "suppressed": "Stopped by you (STOP)",
       "quietTitle": "Quiet hours",
       "quietBody": "Marketing messages wait until your quiet hours end.",
@@ -480,7 +485,29 @@
       "cookiesOn": "Measurement is on",
       "cookiesOff": "Measurement is off",
       "cookiesOpen": "Change cookie choices",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "classesTitle": "What each kind of message is",
+      "classesBody": "Kiorex sends four kinds of message. Three are part of the service and always reach you; only marketing is your choice.",
+      "classes": {
+        "TRANSACTIONAL": {
+          "name": "Service",
+          "body": "About your bookings, deposits, receipts and rewards you already have. Needed to run your visit."
+        },
+        "SECURITY": {
+          "name": "Security",
+          "body": "A new device opened your account, or a sign-in code. Sent at once, any hour."
+        },
+        "CLINICAL": {
+          "name": "Care",
+          "body": "Something about your care that cannot wait, like a safety notice. Urgent ones can reach you in quiet hours."
+        },
+        "MARKETING": {
+          "name": "Marketing",
+          "body": "News, offers and invitations. Only on the channels you switch on, never in your quiet hours, never more than the limit below, and you can stop all of it in one tap."
+        }
+      },
+      "classRequired": "Part of the service",
+      "classOptional": "Your choice"
     }
   },
   "sessions": {

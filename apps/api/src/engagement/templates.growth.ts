@@ -1,0 +1,36 @@
+import type { MessageClass } from './message-class';
+
+/**
+ * Lifecycle templates (GRW-P2-E), AR and EN. Rules every row obeys: no clinical word (no specialty, doctor name, diagnosis, medicine, test), no emoji, parameters allowlisted,
+ * generic text for anything MARKETING. Meta template ids are `TODO_NEEDS_HUMAN_*` (approval is NEEDS_HUMAN, Docs/NEEDS_HUMAN.md "Provider go-live"). The Arabic is written in
+ * an Egyptian register; human CMO and brand review is NEEDS_HUMAN and flagged on every row as `copyReview: 'PENDING'`.
+ */
+export type GrowthKind =
+  | 'WELCOME' | 'BOOKING_RECOVERY' | 'DEPOSIT_PENDING_FOLLOWUP' | 'FEEDBACK_REMINDER' | 'REENGAGE_DORMANT' | 'REFERRAL_INVITE_CARD' | 'REFERRAL_NUDGE'
+  | 'REWARD_ISSUED' | 'REWARD_REDEEMED' | 'REWARD_REVERSED' | 'REWARD_EXPIRING' | 'FAMILY_ONBOARDING_CARD' | 'FAMILY_ONBOARDING' | 'NEW_DEVICE_NOTICE';
+
+export interface GrowthTemplate {
+  templateId: string; reminder: boolean; marketing?: boolean; bypassQuiet?: boolean; en: string; ar: string;
+  /** The class of the template (AD-6). */
+  messageClass: MessageClass;
+  /** Carries promotional content. Never true on a non-MARKETING template (a test enforces it). */
+  promotional?: boolean;
+  copyReview: 'PENDING' | 'APPROVED';
+}
+
+export const GROWTH_TEMPLATES: Record<GrowthKind, GrowthTemplate> = {
+  WELCOME: { templateId: 'TODO_NEEDS_HUMAN_welcome', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'Welcome to Kiorex. Your account is ready.', ar: 'أهلاً بيك في كيوريكس. حسابك جاهز.' },
+  BOOKING_RECOVERY: { templateId: 'TODO_NEEDS_HUMAN_booking_recovery', reminder: true, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'You have an unfinished booking request. Open Kiorex to complete it.', ar: 'عندك طلب حجز لسه ما اتأكدش. افتح كيوريكس وكمّله.' },
+  DEPOSIT_PENDING_FOLLOWUP: { templateId: 'TODO_NEEDS_HUMAN_deposit_pending', reminder: true, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'Your booking request for {time} is waiting for the deposit.', ar: 'طلب حجزك يوم {time} مستني دفع العربون.' },
+  FEEDBACK_REMINDER: { templateId: 'TODO_NEEDS_HUMAN_feedback_reminder', reminder: true, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'Your feedback helps others choose. Share how your visit went.', ar: 'رأيك بيساعد غيرك يختار. شاركنا تجربتك.' },
+  REENGAGE_DORMANT: { templateId: 'TODO_NEEDS_HUMAN_reengage_dormant', reminder: false, marketing: true, promotional: true, messageClass: 'MARKETING', copyReview: 'PENDING', en: 'It has been a while. Find a provider near you on Kiorex.', ar: 'بقالك فترة غايب. دوّر على مقدّم خدمة قريب منك على كيوريكس.' },
+  REFERRAL_INVITE_CARD: { templateId: 'TODO_NEEDS_HUMAN_referral_card', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'Know someone who could use Kiorex? Your invite link is in your account.', ar: 'تعرف حد يستفيد من كيوريكس؟ رابط الدعوة بتاعك في حسابك.' },
+  REFERRAL_NUDGE: { templateId: 'TODO_NEEDS_HUMAN_referral_nudge', reminder: false, marketing: true, promotional: true, messageClass: 'MARKETING', copyReview: 'PENDING', en: 'Know someone who could use Kiorex? Share your invite.', ar: 'تعرف حد يستفيد من كيوريكس؟ ابعتله دعوتك.' },
+  REWARD_ISSUED: { templateId: 'TODO_NEEDS_HUMAN_reward_issued', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'You received a reward on Kiorex. You can see it in your rewards.', ar: 'وصلتك مكافأة على كيوريكس. تقدر تشوفها في مكافآتك.' },
+  REWARD_REDEEMED: { templateId: 'TODO_NEEDS_HUMAN_reward_redeemed', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'Your reward was used on your booking.', ar: 'اتستخدمت مكافأتك في حجزك.' },
+  REWARD_REVERSED: { templateId: 'TODO_NEEDS_HUMAN_reward_reversed', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'A reward on your account was cancelled because the booking behind it changed.', ar: 'اتلغت مكافأة في حسابك لأن الحجز المرتبط بيها اتغيّر.' },
+  REWARD_EXPIRING: { templateId: 'TODO_NEEDS_HUMAN_reward_expiring', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'One of your rewards expires on {date}.', ar: 'مكافأة من مكافآتك بتنتهي يوم {date}.' },
+  FAMILY_ONBOARDING_CARD: { templateId: 'TODO_NEEDS_HUMAN_family_card', reminder: false, messageClass: 'TRANSACTIONAL', copyReview: 'PENDING', en: 'You can add family members to your Kiorex account.', ar: 'تقدر تضيف أفراد عيلتك على حسابك في كيوريكس.' },
+  FAMILY_ONBOARDING: { templateId: 'TODO_NEEDS_HUMAN_family_onboarding', reminder: false, marketing: true, promotional: true, messageClass: 'MARKETING', copyReview: 'PENDING', en: 'You can add family members to your Kiorex account.', ar: 'تقدر تضيف أفراد عيلتك على حسابك في كيوريكس.' },
+  NEW_DEVICE_NOTICE: { templateId: 'TODO_NEEDS_HUMAN_new_device', reminder: false, bypassQuiet: true, messageClass: 'SECURITY', copyReview: 'PENDING', en: 'Your Kiorex account was opened on a new device. If it was not you, change your sign-in.', ar: 'اتفتح حسابك في كيوريكس على جهاز جديد. لو مش إنت، غيّر طريقة تسجيل الدخول.' },
+};

@@ -1065,7 +1065,29 @@
     "unsubscribe": "Unsubscribe from all marketing",
     "unsubscribed": "You are unsubscribed from all marketing.",
     "saved": "Saved",
-    "error": "Could not save. Try again."
+    "error": "Could not save. Try again.",
+    "classesTitle": "What each kind of message is",
+    "classesBody": "Kiorex sends four kinds of message. Three are part of the service and always reach you; only marketing is your choice.",
+    "classes": {
+      "TRANSACTIONAL": {
+        "name": "Service",
+        "body": "About your bookings, deposits, receipts and rewards you already have. Needed to run your visit."
+      },
+      "SECURITY": {
+        "name": "Security",
+        "body": "A new device opened your account, or a sign-in code. Sent at once, any hour."
+      },
+      "CLINICAL": {
+        "name": "Care",
+        "body": "Something about your care that cannot wait, like a safety notice. Urgent ones can reach you in quiet hours."
+      },
+      "MARKETING": {
+        "name": "Marketing",
+        "body": "News, offers and invitations. Only on the channels you switch on, never in your quiet hours, never more than the limit below, and you can stop all of it in one tap."
+      }
+    },
+    "classRequired": "Part of the service",
+    "classOptional": "Your choice"
   },
   "referral": {
     "title": "Invite friends",

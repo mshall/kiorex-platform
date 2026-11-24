@@ -45,6 +45,13 @@ describe("preference centre on the app (EN)", () => {
     for (const id of ["pref-reminders", "pref-analytics", "pref-marketing-WHATSAPP", "pref-marketing-SMS", "pref-marketing-EMAIL", "pref-marketing-PUSH"]) expect(screen.getByTestId(id).props.value).toBe(false);
     expect(screen.getByTestId("prefs-marketing-inactive")).toBeTruthy();
   });
+  it("GRW-P2-E: explains the four message classes: three are part of the service, only marketing is the person's choice", async () => {
+    await wrap(<Preferences />);
+    for (const c of ["TRANSACTIONAL", "SECURITY", "CLINICAL", "MARKETING"]) expect(screen.getByTestId(`prefs-class-${c}`)).toBeTruthy();
+    expect(screen.getAllByText("Part of the service")).toHaveLength(3);
+    expect(screen.getAllByText("Your choice")).toHaveLength(1);
+    expect(screen.getByText(/never in your quiet hours/)).toBeTruthy();
+  });
   it("a switch sends exactly that change with the app as the source", async () => {
     await wrap(<Preferences />);
     await fireEvent(screen.getByTestId("pref-reminders"), "valueChange", true);
@@ -103,6 +110,16 @@ describe("preference centre on the app (AR)", () => {
     expect(screen.getByText("الرسائل التسويقية")).toBeTruthy();
     expect(screen.getByText("واتساب")).toBeTruthy();
     expect(screen.getAllByText("يعمل دائمًا")).toHaveLength(3);
+  });
+});
+
+describe("message classes in Arabic (GRW-P2-E)", () => {
+  it("shows the same four classes in Arabic", async () => {
+    await setLang("ar");
+    await wrap(<Preferences />);
+    expect(screen.getAllByText("جزء من الخدمة")).toHaveLength(3);
+    expect(screen.getAllByText("قرارك")).toHaveLength(1);
+    expect(screen.getByText("التسويق")).toBeTruthy();
   });
 });
 

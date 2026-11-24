@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { marketOffsetMinutes } from '../common/market-time';
+import { marketOffsetMinutes, marketZone } from '../common/market-time';
 import {
   DEFAULT_ROUTING, MemoryDispatchStore, NotificationService, simpleTemplate, TemplateRegistry,
   type AuditRecord, type AuditSink, type ChannelPreference, type DispatchState, type PreferenceStore, type Purpose, type TemplateDefinition,
@@ -7,7 +7,8 @@ import {
 import type { Channel } from '@kiorex/contracts/notify';
 import { cfg } from '../common/config';
 import { HubChannelAdapter, InboxChannelAdapter, type MessagingHub } from '../messaging/messaging-public';
-import { type NotifyKind, render, TEMPLATES } from './templates';
+import { messageClassOf, type NotifyKind, render, TEMPLATES } from './templates';
+import type { MessageClass } from './message-class';
 
 type TemplateRow = (typeof TEMPLATES)[NotifyKind];
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
@@ -36,6 +37,13 @@ export function createPlatformRegistry(): TemplateRegistry {
 export type GateConsentKey = 'REMINDERS' | 'MARKETPLACE_PROCESSING' | `MARKETING_${'WHATSAPP' | 'SMS' | 'EMAIL' | 'PUSH'}`;
 /** Consent and opt-out and quiet hours exactly as EngagementService applied them before the layer (KXM-NT-02), plus the marketing additions. */
 export interface PlatformPrefsDeps {
+  /**
+   * GRW-P2-E: distinct MARKETING sends of a person since an instant (all channels, one logical send fans out to several channels). The lifecycle send gate and the
+   * delivery path count the same rows, so campaigns and journeys share ONE frequency budget.
+   */
+  marketingSentSince?(sub: string, since: Date): Promise<Date[]>;
+  /** GRW-P2-E: suppression by keyed address hash (the raw address is never needed here). */
+  isSuppressed?(channel: string, addressHash: string): Promise<boolean>;
   hasConsent(sub: string, purpose: GateConsentKey): Promise<boolean>;
   preference(sub: string, channel: string): Promise<{ enabled: boolean; quietStart: number | null; quietEnd: number | null } | null>;
   /**
@@ -45,7 +53,7 @@ export interface PlatformPrefsDeps {
   marketing?: {
     enabled(sub: string): Promise<boolean>;
     suppressed(sub: string, channel: string): Promise<boolean>;
-    defaultQuiet(at: number): Promise<{ startHour: number; endHour: number; tzOffsetMinutes: number }>;
+    defaultQuiet(at: number): Promise<{ startHour: number; endHour: number; tzOffsetMinutes: number; zone?: string }>;
   };
 }
 export const consentPurposeOf = (p: Purpose, channel?: string): GateConsentKey =>
@@ -62,13 +70,13 @@ export class PlatformPreferenceStore implements PreferenceStore {
       const m = this.deps.marketing;
       if (!m || !(await m.enabled(sub))) return { consent: false, optedOut: false, quiet: null };
       const [consent, pref, suppressed, dq] = await Promise.all([this.deps.hasConsent(sub, consentPurposeOf('MARKETING', ctx.channel)), this.deps.preference(sub, ctx.channel), m.suppressed(sub, ctx.channel), m.defaultQuiet(Date.now())]);
-      return { consent, optedOut: suppressed || (!!pref && !pref.enabled), quiet: { startHour: pref?.quietStart ?? dq.startHour, endHour: pref?.quietEnd ?? dq.endHour, tzOffsetMinutes: dq.tzOffsetMinutes } };
+      return { consent, optedOut: suppressed || (!!pref && !pref.enabled), quiet: { startHour: pref?.quietStart ?? dq.startHour, endHour: pref?.quietEnd ?? dq.endHour, tzOffsetMinutes: dq.tzOffsetMinutes, ...(dq.zone ? { zone: dq.zone } : {}) } };
     }
     const consent = await this.deps.hasConsent(sub, consentPurposeOf(ctx.purpose));
     const pref = await this.deps.preference(sub, ctx.channel);
     return {
       consent, optedOut: !!pref && !pref.enabled,
-      quiet: { startHour: pref?.quietStart ?? c.quietStart, endHour: pref?.quietEnd ?? c.quietEnd, tzOffsetMinutes: marketOffsetMinutes() },
+      quiet: { startHour: pref?.quietStart ?? c.quietStart, endHour: pref?.quietEnd ?? c.quietEnd, tzOffsetMinutes: marketOffsetMinutes(), zone: marketZone() }, // the zone makes the two Cairo offset-change nights end the window at the right wall-clock hour (G-5)
     };
   }
 }
@@ -109,4 +117,12 @@ export function outcomeOf(state: DispatchState, channel: string, purpose: Purpos
   if (a.reason === 'NO_ADDRESS') return { kind: 'FAILED', reason: channel === 'PUSH' ? 'NO_DEVICE' : 'NO_RECIPIENT' };
   const rejected = a.reason === 'PHI_BLOCKED' || a.reason === 'SMS_TOO_LONG' || a.reason === 'RENDER_ERROR' || a.reason === 'PARAM_MISSING' || a.reason === 'PARAM_NOT_ALLOWED';
   return { kind: 'FAILED', reason: (rejected ? `${a.reason}:${a.detail ?? ''}` : (a.detail ?? a.reason ?? 'SEND_FAILED')).slice(0, 200) };
+}
+
+/** The AD-6 class of every template and the notify-layer purpose it is bound to (a class is fixed at definition time; MARKETING can never ride another purpose). */
+export function templateClassView(): Array<{ kind: NotifyKind; messageClass: MessageClass; purpose: Purpose; promotional: boolean; copyReview: string }> {
+  return (Object.keys(TEMPLATES) as NotifyKind[]).map((kind) => {
+    const t = TEMPLATES[kind];
+    return { kind, messageClass: messageClassOf(kind), purpose: t.marketing ? 'MARKETING' : t.reminder ? 'REMINDER' : 'TRANSACTIONAL', promotional: t.promotional === true, copyReview: t.copyReview ?? 'APPROVED' };
+  });
 }

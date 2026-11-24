@@ -58,6 +58,18 @@ export function PreferenceCentre() {
             </ul>
           </section>
 
+          <section className="kx-card space-y-3 p-4" aria-labelledby="pc-classes" data-testid="pc-classes">
+            <div><h2 id="pc-classes" className="text-lg">{t("consent.centre.classesTitle")}</h2><p className="text-sm text-muted-foreground">{t("consent.centre.classesBody")}</p></div>
+            <dl className="space-y-3">
+              {(["TRANSACTIONAL", "SECURITY", "CLINICAL", "MARKETING"] as const).map((c) => (
+                <div key={c} className="space-y-1" data-testid={`pc-class-${c}`}>
+                  <dt className="flex flex-wrap items-center gap-2 text-sm font-semibold">{t(`consent.centre.classes.${c}.name`)}<StatusChip tone={c === "MARKETING" ? "neutral" : "success"}>{c === "MARKETING" ? t("consent.centre.classOptional") : t("consent.centre.classRequired")}</StatusChip></dt>
+                  <dd className="text-sm text-muted-foreground">{t(`consent.centre.classes.${c}.body`)}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
           <section className="kx-card space-y-4 p-4" aria-labelledby="pc-choices">
             <h2 id="pc-choices" className="sr-only">{t("consent.centre.title")}</h2>
             <div className="flex items-start justify-between gap-3">

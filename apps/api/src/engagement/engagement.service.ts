@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit, forwardRef } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
 import { quietWindowEnd } from '../common/market-time';
@@ -18,6 +18,8 @@ export const CHANNELS = ['WHATSAPP', 'PUSH', 'SMS', 'EMAIL'] as const;
 export function humanizeTimes(params: Record<string, unknown>, locale: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(params)) {
+    // a date-only value (a reward expiry) reads as "26 Mar 2027" in the person's language: a raw 2027-03-26 also looks like a phone number to the PHI guard
+    if (k === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))) { out[k] = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${v}T00:00:00Z`)); continue; }
     out[k] = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) && !Number.isNaN(Date.parse(v))
       ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ar-EG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Africa/Cairo' }).format(new Date(v))
       : v;
@@ -30,10 +32,13 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   /** Every channel send goes through the shared notification layer (@kiorex/contracts/notify); the hub stays the transport + MessageLog. */
   private readonly notifier: ReturnType<typeof createPlatformNotifier>;
-  constructor(private readonly prisma: PrismaService, private readonly patients: PatientService, private readonly hub: MessagingHub, private readonly suppression: SuppressionService, private readonly flags: FlagsService, private readonly prefCentre: PreferenceCentreService) {
+  // forwardRef: the lifecycle package (growth) imports this module and the patient module imports growth, so the three patient classes may be mid-load when this class is defined
+  constructor(private readonly prisma: PrismaService, @Inject(forwardRef(() => PatientService)) private readonly patients: PatientService, private readonly hub: MessagingHub, @Inject(forwardRef(() => SuppressionService)) private readonly suppression: SuppressionService, private readonly flags: FlagsService, @Inject(forwardRef(() => PreferenceCentreService)) private readonly prefCentre: PreferenceCentreService) {
     this.notifier = createPlatformNotifier(hub, new PlatformPreferenceStore({
       hasConsent: (sub, purpose) => this.patients.hasConsent(sub, purpose),
       preference: (sub, channel) => this.prisma.notificationPreference.findUnique({ where: { sub_channel: { sub, channel } } }),
+      marketingSentSince: (sub, since) => this.marketingSentSince(sub, since),
+      isSuppressed: (channel, hash) => this.suppression.isHashSuppressed([hash], channel),
       // GRW-P1-I: marketing is denied unless the flag is effective, the channel consent is granted, the address is not suppressed, and it is outside the marketing quiet window
       marketing: {
         enabled: (sub) => this.marketingEnabled(sub),
@@ -41,7 +46,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
           const p = await this.patients.profileBySub(sub);
           return this.suppression.isSuppressed(channel === 'EMAIL' ? [p?.email] : channel === 'PUSH' || channel === 'INAPP' ? [] : [p?.phone], channel, p?.market ?? 'EG');
         },
-        defaultQuiet: async (at) => { const d = await this.prefCentre.consentDefaults(); return { startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
+        defaultQuiet: async (at) => { const d = await this.prefCentre.consentDefaults(); return { zone: d.quietHoursTimezone, startHour: Number(d.quietHoursStart.slice(0, 2)), endHour: Number(d.quietHoursEnd.slice(0, 2)), tzOffsetMinutes: tzOffsetMinutes(d.quietHoursTimezone, new Date(at)) }; },
       },
     }));
   }
@@ -57,17 +62,26 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
    */
   async marketingCapped(sub: string, currentDedupeKey: string | null, now = new Date()): Promise<'FREQUENCY_CAP_DAY' | 'FREQUENCY_CAP_WEEK' | null> {
     const d = await this.prefCentre.consentDefaults();
+    const sent = await this.marketingSentSince(sub, new Date(now.getTime() - 7 * 86_400_000), currentDedupeKey);
+    const day = sent.filter((t) => t.getTime() >= now.getTime() - 86_400_000).length;
+    if (d.maxMarketingPerDay <= 0 || day >= d.maxMarketingPerDay) return 'FREQUENCY_CAP_DAY';
+    if (d.maxMarketingPerWeek <= 0 || sent.length >= d.maxMarketingPerWeek) return 'FREQUENCY_CAP_WEEK';
+    return null;
+  }
+
+  /**
+   * GRW-P2-E: the instants of a person's distinct logical MARKETING sends since `since` (all channels, campaigns and journeys alike, one budget). A notify() fans one dedupe
+   * base key out to several channels, so the rows are folded by base key; the delivery in progress (`excludeDedupeKey`) is never counted against itself.
+   */
+  async marketingSentSince(sub: string, since: Date, excludeDedupeKey: string | null = null): Promise<Date[]> {
     const marketingTemplateIds = Object.values(TEMPLATES).filter((t) => t.marketing).map((t) => t.templateId);
-    if (!marketingTemplateIds.length) return null;
-    const rows = await this.prisma.message.findMany({ where: { sub, status: 'SENT', templateId: { in: marketingTemplateIds }, sentAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } }, select: { dedupeKey: true, sentAt: true } });
+    if (!marketingTemplateIds.length) return [];
+    const rows = await this.prisma.message.findMany({ where: { sub, status: 'SENT', templateId: { in: marketingTemplateIds }, sentAt: { gte: since } }, select: { dedupeKey: true, sentAt: true } });
     const base = (k: string | null) => (k ?? '').replace(/:(INAPP|WHATSAPP|PUSH|SMS|EMAIL)$/, '');
-    const me = currentDedupeKey ? base(currentDedupeKey) : null;
+    const me = excludeDedupeKey ? base(excludeDedupeKey) : null;
     const logical = new Map<string, Date>();
     for (const r of rows) { const b = base(r.dedupeKey) || String(r.sentAt); if (b !== me && r.sentAt) logical.set(b, r.sentAt); }
-    const day = [...logical.values()].filter((t) => t.getTime() >= now.getTime() - 86_400_000).length;
-    if (d.maxMarketingPerDay <= 0 || day >= d.maxMarketingPerDay) return 'FREQUENCY_CAP_DAY';
-    if (d.maxMarketingPerWeek <= 0 || logical.size >= d.maxMarketingPerWeek) return 'FREQUENCY_CAP_WEEK';
-    return null;
+    return [...logical.values()];
   }
 
   onModuleInit() {
@@ -85,8 +99,8 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     return end === null ? null : new Date(end);
   }
 
-  async notify(sub: string, o: { kind: NotifyKind; bookingId?: string; params?: Record<string, unknown>; scheduledFor?: Date; dedupeKey: string; channels?: string[] }) {
-    const channels = ['INAPP', ...(o.channels ?? ['WHATSAPP', 'PUSH'])];
+  async notify(sub: string, o: { kind: NotifyKind; bookingId?: string; params?: Record<string, unknown>; scheduledFor?: Date; dedupeKey: string; channels?: string[]; /** GRW-P2-E: send on exactly `channels`, no implicit in-app copy. */ exact?: boolean }) {
+    const channels = o.exact ? [...(o.channels ?? [])] : ['INAPP', ...(o.channels ?? ['WHATSAPP', 'PUSH'])];
     const profile = await this.patients.profileBySub(sub);
     const locale = profile?.preferredLocale ?? 'ar';
     const t = TEMPLATES[o.kind];

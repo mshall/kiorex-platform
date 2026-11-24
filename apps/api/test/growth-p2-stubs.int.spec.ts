@@ -13,7 +13,6 @@ describe('growth Phase 2 module stubs', () => {
     ['referral claim', 'post', '/api/v1/growth/v1/referral/claim', 'growth.patient_referral', 'GRW-P2-B1'],
     ['assistant link', 'post', '/api/v1/growth/v1/assistant/link', 'kiorex.whatsapp_ai_assistant', 'GRW-P2-D'],
     ['rewards admin', 'get', '/api/v1/admin/growth/rewards', 'growth.rewards', 'GRW-P2-B2'],
-    ['lifecycle admin', 'get', '/api/v1/admin/growth/lifecycle', 'growth.lifecycle_journeys', 'GRW-P2-E'],
   ];
   it.each(routes)('%s answers 404 FEATURE_DISABLED with the flag and the package that will fill it', async (_n, method, path, key, pkg) => {
     const r = await c.http()[method](path).send({});

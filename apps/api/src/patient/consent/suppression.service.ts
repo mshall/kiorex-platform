@@ -41,6 +41,12 @@ export class SuppressionService {
     return r.count;
   }
 
+  /** GRW-P2-E: the same check by keyed hash (the lifecycle gate and ops tools hold hashes, never raw addresses). */
+  async isHashSuppressed(hashes: string[], channel: string, market = 'EG'): Promise<boolean> {
+    if (!hashes.length) return false;
+    return (await this.prisma.communicationSuppression.count({ where: { market, addressHash: { in: hashes }, channel: { in: [channel, 'ALL'] }, liftedAt: null } })) > 0;
+  }
+
   /** True when the address is suppressed for this channel (a row for the channel or for ALL, not lifted). */
   async isSuppressed(addresses: Array<string | null | undefined>, channel: string, market = 'EG'): Promise<boolean> {
     const hashes = addresses.filter((a): a is string => !!a).map(addressHash);
