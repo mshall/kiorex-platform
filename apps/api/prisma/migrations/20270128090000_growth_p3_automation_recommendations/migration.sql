@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS "GrowthRecommendation" (
       ("payload"::text || "evidenceRefs"::text || COALESCE("aiSummary"::text, '')) !~* '"(sub|subject|subjecthash|userid|patientid|phone|email|msisdn|name|dob|nationalid|visitorkey|addresshash|deviceid|doctor|doctorref|provider|providerref|branchref|specialty|diagnosis|condition|symptom|icd|prescription|medication)"\s*:'
     )
 );
-CREATE INDEX IF NOT EXISTS "GrowthRecommendation_market_status_idx" ON "GrowthRecommendation"("market", "status", "createdAt");
+CREATE INDEX IF NOT EXISTS "GrowthRecommendation_market_status_createdAt_idx" ON "GrowthRecommendation"("market", "status", "createdAt");
 CREATE INDEX IF NOT EXISTS "GrowthRecommendation_expiresAt_idx" ON "GrowthRecommendation"("expiresAt") WHERE "status" = 'PROPOSED';
 -- one open proposal per (market, kind, fingerprint): the engine is idempotent
 CREATE UNIQUE INDEX IF NOT EXISTS "GrowthRecommendation_open_fingerprint_key" ON "GrowthRecommendation"("market", "kind", "fingerprint") WHERE "status" = 'PROPOSED';

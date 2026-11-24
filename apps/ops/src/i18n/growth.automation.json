@@ -1,0 +1,456 @@
+{
+  "en": {
+    "growth": {
+      "sections": {
+        "automation": {
+          "nav": "Automation",
+          "title": "Marketing automation",
+          "hint": "Build journeys from a closed set of steps, dry-run them and publish with a second approver."
+        }
+      },
+      "automation": {
+        "new": "New journey",
+        "back": "Back to journeys",
+        "banner": {
+          "automationOff": "Automation is switched OFF for this market. You can read and draft, but nothing can be published or started.",
+          "licenceOff": "The marketing licence flag is not effective. Marketing steps are built and dry-run, but every marketing send is skipped with a reason until counsel's gate is recorded.",
+          "licenceOn": "The marketing licence flag is effective for this market."
+        },
+        "status": {
+          "DRAFT": "Draft",
+          "PENDING_APPROVAL": "Waiting for a second person",
+          "PUBLISHED": "Published",
+          "RETIRED": "Retired"
+        },
+        "killed": "Stopped by kill switch",
+        "list": {
+          "title": "Journeys",
+          "empty": "No journeys yet. Start from the two-step win-back example.",
+          "filter": "Status",
+          "all": "All",
+          "trigger": "Starts when",
+          "version": "Version",
+          "author": "Author",
+          "approver": "Approver"
+        },
+        "trigger": {
+          "REGISTERED": "A person registers",
+          "BOOKING_STARTED": "A booking is started",
+          "BOOKING_EXPIRED": "A booking request expires",
+          "VISIT_COMPLETED": "A visit is completed",
+          "REFERRAL_QUALIFIED": "A referral qualifies",
+          "REWARD_EVENT": "A reward is issued",
+          "CONSENT_CHANGED": "A consent changes",
+          "STAGE_DORMANT": "A person becomes dormant"
+        },
+        "template": {
+          "WELCOME": "Welcome",
+          "BOOKING_RECOVERY": "Unfinished booking nudge",
+          "FEEDBACK_REMINDER": "Feedback reminder",
+          "REENGAGE_DORMANT": "Win-back message",
+          "REFERRAL_NUDGE": "Referral nudge",
+          "REFERRAL_INVITE_CARD": "Referral card (in app)",
+          "FAMILY_ONBOARDING": "Family members nudge",
+          "FAMILY_ONBOARDING_CARD": "Family members card (in app)"
+        },
+        "class": {
+          "MARKETING": "Marketing",
+          "TRANSACTIONAL": "Service"
+        },
+        "channel": {
+          "PUSH": "Push",
+          "WHATSAPP": "WhatsApp",
+          "SMS": "SMS",
+          "EMAIL": "E-mail",
+          "INAPP": "In app"
+        },
+        "unit": {
+          "minutes": "minutes",
+          "hours": "hours",
+          "days": "days"
+        },
+        "builder": {
+          "title": "Journey builder",
+          "readOnlyNarrow": "Editing needs a wider screen. Here you can read the journey and its checks.",
+          "readOnlyGraph": "This journey uses a shape the form cannot draw, so it is shown read-only.",
+          "fields": {
+            "key": "Journey key",
+            "name": "Name",
+            "trigger": "Starts when"
+          },
+          "steps": "Steps",
+          "add": "Add a step",
+          "addWait": "Wait",
+          "addCondition": "Condition",
+          "addSend": "Send a message",
+          "addSplit": "Split by experiment",
+          "removeSplit": "Remove the split",
+          "remove": "Remove this step",
+          "up": "Move up",
+          "down": "Move down",
+          "wait": "Wait",
+          "waitHint": "Between 15 minutes and 90 days.",
+          "condition": "Continue only if",
+          "conditionHint": "Non-clinical facts only. If it does not hold, the journey ends for that person.",
+          "attr": {
+            "stage": "Lifecycle stage",
+            "language": "Language",
+            "platform": "Platform",
+            "hasDependants": "Has family members on the account",
+            "lastBooking": "Days since the last booking",
+            "min": "at least",
+            "max": "at most",
+            "any": "Any",
+            "yes": "Yes",
+            "no": "No"
+          },
+          "send": "Send",
+          "channels": "Channels, in order of preference",
+          "channelsHint": "Leave empty for the default order. The first channel that passes the gate is used.",
+          "gate": "Consent and gate (added automatically, cannot be removed)",
+          "gateChecks": "Checks: marketing licence flag, holdout, channel consent, opt-out, suppression, quiet hours, frequency cap, WhatsApp template, PHI guard, duplicates.",
+          "exits": "Always ends the journey: a booking is made, the account is deleted, marketing consent is withdrawn, the person is suppressed. At most 3 messages per person per journey and 4 per 30 days across journeys.",
+          "split": "Split by experiment",
+          "splitHint": "People are assigned to arms by an existing experiment on the win-back message surface; everyone is on the control arm if it stops.",
+          "experiment": "Experiment key",
+          "arm": "Arm",
+          "variant": "Variant key",
+          "validating": "Checking…",
+          "valid": "The journey passes every check.",
+          "invalid": "Fix these before saving:",
+          "save": "Save draft",
+          "saved": "Draft saved.",
+          "dryRun": "Dry run",
+          "preview": "What will run",
+          "previewStep": "Step {{n}}: {{template}} after {{delay}}",
+          "immediately": "no delay",
+          "needsRole": "Only a super admin can build and publish journeys.",
+          "example": "Start from the two-step win-back example"
+        },
+        "detail": {
+          "design": "Design",
+          "actions": "Actions",
+          "runs": "Counts per day",
+          "runsHint": "Counts only: no person and no message appears here.",
+          "active": "People in the journey now: {{n}}",
+          "submit": "Submit for approval",
+          "approve": "Approve and publish",
+          "reject": "Send back",
+          "retire": "Retire",
+          "kill": "Kill switch",
+          "killReason": "Why stop it now",
+          "killConfirm": "Stop this journey now",
+          "approveHint": "A different person from the author must approve (two-person rule).",
+          "killHint": "Takes effect on the next evaluation of every person in the journey. It cannot be undone; publish a new version to resume.",
+          "done": "Done.",
+          "warnMarketing": "Published. Marketing sends will be skipped until the marketing licence flag is effective.",
+          "col": {
+            "day": "Day",
+            "enrolled": "Started",
+            "sent": "Sent",
+            "skipped": "Skipped",
+            "ended": "Ended"
+          }
+        },
+        "dry": {
+          "title": "Dry run on a synthetic cohort",
+          "hint": "No real person is read and nothing is sent. The gate decisions are the real ones.",
+          "size": "Cohort size",
+          "run": "Run",
+          "step": "Step",
+          "reached": "Reached",
+          "sent": "Would send",
+          "deferred": "Deferred (quiet hours)",
+          "skipped": "Skipped, by reason",
+          "exits": "Left the journey",
+          "total": "Total sent: {{n}}",
+          "perPerson": "At most {{n}} per person",
+          "flagOff": "The marketing licence flag is not effective: every marketing send is skipped.",
+          "none": "none",
+          "reason": {
+            "MARKETING_FLAG_OFF": "Marketing licence flag",
+            "HOLDOUT": "Measurement holdout",
+            "NO_CONSENT": "No consent",
+            "CHANNEL_OPTED_OUT": "Channel opted out",
+            "SUPPRESSED": "Suppressed",
+            "CAP_DAY": "Daily cap",
+            "CAP_WEEK": "Weekly cap",
+            "NO_ADDRESS": "No address",
+            "WHATSAPP_TEMPLATE_REQUIRED": "WhatsApp template needed",
+            "PHI_BLOCKED": "Health text blocked",
+            "DUPLICATE": "Duplicate",
+            "NOT_ELIGIBLE": "Not eligible"
+          },
+          "exit": {
+            "CONDITION_FALSE": "Condition not met",
+            "SEND_CAP": "Per-person cap reached",
+            "EXIT_SUPPRESSED": "Suppressed",
+            "EXIT_CONSENT": "No marketing consent"
+          }
+        },
+        "err": {
+          "generic": "Something went wrong. Try again.",
+          "JOURNEY_INVALID": "The journey has errors. Fix the items listed.",
+          "JOURNEY_TWO_PERSON_RULE": "A different person must approve this journey.",
+          "JOURNEY_NOT_EDITABLE": "A published journey cannot be edited. Make a new version.",
+          "JOURNEY_AUTHOR_ONLY": "Only the author edits a draft.",
+          "JOURNEY_DRAFT_EXISTS": "This key already has an open draft.",
+          "JOURNEY_KEY_INVALID": "The key must be lower case letters, digits and dashes.",
+          "JOURNEY_REASON_REQUIRED": "A reason is required.",
+          "FEATURE_DISABLED": "This feature is switched off.",
+          "FORBIDDEN_ROLE": "Your role cannot do this."
+        },
+        "vcode": {
+          "SCHEMA": "The graph is malformed.",
+          "UNKNOWN_FIELD": "A field that does not exist was used.",
+          "UNKNOWN_NODE_TYPE": "A step type that does not exist was used. The consent and gate step is added automatically.",
+          "TOO_MANY_NODES": "At most 12 steps.",
+          "DUPLICATE_ID": "Two steps share an id.",
+          "NO_TRIGGER": "Pick when the journey starts.",
+          "MULTIPLE_TRIGGERS": "Only one start event.",
+          "TRIGGER_EVENT_NOT_ALLOWED": "That start event is not allowed.",
+          "WAIT_RANGE": "A wait is between 15 minutes and 90 days.",
+          "CONDITION_INVALID": "The condition is not valid.",
+          "CLINICAL_REFERENCE": "Health, provider or order information cannot be used.",
+          "TEMPLATE_NOT_ALLOWED": "That message cannot be used in a journey.",
+          "CHANNEL_NOT_ALLOWED": "That channel cannot be used for this message.",
+          "EDGE_INVALID": "A connection is not valid.",
+          "BRANCH_INVALID": "The split needs 2 or 3 arms, one of them \"control\".",
+          "UNREACHABLE": "A step cannot be reached.",
+          "NO_END": "The journey needs an end.",
+          "DEAD_END": "A step leads nowhere.",
+          "CYCLE_WITHOUT_DAILY_WAIT": "A loop needs a wait of at least one day.",
+          "SEND_CAP": "At most 3 messages per person in one journey.",
+          "NO_SEND": "The journey needs at least one message."
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "sections": {
+        "automation": {
+          "nav": "الأتمتة",
+          "title": "أتمتة التسويق",
+          "hint": "ابنِ رحلات من خطوات محددة، جرّبها بدون إرسال، وانشرها بموافقة شخص ثانٍ."
+        }
+      },
+      "automation": {
+        "new": "رحلة جديدة",
+        "back": "الرجوع للرحلات",
+        "banner": {
+          "automationOff": "الأتمتة متوقفة لهذه السوق. تقدر تقرأ وتكتب مسودات، لكن مفيش نشر أو تشغيل.",
+          "licenceOff": "علم الترخيص التسويقي غير فعّال. تقدر تبني خطوات التسويق وتجربها، لكن أي إرسال تسويقي بيتخطى مع ذكر السبب لحد تسجيل بوابة المستشار القانوني.",
+          "licenceOn": "علم الترخيص التسويقي فعّال لهذه السوق."
+        },
+        "status": {
+          "DRAFT": "مسودة",
+          "PENDING_APPROVAL": "في انتظار شخص ثانٍ",
+          "PUBLISHED": "منشورة",
+          "RETIRED": "متقاعدة"
+        },
+        "killed": "موقوفة بمفتاح الإيقاف",
+        "list": {
+          "title": "الرحلات",
+          "empty": "لا توجد رحلات بعد. ابدأ من مثال رحلة استرجاع من خطوتين.",
+          "filter": "الحالة",
+          "all": "الكل",
+          "trigger": "تبدأ عند",
+          "version": "الإصدار",
+          "author": "الكاتب",
+          "approver": "المُعتمِد"
+        },
+        "trigger": {
+          "REGISTERED": "شخص يسجّل",
+          "BOOKING_STARTED": "حجز يبدأ",
+          "BOOKING_EXPIRED": "طلب حجز ينتهي",
+          "VISIT_COMPLETED": "زيارة تكتمل",
+          "REFERRAL_QUALIFIED": "إحالة تتأهل",
+          "REWARD_EVENT": "مكافأة تُصدر",
+          "CONSENT_CHANGED": "موافقة تتغير",
+          "STAGE_DORMANT": "شخص يصبح غير نشط"
+        },
+        "template": {
+          "WELCOME": "ترحيب",
+          "BOOKING_RECOVERY": "تذكير بحجز غير مكتمل",
+          "FEEDBACK_REMINDER": "تذكير بالتقييم",
+          "REENGAGE_DORMANT": "رسالة استرجاع",
+          "REFERRAL_NUDGE": "تشجيع على الإحالة",
+          "REFERRAL_INVITE_CARD": "بطاقة الإحالة (في التطبيق)",
+          "FAMILY_ONBOARDING": "تشجيع لإضافة أفراد العائلة",
+          "FAMILY_ONBOARDING_CARD": "بطاقة أفراد العائلة (في التطبيق)"
+        },
+        "class": {
+          "MARKETING": "تسويقية",
+          "TRANSACTIONAL": "خدمية"
+        },
+        "channel": {
+          "PUSH": "إشعار",
+          "WHATSAPP": "واتساب",
+          "SMS": "رسالة نصية",
+          "EMAIL": "بريد إلكتروني",
+          "INAPP": "داخل التطبيق"
+        },
+        "unit": {
+          "minutes": "دقائق",
+          "hours": "ساعات",
+          "days": "أيام"
+        },
+        "builder": {
+          "title": "منشئ الرحلات",
+          "readOnlyNarrow": "التعديل يحتاج شاشة أوسع. هنا تقدر تقرأ الرحلة وفحوصها.",
+          "readOnlyGraph": "هذه الرحلة بشكل لا يرسمه النموذج، فهي معروضة للقراءة فقط.",
+          "fields": {
+            "key": "مفتاح الرحلة",
+            "name": "الاسم",
+            "trigger": "تبدأ عند"
+          },
+          "steps": "الخطوات",
+          "add": "إضافة خطوة",
+          "addWait": "انتظار",
+          "addCondition": "شرط",
+          "addSend": "إرسال رسالة",
+          "addSplit": "تقسيم حسب تجربة",
+          "removeSplit": "إزالة التقسيم",
+          "remove": "حذف هذه الخطوة",
+          "up": "نقل لأعلى",
+          "down": "نقل لأسفل",
+          "wait": "انتظر",
+          "waitHint": "من 15 دقيقة إلى 90 يومًا.",
+          "condition": "كمّل فقط لو",
+          "conditionHint": "حقائق غير طبية فقط. لو الشرط مش متحقق بتنتهي الرحلة للشخص.",
+          "attr": {
+            "stage": "مرحلة العميل",
+            "language": "اللغة",
+            "platform": "المنصة",
+            "hasDependants": "لديه أفراد عائلة على الحساب",
+            "lastBooking": "الأيام منذ آخر حجز",
+            "min": "على الأقل",
+            "max": "على الأكثر",
+            "any": "أي",
+            "yes": "نعم",
+            "no": "لا"
+          },
+          "send": "أرسل",
+          "channels": "القنوات بترتيب الأفضلية",
+          "channelsHint": "اتركها فارغة للترتيب الافتراضي. تُستخدم أول قناة تعدي البوابة.",
+          "gate": "الموافقة والبوابة (تُضاف تلقائيًا ولا يمكن حذفها)",
+          "gateChecks": "الفحوص: علم الترخيص التسويقي، مجموعة القياس، موافقة القناة، إلغاء الاشتراك، قائمة الإيقاف، ساعات الهدوء، حد التكرار، قالب واتساب، حارس البيانات الصحية، التكرار.",
+          "exits": "تنتهي الرحلة دائمًا عند: إتمام حجز، حذف الحساب، سحب الموافقة التسويقية، الإيقاف. حد أقصى 3 رسائل للشخص في الرحلة و4 كل 30 يومًا عبر الرحلات.",
+          "split": "تقسيم حسب تجربة",
+          "splitHint": "يُوزَّع الأشخاص على الفروع بتجربة قائمة على سطح رسالة الاسترجاع؛ ويعود الجميع للفرع الأساسي إن توقفت.",
+          "experiment": "مفتاح التجربة",
+          "arm": "الفرع",
+          "variant": "مفتاح النسخة",
+          "validating": "جارٍ الفحص…",
+          "valid": "الرحلة تجتاز كل الفحوص.",
+          "invalid": "صحّح هذه البنود قبل الحفظ:",
+          "save": "حفظ المسودة",
+          "saved": "تم حفظ المسودة.",
+          "dryRun": "تجربة بدون إرسال",
+          "preview": "ما الذي سيعمل",
+          "previewStep": "الخطوة {{n}}: {{template}} بعد {{delay}}",
+          "immediately": "بدون تأخير",
+          "needsRole": "المشرف العام فقط يبني الرحلات وينشرها.",
+          "example": "ابدأ من مثال الاسترجاع بخطوتين"
+        },
+        "detail": {
+          "design": "التصميم",
+          "actions": "الإجراءات",
+          "runs": "الأعداد يوميًا",
+          "runsHint": "أعداد فقط: لا يظهر هنا أي شخص أو رسالة.",
+          "active": "الأشخاص داخل الرحلة الآن: {{n}}",
+          "submit": "إرسال للاعتماد",
+          "approve": "اعتماد ونشر",
+          "reject": "إعادة للمسودة",
+          "retire": "إيقاف الرحلة نهائيًا",
+          "kill": "مفتاح الإيقاف",
+          "killReason": "سبب الإيقاف الآن",
+          "killConfirm": "أوقف الرحلة الآن",
+          "approveHint": "لازم يعتمدها شخص غير الكاتب (قاعدة الشخصين).",
+          "killHint": "تسري عند التقييم التالي لكل شخص داخل الرحلة. لا يمكن التراجع؛ انشر إصدارًا جديدًا للاستئناف.",
+          "done": "تم.",
+          "warnMarketing": "تم النشر. سيُتخطى الإرسال التسويقي لحين تفعيل علم الترخيص التسويقي.",
+          "col": {
+            "day": "اليوم",
+            "enrolled": "بدأت",
+            "sent": "أُرسلت",
+            "skipped": "تُخطّيت",
+            "ended": "انتهت"
+          }
+        },
+        "dry": {
+          "title": "تجربة على مجموعة تجريبية",
+          "hint": "لا يُقرأ أي شخص حقيقي ولا يُرسل شيء. قرارات البوابة هي نفسها الفعلية.",
+          "size": "حجم المجموعة",
+          "run": "شغّل",
+          "step": "الخطوة",
+          "reached": "وصلت",
+          "sent": "سيُرسل",
+          "deferred": "مؤجّل (ساعات الهدوء)",
+          "skipped": "متخطّى حسب السبب",
+          "exits": "غادروا الرحلة",
+          "total": "إجمالي المُرسل: {{n}}",
+          "perPerson": "حد أقصى {{n}} للشخص",
+          "flagOff": "علم الترخيص التسويقي غير فعّال: يُتخطى كل إرسال تسويقي.",
+          "none": "لا شيء",
+          "reason": {
+            "MARKETING_FLAG_OFF": "علم الترخيص التسويقي",
+            "HOLDOUT": "مجموعة القياس",
+            "NO_CONSENT": "بدون موافقة",
+            "CHANNEL_OPTED_OUT": "القناة موقوفة",
+            "SUPPRESSED": "في قائمة الإيقاف",
+            "CAP_DAY": "حد اليوم",
+            "CAP_WEEK": "حد الأسبوع",
+            "NO_ADDRESS": "بدون عنوان",
+            "WHATSAPP_TEMPLATE_REQUIRED": "يلزم قالب واتساب",
+            "PHI_BLOCKED": "نص صحي محجوب",
+            "DUPLICATE": "مكرر",
+            "NOT_ELIGIBLE": "غير مؤهل"
+          },
+          "exit": {
+            "CONDITION_FALSE": "الشرط غير متحقق",
+            "SEND_CAP": "بلغ الحد للشخص",
+            "EXIT_SUPPRESSED": "في قائمة الإيقاف",
+            "EXIT_CONSENT": "بدون موافقة تسويقية"
+          }
+        },
+        "err": {
+          "generic": "حدث خطأ. حاول مرة أخرى.",
+          "JOURNEY_INVALID": "الرحلة فيها أخطاء. صحّح البنود المذكورة.",
+          "JOURNEY_TWO_PERSON_RULE": "لازم شخص آخر يعتمد هذه الرحلة.",
+          "JOURNEY_NOT_EDITABLE": "لا يمكن تعديل رحلة منشورة. اعمل إصدارًا جديدًا.",
+          "JOURNEY_AUTHOR_ONLY": "الكاتب فقط يعدّل المسودة.",
+          "JOURNEY_DRAFT_EXISTS": "هذا المفتاح له مسودة مفتوحة بالفعل.",
+          "JOURNEY_KEY_INVALID": "المفتاح حروف إنجليزية صغيرة وأرقام وشرطات.",
+          "JOURNEY_REASON_REQUIRED": "السبب مطلوب.",
+          "FEATURE_DISABLED": "هذه الميزة متوقفة.",
+          "FORBIDDEN_ROLE": "دورك لا يسمح بهذا."
+        },
+        "vcode": {
+          "SCHEMA": "الرسم غير سليم.",
+          "UNKNOWN_FIELD": "تم استخدام حقل غير موجود.",
+          "UNKNOWN_NODE_TYPE": "نوع خطوة غير موجود. خطوة الموافقة والبوابة تُضاف تلقائيًا.",
+          "TOO_MANY_NODES": "حد أقصى 12 خطوة.",
+          "DUPLICATE_ID": "خطوتان بنفس المعرّف.",
+          "NO_TRIGGER": "اختر متى تبدأ الرحلة.",
+          "MULTIPLE_TRIGGERS": "حدث بداية واحد فقط.",
+          "TRIGGER_EVENT_NOT_ALLOWED": "حدث البداية غير مسموح.",
+          "WAIT_RANGE": "الانتظار بين 15 دقيقة و90 يومًا.",
+          "CONDITION_INVALID": "الشرط غير صالح.",
+          "CLINICAL_REFERENCE": "لا يمكن استخدام معلومات صحية أو عن مقدّم خدمة أو طلبات.",
+          "TEMPLATE_NOT_ALLOWED": "هذه الرسالة لا تُستخدم في الرحلات.",
+          "CHANNEL_NOT_ALLOWED": "لا يمكن استخدام هذه القناة لهذه الرسالة.",
+          "EDGE_INVALID": "اتصال غير صالح.",
+          "BRANCH_INVALID": "التقسيم يحتاج فرعين أو ثلاثة، أحدها \"control\".",
+          "UNREACHABLE": "خطوة لا يمكن الوصول إليها.",
+          "NO_END": "الرحلة تحتاج نهاية.",
+          "DEAD_END": "خطوة لا تؤدي إلى شيء.",
+          "CYCLE_WITHOUT_DAILY_WAIT": "التكرار يحتاج انتظار يوم على الأقل.",
+          "SEND_CAP": "حد أقصى 3 رسائل للشخص في الرحلة.",
+          "NO_SEND": "الرحلة تحتاج رسالة واحدة على الأقل."
+        }
+      }
+    }
+  }
+}

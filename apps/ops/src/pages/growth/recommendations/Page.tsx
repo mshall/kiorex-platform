@@ -1,4 +1,9 @@
-import GrowthPlannedPage from "@/pages/growth/GrowthPlannedPage";
+import { useSearchParams } from "react-router-dom";
+import RecommendationDetail from "./RecommendationDetail";
+import RecommendationsPage from "./RecommendationsPage";
 
-/** GRW-P2-X1 route placeholder. The owning package replaces this file (and flips its `status` line in components/growth/sections.ts); nobody else edits it. */
-export default function RecommendationsPage() { return <GrowthPlannedPage section="recommendations" />; }
+/** GRW-P3-E: AI-assisted campaign recommendations (replaces the GRW-P2-X1 placeholder). One route: the list (default) and `?id=<id>` one recommendation. */
+export default function RecommendationsRoute() {
+  const [sp] = useSearchParams(); const id = sp.get("id");
+  return id ? <RecommendationDetail id={id} /> : <RecommendationsPage />;
+}

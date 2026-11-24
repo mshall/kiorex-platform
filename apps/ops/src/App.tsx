@@ -71,6 +71,7 @@ const GrowthCohortsPage = lazy(() => import("@/pages/growth/cohorts/Page"));
 const GrowthReviewQueuePage = lazy(() => import("@/pages/growth/review-queue/Page"));
 const GrowthOnboardingPage = lazy(() => import("@/pages/growth/onboarding/Page"));
 const GrowthRecommendationsPage = lazy(() => import("@/pages/growth/recommendations/Page"));
+const GrowthAutomationPage = lazy(() => import("@/pages/growth/automation/Page")); // GRW-P3-E
 const GrowthCorporatePage = lazy(() => import("@/pages/growth/corporate/Page"));
 const GrowthLoyaltyPage = lazy(() => import("@/pages/growth/loyalty/Page"));
 
@@ -146,6 +147,7 @@ export function AppRoutes() {
           <Route path="growth/cohorts" element={<GrowthCohortsPage />} />
           <Route path="growth/review-queue" element={<GrowthReviewQueuePage />} />
           <Route path="growth/onboarding" element={<GrowthOnboardingPage />} />
+          <Route path="growth/automation" element={<GrowthAutomationPage />} />
           <Route path="growth/recommendations" element={<GrowthRecommendationsPage />} />
           <Route path="growth/corporate" element={<GrowthCorporatePage />} />
           <Route path="growth/loyalty" element={<GrowthLoyaltyPage />} />
