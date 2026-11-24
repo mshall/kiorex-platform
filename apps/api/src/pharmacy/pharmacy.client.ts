@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { partnerRequest } from '../common/partner-http';
 import { PartnerRegistry } from '../partners/partners-public';
+import type { ProductAcquisitionBlockOut } from '../growth/growth-ports-public';
 
 /**
  * Kiorly Pharmacy machine API client (kiorex-contracts openapi/kiorly-pharmacy.v1.openapi.json; KX-06 KPMKT01-05, KPINV07).
@@ -36,6 +37,8 @@ export interface PharmacyOrderIntent {
   delivery: { method: string; address?: unknown };
   payment: { reference: string | null; totalMinor: number; currency: string };
   prescription?: { recordRef: string; verificationToken: string };
+  /** GRW-P4-B2 optional acquisition block (contracts 1.12.0 `ProductAcquisitionBlock`). Never patient data; can only describe, never add a fee. */
+  acquisition?: ProductAcquisitionBlockOut;
 }
 
 export interface PharmacyDto { id: string; name: string; delivery: { enabled: boolean; feeMinor: number; radiusKm?: number }; pickup: boolean; prepMinutes?: number }

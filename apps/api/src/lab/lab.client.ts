@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { partnerRequest } from '../common/partner-http';
+import type { ProductAcquisitionBlockOut } from '../growth/growth-ports-public';
 import { PartnerRegistry } from '../partners/partners-public';
 
 /**
@@ -34,6 +35,8 @@ export interface LabOrderIntent {
   testCodes: string[];
   collection: { type: 'IN_LAB' | 'HOME'; address?: string; windowStart: string; windowEnd: string; contactPhone?: string };
   consentChannels: ('KIOREX_VAULT')[];
+  /** GRW-P4-B2 optional acquisition block (contracts 1.12.0 `ProductAcquisitionBlock`). Never patient data; can only describe, never add a fee. */
+  acquisition?: ProductAcquisitionBlockOut;
 }
 /** Arabic fields are optional (contracts 1.8.0): when the lab holds none the patient apps show the English `name` / `preparation` / `sampleType`. */
 export interface LabTestDto { labId: string; labName: string; code: string; name: string; nameAr?: string; priceMinor: number; sampleType?: string; sampleTypeAr?: string; homeCollection: boolean; preparation?: string; preparationAr?: string }

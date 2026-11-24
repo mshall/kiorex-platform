@@ -1,4 +1,5 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { PRODUCT_GROWTH, type ProductGrowthPort } from '../growth/growth-ports-public';
 import { Prisma, PharmacyOrder } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
@@ -34,6 +35,7 @@ export class PharmacyService implements OnModuleInit {
     private readonly prisma: PrismaService, private readonly client: PharmacyClient, private readonly pay: PayService, private readonly records: RecordsService,
     private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly policy: PolicyService,
     private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry,
+    @Optional() @Inject(PRODUCT_GROWTH) private readonly growth?: ProductGrowthPort, // GRW-P4-B2: product decision (optional: absent = exactly as before)
   ) {}
 
   onModuleInit() {
@@ -164,8 +166,12 @@ export class PharmacyService implements OnModuleInit {
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'PHARMACY', sub, partnerId: `ph:${cart.pharmacyId}`, amountMinor: t.totalMinor, currency: order.currency });
     await this.prisma.pharmacyOrder.update({ where: { id }, data: { paymentId: p.id } });
     await this.prisma.pharmacyCart.delete({ where: { sub } });
+    // GRW-P4-B2: one decision after the order exists, never blocking it (the port swallows and counts failures; submit decides lazily and a repair job retries)
+    await this.growth?.decide({ product: 'PHARMACY', factKind: 'ORDER', factId: id, sub, orgRef: await this.policyOrgOrNull(order.registrationId), createdAt: order.createdAt });
     return this.present(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id } }));
   }
+
+  private async policyOrgOrNull(registrationId: string | null) { return this.registry.orgRefOf(registrationId); }
 
   /** Organisation scope for per-org policy overrides: the owning partner's own organisation id; dev/env registrations (no connection record) keep keying by the pharmacy id. */
   private async policyOrg(o: PharmacyOrder) { return (await this.registry.orgRefOf(o.registrationId)) ?? o.pharmacyId; }
@@ -231,6 +237,8 @@ export class PharmacyService implements OnModuleInit {
       payment: { reference: o.paymentId, totalMinor: o.totalMinor, currency: o.currency },
       prescription: rx as PharmacyOrderIntent['prescription'],
     };
+    const acquisition = await this.growth?.acquisitionBlock({ product: 'PHARMACY', factKind: 'ORDER', factId: o.id, sub: o.sub, orgRef: await this.policyOrgOrNull(o.registrationId), createdAt: o.createdAt });
+    if (acquisition) intent.acquisition = acquisition; // GRW-P4-B2: optional, same value on every retry (the decision is stored)
     try {
       const { data } = await this.client.createOrder(o.id, intent, o.registrationId);
       if (data.status === 'REJECTED' || data.status === 'CANCELLED' || data.status === 'EXPIRED') return this.reject(o, `PHARMACY_${data.status}`);

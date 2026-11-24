@@ -68,3 +68,16 @@ export interface ReferralPort {
   onBookingCancelled(bookingId: string): Promise<void>;
 }
 export const REFERRAL_PORT = 'GROWTH_REFERRAL_PORT';
+
+// ───────────── GRW-P4-B2 (wave 7): the pharmacy and lab modules reach the product decision through this port only ─────────────
+export type ProductGrowthProduct = 'PHARMACY' | 'LAB' | 'NURSE';
+export type ProductGrowthFactKind = 'ORDER' | 'LAB_BOOKING' | 'CARE_PLAN_BOOKING';
+/** The optional `acquisition` block Kiorex adds to the partner order or booking call (contracts 1.12.0 `ProductAcquisitionBlock`; the origin is never CROSS_PRODUCT on the wire: it travels as MARKETPLACE). */
+export interface ProductAcquisitionBlockOut { origin: 'PROVIDER_LED' | 'MARKETPLACE' | 'UNATTRIBUTED'; decisionId: string; policyVersion: string; reason: string; evidenceHash: string; linkCode?: string; product: ProductGrowthProduct }
+export interface ProductGrowthPort {
+  /** Decides one fact once (idempotent per fact and policy version). Never throws: a failure is logged, counted and repaired later; the order or booking is never blocked. */
+  decide(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date; visitorKey?: string | null; continuityParentBookingId?: string | null }): Promise<{ id: string; origin: string; created: boolean } | null>;
+  /** The block to send with the partner call; null when growth is OFF, no decision exists or the fact is not a partner product. Decides lazily when the earlier attempt failed. */
+  acquisitionBlock(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date }): Promise<ProductAcquisitionBlockOut | null>;
+}
+export const PRODUCT_GROWTH = 'GROWTH_PRODUCT_PORT';

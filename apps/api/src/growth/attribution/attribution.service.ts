@@ -74,7 +74,7 @@ export class AttributionService implements OnModuleInit {
     return row;
   }
 
-  private async touchesFor(b: { sub: string; createdAt: Date }, visitorKey: string | null, policy: DecisionPolicy, market: string) {
+  async touchesFor(b: { sub: string; createdAt: Date }, visitorKey: string | null, policy: DecisionPolicy, market: string) {
     const or: Array<{ visitorKey?: string; sub?: string }> = [{ sub: b.sub }];
     if (visitorKey) or.push({ visitorKey });
     const rows = await this.prisma.growthTouchpoint.findMany({

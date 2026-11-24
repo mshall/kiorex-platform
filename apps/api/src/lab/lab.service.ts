@@ -1,11 +1,12 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { PRODUCT_GROWTH, type ProductGrowthPort } from '../growth/growth-ports-public';
 import { LabBooking, Prisma } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
 import { cfg } from '../common/config';
 import { badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';
 import { newId } from '../common/ids';
 import { PartnerHttpError, PartnerTransientError } from '../common/partner-http';
-import { PartnerRouting } from '../partners/partners-public';
+import { PartnerRegistry, PartnerRouting } from '../partners/partners-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
@@ -27,7 +28,8 @@ const FINAL = new Set(['RESULT_RELEASED', 'REJECTED', 'CANCELLED']);
 export class LabService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly client: LabClient, private readonly pay: PayService, private readonly records: RecordsService,
-    private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly routing: PartnerRouting,
+    private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry,
+    @Optional() @Inject(PRODUCT_GROWTH) private readonly growth?: ProductGrowthPort, // GRW-P4-B2: product decision (optional: absent = exactly as before)
   ) {}
 
   onModuleInit() {
@@ -88,6 +90,8 @@ export class LabService implements OnModuleInit {
     });
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'LAB', sub, partnerId: `lab:${i.labId}`, amountMinor: b.totalMinor, currency: b.currency });
     await this.prisma.labBooking.update({ where: { id }, data: { paymentId: p.id } });
+    // GRW-P4-B2: one decision after the booking exists, never blocking it
+    await this.growth?.decide({ product: 'LAB', factKind: 'LAB_BOOKING', factId: id, sub, orgRef: await this.registry.orgRefOf(registrationId), createdAt: b.createdAt });
     return this.present(await this.prisma.labBooking.findUniqueOrThrow({ where: { id } }));
   }
 
@@ -133,6 +137,8 @@ export class LabService implements OnModuleInit {
       collection: { type: home ? 'HOME' : 'IN_LAB', address: home ? [addr.line1, addr.area, addr.governorate, addr.notes].filter(Boolean).join(', ') : undefined, windowStart: b.slotStartsAt.toISOString(), windowEnd: b.slotEndsAt.toISOString(), contactPhone: addr.phone ?? prof?.phone ?? undefined },
       consentChannels: ['KIOREX_VAULT'], // the booking itself is the patient's request to receive the result in the Kiorex vault (secure link only)
     };
+    const acquisition = await this.growth?.acquisitionBlock({ product: 'LAB', factKind: 'LAB_BOOKING', factId: b.id, sub: b.sub, orgRef: await this.registry.orgRefOf(b.registrationId), createdAt: b.createdAt });
+    if (acquisition) intent.acquisition = acquisition; // GRW-P4-B2: optional, same value on every retry
     try {
       const { data } = await this.client.createOrder(b.id, intent, b.registrationId);
       if (data.status === 'CANCELLED') return this.reject(b, 'LAB_CANCELLED');

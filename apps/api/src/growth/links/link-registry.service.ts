@@ -1,5 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { KiorlyClient, KiorlyHttpError } from '../../kiorly/kiorly-public';
+import { partnerRequest } from '../../common/partner-http';
+import { PartnerRegistry } from '../../partners/partners-public';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
 
@@ -10,6 +12,12 @@ const CODE = /^[0-9A-HJKMNP-TV-Z]{8}$/;
 const STATUSES: ReadonlySet<string> = new Set(['ACTIVE', 'PAUSED', 'REVOKED']);
 /** A state the Clinic confirmed within this window is trusted without asking again (the events keep it fresh; the lookup repairs a missed one). */
 const FRESH_MS = 5 * 60_000;
+/** Owner products of a link code (contracts 1.12.0 `product`; absent means CLINIC). */
+export type LinkProduct = 'CLINIC' | 'PHARMACY' | 'LAB' | 'NURSE';
+const PRODUCTS: ReadonlySet<string> = new Set(['CLINIC', 'PHARMACY', 'LAB', 'NURSE']);
+/** `product` of a registry event or lookup record: anything unknown or absent is CLINIC (the 1.11.0 meaning). */
+export const linkProductOf = (v: unknown): LinkProduct => (typeof v === 'string' && PRODUCTS.has(v) ? (v as LinkProduct) : 'CLINIC');
+const PARTNER_KIND: Record<string, 'PHARMACY' | 'LAB'> = { PHARMACY: 'PHARMACY', LAB: 'LAB' };
 
 /**
  * Link registry (GRW-P1-C; ARCH 4.2 "a code nobody registered is ignored"; contracts 1.11.0). The Clinic owns link codes; Kiorex stores only
@@ -24,23 +32,24 @@ const FRESH_MS = 5 * 60_000;
 @Injectable()
 export class LinkRegistryService {
   private readonly log = new Logger('link-registry');
-  constructor(private readonly prisma: PrismaService, @Optional() private readonly kiorly?: KiorlyClient) {}
+  constructor(private readonly prisma: PrismaService, @Optional() private readonly kiorly?: KiorlyClient, @Optional() private readonly partners?: PartnerRegistry) {}
 
   private where(code: string, market: string) { return { market_sourceKind_sourceRef: { market, sourceKind: 'PROVIDER_LINK', sourceRef: code } }; }
 
-  async learn(code: string, orgRef: string, market = GROWTH_DEFAULT_MARKET): Promise<LinkLearnResult> {
+  async learn(code: string, orgRef: string, market = GROWTH_DEFAULT_MARKET, product?: LinkProduct): Promise<LinkLearnResult> {
     const c = code.toUpperCase();
     if (!CODE.test(c) || !orgRef) return 'CONFLICT';
     const where = this.where(c, market);
     const found = await this.prisma.growthAcquisitionSource.findUnique({ where });
     if (found) {
       if (found.ownerOrgRef && found.ownerOrgRef !== orgRef) return 'CONFLICT';
-      if (!found.ownerOrgRef) await this.prisma.growthAcquisitionSource.updateMany({ where: { id: found.id, ownerOrgRef: null }, data: { ownerOrgRef: orgRef } });
+      if (!found.ownerOrgRef) await this.prisma.growthAcquisitionSource.updateMany({ where: { id: found.id, ownerOrgRef: null }, data: { ownerOrgRef: orgRef, ...(product ? { product } : {}) } });
+      else if (product && found.product !== product) await this.prisma.growthAcquisitionSource.updateMany({ where: { id: found.id, ownerOrgRef: orgRef }, data: { product } }); // same organisation: only the label was unknown when a signed touch registered the code first
       if (found.linkStatus !== 'ACTIVE') return 'REVOKED';
       return found.ownerOrgRef === orgRef ? 'KNOWN' : 'REGISTERED';
     }
     try {
-      await this.prisma.growthAcquisitionSource.create({ data: { market, sourceKind: 'PROVIDER_LINK', sourceRef: c, ownerOrgRef: orgRef } });
+      await this.prisma.growthAcquisitionSource.create({ data: { market, sourceKind: 'PROVIDER_LINK', sourceRef: c, ownerOrgRef: orgRef, ...(product ? { product } : {}) } });
       return 'REGISTERED';
     } catch (e) {
       if ((e as { code?: string }).code !== 'P2002') throw e;
@@ -61,11 +70,11 @@ export class LinkRegistryService {
   }
 
   /** Apply a state reported by the Clinic. A claim for another organisation is ignored (CONFLICT); a code nobody registered yet is created with that state. */
-  private async apply(code: string, orgRef: string, status: LinkStatus, at: Date, market: string, checked: boolean): Promise<LinkLearnResult> {
+  private async apply(code: string, orgRef: string, status: LinkStatus, at: Date, market: string, checked: boolean, product?: LinkProduct): Promise<LinkLearnResult> {
     const c = code.toUpperCase();
     if (!CODE.test(c) || !orgRef || !STATUSES.has(status)) return 'CONFLICT';
     const where = this.where(c, market);
-    const data = { linkStatus: status, linkRevokedAt: status === 'REVOKED' ? at : null, ...(checked ? { registryCheckedAt: new Date() } : {}) };
+    const data = { ...(product ? { product } : {}), linkStatus: status, linkRevokedAt: status === 'REVOKED' ? at : null, ...(checked ? { registryCheckedAt: new Date() } : {}) };
     const found = await this.prisma.growthAcquisitionSource.findUnique({ where });
     if (found) {
       if (found.ownerOrgRef && found.ownerOrgRef !== orgRef) return 'CONFLICT';
@@ -79,7 +88,7 @@ export class LinkRegistryService {
       return status === 'ACTIVE' ? 'REGISTERED' : 'REVOKED';
     } catch (e) {
       if ((e as { code?: string }).code !== 'P2002') throw e;
-      return this.apply(code, orgRef, status, at, market, checked);
+      return this.apply(code, orgRef, status, at, market, checked, product);
     }
   }
 
@@ -92,7 +101,7 @@ export class LinkRegistryService {
     const code = typeof data.linkCode === 'string' ? data.linkCode : '';
     const org = LinkRegistryService.orgFrom(data);
     if (!code || !org) return 'IGNORED';
-    return this.learn(code, org, market);
+    return this.learn(code, org, market, data.product === undefined ? undefined : linkProductOf(data.product));
   }
 
   /** `ReferralLinkRevoked` from the Clinic: the code stops deciding PROVIDER_LED for new bookings. Idempotent; an unknown code is recorded as revoked so a late token cannot register it. */
@@ -101,7 +110,7 @@ export class LinkRegistryService {
     const org = LinkRegistryService.orgFrom(data);
     if (!code || !org) return 'IGNORED';
     const at = typeof data.revokedAt === 'string' && !Number.isNaN(Date.parse(data.revokedAt)) ? new Date(data.revokedAt) : new Date();
-    return this.apply(code, org, 'REVOKED', at, market, false);
+    return this.apply(code, org, 'REVOKED', at, market, false, data.product === undefined ? undefined : linkProductOf(data.product));
   }
 
   /**
@@ -124,6 +133,29 @@ export class LinkRegistryService {
       }
     }
     return this.learn(c, orgRef, market);
+  }
+
+  /**
+   * Partner products (GRW-P4-B2): ask the Pharmacy or Lab that owns the code (signed lookup `GET /referral-links/{code}` of that partner) and store its answer.
+   * The registrations of the product are tried in turn; only a record whose organisation equals `orgRef` is applied. Best effort like `confirm`.
+   */
+  async confirmPartner(code: string, orgRef: string, product: 'PHARMACY' | 'LAB', market = GROWTH_DEFAULT_MARKET): Promise<LinkLearnResult> {
+    const c = code.toUpperCase();
+    const stored = await this.prisma.growthAcquisitionSource.findUnique({ where: this.where(c, market) });
+    if (stored?.linkStatus === 'REVOKED') return stored.ownerOrgRef && stored.ownerOrgRef !== orgRef ? 'CONFLICT' : 'REVOKED';
+    if (stored?.registryCheckedAt && Date.now() - stored.registryCheckedAt.getTime() < FRESH_MS) return this.learn(c, orgRef, market, product);
+    if (this.partners && PARTNER_KIND[product]) {
+      for (const reg of await this.partners.activeRegistrations(PARTNER_KIND[product])) {
+        try {
+          const r = await partnerRequest<{ code: string; orgRef: string; product?: string; status: LinkStatus; revokedAt: string | null }>(await this.partners.conn(PARTNER_KIND[product], reg.id), { method: 'GET', path: `/referral-links/${encodeURIComponent(c)}` });
+          const rec = r.data;
+          if (rec?.code?.toUpperCase() !== c) continue;
+          if (rec.orgRef !== orgRef) return 'CONFLICT';
+          return this.apply(c, rec.orgRef, rec.status, rec.revokedAt ? new Date(rec.revokedAt) : new Date(), market, true, product);
+        } catch (e) { this.log.debug(`partner link lookup failed (${(e as Error).message}); keeping the stored state`); }
+      }
+    }
+    return this.learn(c, orgRef, market, product);
   }
 
   /**
