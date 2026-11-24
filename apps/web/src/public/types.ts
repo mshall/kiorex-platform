@@ -23,7 +23,10 @@ export interface ProviderCard {
   nextSlotAt: string | null;
 }
 export interface FacetLink { label: Bilingual; path: string; count: number }
+/** GRW-P3-F: internal links computed by the SEO automation (grouped by role); the API adds them next to the page's own link blocks, never the same link twice. */
+export interface ComputedLinkGroup { kind: string; links: FacetLink[] }
 export interface HomeData {
+  computedLinks?: ComputedLinkGroup[];
   kind: "home"; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[];
   cityHubs: FacetLink[]; availability: FacetLink[]; careTypes: FacetLink[]; partners: { pharmacies: number; labs: number };
 }
@@ -31,6 +34,7 @@ export interface ListLinks { districts: FacetLink[]; cities: FacetLink[]; relate
 export interface RatingBucket { stars: 1 | 2 | 3 | 4 | 5; count: number }
 export interface PaginationData { page: number; pages: number; prevPath: string | null; nextPath: string | null }
 export interface ListData {
+  computedLinks?: ComputedLinkGroup[];
   kind: "hub" | "city" | "district" | "care-district" | "city-hub" | "district-hub" | "same-day" | "telemedicine";
   title: Bilingual;
   specialty: { code: string; label: Bilingual } | null;
@@ -51,6 +55,7 @@ export interface ListData {
   pagination: PaginationData;
 }
 export interface DoctorData {
+  computedLinks?: ComputedLinkGroup[];
   kind: "doctor" | "nurse";
   provider: ProviderCard & { subSpecialties: string[]; gender: string | null; photoUrl: string | null; title: Bilingual | null; acceptsDeposit: boolean; homeVisit: boolean; coverageDistricts: string[] };
   bookable: boolean;
@@ -63,6 +68,7 @@ export interface DoctorData {
   homonym: string | null;
 }
 export interface ClinicData {
+  computedLinks?: ComputedLinkGroup[];
   kind: "clinic";
   clinic: { id: string; slug: string | null; name: Bilingual; area: string | null; governorate: string | null };
   providers: ProviderCard[];
@@ -74,6 +80,7 @@ export interface ClinicData {
   homonym: string | null;
 }
 export interface PartnerData {
+  computedLinks?: ComputedLinkGroup[];
   kind: "pharmacy" | "lab";
   partner: { id: string; slug: string; name: Bilingual };
   others: FacetLink[];

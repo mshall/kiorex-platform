@@ -32,6 +32,7 @@ export { RewardsModule } from './rewards/rewards-public';
 export { LifecycleModule } from './lifecycle/lifecycle-public';
 export { IntegrationsModule } from './integrations/integrations-public';
 export { FraudModule } from './fraud/fraud.module';
+export { SeoAutomationModule } from './seo-automation/seo-automation.module';
 export { FRAUD_SCORER, type FraudScorer } from './fraud/fraud-public';
 // GRW-P2-A
 export { CampaignService, SYSTEM as CAMPAIGN_SYSTEM_ACTOR, type Actor as CampaignActor } from './campaigns/campaign.service';

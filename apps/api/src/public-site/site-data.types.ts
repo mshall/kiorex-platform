@@ -3,7 +3,11 @@
  * data: no patient field, no phone number (providers have not opted in yet), no street address, no coordinates. JSON-serialisable on purpose:
  * it is embedded in the HTML for hydration.
  */
+import type { ComputedLinkGroup } from '../growth/seo-automation/seo-automation-public';
+export type { ComputedLinkGroup };
 export interface Bilingual { en: string; ar: string }
+/** GRW-P3-F: links computed by the SEO automation (read from the stored graph by the request handler; absent from the loaders' own output). */
+export interface WithComputedLinks { computedLinks?: ComputedLinkGroup[] }
 export interface Crumb { label: Bilingual; path: string | null }
 
 export interface ProviderCard {
@@ -27,7 +31,7 @@ export interface ProviderCard {
 
 export interface FacetLink { label: Bilingual; path: string; count: number }
 
-export interface HomeData {
+export interface HomeData extends WithComputedLinks {
   kind: 'home'; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[];
   /** GRW-P1-F: indexable city hubs (all care in a city), same-day and video hubs, and the partner counts that exist on the market. */
   cityHubs: FacetLink[]; availability: FacetLink[]; careTypes: FacetLink[]; partners: { pharmacies: number; labs: number };
@@ -36,7 +40,7 @@ export interface HomeData {
 export interface ListLinks { districts: FacetLink[]; cities: FacetLink[]; relatedSpecialties: FacetLink[]; availability: FacetLink[]; parents: FacetLink[] }
 export interface RatingBucket { stars: 1 | 2 | 3 | 4 | 5; count: number }
 export interface PaginationData { page: number; pages: number; prevPath: string | null; nextPath: string | null }
-export interface ListData {
+export interface ListData extends WithComputedLinks {
   kind: 'hub' | 'city' | 'district' | 'care-district' | 'city-hub' | 'district-hub' | 'same-day' | 'telemedicine';
   title: Bilingual; // the facet (specialty, "specialty in city", ...)
   specialty: { code: string; label: Bilingual } | null;
@@ -58,7 +62,7 @@ export interface ListData {
   specialtyMix: FacetLink[];
   pagination: PaginationData;
 }
-export interface DoctorData {
+export interface DoctorData extends WithComputedLinks {
   kind: 'doctor' | 'nurse';
   provider: ProviderCard & { subSpecialties: string[]; gender: string | null; photoUrl: string | null; title: Bilingual | null; acceptsDeposit: boolean; homeVisit: boolean; coverageDistricts: string[] };
   /** LIVE and listed. false = PAUSED listing: page stays (200, noindex) with the booking CTA replaced. */
@@ -75,7 +79,7 @@ export interface DoctorData {
   /** Set ("#2") when another listed provider has the same name and specialty: keeps titles and descriptions unique (duplicate-title rule). */
   homonym: string | null;
 }
-export interface ClinicData {
+export interface ClinicData extends WithComputedLinks {
   kind: 'clinic';
   clinic: { id: string; slug: string | null; name: Bilingual; area: string | null; governorate: string | null };
   providers: ProviderCard[];
@@ -87,7 +91,7 @@ export interface ClinicData {
   /** "#2" when another listed clinic has the same name (keeps titles unique). */
   homonym: string | null;
 }
-export interface PartnerData {
+export interface PartnerData extends WithComputedLinks {
   kind: 'pharmacy' | 'lab';
   partner: { id: string; slug: string; name: Bilingual };
   /** Other partners of the same kind on the market (names and links only). */

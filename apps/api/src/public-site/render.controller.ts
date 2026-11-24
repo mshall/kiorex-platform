@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, sep } from 'node:path';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { GROWTH_FLAG } from '../growth/growth-public';
+import { pageKeyOf, SEO_QUALITY, type ComputedLinkGroup, type SeoQualityPort } from '../growth/seo-automation/seo-automation-public';
 import { PublicSiteCache } from './cache-tags';
 import { composeDocument, escapeHtml } from './head';
 import { looseRedirectTarget } from './loose-path';
@@ -34,6 +35,7 @@ export class RenderController {
   constructor(
     private readonly data: SiteDataService, private readonly renderer: SiteRenderer, private readonly redirects: RedirectsService, private readonly seo: SeoConfigService,
     private readonly flags: FlagsService, private readonly index: SiteIndexService, private readonly cache: PublicSiteCache,
+    @Optional() @Inject(SEO_QUALITY) private readonly quality?: SeoQualityPort,
   ) {}
 
   // ── pages ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -81,15 +83,24 @@ export class RenderController {
 
   private async renderPage(route: NonNullable<ReturnType<typeof parsePublicPath> & { kind: 'match' }>['value'], q: ReturnType<typeof readPageQuery>, loaded: Extract<LoadResult, { status: 200 }>, sMaxAge: number, swr: number, reviewMarkup: boolean, templates: Record<string, Record<string, { title?: string; description?: string }>> = {}): Promise<CachedResponse> {
     const cfg = siteCfg();
-    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: loaded.data, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null } });
-    const indexable = cfg.indexable && loaded.indexable;
+    // GRW-P3-F: stored quality decisions and the computed internal links (read from the database tables, cached; with SEO_AUTOMATION.autoNoindex off nothing here changes a page's indexing)
+    const market = route.cc.toUpperCase(); const pageKey = pageKeyOf(route.type, route.params);
+    const blockedByGate = (await this.quality?.blocked(market, pageKey, route.locale).catch(() => false)) ?? false;
+    const omitted = (await this.quality?.omittedAlternates(market, pageKey, route.locale).catch(() => [])) ?? [];
+    const computed = loaded.data.kind === 'not-found' ? [] : await this.computedLinks(market, pageKey, route.locale, loaded.data);
+    const pageData = computed.length ? ({ ...loaded.data, computedLinks: computed } as typeof loaded.data) : loaded.data;
+    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: pageData, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null } });
+    const indexable = cfg.indexable && loaded.indexable && !blockedByGate;
     const path = this.pathOf(route);
-    const alternates = hreflangAlternates(cfg.canonicalHost, route.cc, route.rest);
+    // an incomplete locale is not offered as an alternate, and x-default then points at the locale that is complete
+    const all = hreflangAlternates(cfg.canonicalHost, route.cc, route.rest);
+    const keep = all.filter((a) => !omitted.includes(a.hreflang as Locale));
+    const alternates = omitted.length ? keep.map((a) => (a.hreflang === 'x-default' ? { ...a, href: keep.find((k) => k.hreflang !== 'x-default')?.href ?? a.href } : a)) : all;
     const assets = this.renderer.assets();
     const { html, styleHash } = composeDocument({
       locale: route.locale, cc: route.cc, canonical: canonicalUrl(cfg.canonicalHost, path, q), alternates, indexable, title: out.meta.title, description: out.meta.description,
       ogImage: out.meta.ogImage ?? `${cfg.canonicalHost}/og-image.png`, siteName: 'Kiorex', jsonLd: out.jsonLd, bodyHtml: out.html,
-      state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: loaded.data }, assets,
+      state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: pageData }, assets,
       ...(route.type === 'home' && cfg.indexable ? { verification: { google: verificationCfg().googleMeta, bing: verificationCfg().bingMeta } } : {}),
     });
     const headers: Record<string, string> = {
@@ -99,6 +110,18 @@ export class RenderController {
       ...(indexable ? {} : { 'X-Robots-Tag': 'noindex' }),
     };
     return { status: 200, headers, body: html, etag: etagOf(html), tags: loaded.tags };
+  }
+
+  /** Computed links not already on the page (the P1 link blocks stay as they are; a computed link only adds what is missing). */
+  private async computedLinks(market: string, pageKey: string, locale: Locale, data: unknown): Promise<ComputedLinkGroup[]> {
+    if (!this.quality) return [];
+    try {
+      const groups = await this.quality.computedLinks(market, pageKey, locale);
+      if (!groups.length) return [];
+      const seen = new Set<string>(); const walk = (v: unknown) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { if (k === 'path' && typeof x === 'string') seen.add(x); else walk(x); } };
+      walk(data);
+      return groups.map((g) => ({ ...g, links: g.links.filter((l) => !seen.has(l.path)) })).filter((g) => g.links.length);
+    } catch { return []; }
   }
 
   private pathOf(route: { locale: Locale; cc: string; rest: string }): string { return `/${route.locale}/${route.cc}${route.rest ? `/${route.rest}` : ''}`; }

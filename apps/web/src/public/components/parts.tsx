@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { KiorexLogo } from "@/brand/kiorex-logo/KiorexLogo.web";
-import type { Crumb, FacetLink, PaginationData, ProviderCard, RatingBucket, TemplateCtx } from "../types";
+import type { ComputedLinkGroup, Crumb, FacetLink, PaginationData, ProviderCard, RatingBucket, TemplateCtx } from "../types";
 import type { ImageModel } from "../seo/image";
 import { day, money } from "../format";
 
@@ -141,3 +141,14 @@ export function Picture({ model, className }: { model: ImageModel | null; classN
 }
 
 export const Emergency = ({ ctx }: { ctx: TemplateCtx }) => <p className="kxp-notice" role="note">{ctx.t("footer.emergency")}</p>;
+
+/** GRW-P3-F: the internal links the SEO automation computed for this page (clinic, doctors, hubs, neighbours), grouped by role. Plain anchors in the server HTML; absent when there are none. */
+export function ComputedLinks({ groups, ctx }: { groups?: ComputedLinkGroup[]; ctx: TemplateCtx }) {
+  if (!groups?.length) return null;
+  return (
+    <nav aria-label={ctx.t("links.computed")} className="kxp-computed" data-computed-links="">
+      <h2>{ctx.t("links.computed")}</h2>
+      {groups.map((g) => <section key={g.kind} data-links-kind={g.kind}><h3>{ctx.t(`links.kind.${g.kind}`)}</h3><Chips items={g.links} ctx={ctx} count={false} /></section>)}
+    </nav>
+  );
+}

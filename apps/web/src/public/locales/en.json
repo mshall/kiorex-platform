@@ -157,5 +157,14 @@
   "faq.lab.1.a": "Book the tests your doctor requested through Kiorex. The lab tells you if a test needs preparation, such as fasting.",
   "faq.lab.2.q": "Where do I see the result?",
   "faq.lab.2.a": "In the Kiorex app, as soon as the lab publishes it.",
-  "list.providers": "Verified providers"
+  "list.providers": "Verified providers",
+  "links.computed": "More from Kiorex",
+  "links.kind.PARENT": "Back to",
+  "links.kind.CLINIC": "The clinic",
+  "links.kind.DOCTOR": "Doctors",
+  "links.kind.HUB": "Doctors of the same specialty nearby",
+  "links.kind.NEIGHBOUR": "Nearby districts",
+  "links.kind.RELATED": "Related specialties",
+  "links.kind.CHILD": "Browse by area",
+  "links.kind.ORPHAN_FIX": "Also on Kiorex"
 }

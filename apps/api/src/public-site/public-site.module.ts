@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { CdnPurger, PublicSiteCache } from './cache-tags';
 import { SlugBootstrapJob, SlugBootstrapService, SlugService } from '../growth/seo/seo-public';
 import { PrismaSlugStore, RedirectsService } from './redirects.service';
+import { PageSnapshotService } from './page-snapshot.service';
+import { SeoSiteAdapter } from './seo-site.adapter';
+import { SEO_SITE } from '../growth/seo-automation/seo-automation-public';
 import { RenderController } from './render.controller';
 import { RobotsController } from './robots.controller';
 import { SearchEngineService, SitemapSubmitJob } from './search-engines';
@@ -21,15 +24,16 @@ import { BundleRenderer, SiteRenderer } from './ssr-renderer';
  * Depends on the global Catalog, Trust, ControlPlane, Market and Prisma modules through their public barrels. Exports only the cache owner, which
  * the Kiorly webhook consumer calls to purge pages and sitemaps.
  */
+@Global() // the SEO automation reaches the site through the SEO_SITE token only (GRW-P3-F), so it needs no import of this module
 @Module({
   controllers: [SeoOpsController],
   providers: [
-    SeoConfigService, PrismaSlugStore, RedirectsService, SiteIndexService, SiteDataService, SitemapService, CdnPurger, PublicSiteCache,
+    SeoConfigService, PrismaSlugStore, RedirectsService, SiteIndexService, SiteDataService, SitemapService, PageSnapshotService, SeoSiteAdapter, { provide: SEO_SITE, useExisting: SeoSiteAdapter }, CdnPurger, PublicSiteCache,
     { provide: SiteRenderer, useClass: BundleRenderer },
     SlugService, SlugBootstrapService, SlugBootstrapJob, SeoPagesService, SearchEngineService, SitemapSubmitJob,
     RenderController, RobotsController, SitemapController, SiteMounter,
     { provide: APP_GUARD, useClass: SiteRoleGuard },
   ],
-  exports: [PublicSiteCache],
+  exports: [PublicSiteCache, SEO_SITE],
 })
 export class PublicSiteModule {}

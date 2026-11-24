@@ -2,7 +2,7 @@ import { I18nextProvider } from "react-i18next";
 import { useMemo } from "react";
 import "./templates/default";
 import { createPublicI18n, makeCtx } from "./i18n";
-import { PublicLayout } from "./components/parts";
+import { ComputedLinks, PublicLayout } from "./components/parts";
 import { getTemplate } from "./registry";
 import type { PublicState, TemplateCtx } from "./types";
 
@@ -19,7 +19,7 @@ export function PublicApp({ state }: { state: PublicState }) {
   const Body = tpl.Component;
   return (
     <I18nextProvider i18n={i18n}>
-      <PublicLayout ctx={ctx}><Body data={state.data} ctx={ctx} /></PublicLayout>
+      <PublicLayout ctx={ctx}><Body data={state.data} ctx={ctx} /><ComputedLinks groups={(state.data as { computedLinks?: import("./types").ComputedLinkGroup[] }).computedLinks} ctx={ctx} /></PublicLayout>
     </I18nextProvider>
   );
 }

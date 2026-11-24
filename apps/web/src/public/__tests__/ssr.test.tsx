@@ -58,3 +58,24 @@ describe("server entry: render(input) returns body HTML, metadata and JSON-LD fo
     expect(out.html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 });
+
+describe("GRW-P3-F computed internal links render in the server HTML", () => {
+  const groups = [{ kind: "CLINIC", links: [{ label: { en: "Nile Clinic", ar: "عيادة النيل" }, path: "/en/eg/clinic/nile-clinic", count: 0 }] }, { kind: "NEIGHBOUR", links: [{ label: { en: "Cardiology in Dokki", ar: "القلب في الدقي" }, path: "/en/eg/doctors/cardiology/giza/dokki", count: 0 }] }];
+  it("a nav with plain anchors grouped by role, in both languages, with the localised role headings", async () => {
+    for (const locale of ["en", "ar"] as const) {
+      const path = `/${locale}/eg/doctor/sara-hassan`;
+      const out = await render(toInput(state(locale, "doctor", path, { ...doctor, computedLinks: groups })));
+      expect(out.html).toContain("data-computed-links");
+      expect(out.html).toContain('href="/en/eg/clinic/nile-clinic"'); expect(out.html).toContain('href="/en/eg/doctors/cardiology/giza/dokki"');
+      expect(out.html).toContain(locale === "en" ? "More from Kiorex" : "المزيد من كيوركس");
+      expect(out.html).toContain(locale === "en" ? "Nearby districts" : "مناطق مجاورة");
+      expect(out.html).not.toMatch(/<script/);
+    }
+  });
+  it("a page without computed links is unchanged (no empty nav)", async () => {
+    const out = await render(toInput(state("en", "doctor", "/en/eg/doctor/sara-hassan", doctor)));
+    expect(out.html).not.toContain("data-computed-links");
+    const empty = await render(toInput(state("en", "doctor", "/en/eg/doctor/sara-hassan", { ...doctor, computedLinks: [] })));
+    expect(empty.html).not.toContain("data-computed-links");
+  });
+});

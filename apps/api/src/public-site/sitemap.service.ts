@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { buildPath, hreflangAlternates, LOCALES, canonicalUrl } from './url-policy';
+import { ModuleRef } from '@nestjs/core';
+import { pageKeyOf, SEO_QUALITY, type SeoQualityPort } from '../growth/seo-automation/seo-automation-public';
+import { buildPath, hreflangAlternates, LOCALES, canonicalUrl, parsePublicPath } from './url-policy';
 import { buildSitemapIndex, buildUrlset, parseShardName, shardName } from './sitemap.xml';
 import { RedirectsService } from './redirects.service';
 import { SiteDataService } from './site-data.service';
@@ -17,7 +19,9 @@ interface Built { at: number; entries: SitemapEntry[]; shardSize: number; host: 
 @Injectable()
 export class SitemapService {
   private built = new Map<string, Built>();
-  constructor(private readonly data: SiteDataService, private readonly redirects: RedirectsService, private readonly index: SiteIndexService) {}
+  constructor(private readonly data: SiteDataService, private readonly redirects: RedirectsService, private readonly index: SiteIndexService, private readonly moduleRef: ModuleRef) {}
+  /** The quality port is resolved lazily: the SEO automation reads this service's entries through its own site port, so a constructor dependency would be a cycle. */
+  private get quality(): SeoQualityPort | undefined { try { return this.moduleRef.get<SeoQualityPort>(SEO_QUALITY, { strict: false }); } catch { return undefined; } }
 
   invalidate(): void { this.built.clear(); }
 
@@ -90,8 +94,14 @@ export class SitemapService {
     const market = p.cc.toUpperCase();
     if (!(await this.index.marketLive(market))) return null;
     const b = await this.entries(market);
-    const list = this.group(b).get(p.type);
+    let list = this.group(b).get(p.type);
     if (!list) return null;
+    // GRW-P3-F: pages the quality gate set noindex (only with SEO_AUTOMATION.autoNoindex on) are not listed, so the sitemap never contains a noindex page
+    const blocked = (await this.quality?.blockedSet(market, p.locale).catch(() => undefined)) ?? new Set<string>();
+    if (blocked.size) {
+      list = list.filter((e) => { const r = parsePublicPath(`/${p.locale}/${p.cc}${e.rest ? `/${e.rest}` : ''}`); return r.kind !== 'match' || !blocked.has(pageKeyOf(r.value.type, r.value.params)); });
+      if (!list.length) return null;
+    }
     const slice = list.slice((p.n - 1) * b.shardSize, p.n * b.shardSize);
     if (!slice.length) return null;
     const urls = slice.map((e) => ({
