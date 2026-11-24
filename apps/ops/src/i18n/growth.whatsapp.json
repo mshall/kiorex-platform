@@ -1,0 +1,252 @@
+{
+  "en": {
+    "growth": {
+      "whatsapp": {
+        "tabs": "WhatsApp assistant views",
+        "tab": {
+          "assistant": "Assistant",
+          "conversations": "Conversations",
+          "escalations": "Escalations",
+          "budgets": "Budgets"
+        },
+        "close": "Close",
+        "yes": "Yes",
+        "no": "No",
+        "assistant": {
+          "mode": "Mode",
+          "model": "Model",
+          "realConfigured": "Real model configured (key present)",
+          "policy": "Policy",
+          "retention": "Turn text retention",
+          "sla": "Escalation SLA",
+          "gates": "Gates and breaker",
+          "breaker": "Daily cost breaker",
+          "escalations": "Open escalations",
+          "modes": {
+            "mock": "Mock (rules, no vendor)",
+            "fixture": "Recorded fixture",
+            "real": "Real model"
+          },
+          "active": "Active version",
+          "proposed": "Proposed default",
+          "days": "{{n}} days",
+          "minutes": "{{n}} minutes",
+          "effective": "Effective",
+          "locked": "Locked ({{reason}})",
+          "tripped": "Tripped",
+          "ok": "Normal",
+          "escSummary": "{{open}} open, {{overdue}} overdue",
+          "safety": "What never changes",
+          "safetyItems": [
+            "Emergency language gets the fixed 123 guidance before any model call. It is a safety control, never a flag.",
+            "The model returns structured steps only: every sentence a patient reads is a fixed template filled from tool output.",
+            "Booking, changing and cancelling need the patient to press the Confirm button; typed text never confirms.",
+            "No medical advice, no diagnosis, no dose: such requests get a fixed referral to a specialty choice or a person.",
+            "No link comes from a model: the only links are one-time, 15 minute links created by the platform.",
+            "Message text is stored only after redaction, for the retention period, and removed on erasure."
+          ]
+        },
+        "conv": {
+          "all": "All states",
+          "caption": "Assistant conversations",
+          "empty": "No conversations yet",
+          "emptyHint": "Conversations appear here once the assistant is switched on and a patient writes on WhatsApp.",
+          "colStarted": "Started",
+          "colState": "State",
+          "colLang": "Language",
+          "colTurns": "Turns",
+          "colTokens": "Tokens",
+          "colWho": "Number",
+          "colEscalation": "Escalation",
+          "verified": "Verified",
+          "unverified": "Not verified",
+          "noTranscript": "Transcripts are visible to support and super admin only.",
+          "transcript": "Redacted transcript",
+          "redactedNote": "Text is redacted (phone numbers, e-mail, identifiers and names removed; symptom messages shown as a marker). Opening a transcript is recorded in the audit log.",
+          "patient": "Patient",
+          "assistant": "Assistant (template)"
+        },
+        "esc": {
+          "note": "A patient is waiting for a person. Closing an escalation hands the conversation back to the assistant.",
+          "caption": "Escalation queue",
+          "empty": "No open escalations",
+          "emptyHint": "Hand-offs, trigger words and two failed understandings in a row appear here with their SLA clock.",
+          "colCreated": "Created",
+          "colReason": "Reason",
+          "colStatus": "Status",
+          "colSla": "SLA",
+          "view": "Transcript",
+          "ack": "Acknowledge",
+          "close": "Close",
+          "readOnly": "Acknowledging and closing needs the support or super admin role.",
+          "overdue": "{{n}} min overdue",
+          "left": "{{n}} min left",
+          "status": {
+            "OPEN": "Open",
+            "ACKED": "Acknowledged",
+            "CLOSED": "Closed"
+          },
+          "reason": {
+            "USER_REQUEST": "Patient asked for a person",
+            "MODEL_HANDOFF": "Assistant handed off",
+            "CLARIFY_FAILED": "Two misunderstandings"
+          }
+        },
+        "budgets": {
+          "today": "Today",
+          "tokens": "Tokens",
+          "conversations": "Conversations",
+          "cost": "Cost (EGP) / cap",
+          "breaker": "Breaker",
+          "tripped": "Tripped",
+          "ok": "Normal",
+          "trippedNote": "The daily cost cap was reached: the deterministic booking machine answers until midnight Cairo time.",
+          "reset": "Reset breaker",
+          "limits": "Limits",
+          "metrics": "Metrics (30 days)",
+          "masked": "Metrics appear from {{k}} conversations.",
+          "containment": "Containment",
+          "handoff": "Hand-off rate",
+          "completion": "Booking completion",
+          "costPerBooking": "Cost per booking (EGP)",
+          "p95": "p95 latency",
+          "history": "Last 14 days",
+          "day": "Day",
+          "limit": {
+            "tokensPerTurn": "Tokens per turn",
+            "tokensPerConversation": "Tokens per conversation",
+            "turnsPerConversation": "Turns per conversation",
+            "tokensPerSubjectDay": "Tokens per person per day",
+            "messagesPerNumberPerHour": "Messages per number per hour",
+            "globalConcurrency": "Concurrent turns"
+          }
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "whatsapp": {
+        "tabs": "أقسام مساعد واتساب",
+        "tab": {
+          "assistant": "المساعد",
+          "conversations": "المحادثات",
+          "escalations": "التصعيدات",
+          "budgets": "الميزانيات"
+        },
+        "close": "إغلاق",
+        "yes": "نعم",
+        "no": "لا",
+        "assistant": {
+          "mode": "الوضع",
+          "model": "النموذج",
+          "realConfigured": "النموذج الحقيقي مُهيأ (المفتاح موجود)",
+          "policy": "السياسة",
+          "retention": "مدة الاحتفاظ بنص الرسائل",
+          "sla": "مهلة التصعيد",
+          "gates": "البوابات والقاطع",
+          "breaker": "قاطع التكلفة اليومي",
+          "escalations": "التصعيدات المفتوحة",
+          "modes": {
+            "mock": "تجريبي (قواعد، بلا مورّد)",
+            "fixture": "تسجيل مُعاد",
+            "real": "نموذج حقيقي"
+          },
+          "active": "نسخة فعالة",
+          "proposed": "افتراضي مقترح",
+          "days": "{{n}} يوماً",
+          "minutes": "{{n}} دقيقة",
+          "effective": "فعّال",
+          "locked": "مقفل ({{reason}})",
+          "tripped": "مفعَّل",
+          "ok": "طبيعي",
+          "escSummary": "{{open}} مفتوح، {{overdue}} متأخر",
+          "safety": "ما لا يتغير أبداً",
+          "safetyItems": [
+            "لغة الطوارئ تحصل على إرشاد ١٢٣ الثابت قبل أي استدعاء للنموذج. هذا ضابط سلامة وليس علماً.",
+            "النموذج يعيد خطوات منظمة فقط: كل جملة يقرؤها المريض قالب ثابت تُملأ بياناته من نتائج الأدوات.",
+            "الحجز والتغيير والإلغاء يحتاج أن يضغط المريض زر التأكيد؛ النص المكتوب لا يؤكد أبداً.",
+            "لا نصيحة طبية ولا تشخيص ولا جرعات: مثل هذه الطلبات تُحوَّل بنص ثابت إلى اختيار تخصص أو إلى موظف.",
+            "لا يأتي أي رابط من نموذج: الروابط الوحيدة تنشئها المنصة وهي لمرة واحدة وصالحة ١٥ دقيقة.",
+            "نص الرسائل لا يُحفظ إلا بعد إخفاء البيانات ولمدة الاحتفاظ فقط، ويُحذف عند طلب المحو."
+          ]
+        },
+        "conv": {
+          "all": "كل الحالات",
+          "caption": "محادثات المساعد",
+          "empty": "لا محادثات بعد",
+          "emptyHint": "تظهر المحادثات هنا بعد تشغيل المساعد وكتابة مريض على واتساب.",
+          "colStarted": "بدأت",
+          "colState": "الحالة",
+          "colLang": "اللغة",
+          "colTurns": "الأدوار",
+          "colTokens": "الرموز",
+          "colWho": "الرقم",
+          "colEscalation": "التصعيد",
+          "verified": "موثّق",
+          "unverified": "غير موثّق",
+          "noTranscript": "النصوص مرئية لفريق الدعم والمدير العام فقط.",
+          "transcript": "النص بعد إخفاء البيانات",
+          "redactedNote": "النص مُخفى البيانات (أرقام الهواتف والبريد والمعرّفات والأسماء محذوفة، ورسائل الأعراض تظهر كعلامة). فتح النص يُسجَّل في سجل التدقيق.",
+          "patient": "المريض",
+          "assistant": "المساعد (قالب)"
+        },
+        "esc": {
+          "note": "مريض ينتظر شخصاً. إغلاق التصعيد يعيد المحادثة إلى المساعد.",
+          "caption": "طابور التصعيد",
+          "empty": "لا تصعيدات مفتوحة",
+          "emptyHint": "تظهر هنا طلبات التحويل والكلمات المحفزة وحالتا سوء فهم متتاليتان مع عدّاد المهلة.",
+          "colCreated": "أُنشئ",
+          "colReason": "السبب",
+          "colStatus": "الحالة",
+          "colSla": "المهلة",
+          "view": "النص",
+          "ack": "استلام",
+          "close": "إغلاق",
+          "readOnly": "الاستلام والإغلاق يحتاجان دور الدعم أو المدير العام.",
+          "overdue": "متأخر {{n}} د",
+          "left": "متبقي {{n}} د",
+          "status": {
+            "OPEN": "مفتوح",
+            "ACKED": "مُستلم",
+            "CLOSED": "مغلق"
+          },
+          "reason": {
+            "USER_REQUEST": "طلب المريض شخصاً",
+            "MODEL_HANDOFF": "حوّل المساعد",
+            "CLARIFY_FAILED": "سوء فهم مرتين"
+          }
+        },
+        "budgets": {
+          "today": "اليوم",
+          "tokens": "الرموز",
+          "conversations": "المحادثات",
+          "cost": "التكلفة (ج.م) / الحد",
+          "breaker": "القاطع",
+          "tripped": "مفعَّل",
+          "ok": "طبيعي",
+          "trippedNote": "بلغ الحد اليومي للتكلفة: تجيب آلة الحجز الحتمية حتى منتصف الليل بتوقيت القاهرة.",
+          "reset": "إعادة ضبط القاطع",
+          "limits": "الحدود",
+          "metrics": "المؤشرات (٣٠ يوماً)",
+          "masked": "تظهر المؤشرات ابتداءً من {{k}} محادثات.",
+          "containment": "الاحتواء",
+          "handoff": "نسبة التحويل",
+          "completion": "إتمام الحجز",
+          "costPerBooking": "التكلفة لكل حجز (ج.م)",
+          "p95": "زمن الاستجابة p95",
+          "history": "آخر ١٤ يوماً",
+          "day": "اليوم",
+          "limit": {
+            "tokensPerTurn": "رموز لكل دور",
+            "tokensPerConversation": "رموز لكل محادثة",
+            "turnsPerConversation": "أدوار لكل محادثة",
+            "tokensPerSubjectDay": "رموز لكل شخص يومياً",
+            "messagesPerNumberPerHour": "رسائل لكل رقم في الساعة",
+            "globalConcurrency": "أدوار متزامنة"
+          }
+        }
+      }
+    }
+  }
+}

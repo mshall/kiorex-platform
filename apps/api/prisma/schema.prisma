@@ -2019,9 +2019,12 @@ model AssistantSession {
   closedAt              DateTime?
   createdAt             DateTime  @default(now())
   expiresAt             DateTime
+  /// GRW-P2-D (fixups migration): per-session working memory (shown lists, idsSeen, clarify counter, dedupe hash). Ids and counters only, never message text or contact details.
+  context               Json      @default("{}")
 
-  turnRows    AssistantTurn[]
-  escalations AssistantEscalation[]
+  turnRows      AssistantTurn[]
+  escalations   AssistantEscalation[]
+  confirmations AssistantConfirmation[]
 
   @@index([sub])
   @@index([phoneHash])
@@ -2081,17 +2084,56 @@ model AssistantUsageDaily {
 }
 
 model AssistantEscalation {
-  id        String   @id @default(cuid())
-  sessionId String
-  reason    String
-  status    String   @default("OPEN") // OPEN ACKED CLOSED
-  ackBy     String?
-  slaDueAt  DateTime
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  sessionId  String
+  reason     String
+  status     String    @default("OPEN") // OPEN ACKED CLOSED
+  ackBy      String?
+  slaDueAt   DateTime
+  createdAt  DateTime  @default(now())
+  /// GRW-P2-D: the redacted transcript handed to the human (turn text already passed redactPhi), the close note and who closed it.
+  transcript Json      @default("[]")
+  closedAt   DateTime?
+  closedBy   String?
 
   session AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([status, slaDueAt])
+}
+
+/// GRW-P2-D: one-time confirmation nonces behind the Confirm / Cancel buttons. Only the sha256 of the nonce is stored; a nonce is bound to one session, one subject and one target.
+model AssistantConfirmation {
+  id        String    @id @default(cuid())
+  sessionId String
+  sub       String
+  kind      String // BOOK RESCHEDULE CANCEL
+  targetRef String // hold (booking) id or booking id
+  payload   Json      @default("{}")
+  nonceHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  outcome   String? // CONFIRMED DECLINED
+  resultRef String?
+  createdAt DateTime  @default(now())
+
+  session AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([expiresAt])
+}
+
+/// GRW-P2-D: one-time, short-lived booking hand-off links (unverified numbers, payment and 3-D Secure, patient preference). Only a hash of the token is stored.
+model AssistantLink {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  phoneHash String
+  intent    String // BOOK VERIFY PAY
+  payload   Json      @default("{}")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
 }
 
 /// One pull of a read-only marketing integration (mock first). Never stores credentials or response bodies.

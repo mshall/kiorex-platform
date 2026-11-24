@@ -1,0 +1,3 @@
+{"name": "eg-happy", "locale": "ar", "turns": [{"in": "عايز أحجز عند دكتور جلدية", "expectOut": ["أنا مساعد آلي", "اختار الدكتور", "د. سارة حسن"], "expectTools": ["search_providers"]}, {"in": "١", "expectOut": ["المواعيد المتاحة"], "expectTools": ["get_slots"]}, {"in": "٢", "expectOut": ["محجوز لك لمدة ٥ دقايق"], "expectTools": ["hold_slot", "prepare_confirmation"]}, {"button": "تأكيد", "expectOut": ["تم الحجز"], "expectTools": ["confirm_booking"]}]}
+{"name": "eg-handoff", "locale": "ar", "turns": [{"in": "كلموني حد", "expectOut": ["حوّلت طلبك"]}]}
+{"name": "eg-symptom", "locale": "ar", "turns": [{"in": "عندي طفح جلدي", "expectOut": ["اختار التخصص"], "forbidTools": ["search_providers"]}]}

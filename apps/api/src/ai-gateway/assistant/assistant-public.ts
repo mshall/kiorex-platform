@@ -1,1 +1,12 @@
 export { AssistantModule } from './assistant.module';
+export { AssistantRouter } from './assistant.router';
+export { AssistantModelFactory } from './assistant.model.factory';
+export { AssistantOrchestrator } from './assistant.orchestrator';
+export { AssistantRetentionJob } from './assistant.retention.job';
+export { AssistantEscalationService } from './assistant.escalation.service';
+export { AssistantCostService } from './assistant.cost.service';
+export { AssistantPolicyService } from './assistant.config';
+export { AssistantLinkService } from './assistant.link.service';
+export type { AssistantModel, ModelInput, ModelStep, InboundText, ConversationRef, ProfileRef, RouteDecision } from './assistant.types';
+export { validateModelStep } from './assistant.model.port';
+export { ASSISTANT_CANARY } from './assistant.safety';

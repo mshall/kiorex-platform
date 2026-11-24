@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { ChannelConversation } from '../prisma/generated/client';
 import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
+import { AssistantRouter } from '../ai-gateway/ai-gateway-public';
 import { BookingService } from '../booking/booking-public';
 import { CatalogService } from '../catalog/catalog-public';
 import { FlagsService } from '../control-plane/control-plane-public';
@@ -39,7 +40,7 @@ export class WhatsAppBookingService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly hub: MessagingHub, private readonly flags: FlagsService, private readonly patients: PatientService, private readonly catalog: CatalogService,
     private readonly booking: BookingService, private readonly waitlist: WaitlistService, private readonly markets: MarketService, private readonly suppression: SuppressionService,
-    @Optional() @Inject(GROWTH_FACTS) private readonly growthFacts?: GrowthFactsPort,
+    @Optional() @Inject(GROWTH_FACTS) private readonly growthFacts?: GrowthFactsPort, @Optional() private readonly assistant?: AssistantRouter,
   ) {}
 
   onModuleInit() { this.hub.onInbound('WHATSAPP', (m) => this.handle(m)); }
@@ -66,6 +67,12 @@ export class WhatsAppBookingService implements OnModuleInit {
     if (state !== 'IDLE' && conv.expiresAt && conv.expiresAt < now) { await this.releaseHeld(conv.sub, ctx); state = 'IDLE'; ctx = {}; }
     conv = await this.prisma.channelConversation.update({ where: { id: conv.id }, data: { expiresAt: new Date(now.getTime() + cfg().whatsappSessionMinutes * 60_000) } });
 
+    // 0) GRW-P2-D: the assistant front stage. It runs BEFORE the machine so its own holds are freed by the same safety step, but it answers only when the locked flag, consent, budgets and rate allow; STOP and every
+    //    miss, model failure or error return DETERMINISTIC and the machine below answers exactly as before. Emergency language is checked again inside the assistant before any model call.
+    if (this.assistant) {
+      const market0 = profile?.market ?? 'EG';
+      if ((await this.assistant.route({ phone, text: m.text, buttonPayload: m.buttonPayload, logId: m.logId, providerRef: m.providerRef }, { id: conv.id, phone, locale: conv.locale, sub: conv.sub, state }, profile ? { sub: profile.sub, market: market0, preferredLocale: profile.preferredLocale } : null)) === 'HANDLED') return;
+    }
     // 1) SAFETY FIRST (never a flag): emergency language interrupts everything and blocks booking (KXM-DS-06)
     const em = detectEmergency(m.text);
     if (em.emergency) {

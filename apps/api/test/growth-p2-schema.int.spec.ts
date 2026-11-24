@@ -294,7 +294,7 @@ describe('growth Phase 2 schema', () => {
   it('every Phase 2 migration is idempotent: applying each file a second time changes nothing and does not fail', async () => {
     const dir = join(__dirname, '..', 'prisma', 'migrations');
     const files = readdirSync(dir).filter((d) => /^20261203/.test(d)).sort();
-    expect(files).toEqual(['20261203090000_growth_p2_campaigns', '20261203091000_growth_p2_referral_rewards', '20261203092000_growth_p2_lifecycle', '20261203093000_growth_p2_assistant', '20261203094000_growth_p2_integrations', '20261203095000_growth_p2_erase_retention_v2', '20261203096000_growth_p2_credit_ledger_v2']);
+    expect(files).toEqual(['20261203090000_growth_p2_campaigns', '20261203091000_growth_p2_referral_rewards', '20261203092000_growth_p2_lifecycle', '20261203093000_growth_p2_assistant', '20261203094000_growth_p2_integrations', '20261203095000_growth_p2_erase_retention_v2', '20261203096000_growth_p2_credit_ledger_v2', '20261203099100_growth_p2_assistant_fixups']);
     const cl = new Client({ connectionString: testDatabaseUrl() }); await cl.connect();
     try { for (const f of files) { await cl.query(readFileSync(join(dir, f, 'migration.sql'), 'utf8')); await cl.query(readFileSync(join(dir, f, 'migration.sql'), 'utf8')); } } finally { await cl.end(); }
     expect(await c.prisma.growthCampaign.count()).toBe(0);

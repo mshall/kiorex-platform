@@ -6,12 +6,9 @@ describe('growth Phase 2 module stubs', () => {
   beforeAll(async () => { c = await createCtx(); });
   afterAll(async () => { await c.close(); });
 
-  const routes: Array<[string, 'get' | 'post', string, string, string]> = [
-    ['assistant link', 'post', '/api/v1/growth/v1/assistant/link', 'kiorex.whatsapp_ai_assistant', 'GRW-P2-D'],
-  ];
-  it.each(routes)('%s answers 404 FEATURE_DISABLED with the flag and the package that will fill it', async (_n, method, path, key, pkg) => {
-    const r = await c.http()[method](path).send({});
-    expect(r.status).toBe(404);
-    expect(r.body).toMatchObject({ code: 'FEATURE_DISABLED', key, pkg, stub: true });
+  it('the lifecycle admin route is a real endpoint now (GRW-P2-E): it asks for a sign-in instead of answering the stub', async () => {
+    const r = await c.http().get('/api/v1/admin/growth/lifecycle');
+    expect(r.status).toBe(401);
+    expect(r.body).not.toMatchObject({ stub: true });
   });
 });

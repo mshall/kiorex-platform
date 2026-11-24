@@ -1,4 +1,4 @@
-import GrowthPlannedPage from "@/pages/growth/GrowthPlannedPage";
+import AssistantWorkspace from "./Tabs";
 
-/** GRW-P2-X1 route placeholder. The owning package replaces this file (and flips its `status` line in components/growth/sections.ts); nobody else edits it. */
-export default function WhatsappPage() { return <GrowthPlannedPage section="whatsapp" />; }
+/** GRW-P2-D: WhatsApp conversations and escalations (replaces the GRW-P2-X1 placeholder). */
+export default function WhatsappPage() { return <AssistantWorkspace section="whatsapp" initial="conversations" />; }
