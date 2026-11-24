@@ -7603,7 +7603,16 @@
     "/api/v1/pharmacy/orders": {
       "post": {
         "operationId": "PharmacyController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-kx-continuity",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -7974,7 +7983,16 @@
     "/api/v1/lab/bookings": {
       "post": {
         "operationId": "LabController_book",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-kx-continuity",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8815,7 +8833,16 @@
     "/api/v1/care-plans": {
       "post": {
         "operationId": "HomeCareController_requestPlan",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-kx-continuity",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10889,6 +10916,147 @@
           }
         },
         "summary": "GRW-P4-B2 pharmacy, lab and nurse decisions by origin (counts only, cells under 10 masked)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/continuity/cards": {
+      "get": {
+        "operationId": "CrossProductController_cards",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-A my continuity cards (pharmacy, lab, home visit), only when their gates are open; prompts only, nothing is sent",
+        "tags": [
+          "growth-cross-product"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/continuity/consent": {
+      "get": {
+        "operationId": "CrossProductController_consent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-A my consent to link a clinic visit with a later pharmacy, lab or home-visit order for measurement",
+        "tags": [
+          "growth-cross-product"
+        ]
+      },
+      "put": {
+        "operationId": "CrossProductController_setConsent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContinuityConsentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-A grant or withdraw that consent (effective for the next order; withdrawal also dismisses pending prompts)",
+        "tags": [
+          "growth-cross-product"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/continuity/cards/{id}/dismiss": {
+      "post": {
+        "operationId": "CrossProductController_dismiss",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-A hide one of my cards",
+        "tags": [
+          "growth-cross-product"
+        ]
+      }
+    },
+    "/api/v1/ops/growth/cross-product/funnel": {
+      "get": {
+        "operationId": "CrossProductAdminController_get",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-A clinic to pharmacy, lab and home-visit funnel (aggregate k >= 10; by source of the first booking and time to continue; no specialty)",
         "tags": [
           "growth-admin"
         ]
@@ -15262,6 +15430,2281 @@
         "summary": "GRW-P3-F ingest the Lighthouse summary (body or file) and the CrUX field rows, then check budgets",
         "tags": [
           "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/catalog": {
+      "get": {
+        "operationId": "AutomationAdminController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E the closed vocabulary of the builder: node types, trigger events, templates with their class, channels, attributes and the policy numbers",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/status": {
+      "get": {
+        "operationId": "AutomationAdminController_status",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E banner facts: automation switch and the marketing licence flag status",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/validate": {
+      "post": {
+        "operationId": "AutomationAdminController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E validate and compile an unsaved graph (the builder calls it on every change); writes nothing",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/dry-run": {
+      "post": {
+        "operationId": "AutomationAdminController_dryRun",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E dry run of an unsaved graph on a synthetic cohort: volumes and gate decisions, nobody is read or sent anything",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys": {
+      "get": {
+        "operationId": "AutomationAdminController_list",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E list journey definitions",
+        "tags": [
+          "growth-automation"
+        ]
+      },
+      "post": {
+        "operationId": "AutomationAdminController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E create a draft; 422 JOURNEY_INVALID lists every error with a code and a path",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}": {
+      "get": {
+        "operationId": "AutomationAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E one definition with its compiled steps, counts per day and active enrolments (counts only)",
+        "tags": [
+          "growth-automation"
+        ]
+      },
+      "patch": {
+        "operationId": "AutomationAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E edit a draft (a published journey is immutable)",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/dry-run": {
+      "post": {
+        "operationId": "AutomationAdminController_dryRunSaved",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E dry run of a saved journey",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/submit": {
+      "post": {
+        "operationId": "AutomationAdminController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E submit a draft for approval",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/approve": {
+      "post": {
+        "operationId": "AutomationAdminController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E a DIFFERENT super admin approves and publishes (two-person rule); the previous version of the key is retired",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/reject": {
+      "post": {
+        "operationId": "AutomationAdminController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E a different super admin sends a pending journey back to draft",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/retire": {
+      "post": {
+        "operationId": "AutomationAdminController_retire",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E retire a published journey (running enrolments end with RETIRED; never flag-gated)",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/journeys/{id}/kill": {
+      "post": {
+        "operationId": "AutomationAdminController_kill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E per-journey kill switch: the next evaluation of every enrolment ends it with KILLED (never flag-gated, one person suffices)",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/automation/scan": {
+      "post": {
+        "operationId": "AutomationAdminController_scan",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E run the trigger scan once (idempotent; also what the job does)",
+        "tags": [
+          "growth-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations/catalog": {
+      "get": {
+        "operationId": "RecommendationsAdminController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E the closed vocabulary of recommendation kinds, the policy numbers and the model mode",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations": {
+      "get": {
+        "operationId": "RecommendationsAdminController_list",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E list recommendations (market, status, kind filters); expired ones are marked EXPIRED first",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations/{id}": {
+      "get": {
+        "operationId": "RecommendationsAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E one recommendation with its evidence references and rationale in both languages",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations/run": {
+      "post": {
+        "operationId": "RecommendationsAdminController_run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E build proposals from the aggregates now (idempotent per open fingerprint; also what the daily job does)",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations/{id}/decision": {
+      "post": {
+        "operationId": "RecommendationsAdminController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E APPROVE (creates at most a DRAFT) or REJECT (reason required) a PROPOSED recommendation",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/recommendations/{id}/feedback": {
+      "post": {
+        "operationId": "RecommendationsAdminController_feedback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-E reviewer feedback (USEFUL or NOT_USEFUL), stored for evaluation",
+        "tags": [
+          "growth-recommendations"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts": {
+      "get": {
+        "operationId": "CohortsController_table",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "basis",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "value",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C cohort table (acquisition month by first completed booking or registration; retained, bookings, revenue, reward cost; \"<10\" masked)",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/retention": {
+      "get": {
+        "operationId": "CohortsController_retention",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "basis",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "value",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C retention curves and heatmap by months since acquisition",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/ltv": {
+      "get": {
+        "operationId": "CohortsController_ltv",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "basis",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C LTV estimates with bootstrap intervals (labelled ESTIMATE, with n and horizon)",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/payback": {
+      "get": {
+        "operationId": "CohortsController_payback",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C blended CAC, payback month per cohort and LTV:CAC with interval",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/values": {
+      "get": {
+        "operationId": "CohortsController_values",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C the sources, campaigns or platforms that have a stored cohort",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/reconcile": {
+      "get": {
+        "operationId": "CohortsController_reconcile",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C independent recount of acquired patients and revenue against the stored cells",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/cohorts/rollup": {
+      "post": {
+        "operationId": "CohortsController_rollup",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortRollupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-C recompute cohorts and LTV for the last N months (idempotent)",
+        "tags": [
+          "growth-cohorts"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/catalogue": {
+      "get": {
+        "operationId": "MarketOnboardingController_catalogue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G steps, data cells and the markets the code fallback already covers",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans": {
+      "get": {
+        "operationId": "MarketOnboardingController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G onboarding plans",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      },
+      "post": {
+        "operationId": "MarketOnboardingController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G start a plan for a new market (refuses EG, SA, AE and duplicates)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}": {
+      "get": {
+        "operationId": "MarketOnboardingController_get",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G one plan with its answers",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}/readiness": {
+      "get": {
+        "operationId": "MarketOnboardingController_readiness",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G readiness checklist (DONE, TODO, AWAITING_CHECKER, NEEDS_HUMAN)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}/geography": {
+      "get": {
+        "operationId": "MarketOnboardingController_geography",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G imported cities and districts",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      },
+      "post": {
+        "operationId": "MarketOnboardingController_importGeo",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CsvDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G import the geography CSV (all or nothing; replaces the market geography)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/geography/preview": {
+      "post": {
+        "operationId": "MarketOnboardingController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CsvDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G validate a geography CSV without writing (errors per line, counts, first rows)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}/steps/{step}": {
+      "put": {
+        "operationId": "MarketOnboardingController_step",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "step",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G answer one step (validated; references and booleans only, legal texts stay human)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}/publish": {
+      "post": {
+        "operationId": "MarketOnboardingController_publish",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G draft and submit the three config versions and register the launch-locked live flag (a second super admin approves)",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/market-onboarding/plans/{cc}/cancel": {
+      "post": {
+        "operationId": "MarketOnboardingController_cancel",
+        "parameters": [
+          {
+            "name": "cc",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P3-G cancel an unpublished plan",
+        "tags": [
+          "growth-market-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts": {
+      "get": {
+        "operationId": "CorporateAdminController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C corporate accounts (company data and terms)",
+        "tags": [
+          "growth-corporate"
+        ]
+      },
+      "post": {
+        "operationId": "CorporateAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateCreateAccountBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C open a corporate account (LEAD)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}": {
+      "get": {
+        "operationId": "CorporateAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C one account",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/terms": {
+      "put": {
+        "operationId": "CorporateAdminController_terms",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateTermsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C edit the commercial terms (LEAD or PAUSED only); the editor cannot activate",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/activate": {
+      "post": {
+        "operationId": "CorporateAdminController_activate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C activate (a second person; terms complete)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/pause": {
+      "post": {
+        "operationId": "CorporateAdminController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C pause",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/end": {
+      "post": {
+        "operationId": "CorporateAdminController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C end the programme (final)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/codes": {
+      "get": {
+        "operationId": "CorporateAdminController_codes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C codes: label, counters, state (never the code or its hash)",
+        "tags": [
+          "growth-corporate"
+        ]
+      },
+      "post": {
+        "operationId": "CorporateAdminController_createCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateCodeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C create a code (the plain code is returned once)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/codes/{codeId}/revoke": {
+      "post": {
+        "operationId": "CorporateAdminController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C revoke a code",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/report": {
+      "get": {
+        "operationId": "CorporateAdminController_report",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/statement": {
+      "get": {
+        "operationId": "CorporateAdminController_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "month",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C invoice basis of one month (finance)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes": {
+      "get": {
+        "operationId": "CorporateAdminController_notes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C manual invoice notes",
+        "tags": [
+          "growth-corporate"
+        ]
+      },
+      "post": {
+        "operationId": "CorporateAdminController_addNote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateInvoiceNoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C record the sponsor spend of a month for manual invoicing",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/accounts/{id}/hr-lists": {
+      "get": {
+        "operationId": "CorporateAdminController_hr",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C HR lists as counts only",
+        "tags": [
+          "growth-corporate"
+        ]
+      },
+      "post": {
+        "operationId": "CorporateAdminController_uploadHr",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateHrBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C upload an HR list (phone or e-mail per row; only keyed hashes are stored; a second person approves)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/hr-lists/{batchId}/decision": {
+      "post": {
+        "operationId": "CorporateAdminController_decideHr",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateHrDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C approve or reject an HR list (not the uploader)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/leads": {
+      "get": {
+        "operationId": "CorporateAdminController_leadList",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C enterprise leads and the pipeline counts",
+        "tags": [
+          "growth-corporate"
+        ]
+      },
+      "post": {
+        "operationId": "CorporateAdminController_leadCreate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateLeadBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C add an inbound or outbound lead (company data only)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/leads/{id}": {
+      "get": {
+        "operationId": "CorporateAdminController_leadGet",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C one lead with its history",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/leads/{id}/transition": {
+      "post": {
+        "operationId": "CorporateAdminController_leadTransition",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateLeadTransitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C move a lead through the pipeline",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/leads/{id}/assign": {
+      "post": {
+        "operationId": "CorporateAdminController_leadAssign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateAssignBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C assign an owner",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/corporate/leads/{id}/notes": {
+      "put": {
+        "operationId": "CorporateAdminController_leadNotes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateNotesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C replace the company notes",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/corporate/me": {
+      "get": {
+        "operationId": "CorporatePublicController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C my programme and my allowance usage",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/corporate/join": {
+      "post": {
+        "operationId": "CorporatePublicController_join",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorporateJoinBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C join with a company code, or with a verified work e-mail when no code is sent",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/corporate/leave": {
+      "post": {
+        "operationId": "CorporatePublicController_leave",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C leave the programme",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/corporate/benefit/quote": {
+      "get": {
+        "operationId": "CorporatePublicController_quote",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-C what the programme would cover of the deposit of one of MY bookings",
+        "tags": [
+          "growth-corporate"
         ]
       }
     },
@@ -26833,7 +29276,8 @@
               "REWARD_RULES",
               "SEO",
               "SPONSORED_PROMOTION_POLICY",
-              "WIDGET_POLICY"
+              "WIDGET_POLICY",
+              "LTV_POLICY"
             ]
           },
           "scope": {
@@ -26929,7 +29373,8 @@
               "REWARD_RULES",
               "SEO",
               "SPONSORED_PROMOTION_POLICY",
-              "WIDGET_POLICY"
+              "WIDGET_POLICY",
+              "LTV_POLICY"
             ]
           },
           "scope": {
@@ -26995,6 +29440,24 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "ContinuityConsentBody": {
+        "type": "object",
+        "properties": {
+          "granted": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "app"
+            ]
+          }
+        },
+        "required": [
+          "granted"
         ]
       },
       "SpendBody": {
@@ -27482,6 +29945,315 @@
         "required": [
           "reason"
         ]
+      },
+      "CohortRollupBody": {
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 60
+          }
+        }
+      },
+      "CsvDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "maxLength": 6000000
+          },
+          "csvBase64": {
+            "type": "string",
+            "maxLength": 8000000
+          },
+          "encoding": {
+            "type": "string",
+            "enum": [
+              "utf-8",
+              "windows-1256"
+            ]
+          }
+        }
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "cc": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2
+          }
+        },
+        "required": [
+          "cc"
+        ]
+      },
+      "CorporateCreateAccountBody": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "fundingMode": {
+            "type": "string",
+            "enum": [
+              "SPONSOR_CREDIT",
+              "PLATFORM_PROMO"
+            ]
+          },
+          "legalNameRef": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "billingContactRef": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "leadId": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "CorporateTermsBody": {
+        "type": "object",
+        "properties": {
+          "contractRef": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120
+          },
+          "sponsorCeilingMinor": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2000000000
+          },
+          "perMemberCapMinor": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2000000000
+          },
+          "perVisitMaxMinor": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 2000000000
+          },
+          "coverBp": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "startsAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "endsAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "emailDomains": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          "fundingMode": {
+            "type": "string",
+            "enum": [
+              "SPONSOR_CREDIT",
+              "PLATFORM_PROMO"
+            ]
+          },
+          "billingContactRef": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120
+          }
+        }
+      },
+      "CorporateCodeBody": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "LIST"
+            ]
+          },
+          "maxRedemptions": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "perMemberCapMinor": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 2000000000
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "label",
+          "maxRedemptions"
+        ]
+      },
+      "CorporateInvoiceNoteBody": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "month"
+        ]
+      },
+      "CorporateHrBody": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "maxItems": 100000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        },
+        "required": [
+          "rows"
+        ]
+      },
+      "CorporateHrDecisionBody": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "CorporateLeadBody": {
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND"
+            ]
+          },
+          "sizeBucket": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "contactRef": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "companyName"
+        ]
+      },
+      "CorporateLeadTransitionBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "CONTACTED",
+              "QUALIFIED",
+              "PROPOSAL",
+              "WON",
+              "LOST",
+              "DUPLICATE"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CorporateAssignBody": {
+        "type": "object",
+        "properties": {
+          "ownerSub": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "ownerSub"
+        ]
+      },
+      "CorporateNotesBody": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "notes"
+        ]
+      },
+      "CorporateJoinBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40
+          }
+        }
       },
       "LiveDto": {
         "type": "object",

@@ -223,6 +223,7 @@
 | GET | `/api/v1/ops/growth/analytics` | GRW-P1-K daily growth events and decisions (raw tables until analytics v1 serves them) |
 | GET | `/api/v1/ops/growth/finance` | GRW-P1-K financial performance: decisions by origin and revenue facts (finance role) |
 | GET | `/api/v1/ops/growth/product-decisions` | GRW-P4-B2 pharmacy, lab and nurse decisions by origin (counts only, cells under 10 masked) |
+| GET | `/api/v1/ops/growth/cross-product/funnel` | GRW-P4-A clinic to pharmacy, lab and home-visit funnel (aggregate k >= 10; by source of the first booking and time to continue; no specialty) |
 
 ## growth-assistant
 
@@ -248,6 +249,26 @@
 | GET | `/api/v1/admin/growth/attribution-models/lift` | GRW-P3-B experiment-based lift (holdout against exposed) for a P3-A experiment |
 | POST | `/api/v1/admin/growth/attribution-models/rollup` | GRW-P3-B recompute the last N market days (idempotent) |
 
+## growth-automation
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/automation/catalog` | GRW-P3-E the closed vocabulary of the builder: node types, trigger events, templates with their class, channels, attributes and the policy numbers |
+| GET | `/api/v1/admin/growth/automation/status` | GRW-P3-E banner facts: automation switch and the marketing licence flag status |
+| POST | `/api/v1/admin/growth/automation/validate` | GRW-P3-E validate and compile an unsaved graph (the builder calls it on every change); writes nothing |
+| POST | `/api/v1/admin/growth/automation/dry-run` | GRW-P3-E dry run of an unsaved graph on a synthetic cohort: volumes and gate decisions, nobody is read or sent anything |
+| GET | `/api/v1/admin/growth/automation/journeys` | GRW-P3-E list journey definitions |
+| POST | `/api/v1/admin/growth/automation/journeys` | GRW-P3-E create a draft; 422 JOURNEY_INVALID lists every error with a code and a path |
+| GET | `/api/v1/admin/growth/automation/journeys/{id}` | GRW-P3-E one definition with its compiled steps, counts per day and active enrolments (counts only) |
+| PATCH | `/api/v1/admin/growth/automation/journeys/{id}` | GRW-P3-E edit a draft (a published journey is immutable) |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/dry-run` | GRW-P3-E dry run of a saved journey |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/submit` | GRW-P3-E submit a draft for approval |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/approve` | GRW-P3-E a DIFFERENT super admin approves and publishes (two-person rule); the previous version of the key is retired |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/reject` | GRW-P3-E a different super admin sends a pending journey back to draft |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/retire` | GRW-P3-E retire a published journey (running enrolments end with RETIRED; never flag-gated) |
+| POST | `/api/v1/admin/growth/automation/journeys/{id}/kill` | GRW-P3-E per-journey kill switch: the next evaluation of every enrolment ends it with KILLED (never flag-gated, one person suffices) |
+| POST | `/api/v1/admin/growth/automation/scan` | GRW-P3-E run the trigger scan once (idempotent; also what the job does) |
+
 ## growth-campaigns
 
 | Method | Path | Summary |
@@ -268,6 +289,18 @@
 | POST | `/api/v1/admin/growth/campaigns/{id}/creatives` | GRW-P2-A add a creative REFERENCE (object-store key under the campaign prefix or an allowlisted https URL) |
 | GET | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A spend lines booked against the campaign, with the daily utilisation |
 | POST | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page) |
+
+## growth-cohorts
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/cohorts` | GRW-P3-C cohort table (acquisition month by first completed booking or registration; retained, bookings, revenue, reward cost; "<10" masked) |
+| GET | `/api/v1/admin/growth/cohorts/retention` | GRW-P3-C retention curves and heatmap by months since acquisition |
+| GET | `/api/v1/admin/growth/cohorts/ltv` | GRW-P3-C LTV estimates with bootstrap intervals (labelled ESTIMATE, with n and horizon) |
+| GET | `/api/v1/admin/growth/cohorts/payback` | GRW-P3-C blended CAC, payback month per cohort and LTV:CAC with interval |
+| GET | `/api/v1/admin/growth/cohorts/values` | GRW-P3-C the sources, campaigns or platforms that have a stored cohort |
+| GET | `/api/v1/admin/growth/cohorts/reconcile` | GRW-P3-C independent recount of acquired patients and revenue against the stored cells |
+| POST | `/api/v1/admin/growth/cohorts/rollup` | GRW-P3-C recompute cohorts and LTV for the last N months (idempotent) |
 
 ## growth-corporate
 
@@ -329,6 +362,15 @@
 | POST | `/api/v1/admin/growth/credit/goodwill` | GRW-P2-B2 support goodwill (flag growth.support_goodwill, second approver above the threshold) |
 | GET | `/api/v1/admin/growth/credit/reconcile` | GRW-P2-B2 reconcile runs (RC-1 to RC-7), newest first |
 | POST | `/api/v1/admin/growth/credit/reconcile/run` | GRW-P2-B2 run the reconciliation now (never corrects, records a case on failure) |
+
+## growth-cross-product
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/growth/v1/continuity/cards` | GRW-P4-A my continuity cards (pharmacy, lab, home visit), only when their gates are open; prompts only, nothing is sent |
+| GET | `/api/v1/growth/v1/continuity/consent` | GRW-P4-A my consent to link a clinic visit with a later pharmacy, lab or home-visit order for measurement |
+| PUT | `/api/v1/growth/v1/continuity/consent` | GRW-P4-A grant or withdraw that consent (effective for the next order; withdrawal also dismisses pending prompts) |
+| POST | `/api/v1/growth/v1/continuity/cards/{id}/dismiss` | GRW-P4-A hide one of my cards |
 
 ## growth-experiments
 
@@ -397,6 +439,33 @@
 | POST | `/api/v1/admin/growth/lifecycle/test-send` | GRW-P2-E send one template to an allowlisted staff subject, only while the channel runs in mock mode |
 | GET | `/api/v1/admin/growth/lifecycle/lookup` | GRW-P2-E audited lookup of one subject decisions (DPO use): every call writes an audit row |
 | POST | `/api/v1/admin/growth/lifecycle/run` | GRW-P2-E run the one-minute tick once (idempotent; also what the job does) |
+
+## growth-market-onboarding
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/market-onboarding/catalogue` | GRW-P3-G steps, data cells and the markets the code fallback already covers |
+| GET | `/api/v1/admin/growth/market-onboarding/plans` | GRW-P3-G onboarding plans |
+| POST | `/api/v1/admin/growth/market-onboarding/plans` | GRW-P3-G start a plan for a new market (refuses EG, SA, AE and duplicates) |
+| GET | `/api/v1/admin/growth/market-onboarding/plans/{cc}` | GRW-P3-G one plan with its answers |
+| GET | `/api/v1/admin/growth/market-onboarding/plans/{cc}/readiness` | GRW-P3-G readiness checklist (DONE, TODO, AWAITING_CHECKER, NEEDS_HUMAN) |
+| GET | `/api/v1/admin/growth/market-onboarding/plans/{cc}/geography` | GRW-P3-G imported cities and districts |
+| POST | `/api/v1/admin/growth/market-onboarding/plans/{cc}/geography` | GRW-P3-G import the geography CSV (all or nothing; replaces the market geography) |
+| POST | `/api/v1/admin/growth/market-onboarding/geography/preview` | GRW-P3-G validate a geography CSV without writing (errors per line, counts, first rows) |
+| PUT | `/api/v1/admin/growth/market-onboarding/plans/{cc}/steps/{step}` | GRW-P3-G answer one step (validated; references and booleans only, legal texts stay human) |
+| POST | `/api/v1/admin/growth/market-onboarding/plans/{cc}/publish` | GRW-P3-G draft and submit the three config versions and register the launch-locked live flag (a second super admin approves) |
+| POST | `/api/v1/admin/growth/market-onboarding/plans/{cc}/cancel` | GRW-P3-G cancel an unpublished plan |
+
+## growth-recommendations
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/recommendations/catalog` | GRW-P3-E the closed vocabulary of recommendation kinds, the policy numbers and the model mode |
+| GET | `/api/v1/admin/growth/recommendations` | GRW-P3-E list recommendations (market, status, kind filters); expired ones are marked EXPIRED first |
+| GET | `/api/v1/admin/growth/recommendations/{id}` | GRW-P3-E one recommendation with its evidence references and rationale in both languages |
+| POST | `/api/v1/admin/growth/recommendations/run` | GRW-P3-E build proposals from the aggregates now (idempotent per open fingerprint; also what the daily job does) |
+| POST | `/api/v1/admin/growth/recommendations/{id}/decision` | GRW-P3-E APPROVE (creates at most a DRAFT) or REJECT (reason required) a PROPOSED recommendation |
+| POST | `/api/v1/admin/growth/recommendations/{id}/feedback` | GRW-P3-E reviewer feedback (USEFUL or NOT_USEFUL), stored for evaluation |
 
 ## growth-referral
 

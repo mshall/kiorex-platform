@@ -2852,7 +2852,7 @@ model CrossProductContinuity {
   createdAt        DateTime @default(now())
 
   @@unique([toProduct, toFactRef], map: "CrossProductContinuity_to_key")
-  @@index([market, toProduct, createdAt])
+  @@index([market, toProduct, createdAt], map: "CrossProductContinuity_market_to_createdAt_idx")
 }
 
 /// The patient's own in-app prompt state for one continuity card (short lived, erased with the subject). Kind and keyed hash only, never content.
@@ -2869,7 +2869,7 @@ model CrossProductEntryPoint {
   dismissedAt     DateTime?
 
   @@unique([sub, kind, factRef], map: "CrossProductEntryPoint_sub_kind_fact_key")
-  @@index([sub, expiresAt])
+  @@index([sub, expiresAt], map: "CrossProductEntryPoint_sub_expires_idx")
 }
 
 // ── GRW-P4-C corporate partnerships and enterprise acquisition (migration 20270128093000_growth_p4_corporate) ──
