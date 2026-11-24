@@ -26,6 +26,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const code = (b.code as string) ?? (typeof b.error === 'string' ? String(b.error).toUpperCase().replace(/ /g, '_') : 'ERROR');
       const message = Array.isArray(b.message) ? (b.message as string[]).join('; ') : ((b.message as string) ?? ex.message);
       const { error: _e, statusCode: _s, ...rest } = b;
+      if (status === 429 && typeof rest.retryAfterSec === 'number') res.setHeader?.('Retry-After', String(rest.retryAfterSec));
       return res.status(status).json({ ...rest, code, message });
     }
     this.log.error(ex instanceof Error ? ex.stack : String(ex));

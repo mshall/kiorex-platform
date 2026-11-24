@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { PARTNER_API_PATH } from '@kiorex/contracts';
+import { PARTNER_API_PATH, deriveIntakeSigningKey, generateIntakeKey, verifyIntakeSignature } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { decryptField, encryptField } from '../common/crypto';
 import { ApiError, badRequest, conflict, forbidden, notFound } from '../common/errors';
+import { SlidingWindowLimiter } from '../common/rate-limit';
 import { newId } from '../common/ids';
 import { verifyWebhook } from '../common/hmac';
 import { PartnerHttpError, PartnerTransientError, partnerRequest, type PartnerConn } from '../common/partner-http';
@@ -14,13 +15,19 @@ import { KiorlyClient, KiorlyHttpError } from '../kiorly/kiorly-public';
 import { MessagingHub } from '../messaging/messaging-public';
 import { MarketService } from '../market/market-public';
 import { PartnerRegistry } from '../partners/partners-public';
-import { CONN_KINDS, KIND_FLAGS, computeSteps, goLiveBlockers, needsHandshakeCreds, progressPct, type CheckResult, type ChecksDoc, type ConnKind, type HumanDoc, type StepInput } from './steps';
+import { parseIntakeBody, type IntakeBody } from './intake-validation';
+import { KIND_FLAGS, computeSteps, goLiveBlockers, needsHandshakeCreds, progressPct, type CheckResult, type ChecksDoc, type ConnKind, type HumanDoc, type StepInput } from './steps';
 
 /** Secrets never leave this service: the view below omits `secretsEnc` / `pendingSecretsEnc`, logs carry ids and codes only. */
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const eq = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
-const HOST_RE = /^https?:\/\/[^/\s]+$/;
-export interface IntakeBody { statusToken?: string; kind: ConnKind; orgRef: string; name: string; nameAr?: string; market?: string; contactEmail?: string; locale?: string; baseUrl?: string; clientKey?: string; clientSecret?: string; webhookSecret?: string; readiness?: Record<string, any> }
+export type { IntakeBody };
+let limiter = new SlidingWindowLimiter();
+/** Tests only: forget every intake counter. */
+export const resetIntakeLimits = () => { limiter = new SlidingWindowLimiter(); };
+const tooMany = (retryAfterSec: number) => new ApiError(429, 'RATE_LIMITED', 'Too many requests, try again later', { retryAfterSec });
+const UNAUTHORIZED = () => new ApiError(401, 'INTAKE_UNAUTHORIZED', 'Request could not be authenticated');
+const DUMMY_KEY = deriveIntakeSigningKey('kiorex-intake-dummy');
 
 const MSG: Record<string, { en: string; ar: string }> = {
   SUBMITTED: { en: 'We received your request to connect to Kiorex. Our team reviews it in the Kiorex console; you can follow every step in your product settings.', ar: 'استلمنا طلب الربط بكيوريكس. يراجعه فريقنا، ويمكنك متابعة كل خطوة من إعدادات منتجك.' },
@@ -56,33 +63,39 @@ export class PartnerOnboardingService {
 
   // ───────────────────────── public intake (partner products) ─────────────────────────
 
-  /** Verifies the signature (Clinic/Nurse: the shared Kiorly webhook secret; Pharmacy/Lab: the webhook secret they submit, which only proves integrity: control of the partner API is proved by the signed handshake). */
-  async intake(raw: string, h: { signature?: string; timestamp?: string }) {
-    let b: IntakeBody; try { b = JSON.parse(raw); } catch { throw badRequest('INVALID_JSON', 'Body is not JSON'); }
-    if (!b || !CONN_KINDS.includes(b.kind)) throw badRequest('INVALID_KIND', 'kind must be CLINIC, NURSE, PHARMACY or LAB');
-    if (!b.orgRef || typeof b.orgRef !== 'string' || b.orgRef.length > 80 || !b.name || typeof b.name !== 'string' || b.name.length > 160) throw badRequest('INVALID_REQUEST', 'orgRef and name are required');
-    const secret = needsHandshakeCreds(b.kind) ? b.webhookSecret : cfg().kiorlyWebhookSecret;
-    if (!secret || !verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Request signature rejected');
-    if (JSON.stringify(b.readiness ?? {}).length > 8000) throw badRequest('READINESS_TOO_LARGE', 'readiness snapshot is too large');
-    const market = (b.market ?? 'EG').toUpperCase().slice(0, 2);
-    let secretsEnc: string | undefined; let baseUrl: string | undefined;
-    if (needsHandshakeCreds(b.kind)) {
-      baseUrl = (b.baseUrl ?? '').replace(/\/+$/, '');
-      if (!HOST_RE.test(baseUrl)) throw badRequest('INVALID_BASE_URL', 'baseUrl must be a host URL without a path');
-      if (!b.clientKey || !b.clientSecret || !b.webhookSecret || b.clientKey.length > 120 || b.clientSecret.length > 200 || b.webhookSecret.length > 200) throw badRequest('CREDENTIALS_REQUIRED', 'clientKey, clientSecret and webhookSecret are required');
-      secretsEnc = encryptField(JSON.stringify({ clientSecret: b.clientSecret, webhookSecret: b.webhookSecret }));
-    }
-    const readiness = { ...(b.readiness ?? {}), locale: b.locale === 'ar' ? 'ar' : 'en' };
+  /**
+   * Public intake (contracts 1.9.0). Order: shape (strict, 400) -> rate limits (429) -> authentication (ONE uniform 401 for every failure: unknown, expired,
+   * used, revoked or wrong-kind enrolment, bad signature, stale timestamp, replayed nonce) -> business logic. The first request of an organisation is signed with a
+   * one-time enrolment code and answers with an intake key (shown once) that signs every later request. Audit lines carry ids and codes only (no PHI, no secrets).
+   */
+  async intake(raw: string, h: { signature?: string; timestamp?: string; enrolment?: string; ip?: string }) {
+    const c = cfg(); const ip = h.ip ?? 'unknown';
+    const blockedFails = limiter.blocked(`fail:${ip}`, c.intakeFailedPer10Min, 600_000);
+    if (!blockedFails.ok) throw tooMany(blockedFails.retryAfterSec);
+    const ipHit = limiter.hit(`post:${ip}`, c.intakeIpPerMin, 60_000); if (!ipHit.ok) throw tooMany(ipHit.retryAfterSec);
+    const b = parseIntakeBody(raw);
+    const orgHit = limiter.hit(`org:${b.kind}:${b.orgRef}`, c.intakeOrgPerHour, 3_600_000); if (!orgHit.ok) throw tooMany(orgHit.retryAfterSec);
     const existing = await this.prisma.partnerConnection.findUnique({ where: { kind_orgRef: { kind: b.kind, orgRef: b.orgRef } } });
+    const auth = await this.authenticateIntake(b, raw, h, existing, ip);
+    const market = (b.market ?? 'EG').toUpperCase().slice(0, 2);
+    let secretsEnc: string | undefined; const baseUrl = b.baseUrl;
+    if (needsHandshakeCreds(b.kind)) secretsEnc = encryptField(JSON.stringify({ clientSecret: b.clientSecret, webhookSecret: b.webhookSecret }));
+    const readiness = { ...(b.readiness ?? {}), locale: b.locale === 'ar' ? 'ar' : 'en' };
     if (!existing) {
       // a partner may derive its own status token (so it never has to store one); otherwise we mint one and return it once
       const supplied = typeof b.statusToken === 'string' && b.statusToken.length >= 32 && b.statusToken.length <= 128 ? b.statusToken : undefined;
       const token = supplied ?? randomBytes(24).toString('base64url');
-      const r = await this.prisma.partnerConnection.create({ data: { id: newId('pc'), kind: b.kind, orgRef: b.orgRef, name: b.name, nameAr: b.nameAr, market, contactEmail: b.contactEmail, baseUrl, clientKey: b.clientKey, secretsEnc, statusTokenHash: sha(token), readiness } });
+      const issued = generateIntakeKey();
+      const r = await this.prisma.$transaction(async (tx) => {
+        await this.consumeEnrolment(tx, auth, null);
+        return tx.partnerConnection.create({ data: { id: newId('pc'), kind: b.kind, orgRef: b.orgRef, name: b.name, nameAr: b.nameAr, market, contactEmail: b.contactEmail, baseUrl, clientKey: b.clientKey, secretsEnc, statusTokenHash: sha(token), readiness, intakeKeyHash: issued.signingKey } });
+      });
+      if (auth.enrolmentId) await this.prisma.partnerEnrolment.update({ where: { id: auth.enrolmentId }, data: { connectionId: r.id } }).catch(() => undefined);
       await this.audit('partner', 'submitted', r.id, { kind: r.kind, market });
       void this.notify(r, 'SUBMITTED');
       void this.runChecks('system', r.id).catch((e) => this.log.warn(`auto checks failed id=${r.id} err=${(e as Error).name}`));
-      return { id: r.id, status: r.status, ...(supplied ? {} : { statusToken: token }), created: true };
+      await this.audit('partner', 'enrolment_used', r.id, { enrolmentId: auth.enrolmentId });
+      return { id: r.id, status: r.status, ...(supplied ? {} : { statusToken: token }), intakeKey: issued.key, created: true };
     }
     // idempotent re-submit: refresh readiness; a changed credential set while LIVE is a rotation that ops applies after a passing handshake
     const data: Record<string, unknown> = { name: b.name, nameAr: b.nameAr, market, contactEmail: b.contactEmail ?? existing.contactEmail, readiness };
@@ -94,14 +107,57 @@ export class PartnerOnboardingService {
       } else { data.baseUrl = baseUrl; data.clientKey = b.clientKey; data.secretsEnc = secretsEnc; }
     }
     if (existing.status === 'CHANGES_REQUESTED') data.status = 'SUBMITTED';
-    const r = await this.prisma.partnerConnection.update({ where: { id: existing.id }, data });
-    await this.audit('partner', data.pendingSecretsEnc ? 'rotation_submitted' : 'resubmitted', r.id);
+    // recovery re-enrolment (ops issued a new code because the partner lost its intake key): a new key replaces the old one
+    const reissued = auth.enrolmentId ? generateIntakeKey() : undefined;
+    if (reissued) data.intakeKeyHash = reissued.signingKey;
+    const r = await this.prisma.$transaction(async (tx) => { await this.consumeEnrolment(tx, auth, existing.id); return tx.partnerConnection.update({ where: { id: existing.id }, data }); });
+    await this.audit('partner', data.pendingSecretsEnc ? 'rotation_submitted' : 'resubmitted', r.id, auth.enrolmentId ? { enrolmentId: auth.enrolmentId } : undefined);
     void this.runChecks('system', r.id).catch(() => undefined);
-    return { id: r.id, status: r.status, created: false };
+    return { id: r.id, status: r.status, created: false, ...(reissued ? { intakeKey: reissued.key } : {}) };
+  }
+
+  /** One uniform failure for every reason; the reason is audited internally (ids only) and never returned. */
+  private async authenticateIntake(b: IntakeBody, raw: string, h: { signature?: string; timestamp?: string; enrolment?: string }, existing: { id: string; intakeKeyHash: string | null } | null, ip: string): Promise<{ enrolmentId?: string }> {
+    const now = new Date(); let key = DUMMY_KEY; let enrolmentId: string | undefined; let reason = 'NO_CREDENTIAL';
+    const enrId = typeof h.enrolment === 'string' && /^kxe_[A-Za-z0-9_-]{8,16}$/.test(h.enrolment) ? h.enrolment : undefined;
+    if (enrId) {
+      const e = await this.prisma.partnerEnrolment.findUnique({ where: { id: enrId } });
+      if (!e) reason = 'ENROLMENT_UNKNOWN';
+      else if (e.status === 'REVOKED') reason = 'ENROLMENT_REVOKED';
+      else if (e.status === 'USED') reason = 'ENROLMENT_USED';
+      else if (e.expiresAt <= now) reason = 'ENROLMENT_EXPIRED';
+      else if (e.kind !== b.kind || (e.orgRef && e.orgRef !== b.orgRef)) reason = 'ENROLMENT_MISMATCH';
+      else { key = e.signingKey; enrolmentId = e.id; reason = 'OK'; }
+    } else if (existing?.intakeKeyHash) { key = existing.intakeKeyHash; reason = 'OK'; }
+    else if (existing) reason = 'NEEDS_ENROLMENT';
+    const sigOk = verifyIntakeSignature({ signingKey: key, body: raw, timestamp: h.timestamp, signature: h.signature });
+    if (reason === 'OK' && !sigOk) reason = 'BAD_SIGNATURE';
+    if (reason === 'OK') {
+      const id = sha(`${b.kind}|${b.orgRef}|${b.nonce}`);
+      try { await this.prisma.partnerIntakeNonce.create({ data: { id } }); } catch { reason = 'REPLAY'; }
+      if (Math.random() < 0.02) void this.prisma.partnerIntakeNonce.deleteMany({ where: { seenAt: { lt: new Date(Date.now() - 3_600_000) } } }).catch(() => undefined);
+    }
+    if (reason !== 'OK') {
+      limiter.hit(`fail:${ip}`, 1_000_000, 600_000);
+      // audit the attempt only when it names a real enrolment or connection, and cap the lines so it cannot be used to flood the log
+      const target = enrId ?? existing?.id;
+      if (target && limiter.hit(`audit:${target}`, 10, 3_600_000).ok) await this.audit('partner', 'intake_rejected', existing?.id ?? target, { reason, enrolmentId: enrId }).catch(() => undefined);
+      throw UNAUTHORIZED();
+    }
+    return { enrolmentId };
+  }
+
+  /** Single use: only an ACTIVE, unexpired enrolment is consumed (atomically, in the same transaction as the connection write). */
+  private async consumeEnrolment(tx: { partnerEnrolment: PrismaService['partnerEnrolment'] }, auth: { enrolmentId?: string }, connectionId: string | null) {
+    if (!auth.enrolmentId) return;
+    const n = await tx.partnerEnrolment.updateMany({ where: { id: auth.enrolmentId, status: 'ACTIVE', expiresAt: { gt: new Date() } }, data: { status: 'USED', usedAt: new Date(), connectionId } });
+    if (n.count !== 1) throw UNAUTHORIZED();
   }
 
   /** Partner polls with its status token (shown once at creation). Only coarse, non-internal information is returned. */
-  async partnerStatus(id: string, token: string | undefined) {
+  async partnerStatus(id: string, token: string | undefined, ip = 'unknown') {
+    const c = cfg(); const a = limiter.hit(`get:${ip}`, c.intakeStatusIpPerMin, 60_000); if (!a.ok) throw tooMany(a.retryAfterSec);
+    const b = limiter.hit(`get-id:${id.slice(0, 64)}`, 60, 60_000); if (!b.ok) throw tooMany(b.retryAfterSec);
     const r = await this.prisma.partnerConnection.findUnique({ where: { id } });
     if (!r || !token || !eq(r.statusTokenHash, sha(token))) throw notFound('PARTNER_CONNECTION_NOT_FOUND', 'Connection request not found');
     const steps = computeSteps(this.input(r));

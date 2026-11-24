@@ -1171,6 +1171,7 @@ model PartnerConnection {
   clientKey       String?
   secretsEnc      String? // AES-GCM {clientSecret, webhookSecret}; deleted once registered
   pendingSecretsEnc String? // credential rotation awaiting handshake + ops apply
+  intakeKeyHash   String? // hex sha256 of the issued intake key (signs later intake requests); the key itself is shown once
   statusTokenHash String
   status          String    @default("SUBMITTED") // SUBMITTED | IN_REVIEW | CHANGES_REQUESTED | AWAITING_APPROVAL | APPROVED | LIVE | PAUSED | REJECTED
   readiness       Json      @default("{}")
@@ -1188,4 +1189,32 @@ model PartnerConnection {
 
   @@unique([kind, orgRef])
   @@index([status])
+}
+
+
+/// One-time enrolment code per partner (contracts 1.9.0): created by ops, shown once, signs the FIRST intake request. Only the derived signing key is stored.
+model PartnerEnrolment {
+  id          String    @id // kxe_<id> (the public part of the code)
+  kind        String // CLINIC | NURSE | PHARMACY | LAB
+  orgRef      String? // optional: bind the code to one partner organisation
+  label       String // who it is for (ops note, no PHI)
+  signingKey  String // hex sha256 of the full code
+  status      String    @default("ACTIVE") // ACTIVE | USED | REVOKED (EXPIRED is derived from expiresAt)
+  expiresAt   DateTime
+  createdBy   String
+  revokedBy   String?
+  revokedAt   DateTime?
+  usedAt      DateTime?
+  connectionId String?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, expiresAt])
+}
+
+/// Replay protection for the partner intake: one row per accepted nonce (id = sha256(kind|orgRef|nonce)); swept after an hour.
+model PartnerIntakeNonce {
+  id     String   @id
+  seenAt DateTime @default(now())
+
+  @@index([seenAt])
 }

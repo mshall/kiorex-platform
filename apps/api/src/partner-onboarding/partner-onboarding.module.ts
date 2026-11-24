@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { PartnerConnectionPublicController, PartnerOnboardingController } from './partner-onboarding.controller';
+import { PartnerConnectionPublicController, PartnerEnrolmentController, PartnerOnboardingController } from './partner-onboarding.controller';
+import { PartnerEnrolmentService } from './partner-enrolment.service';
 import { PartnerOnboardingService } from './partner-onboarding.service';
 
-@Module({ controllers: [PartnerConnectionPublicController, PartnerOnboardingController], providers: [PartnerOnboardingService], exports: [PartnerOnboardingService] })
+@Module({ controllers: [PartnerConnectionPublicController, PartnerEnrolmentController, PartnerOnboardingController], providers: [PartnerOnboardingService, PartnerEnrolmentService], exports: [PartnerOnboardingService] })
 export class PartnerOnboardingModule {}

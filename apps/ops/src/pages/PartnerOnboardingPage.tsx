@@ -6,6 +6,7 @@ import { usePartnerConnections } from "@/api/partnerOnboarding";
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader, StatusChip, type Tone } from "@/components/kit";
+import { EnrolmentCodesPanel } from "@/components/EnrolmentCodesPanel";
 import { formatDateTime } from "@/lib/format";
 
 export const PARTNER_TONE: Record<string, Tone> = { SUBMITTED: "info", IN_REVIEW: "info", CHANGES_REQUESTED: "warning", AWAITING_APPROVAL: "brand", APPROVED: "brand", LIVE: "success", PAUSED: "warning", REJECTED: "danger" };
@@ -16,6 +17,7 @@ export default function PartnerOnboardingPage() {
   return (
     <div>
       <PageHeader title={t("pob.title")} hint={t("pob.hint")} />
+      <EnrolmentCodesPanel />
       {q.isLoading ? <CardSkeleton rows={3} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : (
         <DataTable caption={t("pob.title")} rows={q.data!} rowKey={(r) => r.id} empty={t("pob.none")} onRowClick={(r) => nav(`/partner-onboarding/${r.id}`)} columns={[
           { key: "o", header: t("pob.partner"), cell: (r) => <div><b dir="auto">{i18n.language.startsWith("ar") && r.nameAr ? r.nameAr : r.name}</b><div className="text-xs text-muted-foreground">{t(`pob.kind.${r.kind}`)} · {r.market}</div></div> },

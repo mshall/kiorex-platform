@@ -1,11 +1,18 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
 import { AllExceptionsFilter } from './common/errors';
 
 export const API_PREFIX = 'api/v1';
 
 export function setupApp(app: INestApplication) {
   app.setGlobalPrefix(API_PREFIX);
+  // public partner intake: refuse oversized bodies BEFORE they are parsed (the global JSON limit is 8 MB for vault uploads)
+  (app as unknown as { use?: (p: string, f: (req: any, res: any, next: () => void) => void) => void }).use?.(`/${API_PREFIX}/partners/v1/connection-requests`, (req, res, next) => {
+    const len = Number(req.headers?.['content-length'] ?? 0);
+    if (req.method === 'POST' && len > INTAKE_MAX_BODY_BYTES) { res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' }); return; }
+    next();
+  });
   // vault uploads are JSON/base64 (<= VAULT_MAX_BYTES 5 MB => ~6.7 MB); rawBody (webhook HMAC) is preserved by Nest's parser options
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
   // org-onboarding quarantine uploads: raw bytes (SQL dumps up to 50 MB, scanned and size-checked per kind in the service)

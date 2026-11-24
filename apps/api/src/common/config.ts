@@ -110,4 +110,9 @@ export const cfg = () => ({
   tzOffsetHours: num('MARKET_TZ_OFFSET_HOURS', 2),
   slotCacheTtlMs: num('SLOT_CACHE_TTL_MS', 60_000),
   holdMinutes: num('HOLD_MINUTES', 5),
+  /** Partner connection intake (public, signed): per-IP / per-orgRef / failed-auth limits (in-memory per process) and the body cap. */
+  intakeIpPerMin: num('INTAKE_RATE_IP_PER_MIN', 30),
+  intakeStatusIpPerMin: num('INTAKE_STATUS_RATE_IP_PER_MIN', 120),
+  intakeOrgPerHour: num('INTAKE_RATE_ORG_PER_HOUR', 20),
+  intakeFailedPer10Min: num('INTAKE_RATE_FAILED_PER_10MIN', 12),
 });

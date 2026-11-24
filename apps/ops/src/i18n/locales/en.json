@@ -793,7 +793,32 @@
       "DOCUMENTS_CHECK_REQUIRED": "The documents check must pass first",
       "LICENCE_REFERENCE_REQUIRED": "Enter the licence reference",
       "CLINIC_NOTIFY_FAILED": "The clinic system could not be told; nothing changed. Retry.",
-      "ROTATION_HANDSHAKE_FAILED": "The new credentials failed the handshake; the current ones stay active"
+      "ROTATION_HANDSHAKE_FAILED": "The new credentials failed the handshake; the current ones stay active",
+      "INVALID_KIND": "Pick a product",
+      "LABEL_REQUIRED": "Say who this code is for",
+      "ENROLMENT_USED": "This code was already used"
+    },
+    "enrol": {
+      "title": "Enrolment codes",
+      "hint": "A partner product needs a one-time code from here to send its first connection request. Give it to the partner over a trusted channel. It is shown once, works once, and expires.",
+      "kind": "Product",
+      "label": "Who is it for",
+      "orgRef": "Organisation id (optional)",
+      "days": "Valid for (days)",
+      "create": "Create code",
+      "once": "Copy this code now. It will not be shown again.",
+      "copy": "Copy",
+      "copied": "Code copied",
+      "hide": "Hide",
+      "revoke": "Revoke",
+      "expires": "Expires",
+      "none": "No enrolment codes yet",
+      "st": {
+        "ACTIVE": "Active",
+        "USED": "Used",
+        "REVOKED": "Revoked",
+        "EXPIRED": "Expired"
+      }
     }
   }
 }
