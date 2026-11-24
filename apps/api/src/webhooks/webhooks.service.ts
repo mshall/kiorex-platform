@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { validateEvent } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { ApiError } from '../common/errors';
@@ -17,7 +17,7 @@ import { TrustService } from '../trust/trust-public';
 import { PublicSiteCache } from '../public-site/public-site-public';
 import { WidgetRegistrationService } from '../widget/widget-public';
 import { VerificationUpdateService } from '../partner-onboarding/partner-onboarding-public';
-import { GROWTH_REVENUE, LINK_REGISTRY, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
+import { CROSS_PRODUCT_EVENTS, GROWTH_REVENUE, LINK_REGISTRY, type CrossProductEventPort, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
 import { PromotionProjectionService, PromotionReviewService, SponsoredDiscountService } from '../growth/growth-public';
 
 const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
@@ -26,7 +26,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -52,6 +52,7 @@ export class WebhooksService {
     if (!inserted.count) return { status: 'DUPLICATE' };
     try {
       const outcome = await this.route(env, { registrationId });
+      if (source === 'kiorly' && (outcome === 'APPLIED' || outcome === 'IGNORED')) await this.crossProduct?.onKiorlyEvent({ type: env.type, data: env.data }).catch(() => undefined); // GRW-P4-A: type and ids only; never fails the webhook
       await this.prisma.webhookReceipt.update({ where: { eventId }, data: { status: outcome === 'IGNORED' || outcome === 'UNKNOWN_BOOKING' ? 'IGNORED' : 'PROCESSED', processedAt: new Date(), error: outcome === 'UNKNOWN_BOOKING' ? 'no matching Kiorex booking or linked patient' : null } });
       return { status: outcome };
     } catch (e) {

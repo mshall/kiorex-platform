@@ -76,11 +76,22 @@ export type ProductGrowthFactKind = 'ORDER' | 'LAB_BOOKING' | 'CARE_PLAN_BOOKING
 export interface ProductAcquisitionBlockOut { origin: 'PROVIDER_LED' | 'MARKETPLACE' | 'UNATTRIBUTED'; decisionId: string; policyVersion: string; reason: string; evidenceHash: string; linkCode?: string; product: ProductGrowthProduct }
 export interface ProductGrowthPort {
   /** Decides one fact once (idempotent per fact and policy version). Never throws: a failure is logged, counted and repaired later; the order or booking is never blocked. */
-  decide(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date; visitorKey?: string | null; continuityParentBookingId?: string | null }): Promise<{ id: string; origin: string; created: boolean } | null>;
+  decide(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date; visitorKey?: string | null; continuityParentBookingId?: string | null; /** GRW-P4-A: the continuity entry point the patient used (their own prompt id, or the prescription record attached to the order); consent, flag and ownership are checked inside */ continuity?: ContinuityHint | null }): Promise<{ id: string; origin: string; created: boolean } | null>;
   /** The block to send with the partner call; null when growth is OFF, no decision exists or the fact is not a partner product. Decides lazily when the earlier attempt failed. */
   acquisitionBlock(f: { product: ProductGrowthProduct; factKind: ProductGrowthFactKind; factId: string; sub: string; orgRef: string | null; createdAt: Date }): Promise<ProductAcquisitionBlockOut | null>;
 }
 export const PRODUCT_GROWTH = 'GROWTH_PRODUCT_PORT';
+
+// ───────────── GRW-P4-A (wave 8): cross-product journeys ─────────────
+/** What a client passes with an order, booking or care-plan request that came from a continuity card (header `X-Kx-Continuity: <prompt id>`) or what the server derives (the prescription attached to an order). */
+export interface ContinuityHint { entryId?: string | null; recordId?: string | null }
+/** Header carrying the prompt id; read by the pharmacy, lab and home-care controllers and handed to the product decision. */
+export const CONTINUITY_HEADER = 'x-kx-continuity';
+/** Validated prompt id from a request header (a malformed value is treated as absent: an entry point is evidence only when it exists). */
+export const continuityIdFrom = (v: string | string[] | undefined): string | null => { const s = Array.isArray(v) ? v[0] : v; return typeof s === 'string' && /^[A-Za-z0-9_-]{10,40}$/.test(s) ? s : null; };
+/** The webhook route tells the package about Clinic events (type and ids only are read). Never throws. */
+export interface CrossProductEventPort { onKiorlyEvent(env: { type: string; data?: Record<string, unknown> | null }): Promise<{ offered: number }> }
+export const CROSS_PRODUCT_EVENTS = 'GROWTH_CROSS_PRODUCT_EVENTS';
 
 // ───────────── GRW-P2-S (wave 7): the booking module reaches provider-sponsored discounts through this port only ─────────────
 export interface SponsoredBlockOut { promotionId: string; promotionVersion: number; reservationRef: string; amountMinor: number; currency: string }

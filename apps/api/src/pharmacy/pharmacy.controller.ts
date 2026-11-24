@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
@@ -7,6 +7,7 @@ import { OkDto } from '../common/dto';
 import { RequiresFlag } from '../control-plane/control-plane-public';
 import { CartDto, CatalogueResultDto, PharmacyDto, PharmacyOrderDto } from './pharmacy.dto';
 import { PharmacyService } from './pharmacy.service';
+import { CONTINUITY_HEADER, continuityIdFrom } from '../growth/growth-ports-public';
 
 export class CartItemBody { @IsString() @MaxLength(64) sku!: string; @IsInt() @Min(1) @Max(20) qty!: number }
 export class CartBody {
@@ -62,7 +63,7 @@ export class PharmacyController {
   @Post('pharmacy/orders') @HttpCode(201) @RequiresFlag('kiorex.pharmacy_orders')
   @ApiOperation({ summary: 'Create the order intent from the cart + Kiorex Pay checkout. Rx items need prescriptionRecordId (vault). After payment the order is sent to Kiorly Pharmacy for Rx validation' })
   @ApiCreatedResponse({ type: PharmacyOrderDto })
-  create(@CurrentUser() u: AuthUser, @Body() b: CreateOrderBody) { return this.svc.createOrder(u.sub, b); }
+  create(@CurrentUser() u: AuthUser, @Body() b: CreateOrderBody, @Headers(CONTINUITY_HEADER) cont?: string) { return this.svc.createOrder(u.sub, b, { continuityId: continuityIdFrom(cont) }); }
 
   @Get('pharmacy/orders') @ApiOkResponse({ type: PharmacyOrderDto, isArray: true }) list(@CurrentUser() u: AuthUser) { return this.svc.list(u.sub); }
   @Get('pharmacy/orders/:id') @ApiOkResponse({ type: PharmacyOrderDto }) get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.get(u.sub, id); }

@@ -16,6 +16,7 @@ import { getRecent } from "@/lib/recent";
 import { cn } from "@/lib/utils";
 import { useFeature } from "@/hooks/useFeature";
 import { usePatient } from "@/hooks/usePatient";
+import { ContinuityCards } from "@/components/continuity/ContinuityCards"; // GRW-P4-A
 
 const UPCOMING = ["HELD", "PENDING_CLINIC", "CONFIRMED", "CHECKED_IN"];
 const QUICK: { to: string; icon: LucideIcon; k: string }[] = [
@@ -46,6 +47,8 @@ export default function HomePage() {
           <SpecialtyChips onPick={(code) => nav(code ? `/search?specialty=${code}` : "/search")} />
         </div>
       </section>
+
+      <ContinuityCards />
 
       <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
         <section aria-labelledby="upcoming-title" className="space-y-3">

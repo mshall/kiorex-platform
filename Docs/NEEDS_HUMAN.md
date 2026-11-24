@@ -220,3 +220,12 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **Data cells (infra).** A second market maps to the single deployed cell (frankfurt); a second cell and cross-cell routing are not built. Which cell a market uses is a data-residency decision for counsel and the CTO.
 - **Contracts 1.13.0 (CTO).** Config kinds `LTV_POLICY` (shape: `growth/cohorts/ltv-policy.ts`) and `MARKET_PROFILE` (shape: `market/market-profile.ts`), flags `growth.cohorts_ltv` and `growth.market_onboarding`, event `MarketOnboardingStateChanged`.
 - **Currency, time zone and numbers of the first new market (founder, finance).** ISO currency, minor units, the quiet hours and the working week are typed in the wizard by a person; the code ships none for a new country.
+
+
+## Cross-product journeys (GRW-P4-A): counsel, founder, product and contracts items
+
+- **Counsel (health data moving between products).** Review the consent `CROSS_PRODUCT_CONTINUITY` wording (placeholder `TODO_NEEDS_HUMAN_v0`, the API reports `draftWording`), the card copy in both languages and whether a shared prescription or a lab order may seed an in-app prompt at all. Only then may a human record the gate evidence for `growth.cross_product` (never recorded by code).
+- **Founder and product.** Whether the home-visit card, which today follows any attended visit (there is no clinician "care plan suggested" event), should exist before that event does; whether `CROSS_PRODUCT` should ever change a rate (the commission link of products is inert, ADR-056 is Proposed).
+- **Contracts (one owner, 1.14.0 with the earlier 1.12.1 and 1.13.0 lists).** Flag `growth.cross_product` (launch-locked, depends on `growth.attribution`) mirrored locally in `control-plane/flag-catalogue.ts`; consent purpose `CROSS_PRODUCT_CONTINUITY` in the consent description; event `CrossProductContinuityRecorded` (counts only, the table exists, nothing is emitted); optional `appointmentId` on `PRESCRIPTION_SHARED` and `LabOrderPlaced` (removes the parent guess); optional `CARE_PLAN_SUGGESTED`; optional `acquisition` block on `POST /care-plan-requests`; the routes `/growth/v1/continuity/*` and `/ops/growth/cross-product/funnel` in the OpenAPI export; `CROSS_PRODUCT` in the partner origin enum is NOT requested (it travels as MARKETPLACE on purpose).
+- **Schema owner (lane A4).** Merge `20270128092000_growth_p4_cross_product` with any file of the same name; keep both tables.
+

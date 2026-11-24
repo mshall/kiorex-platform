@@ -35,7 +35,7 @@ describe("Growth navigation", () => {
     renderOps(<GrowthNav />, { route: "/growth" });
     const items = await screen.findAllByRole("link");
     expect(items).toHaveLength(GROWTH_SECTIONS.length);
-    expect(GROWTH_SECTIONS.filter((s) => s.key !== "config")).toHaveLength(33); // 31 + sponsored-promotions (GRW-P2-S) + automation (GRW-P3-E)
+    expect(GROWTH_SECTIONS.filter((s) => s.key !== "config")).toHaveLength(34); // 31 + sponsored-promotions (GRW-P2-S) + automation (GRW-P3-E) + cross-product (GRW-P4-A)
     expect(items.map((a) => a.getAttribute("data-testid"))).toEqual(GROWTH_SECTIONS.map((s) => `growth-nav-${s.key}`));
     expect(within(screen.getByTestId("growth-nav-referrals")).queryByText(/^P\d$/)).toBeNull(); // GRW-P2-B3: Referral programs and Rewards are live
     expect(within(screen.getByTestId("growth-nav-rewards")).queryByText(/^P\d$/)).toBeNull();

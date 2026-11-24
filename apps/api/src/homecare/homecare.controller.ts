@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser, OpsOnly, Public } from '../common/auth';
 import { OkDto } from '../common/dto';
 import { conflict } from '../common/errors';
 import { BookingService } from '../booking/booking-public';
+import { CONTINUITY_HEADER, continuityIdFrom } from '../growth/growth-ports-public';
 import { TrustService } from '../trust/trust-public';
 import { CarePlanService } from './care-plan.service';
 import { FamilyShareService } from './family-share.service';
@@ -82,7 +83,7 @@ export class HomeCareController {
 
   @ApiCreatedResponse({ type: CarePlanDto })
   @Post('care-plans') @ApiOperation({ summary: 'KXMHV08 (P3 draft) request a care plan; 403 FEATURE_DISABLED until nurse.care_plans (GKN1) and kiorex.home_visits are effective' })
-  requestPlan(@CurrentUser() u: AuthUser, @Body() b: CarePlanBody) { return this.plans.request(u.sub, b); }
+  requestPlan(@CurrentUser() u: AuthUser, @Body() b: CarePlanBody, @Headers(CONTINUITY_HEADER) cont?: string) { return this.plans.request(u.sub, b, { continuityId: continuityIdFrom(cont) }); }
   @ApiOkResponse({ type: CarePlanDto, isArray: true })
   @Get('care-plans') listPlans(@CurrentUser() u: AuthUser) { return this.plans.list(u.sub); }
   @ApiOkResponse({ type: CarePlanDto })

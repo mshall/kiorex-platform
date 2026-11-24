@@ -3,6 +3,7 @@ import type { paths } from "./schema";
 import { toApiError } from "./errors";
 import { config } from "@/lib/config";
 import i18n from "@/i18n";
+import { CONTINUITY_HEADER, CONTINUITY_PATHS, currentCard } from "@/modules/continuity/api";
 
 type TokenGetter = () => Promise<string | null>;
 let getToken: TokenGetter = async () => null;
@@ -18,6 +19,8 @@ const auth: Middleware = {
     const token = await getToken();
     if (token) request.headers.set("Authorization", `Bearer ${token}`);
     request.headers.set("Accept-Language", i18n.language?.startsWith("en") ? "en" : "ar");
+    // GRW-P4-A: the order, booking or care-plan request that follows a continuity card the patient just opened carries the card id (the server checks owner, consent and gate; an unknown id is ignored)
+    if (request.method === "POST" && CONTINUITY_PATHS.includes(new URL(request.url).pathname)) { const card = currentCard(); if (card) request.headers.set(CONTINUITY_HEADER, card); }
     return request;
   },
   async onResponse({ request, response }) {

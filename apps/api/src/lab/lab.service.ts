@@ -70,7 +70,7 @@ export class LabService implements OnModuleInit {
     return { labId, partnerId: reg?.id ?? null, collectionType, slots: d.slots };
   }
 
-  async book(sub: string, i: LabBookInput) {
+  async book(sub: string, i: LabBookInput, via: { continuityId?: string | null } = {}) {
     if (!i.testCodes?.length || new Set(i.testCodes).size !== i.testCodes.length || i.testCodes.length > 20) throw badRequest('INVALID_TESTS', '1-20 distinct test codes');
     const start = new Date(i.slot.startsAt);
     if (Number.isNaN(start.getTime()) || start <= new Date()) throw badRequest('INVALID_SLOT', 'slot must be in the future');
@@ -91,7 +91,7 @@ export class LabService implements OnModuleInit {
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'LAB', sub, partnerId: `lab:${i.labId}`, amountMinor: b.totalMinor, currency: b.currency });
     await this.prisma.labBooking.update({ where: { id }, data: { paymentId: p.id } });
     // GRW-P4-B2: one decision after the booking exists, never blocking it
-    await this.growth?.decide({ product: 'LAB', factKind: 'LAB_BOOKING', factId: id, sub, orgRef: await this.registry.orgRefOf(registrationId), createdAt: b.createdAt });
+    await this.growth?.decide({ product: 'LAB', factKind: 'LAB_BOOKING', factId: id, sub, orgRef: await this.registry.orgRefOf(registrationId), createdAt: b.createdAt, continuity: { entryId: via.continuityId ?? null } }); // GRW-P4-A
     return this.present(await this.prisma.labBooking.findUniqueOrThrow({ where: { id } }));
   }
 
