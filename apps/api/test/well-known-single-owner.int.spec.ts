@@ -22,4 +22,14 @@ describe('/.well-known/* has exactly one owner', () => {
     expect(r.headers['content-type']).toMatch(/application\/json/);
     expect(r.text).not.toMatch(/<html/i);
   });
+
+  it('/.well-known/security.txt (RFC 9116) answers text with Contact and Expires, no redirect; the contact is a flagged placeholder until a person sets SECURITY_CONTACT', async () => {
+    const r = await c.http().get('/.well-known/security.txt').redirects(0);
+    expect(r.status).toBe(200);
+    expect(r.headers['content-type']).toMatch(/text\/plain/);
+    expect(r.text).toMatch(/^Contact: .+$/m); expect(r.text).toMatch(/^Expires: \d{4}-\d{2}-\d{2}T/m);
+    expect(r.text).toContain('TODO_NEEDS_HUMAN'); expect(r.headers['x-kiorex-security-txt']).toBe('placeholder');
+    process.env.SECURITY_CONTACT = 'mailto:security@example.test';
+    try { const s = await c.http().get('/.well-known/security.txt'); expect(s.text).toContain('Contact: mailto:security@example.test'); expect(s.text).not.toContain('TODO_NEEDS_HUMAN'); } finally { delete process.env.SECURITY_CONTACT; }
+  });
 });
