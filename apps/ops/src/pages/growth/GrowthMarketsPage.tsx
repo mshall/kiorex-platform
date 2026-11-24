@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useMarkets, type MarketRow } from "@/api/growth";
 import { StatusChip } from "@/components/kit";
@@ -37,7 +38,7 @@ export default function GrowthMarketsPage() {
   const { t } = useTranslation(); const q = useMarkets(); const [code, setCode] = useState<string>("");
   const rows = q.data ?? []; const current = code || rows.find((r) => r.live)?.code || rows[0]?.code || "EG";
   return (
-    <GrowthPage section="markets" toolbar={rows.length > 1 ? <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">{t("growth.common.market")}</span><select className={selectCls} value={current} onChange={(e) => setCode(e.target.value)} data-testid="markets-picker">{rows.map((r) => <option key={r.code} value={r.code}>{r.code}</option>)}</select></label> : undefined}>
+    <GrowthPage section="markets" actions={<Link to="/growth/markets/wizard" className="inline-flex h-11 items-center rounded-xl border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground" data-testid="open-wizard">{t("growth.marketWizard.open")}</Link>} toolbar={rows.length > 1 ? <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">{t("growth.common.market")}</span><select className={selectCls} value={current} onChange={(e) => setCode(e.target.value)} data-testid="markets-picker">{rows.map((r) => <option key={r.code} value={r.code}>{r.code}</option>)}</select></label> : undefined}>
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : (
         <>
           {rows.filter((r) => r.code === current).map((m) => <MarketCard key={m.code} m={m} />)}

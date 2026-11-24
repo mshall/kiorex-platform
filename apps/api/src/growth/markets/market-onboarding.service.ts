@@ -3,6 +3,7 @@ import { badRequest, conflict, notFound, unprocessable } from '../../common/erro
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { CODE_PROFILES, MarketProfileService, validateMarketProfile } from '../../market/market-core-public';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SPECIALTY_CODES, SPECIALTY_LABELS } from '../../safety/safety-public';
 import { GrowthConfigService, validateGrowthConfig, type ConfigActor } from '../config/growth-config.service';
 import { buildBundle, type Steps } from './config-bundle';
 import { loadDataCells } from './data-cells';
@@ -30,7 +31,7 @@ export class MarketOnboardingService {
 
   async list() { return (await this.prisma.marketOnboardingPlan.findMany({ orderBy: { cc: 'asc' } })).map((p) => this.present(p)); }
   async get(cc: string) { return this.present(await this.plan(cc)); }
-  catalogue() { return { steps: [...STEPS], dataCells: loadDataCells(), existing: Object.keys(CODE_PROFILES) }; }
+  catalogue() { return { steps: [...STEPS], dataCells: loadDataCells(), existing: Object.keys(CODE_PROFILES), specialties: SPECIALTY_CODES.map((code) => ({ code, ...SPECIALTY_LABELS[code] })) }; }
 
   async create(actor: ConfigActor, cc: string) {
     this.assertCc(cc);
