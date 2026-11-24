@@ -66,7 +66,7 @@ describe('growth integrations and channel performance (GRW-P2-F)', () => {
   });
   it('retries a transient upstream error with jittered backoff and then succeeds', async () => {
     let n = 0; const sleeps: number[] = []; svc().sleep = async (ms) => { sleeps.push(ms); };
-    svc().adapterOverride = (k) => (k === 'crux' ? ({ kind: 'crux', mode: 'mock', health: async () => ({ ok: true, mode: 'mock', detail: '' }), pullCoreVitals: async (r) => { if (n++ < 2) throw new UpstreamError('UPSTREAM_TIMEOUT'); return mockFor('crux').pullCoreVitals(r); } } as never) : null);
+    svc().adapterOverride = (k) => (k === 'crux' ? ({ kind: 'crux', mode: 'mock', health: async () => ({ ok: true, mode: 'mock', detail: '' }), pullCoreVitals: async (r: Parameters<ReturnType<typeof mockFor>['pullCoreVitals']>[0]) => { if (n++ < 2) throw new UpstreamError('UPSTREAM_TIMEOUT'); return mockFor('crux').pullCoreVitals(r); } } as never) : null);
     expect((await run('crux').expect(200)).body.status).toBe('OK'); expect(n).toBe(3); expect(sleeps).toHaveLength(2);
   });
   it('real mode without a resolvable secret fails closed with NEEDS_HUMAN, stores nothing and never calls the network', async () => {

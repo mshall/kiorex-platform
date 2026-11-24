@@ -5,7 +5,7 @@ import { signIn } from "./helpers";
 
 /**
  * GRW-P2-F (Integrations, Channels performance) and GRW-P2-B3 (Referrals, Review, Rewards, Lot, Finance, Manual issue) in the ops console. Real browser, real Passport sign-in of the seeded ops super admin, the
- * real console build; the Phase 2 endpoints of this wave are answered by page.route fixtures because the shared dev API :4000 is a stale build without them (their behaviour is covered by the API suites
+ * real console build; the Phase 2 data is answered by page.route fixtures (deterministic values for the assertions) and the first test below checks every fixture against the REAL committed API on :4000 (status 200 and the same keys); behaviour is covered by the API suites
  * `growth-integrations.int.spec.ts` and A1's referral and rewards suites). AR (RTL) and EN, light and dark, 320 to 1440 px, keyboard, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p2/.
  */
 const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); mkdirSync(SHOTS, { recursive: true });
@@ -63,6 +63,21 @@ test.describe("ops console: integrations, channel performance, referrals and rew
       await noOverflow(page, `channels ${lang} ${width}`); expect(await axeSerious(page), "axe on channel performance").toEqual([]); await page.screenshot({ path: path.join(SHOTS, `channel-performance-${lang}-${theme}-${width}.png`), fullPage: true });
     });
   }
+
+  test("every fixture matches the REAL API: same status and every fixture key present in the live response", async ({ page }) => {
+    await page.addInitScript(prefs, ["en", "light"]); await signIn(page, "/growth/integrations");
+    const token = await page.evaluate(() => { const k = Object.keys(sessionStorage).find((x) => x.startsWith("oidc.user:")); return k ? (JSON.parse(sessionStorage.getItem(k)!) as { access_token: string }).access_token : null; });
+    expect(token).toBeTruthy();
+    const get = async (p: string) => { const r = await page.request.get(`${process.env.KIOREX_API_URL ?? "http://localhost:4000"}/api/v1/admin/growth/${p}`, { headers: { Authorization: `Bearer ${token}` } }); expect(r.status(), `GET ${p}`).toBe(200); return r.json() as Promise<unknown>; };
+    const missing = (fx: unknown, live: unknown, at: string): string[] => {
+      if (live === null) return []; /* nullable until the first run */ if (Array.isArray(fx)) { if (!Array.isArray(live)) return [`${at}: live is not an array`]; return fx.length && live.length ? missing(fx[0], live[0], `${at}[0]`) : []; }
+      if (fx && typeof fx === "object") { if (!live || typeof live !== "object") return [`${at}: live is not an object`]; return Object.entries(fx).flatMap(([k, v]) => (k in (live as object) ? missing(v, (live as Record<string, unknown>)[k], `${at}.${k}`) : [`${at}.${k}`])); }
+      return [];
+    };
+    const gaps: string[] = [];
+    for (const [p, fx] of [["integration-status", STATUS], ["integration-runs", RUNS], ["channel-performance", PERF], ["referrals", REF], ["rewards", { mode: "", effectiveMode: "", ruleVersionId: "", source: "", flags: {}, banner: "", openApprovals: 0 }], ["rewards/lots", [LOT]], ["rewards/finance", FIN]] as const) gaps.push(...missing(fx, await get(p), p));
+    expect(gaps, "fixture keys the real API does not return").toEqual([]);
+  });
 
   test("Integrations: test connection, pull now (mock) and the two-person flow for a real pull", async ({ page }) => {
     const log = { posts: [] as Array<{ url: string; body: unknown }> }; await page.setViewportSize({ width: 1440, height: 900 }); await page.addInitScript(prefs, ["en", "light"]); await mockPhase2(page, log); await signIn(page, "/growth/integrations");

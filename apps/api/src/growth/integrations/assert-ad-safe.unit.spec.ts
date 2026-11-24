@@ -24,7 +24,7 @@ describe('assertAdSafe (GRW-P2-F)', () => {
   it('accepts a clickId only with analytics consent and only when it is not an e-mail or uuid', () => {
     const c = 'Cj0KCQiAxxxxxxxxxxxxBhDmARIsA';
     expect(assertAdSafe({ ...ok, clickId: c }, o).clickId).toBe(c);
-    rejects({ ...ok, clickId: c }, { consentAnalytics: false });
+    rejects({ ...ok, clickId: c }, { ...o, consentAnalytics: false });
     rejects({ ...ok, clickId: 'a@b.com.eg-longer-than-ten' }); rejects({ ...ok, clickId: '123e4567-e89b-12d3-a456-426614174000' }); rejects({ ...ok, clickId: 'short' });
   });
   it('rejects PHI in any string value', () => { rejects({ ...ok, campaignRef: 'call-01012345678' }); });

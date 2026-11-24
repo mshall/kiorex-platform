@@ -4,8 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { signIn } from "./helpers";
 
 /**
- * GRW-P2-B3 patient web: invite screen, rewards, invite landing, and the Account entry gated by bootstrap `features.referral`. Real browser, real Passport sign-in, the real web app; the referral API
- * of GRW-P2-B1/B2 is answered by page.route fixtures because the shared dev API is a stale build without those endpoints (see _docs/growth/GROWTH_PHASE2_4_WORK_PACKAGES.md as-built, A4 W6). AR and EN, light and dark,
+ * GRW-P2-B3 patient web: invite screen, rewards, invite landing, and the Account entry gated by bootstrap `features.referral`. Real browser, real Passport sign-in, the real web app; the happy path is answered by page.route fixtures (shapes verified against the committed GRW-P2-B1/B2 controllers) because patient_referral/rewards are launch-locked and the shared dev DB must not get gate evidence; the flag-OFF and bootstrap-absent paths run against the REAL API. AR and EN, light and dark,
  * 320 to 1440 px, keyboard, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p2/.
  */
 const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); mkdirSync(SHOTS, { recursive: true });
@@ -27,7 +26,8 @@ const noOverflow = async (page: Page, where: string) => {
 };
 const ME = { code: "7K3M9QPX", status: "ACTIVE", inviteUrl: "https://kiorex.com/ar/eg/invite/7K3M9QPX", counts: { invited: 5, signedUp: 3, qualified: 1 }, capsRemaining: { last30Days: 2, thisYear: 4 } };
 const LOTS = { items: [{ id: "rwl_a", kind: "REFERRER", mode: "COUPON", amountMinor: 15_000, remainingMinor: 15_000, currency: "EGP", status: "ACTIVE", expiresAt: "2027-09-01T00:00:00Z", couponState: "UNREVEALED" }, { id: "rwl_b", kind: "REFEREE", mode: "CREDIT", amountMinor: 5000, remainingMinor: 0, currency: "EGP", status: "EXHAUSTED", expiresAt: "2027-02-01T00:00:00Z", couponState: "NONE" }], nextCursor: null };
-async function mockReferral(page: Page, o: { referral?: boolean; claim?: Record<string, unknown>; claims?: { n: number; body?: unknown } } = {}) {
+async function mockReferral(page: Page, o: { real?: boolean; referral?: boolean; claim?: Record<string, unknown>; claims?: { n: number; body?: unknown } } = {}) {
+  if (o.real) return; // no fixtures: the REAL API answers (patient_referral and rewards are launch-locked, so it answers bootstrap features.referral=false and 403 FEATURE_DISABLED until gate evidence exists)
   await page.route("**/api/v1/bootstrap**", async (r) => { const real = await r.fetch().then((x) => x.json()).catch(() => ({})); await r.fulfill({ json: { ...real, features: { referral: o.referral !== false } } }); }); // the real bootstrap with the additive field set
   await page.route("**/api/v1/growth/v1/referral/me", (r) => r.fulfill({ json: ME }));
   await page.route("**/api/v1/growth/v1/referral/invites", (r) => r.fulfill({ json: { inviteUrl: ME.inviteUrl, code: ME.code, shareText: "A friend invited you to Kiorex" } }));
@@ -40,7 +40,7 @@ test.use({ actionTimeout: 20_000, navigationTimeout: 40_000 });
 test.describe("patient referral screens (web, real sign-in)", () => {
   test.setTimeout(180_000);
   test("Account shows the invite entry only when the bootstrap says so, and it opens the invite screen", async ({ page }) => {
-    await page.addInitScript(prefs, ["en", "light"]); await mockReferral(page, { referral: false }); await signIn(page, "/account");
+    await page.addInitScript(prefs, ["en", "light"]); await mockReferral(page, { real: true }); await signIn(page, "/account"); // real API: the launch-locked flag is OFF here, so the entry is absent
     await expect(page.getByTestId("link-addresses")).toBeVisible(); await expect(page.getByTestId("link-referral")).toHaveCount(0);
     await page.unroute("**/api/v1/bootstrap**"); await mockReferral(page, { referral: true }); await page.reload();
     await expect(page.getByTestId("link-referral")).toBeVisible(); await page.getByTestId("link-referral").click(); await expect(page).toHaveURL(/\/referral$/); await expect(page.getByTestId("invite-code")).toHaveText("7K3M9QPX");
@@ -76,8 +76,7 @@ test.describe("patient referral screens (web, real sign-in)", () => {
   });
 
   test("flag OFF (403 FEATURE_DISABLED) shows the unavailable state on both screens", async ({ page }) => {
-    await page.addInitScript(prefs, ["ar", "light"]); await mockReferral(page);
-    await page.unroute("**/api/v1/growth/v1/referral/me"); await page.route("**/api/v1/growth/v1/referral/me", (r) => r.fulfill({ status: 403, json: { code: "FEATURE_DISABLED", key: "growth.patient_referral", scope: "GATE" } }));
+    await page.addInitScript(prefs, ["ar", "light"]); await mockReferral(page, { real: true }); // REAL 403 FEATURE_DISABLED from the launch-locked flag (no gate evidence recorded), no fixture
     await signIn(page, "/referral"); await expect(page.getByTestId("feature-unavailable")).toHaveAttribute("data-awaiting", "true"); await expect(page.getByTestId("invite-code")).toHaveCount(0);
   });
 });

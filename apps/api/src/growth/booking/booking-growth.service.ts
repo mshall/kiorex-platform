@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AttributionService, type StoredDecision } from '../attribution/attribution.service';
 import { GrowthRevenueService } from '../analytics/revenue.service';
+import { GROWTH_FAILURE, recordGrowthFailure } from '../growth-failures';
 import { GrowthEventsService } from '../events/growth-events.service';
 import { REFERRAL_PORT, type BookingGrowthContext, type BookingGrowthPort, type ConfirmGrowth, type ReferralPort } from '../growth-ports-public';
 
@@ -30,7 +31,12 @@ export class BookingGrowthService implements BookingGrowthPort {
 
   async decide(bookingId: string, ctx: BookingGrowthContext = {}): Promise<StoredDecision | null> {
     try { return await this.attribution.decideForBooking({ bookingId, visitorKey: ctx.visitorKey ?? null, ltToken: ctx.lt ?? null }); }
-    catch (e) { this.log.warn(`attribution decision for ${bookingId} failed (booking continues UNATTRIBUTED): ${(e as Error).message}`); return null; }
+    catch (e) {
+      // loud, not silent: an ERROR line with a stable key and a counter (a flag-check failure was already counted at its source); the booking still continues, UNATTRIBUTED, because analytics never blocks a booking
+      recordGrowthFailure(GROWTH_FAILURE.ATTRIBUTION_DECISION);
+      this.log.error(`${GROWTH_FAILURE.ATTRIBUTION_DECISION} booking=${bookingId} (booking continues UNATTRIBUTED): ${(e as Error).message}`, (e as Error).stack);
+      return null;
+    }
   }
 
   async forConfirm(bookingId: string, ctx: BookingGrowthContext = {}): Promise<ConfirmGrowth> {

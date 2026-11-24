@@ -11,6 +11,7 @@ import { verifyAnyLinkToken } from '../consent/link-token';
 import { LinkRegistryService } from '../links/link-registry.service';
 import { FraudSignalService } from '../fraud/touch-rules';
 import { growthError } from '../growth-errors';
+import { GROWTH_FAILURE, recordGrowthFailure } from '../growth-failures';
 import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
 import { linkTokenKey, providerLinkTouchSecret } from '../growth-secrets';
 import { decide, maxWindowMs, type Decision, type DecisionBooking, type DecisionPolicy, type DecisionTouch } from './decide';
@@ -52,7 +53,11 @@ export class AttributionService implements OnModuleInit {
     const booking = await this.prisma.bookingIntent.findUnique({ where: { id: i.bookingId }, select: { id: true, sub: true, providerId: true, clinicId: true, clinicianId: true, tenantId: true, channel: true, createdAt: true } });
     if (!booking) throw growthError('GROWTH_EVIDENCE_NOT_FOUND', 'Booking not found');
     const orgId = booking.tenantId ?? (await this.prisma.provider.findUnique({ where: { id: booking.providerId }, select: { tenantId: true } }))?.tenantId ?? '';
-    if (!(await this.flags.isEnabled(GROWTH_FLAG.ATTRIBUTION, { market, ...(orgId ? { orgId } : {}) }).catch(() => false))) return null;
+    // A flag-check ERROR is not "flag OFF": swallowing it would silently leave a provider-led booking UNATTRIBUTED (a fee the Clinic would then charge). It propagates; the booking caller logs, counts and continues.
+    let on: boolean;
+    try { on = await this.flags.isEnabled(GROWTH_FLAG.ATTRIBUTION, { market, ...(orgId ? { orgId } : {}) }); }
+    catch (e) { recordGrowthFailure(GROWTH_FAILURE.ATTRIBUTION_FLAG_CHECK); throw e; }
+    if (!on) return null;
 
     const { policy, payload } = await this.policies.decisionPolicy(market, booking.createdAt);
     const existing = await this.prisma.growthAttributionDecision.findFirst({ where: { bookingId: booking.id, policyVersionId: policy.versionId, supersedesId: null } });

@@ -67,10 +67,11 @@ export function AppLayout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:inset-s-4 focus:top-4 focus:z-60 focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground">{t("nav.skip")}</a>
       <MarketNotLiveBanner />
       <OfflineBanner />
+      {/* The six-link nav plus sign out only fit from 1024 px in English (they overflowed 768 to 907 px signed in); below that the bottom tab bar carries the same destinations and Account carries sign out. */}
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-3">
           <Link to="/" aria-label={t("nav.home")} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
-          <nav aria-label={t("nav.main")} className="hidden items-center gap-1 md:flex">
+          <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>
             {signedIn && <NavLink to="/appointments" className={navCls}>{t("nav.appointments")}</NavLink>}
@@ -84,7 +85,7 @@ export function AppLayout() {
             <LanguageSwitcher />
             <ThemeToggle />
             {status !== "loading" && (signedIn ? (
-              <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
+              <Button variant="outline" size="sm" className="hidden lg:inline-flex" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
             ) : (
               <Button size="sm" onClick={() => void login("/")} data-testid="sign-in"><LogIn className="rtl-flip" aria-hidden="true" />{t("nav.signIn")}</Button>
             ))}
@@ -92,7 +93,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main id="main" key={pathname} className="kx-page container flex-1 py-8 pb-28 md:pb-12" tabIndex={-1}>
+      <main id="main" key={pathname} className="kx-page container flex-1 py-8 pb-28 lg:pb-12" tabIndex={-1}>
         <Outlet />
       </main>
 
@@ -109,7 +110,7 @@ export function AppLayout() {
       </footer>
 
       {signedIn && (
-        <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card md:hidden">
+        <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card lg:hidden">
           {[{ to: "/", icon: Home, label: t("nav.home"), end: true }, { to: "/appointments", icon: CalendarCheck, label: t("nav.appointments") }, { to: "/services", icon: Grid2x2, label: t("nav.services") }, { to: "/records", icon: FolderHeart, label: t("nav.records") }, { to: "/account", icon: User, label: t("nav.account") }].map(({ to, icon: Icon, label, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium", isActive ? "text-primary" : "text-muted-foreground")}>
               {({ isActive }) => (<><Icon className="h-5 w-5" aria-hidden="true" /><span className={cn(isActive && "border-b-2 border-pulse")}>{label}</span></>)}

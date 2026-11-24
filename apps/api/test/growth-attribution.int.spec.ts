@@ -1,6 +1,8 @@
 import { signKiorlyRequest, validateAcquisitionBlock } from '@kiorex/contracts';
 import { createCtx, TestCtx } from './harness';
-import { AttributionService, GrowthConfigService, GROWTH_DEFAULT_PAYLOADS, issueLinkToken, linkTokenKey } from '../src/growth/growth-public';
+import { Logger } from '@nestjs/common';
+import { GROWTH_FAILURE, growthFailureCount, resetGrowthFailures } from '../src/growth/growth-failures';
+import { AttributionService, BookingGrowthService, GrowthConfigService, GROWTH_DEFAULT_PAYLOADS, issueLinkToken, linkTokenKey } from '../src/growth/growth-public';
 import { activateConfig, DAY, registerLink, SUPER_A, seedBooking, seedTouch } from './growth-helpers';
 
 const code = async (p: Promise<unknown>) => { try { await p; return 'NO_ERROR'; } catch (e) { return (e as { getResponse(): { code: string } }).getResponse().code; } };
@@ -123,6 +125,25 @@ describe('attribution decisions', () => {
     await seedTouch(c, { kind: 'PROVIDER_LINK', visitorKey: V, org: 'org_A', market: 'AE', linkCode: 'AEONLY01' });
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id, visitorKey: V })).toMatchObject({ origin: 'UNATTRIBUTED' });
     expect(await svc.decideForBooking({ bookingId: (await seedBooking(c)).id })).toMatchObject({ origin: 'UNATTRIBUTED' }); // no key presented
+  });
+
+  it('a flag-check ERROR is not "flag OFF": decideForBooking propagates it and counts it; BookingGrowthService logs at ERROR, counts it, and the booking continues UNATTRIBUTED', async () => {
+    resetGrowthFailures();
+    const b = await seedBooking(c);
+    const spy = jest.spyOn(c.flags, 'isEnabled').mockRejectedValue(new Error('flag store down'));
+    const errLog = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(svc.decideForBooking({ bookingId: b.id })).rejects.toThrow('flag store down');
+      expect(growthFailureCount(GROWTH_FAILURE.ATTRIBUTION_FLAG_CHECK)).toBe(1);
+      expect(await c.prisma.growthAttributionDecision.count()).toBe(0);
+      expect(await c.get(BookingGrowthService).decide(b.id)).toBeNull(); // the booking is never blocked by analytics
+      expect(growthFailureCount(GROWTH_FAILURE.ATTRIBUTION_FLAG_CHECK)).toBe(2);
+      expect(growthFailureCount(GROWTH_FAILURE.ATTRIBUTION_DECISION)).toBe(1);
+      expect(errLog).toHaveBeenCalledWith(expect.stringContaining(`${GROWTH_FAILURE.ATTRIBUTION_DECISION} booking=${b.id}`), expect.any(String));
+    } finally { spy.mockRestore(); errLog.mockRestore(); }
+    expect(growthFailureCount(GROWTH_FAILURE.ATTRIBUTION_FLAG_CHECK)).toBe(2); // a healthy flag check adds nothing
+    expect(await svc.decideForBooking({ bookingId: b.id })).toMatchObject({ origin: 'UNATTRIBUTED' });
+    expect(growthFailureCount(GROWTH_FAILURE.ATTRIBUTION_FLAG_CHECK)).toBe(2);
   });
 
   it('flag growth.attribution OFF: no decision, the booking stays UNATTRIBUTED (null), nothing is written', async () => {
