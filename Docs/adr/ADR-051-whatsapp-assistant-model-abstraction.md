@@ -1,6 +1,6 @@
 # ADR-051: WhatsApp assistant model abstraction, tool confirmation and fallback
 
-- Status: **PROPOSED** (not signed). Package GRW-P2-D. Numbering: this amends the assistant tool decision once reserved as ADR-048 and renumbered ADR-058 in `GROWTH_ARCHITECTURE_DECISIONS.md` section 24; the founder confirms which number stays (launch guide 11.39).
+- Status: **PROPOSED** (not signed). Package GRW-P2-D. Numbering: this amends the assistant tool decision once reserved as ADR-048. Scheme A (25 Nov 2026): **ADR-051 everywhere**, including `GROWTH_ARCHITECTURE_DECISIONS.md` section 24, which called it ADR-058 until then; the founder confirms the scheme (launch guide, ADR numbering row).
 
 ## Context
 An assistant that books on WhatsApp must not be able to act on a model's say-so, leak data across patients or answer medical questions.

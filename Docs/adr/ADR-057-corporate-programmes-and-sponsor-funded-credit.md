@@ -1,0 +1,18 @@
+# ADR-057: Corporate programmes and sponsor-funded credit
+
+**Status: Proposed, unsigned (draft of 25 Nov 2026, wave 9 lane A4).** Package GRW-P4-C (built locally, W8 lane A4). Founder signature needed: nothing here binds anything until it is signed. Counsel or finance needed: Counsel and CFO (contract template, employee data terms, benefit tax treatment, invoicing); CEO (enterprise pipeline ownership).
+
+**Context.** Companies may want to cover part of their employees' deposits and Kiorex wants an enterprise pipeline. ADR-048 separated patient credit (Kiorex) from provider credit (Kiorly) and forbade a general wallet. A corporate benefit must not become a third wallet, must not mix employer money with patient or provider balances, and must not reveal which employee used care.
+
+**Decision.**
+1. **A separate ledger, never a wallet.** The sponsor-funded benefit is its own append-only ledger (`CorporateBenefitEntry`: RESERVE, REDEEM, RELEASE, REVERSE). It never writes patient credit (`RewardLot`, ADR-048) and never touches the Clinic provider credit. There is no balance column, no top-up, transfer, gift or cash-out route. The benefit is a per-visit use of an allowance against a share of the deposit that Kiorex collects, and the card always keeps one minor unit. The work-package text that proposed reusing the patient ledger with `kind=CORPORATE` was deliberately not followed; that enum value stays unused.
+2. **The database enforces the money rules.** A trigger serialised on the account refuses a second reservation per booking, any use above the sponsor ceiling or the member cap, and releasing, redeeming or reversing more than exists; the table is append-only with a unique idempotency key.
+3. **Terms are never defaulted.** Ceiling, cap, per-visit maximum, cover share and contract reference are null until ops enters them after a signed contract; an account cannot be ACTIVE without them, without an end date or when the activator was the last editor (two-person rule); terms are frozen while active. The default funding mode is `SPONSOR_CREDIT` (the company funds its own ceiling); `PLATFORM_PROMO` (Kiorex marketing pays) exists as a value and needs a CFO and counsel decision first.
+4. **Privacy by construction.** A member is a keyed hash, never the Passport sub; no endpoint lists members, bookings, providers or specialties; the employer report masks every cell under 10 with secondary suppression; HR lists are stored as hashes for a 30-day matching window then deleted; free text that looks like personal data is refused.
+5. **Leads are not benefits.** Enterprise leads (including a company referred by a provider) are tracked with an append-only history, work with the flag OFF, and create no reward, credit or fee share.
+
+**Consequences.** Corporate programmes can be offered without a new regulated balance and without any employer visibility of individuals. **Implementation:** built locally (unit 40, integration 31 + 11, ops, web and app tests; the Clinic "Refer a company" tab and staff app screen); the flag `growth.corporate` is launch-locked; the contracts kind and events are unreleased. **Not built:** Pay and checkout wiring (`CORPORATE_BENEFIT_PORT` exists and is tested but no deposit is reduced), the real-stack e2e, the employer login, the verified work-email path (Passport does not issue `email_verified`). Nothing is deployed.
+
+**Open (NEEDS_HUMAN).** Contract template, member terms, tax treatment, invoicing procedure, HR-list retention and the enterprise lead owner are counsel, CFO and CEO items (launch guide, corporate rows).
+
+Source of record: `_docs/growth/GROWTH_ARCHITECTURE_DECISIONS.md` section 29 in the workspace repository (this file is the repository copy; keep them equal).
