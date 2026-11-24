@@ -45,6 +45,7 @@ const PreferencesPage = lazy(() => import("@/pages/PreferencesPage")); // GRW-P1
 const ReferralPage = lazy(() => import("@/pages/referral/ReferralPage")); // GRW-P2-B3
 const MyRewards = lazy(() => import("@/pages/referral/MyRewards"));
 const InviteLanding = lazy(() => import("@/pages/referral/InviteLanding"));
+const CorporateRedeem = lazy(() => import("@/pages/corporate/RedeemCode")); // GRW-P4-C
 
 export const makeQueryClient = () =>
   new QueryClient({
@@ -98,6 +99,7 @@ export function AppRoutes() {
           <Route path=":locale/:cc/preferences" element={<PreferencesPage />} />
           <Route path="referral" element={guard(<ReferralPage />)} />
           <Route path="referral/rewards" element={guard(<MyRewards />)} />
+          <Route path="corporate" element={guard(<CorporateRedeem />)} /> {/* GRW-P4-C */}
           <Route path="invite/:code" element={<InviteLanding />} />
           <Route path=":locale/:cc/invite/:code" element={<InviteLanding />} />
           <Route path="account/addresses" element={guard(<AddressesPage />)} />

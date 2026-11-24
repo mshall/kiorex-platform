@@ -124,9 +124,9 @@
         "corporate": {
           "nav": "Corporate programmes",
           "title": "Corporate programmes",
-          "hint": "Employer and partner programmes with aggregate-only reporting.",
+          "hint": "Employer programmes, company codes, the enterprise lead pipeline and aggregate-only reporting (groups of 10 or more).",
           "scope": [
-            "Corporate accounts, codes and sponsor-funded credit through the reward ledger",
+            "Corporate accounts, codes and a sponsor-funded benefit in its own separate ledger (never patient or provider credit)",
             "Reports only at k >= 10; no employer sees an identifiable employee",
             "Every string in Arabic and English, RTL verified"
           ],
@@ -284,9 +284,9 @@
         "corporate": {
           "nav": "البرامج المؤسسية",
           "title": "البرامج المؤسسية",
-          "hint": "برامج أصحاب العمل والشركاء مع تقارير مجمعة فقط.",
+          "hint": "برامج أصحاب العمل وأكواد الشركات ومسار العملاء المحتملين من الشركات وتقارير مجمعة فقط (مجموعات من ١٠ فأكثر).",
           "scope": [
-            "حسابات مؤسسية وأكواد ورصيد ممول من الجهة الراعية عبر دفتر المكافآت",
+            "حسابات مؤسسية وأكواد وميزة ممولة من الجهة الراعية في دفتر مستقل (ليست رصيد مريض ولا رصيد مقدم خدمة)",
             "تقارير بحد أدنى ١٠ فقط، ولا يرى صاحب العمل موظفاً بعينه",
             "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
           ],

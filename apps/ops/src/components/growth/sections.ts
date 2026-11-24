@@ -31,7 +31,7 @@ export const GROWTH_SECTIONS: readonly GrowthSection[] = [
   { key: "markets", to: "/growth/markets", icon: Globe, status: "live" },
   { key: "onboarding", to: "/growth/onboarding", icon: Rocket, status: "planned", phase: 3, pkg: "GRW-P3-G" },
   { key: "recommendations", to: "/growth/recommendations", icon: Lightbulb, status: "planned", phase: 3, pkg: "GRW-P3-E" },
-  { key: "corporate", to: "/growth/corporate", icon: Briefcase, status: "planned", phase: 4, pkg: "GRW-P4-C" },
+  { key: "corporate", to: "/growth/corporate", icon: Briefcase, status: "live", phase: 4, pkg: "GRW-P4-C" },
   { key: "loyalty", to: "/growth/loyalty", icon: Crown, status: "planned", phase: 4, pkg: "GRW-P4-D" },
   { key: "integrations", to: "/growth/integrations", icon: Plug, status: "live" },
   { key: "audit", to: "/growth/audit", icon: ScrollText, status: "live" },

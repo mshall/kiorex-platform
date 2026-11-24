@@ -72,6 +72,7 @@ const GrowthReviewQueuePage = lazy(() => import("@/pages/growth/review-queue/Pag
 const GrowthOnboardingPage = lazy(() => import("@/pages/growth/onboarding/Page"));
 const GrowthRecommendationsPage = lazy(() => import("@/pages/growth/recommendations/Page"));
 const GrowthCorporatePage = lazy(() => import("@/pages/growth/corporate/Page"));
+const GrowthCorporateAccountPage = lazy(() => import("@/pages/growth/corporate/AccountDetailPage")); // GRW-P4-C
 const GrowthLoyaltyPage = lazy(() => import("@/pages/growth/loyalty/Page"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
@@ -148,6 +149,7 @@ export function AppRoutes() {
           <Route path="growth/onboarding" element={<GrowthOnboardingPage />} />
           <Route path="growth/recommendations" element={<GrowthRecommendationsPage />} />
           <Route path="growth/corporate" element={<GrowthCorporatePage />} />
+          <Route path="growth/corporate/accounts/:id" element={<GrowthCorporateAccountPage />} />
           <Route path="growth/loyalty" element={<GrowthLoyaltyPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>

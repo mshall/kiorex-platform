@@ -5,6 +5,8 @@ import ar from "@/i18n/locales/ar.json";
 import en from "@/i18n/locales/en.json";
 import referralAr from "@/i18n/referral.ar.json";
 import referralEn from "@/i18n/referral.en.json";
+import corporateAr from "@/i18n/corporate.ar.json";
+import corporateEn from "@/i18n/corporate.en.json";
 import sponsoredAr from "@/i18n/sponsored.ar.json";
 import sponsoredEn from "@/i18n/sponsored.en.json";
 
@@ -14,7 +16,7 @@ const src = path.resolve(__dirname, "..");
 const files = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = path.join(d, f); return statSync(p).isDirectory() ? (f === "__tests__" || f === "mocks" || f === "test" ? [] : files(p)) : /\.(tsx?)$/.test(f) ? [p] : []; });
 
 describe("i18n", () => {
-  const A = new Set(flat({ ...ar, referral: referralAr, sponsored: sponsoredAr }).map(base)); const E = new Set(flat({ ...en, referral: referralEn, sponsored: sponsoredEn }).map(base)); // GRW-P2-B3: namespace referral.* lives in its own files
+  const A = new Set(flat({ ...ar, referral: referralAr, sponsored: sponsoredAr, corporate: corporateAr }).map(base)); const E = new Set(flat({ ...en, referral: referralEn, sponsored: sponsoredEn, corporate: corporateEn }).map(base)); // GRW-P2-B3: namespace referral.* lives in its own files
   it("ar and en have the same keys (plural suffixes aside)", () => {
     expect([...E].filter((k) => !A.has(k))).toEqual([]); expect([...A].filter((k) => !E.has(k))).toEqual([]);
   });

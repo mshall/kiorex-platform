@@ -6,7 +6,7 @@ import { fmtN, fmtPct } from "@/lib/growthFormat";
 const B = "/ops/growth";
 const qs = (o: Record<string, string | number | undefined | null>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== "") p.set(k, String(v)); const s = p.toString(); return s ? `?${s}` : ""; };
 
-export type Capability = "read" | "readFinance" | "writeConfig" | "approveConfig" | "reviewFraud" | "manage" | "manageCampaigns" | "reviewPromotions";
+export type Capability = "read" | "readFinance" | "writeConfig" | "approveConfig" | "reviewFraud" | "manage" | "manageCampaigns" | "reviewPromotions" | "manageCorporate";
 export interface Access { roles: string[]; capabilities: Record<Capability, boolean> }
 export const useGrowthAccess = () => useQuery({ queryKey: ["growth", "access"], queryFn: () => rawApi<Access>("GET", `${B}/access`), staleTime: 60_000 });
 
