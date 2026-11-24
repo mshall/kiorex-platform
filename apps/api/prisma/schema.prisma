@@ -311,44 +311,44 @@ model BookingEvent {
 // ───────────────────────── Kiorex Pay (KXM-PAY) ─────────────────────────
 
 model PaymentIntent {
-  id              String    @id // pay_<id>; used as Kiorly paymentRef
-  bookingId       String?
-  payLinkToken    String?
-  sub             String?
-  clinicId        String
-  amountMinor     Int
-  currency        String    @default("EGP")
-  psp             String
-  pspRef          String?   @unique
-  checkoutUrl     String?
-  status          String    @default("CREATED") // CREATED | CAPTURED | FAILED | REFUNDED | PARTIALLY_REFUNDED
-  refundedMinor   Int       @default(0)
-  feeMinor        Int       @default(0)
-  releasedAt      DateTime? // deposit released to clinic payable (completed / forfeited)
-  releaseKind     String? // COMPLETED | FORFEITED
-  payoutId        String?
+  id                   String    @id // pay_<id>; used as Kiorly paymentRef
+  bookingId            String?
+  payLinkToken         String?
+  sub                  String?
+  clinicId             String
+  amountMinor          Int
+  currency             String    @default("EGP")
+  psp                  String
+  pspRef               String?   @unique
+  checkoutUrl          String?
+  status               String    @default("CREATED") // CREATED | CAPTURED | FAILED | REFUNDED | PARTIALLY_REFUNDED
+  refundedMinor        Int       @default(0)
+  feeMinor             Int       @default(0)
+  releasedAt           DateTime? // deposit released to clinic payable (completed / forfeited)
+  releaseKind          String? // COMPLETED | FORFEITED
+  payoutId             String?
   /// DEPOSIT (Kiorly clinic deposit) | PHARMACY | LAB — vertical orders never reach Kiorly clinic payouts.
-  purpose         String    @default("DEPOSIT")
-  orderRef        String?
-  capturedAt      DateTime?
-  kiorlyNotified  Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  purpose              String    @default("DEPOSIT")
+  orderRef             String?
+  capturedAt           DateTime?
+  kiorlyNotified       Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
   /// KXMPAY07: HELD_FOR_REVIEW (unsafe-aborted home visit; never auto-forfeited) | RELEASED_TO_PROVIDER | REFUNDED_TO_PATIENT
-  reviewState     String?
-  reviewReason    String?
-  heldForReviewAt DateTime?
-  reviewedBy      String?
-  reviewedAt      DateTime?
+  reviewState          String?
+  reviewReason         String?
+  heldForReviewAt      DateTime?
+  reviewedBy           String?
+  reviewedAt           DateTime?
   /// GRW-P2-B2 (migration 20261217090000): credit applied to this deposit. `amountMinor` stays the CARD amount charged at the PSP; `rewardMinor` is the part paid with credit,
   /// `rewardPostedMinor` the part of it that sits in the Pay ledger HELD account (patient-refund credit always, promotional credit only when REWARD_RULES.postToPayLedger).
-  rewardMinor       Int     @default(0)
-  rewardPostedMinor Int     @default(0)
+  rewardMinor          Int       @default(0)
+  rewardPostedMinor    Int       @default(0)
   /// GRW-P2-S (migration 20270107096000): provider-sponsored discount that reduced this deposit (gross deposit = amountMinor + rewardMinor + sponsoredMinor). `sponsoredPostedMinor` is the part in the
   /// Pay ledger HELD account (only when REWARD_RULES.postToPayLedger, H-25); `sponsoredVoidedMinor` the cumulative share voided by refunds (never paid to the patient).
-  sponsoredMinor       Int @default(0)
-  sponsoredPostedMinor Int @default(0)
-  sponsoredVoidedMinor Int @default(0)
+  sponsoredMinor       Int       @default(0)
+  sponsoredPostedMinor Int       @default(0)
+  sponsoredVoidedMinor Int       @default(0)
 
   refunds Refund[]
 
@@ -1872,31 +1872,31 @@ model ReferralIdentitySignal {
 
 /// A bundle of reward value. `status` is a cache; the truth is RewardLedgerEntry.
 model RewardLot {
-  id                  String   @id @default(cuid())
-  market              String   @default("EG")
+  id                  String    @id @default(cuid())
+  market              String    @default("EG")
   sub                 String
   kind                String // REFERRER REFEREE REPEAT PROMO CORPORATE LOYALTY
   mode                String // CREDIT COUPON
-  currency            String   @default("EGP")
+  currency            String    @default("EGP")
   amountMinor         Int
   couponCodeHash      String?
-  status              String   @default("ACTIVE") // ACTIVE HELD EXHAUSTED EXPIRED REVERSED
+  status              String    @default("ACTIVE") // ACTIVE HELD EXHAUSTED EXPIRED REVERSED
   ruleVersionId       String
   relationshipId      String?
   campaignId          String?
   expiresAt           DateTime
-  createdAt           DateTime @default(now())
+  createdAt           DateTime  @default(now())
   /// Rev 2.6 (migration 20261203096000): who OWNS the credit (family: the owner; `sub` stays the person it was issued for), the household, the funding label, the spend scope, the verified qualifying visit.
   ownerSub            String?
   householdId         String?
   /// PLATFORM_MARKETING | PLATFORM_SERVICE_RECOVERY | PATIENT_REFUND (the patient's own refunded money: never a marketing expense, never revenue)
-  funding             String   @default("PLATFORM_MARKETING")
-  scope               Json     @default("{}")
+  funding             String    @default("PLATFORM_MARKETING")
+  scope               Json      @default("{}")
   qualifyingBookingId String?
   /// GRW-P2-B2 (migration 20261217090000): the sealed coupon code lives here only until the patient has seen it once; afterwards only `couponCodeHash` stays.
   couponCodeSealed    String?
   couponRevealedAt    DateTime?
-  issuedBy            String   @default("system")
+  issuedBy            String    @default("system")
   reasonCode          String?
 
   entries RewardLedgerEntry[]
@@ -2288,7 +2288,6 @@ model RewardReconcileRun {
   @@index([ranAt])
 }
 
-
 /// GRW-P2-B1: one share of an invite (counts only, no recipient).
 model ReferralShare {
   id        String   @id @default(cuid())
@@ -2337,7 +2336,6 @@ model RewardRecoverableLoss {
   @@unique([lotId, bookingId])
   @@index([sub, createdAt])
 }
-
 
 // ── Wave 7 (migrations 20270107090000 .. 20270107095000, owner: lane A1). Additive. See _docs/growth/GROWTH_PHASE2_4_WORK_PACKAGES.md section 7.
 
@@ -2723,4 +2721,201 @@ model SponsoredPromotionReview {
 
   @@index([promotionId, promotionVersion], map: "SponsoredPromotionReview_promotion_idx")
   @@index([decision, createdAt], map: "SponsoredPromotionReview_decision_idx")
+}
+
+// ── GRW-P4-C corporate partnerships and enterprise acquisition (migration 20270128093000_growth_p4_corporate) ──
+// A corporate benefit is its OWN append-only ledger (CorporateBenefitEntry). It never writes RewardLot or RewardLedgerEntry (patient credit) and never touches the Clinic provider credit.
+// There is no balance column anywhere: the employer funds a ceiling, a member may use up to a per-member cap against the deposit of a booking, and nothing can be topped up, transferred or cashed out.
+// Prices, ceilings, caps and bp are entered per account by ops after a signed contract (NEEDS_HUMAN): null until then, and an account with incomplete terms cannot be activated.
+
+/// A company programme. Company data only: no employee data, no contact person (billingContactRef is an opaque reference to the finance record).
+model CorporateAccount {
+  id                  String    @id @default(cuid())
+  market              String    @default("EG")
+  displayName         String
+  legalNameRef        String?
+  /// LEAD ACTIVE PAUSED ENDED. ACTIVE needs a contractRef, complete terms and a second person (activatedBy differs from termsEditedBy).
+  status              String    @default("LEAD")
+  contractRef         String?
+  /// SPONSOR_CREDIT (employer funds a ceiling) or PLATFORM_PROMO (Kiorex marketing expense; counsel and CFO decide).
+  fundingMode         String    @default("SPONSOR_CREDIT")
+  billingContactRef   String?
+  startsAt            DateTime?
+  endsAt              DateTime?
+  currency            String    @default("EGP")
+  sponsorCeilingMinor Int?
+  perMemberCapMinor   Int?
+  perVisitMaxMinor    Int?
+  /// Share of a booking deposit the benefit may cover, in basis points (1..10000).
+  coverBp             Int?
+  emailDomains        String[]  @default([])
+  termsEditedBy       String?
+  termsEditedAt       DateTime?
+  activatedBy         String?
+  activatedAt         DateTime?
+  createdBy           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  codes        CorporateCode[]
+  members      CorporateMember[]
+  hrBatches    CorporateHrBatch[]
+  invoiceNotes CorporateInvoiceNote[]
+
+  @@index([market, status])
+}
+
+/// A redemption code. The plain code is shown once to the ops user who creates it; only the keyed hash is stored.
+model CorporateCode {
+  id                String    @id @default(cuid())
+  accountId         String
+  codeHash          String    @unique
+  label             String
+  /// OPEN (anyone holding it) or LIST (the redeemer must also be on an approved HR list).
+  kind              String    @default("OPEN")
+  maxRedemptions    Int
+  redeemedCount     Int       @default(0)
+  perMemberCapMinor Int?
+  expiresAt         DateTime?
+  /// ACTIVE REVOKED (EXPIRED and EXHAUSTED are derived from the dates and the counter).
+  status            String    @default("ACTIVE")
+  createdBy         String
+  createdAt         DateTime  @default(now())
+
+  account CorporateAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, status])
+}
+
+/// A verified member. The employer receives counts only. `subHash` is a keyed hash (never the Passport sub); one ACTIVE membership per person (partial unique index in the migration).
+model CorporateMember {
+  id                String    @id @default(cuid())
+  accountId         String
+  subHash           String
+  codeId            String?
+  /// DOMAIN_EMAIL HR_LIST CODE
+  verifiedBy        String
+  enrolledAt        DateTime  @default(now())
+  endedAt           DateTime?
+  /// LEFT ACCOUNT_ENDED REVOKED ERASED
+  endReason         String?
+  /// Snapshot of the cap that applied at enrolment (code cap, else account cap). Null = the account cap at the time of use.
+  perMemberCapMinor Int?
+
+  account CorporateAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, subHash])
+  @@index([accountId, endedAt])
+  @@index([subHash])
+}
+
+/// The corporate benefit ledger. Append-only; amountMinor > 0; idempotencyKey unique. A trigger refuses any entry that would exceed the account ceiling or the member cap, or release / redeem / reverse more than exists.
+/// used = RESERVE - RELEASE - REVERSE. held = RESERVE - RELEASE - REDEEM. redeemed = REDEEM - REVERSE.
+model CorporateBenefitEntry {
+  id             String   @id @default(cuid())
+  accountId      String
+  memberId       String
+  /// RESERVE REDEEM RELEASE REVERSE
+  type           String
+  amountMinor    Int
+  currency       String   @default("EGP")
+  /// The booking the benefit was reserved for. Internal to the ledger: no corporate endpoint, report or export ever selects, joins or returns it (corporate-privacy.int.spec.ts asserts the response shapes).
+  bookingId      String
+  idempotencyKey String   @unique
+  reasonCode     String
+  actor          String
+  createdAt      DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([memberId])
+  @@index([bookingId])
+}
+
+/// An uploaded HR list, two-person approved. Rows are keyed hashes of a phone or e-mail and are deleted when the match window ends.
+model CorporateHrBatch {
+  id           String    @id @default(cuid())
+  accountId    String
+  /// PENDING_APPROVAL APPROVED REJECTED PURGED
+  status       String    @default("PENDING_APPROVAL")
+  rowCount     Int
+  uploadedBy   String
+  approvedBy   String?
+  approvedAt   DateTime?
+  windowEndsAt DateTime?
+  purgedAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  account CorporateAccount   @relation(fields: [accountId], references: [id])
+  entries CorporateHrEntry[]
+
+  @@index([accountId, status])
+}
+
+model CorporateHrEntry {
+  id        String    @id @default(cuid())
+  batchId   String
+  keyHash   String
+  matchedAt DateTime?
+
+  batch CorporateHrBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, keyHash])
+  @@index([keyHash])
+}
+
+/// An enterprise lead (company data only; a contact is an opaque reference, never a name, phone or e-mail).
+model CorporateLead {
+  id             String   @id @default(cuid())
+  market         String   @default("EG")
+  /// B2B_REFERRAL OUTBOUND INBOUND
+  source         String
+  referrerOrgRef String?
+  /// The Clinic's ProviderB2BReferral id: the idempotency key of the ingest.
+  referralRef    String?  @unique
+  companyName    String
+  /// 1_49 50_199 200_999 1000_PLUS UNKNOWN
+  sizeBucket     String   @default("UNKNOWN")
+  contactRef     String?
+  /// NEW CONTACTED QUALIFIED PROPOSAL WON LOST DUPLICATE
+  status         String   @default("NEW")
+  ownerSub       String?
+  notes          String   @default("")
+  accountId      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  history CorporateLeadHistory[]
+
+  @@index([status, createdAt])
+  @@index([source, status])
+}
+
+/// Append-only history of a lead (trigger).
+model CorporateLeadHistory {
+  id         String   @id @default(cuid())
+  leadId     String
+  fromStatus String?
+  toStatus   String
+  actor      String
+  note       String?
+  at         DateTime @default(now())
+
+  lead CorporateLead @relation(fields: [leadId], references: [id])
+
+  @@index([leadId, at])
+}
+
+/// Manual invoicing support (no billing engine): the sponsor spend of a month as the ledger showed it when ops wrote the note.
+model CorporateInvoiceNote {
+  id                String   @id @default(cuid())
+  accountId         String
+  month             String
+  sponsorSpendMinor Int
+  notes             String   @default("")
+  createdBy         String
+  createdAt         DateTime @default(now())
+
+  account CorporateAccount @relation(fields: [accountId], references: [id])
+
+  @@unique([accountId, month])
 }

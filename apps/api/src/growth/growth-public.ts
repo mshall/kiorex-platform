@@ -50,3 +50,5 @@ export { PromotionReviewService } from './promotions/promotion-review.service';
 export { SponsoredDiscountService, type SponsoredBlock } from './promotions/sponsored-discount.service';
 export { PromotionQuoteService, type SponsoredQuote } from './promotions/promotion-quote.service';
 export { sponsoredPayoutHoldMinor } from './promotions/promotion-math';
+// GRW-P4-C (corporate partnerships, wave 8 lane A4)
+export { CorporateModule, B2bReferralService, CorporateBenefitService, CorporateService, CorporateMemberService, CorporateReportService, CorporateJob } from './corporate-public';
