@@ -39,7 +39,11 @@ export class OnboardingImportService {
   async addFile(u: AuthUser, batchId: string, name: string, contentBase64: string) {
     const b = await this.batch(batchId); this.assertEditable(b.status);
     if ((await this.prisma.importFile.count({ where: { batchId } })) >= MAX_FILES_PER_BATCH) throw err(BadRequestException, 'IMPORT_TOO_MANY_FILES');
-    const safeName = name.replace(/[\\/\0]/g, '_').slice(0, 200); const bytes = Buffer.from(contentBase64, 'base64');
+    const safeName = name.replace(/[\\/\0]/g, '_').slice(0, 200);
+    // Node's base64 decoder silently skips illegal characters, so a damaged or truncated upload would be stored as a DIFFERENT file with a valid-looking hash. Strict RFC 4648 only.
+    const compact = contentBase64.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(compact) || compact.length % 4 === 1) throw err(BadRequestException, 'IMPORT_BAD_BASE64');
+    const bytes = Buffer.from(compact, 'base64');
     const v = await scanUpload(safeName, bytes, this.scanner);
     const fileId = randomUUID();
     if (!v.ok) {
