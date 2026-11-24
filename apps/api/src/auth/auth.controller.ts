@@ -14,6 +14,8 @@ class LogoutBody {
 }
 
 const BCL_EVENT = 'http://schemas.openid.net/event/backchannel-logout';
+/** Kiorex event discriminators Passport adds to the `events` claim next to the standard one (the standard event alone means a session revoke). */
+const KX_SUBJECT_DELETED = 'https://schemas.kiorex.com/event/subject.deleted';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -45,7 +47,8 @@ export class AuthController {
       throw new ApiError(400, 'INVALID_LOGOUT_TOKEN', 'logout_token failed verification');
     }
     const events = (p.events ?? {}) as Record<string, unknown>;
-    const kind = (p.event as string | undefined) ?? (events[BCL_EVENT] ? 'session.revoked' : undefined) ?? (events['subject.deleted'] ? 'subject.deleted' : undefined) ?? (events['session.revoked'] ? 'session.revoked' : undefined);
+    // subject.deleted must win over the standard back-channel event that every Passport token also carries (it used to be read as a plain session revoke, so erasure never ran)
+    const kind = (p.event as string | undefined) ?? (events[KX_SUBJECT_DELETED] || events['subject.deleted'] ? 'subject.deleted' : undefined) ?? (events[BCL_EVENT] ? 'session.revoked' : undefined) ?? (events['session.revoked'] ? 'session.revoked' : undefined);
     if (!kind) throw badRequest('NOT_A_LOGOUT_TOKEN', 'No logout event in token');
     const sub = p.sub as string | undefined;
     const sid = p.sid as string | undefined;
