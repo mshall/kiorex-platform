@@ -18,6 +18,12 @@ const KIND_NOTES: Record<string, string> = {
   SEO: 'Public site rules: canonical host, locales, thin-page thresholds, sitemap shard size, cache lifetimes.',
   WIDGET_POLICY: 'Booking widget limits: origins per organisation, token lifetime, hold limits, embed host.',
   CONSENT_DEFAULTS: 'Consent regime, quiet hours, frequency caps, withdrawal propagation.',
+  CAMPAIGN_POLICY: 'Campaign rules: approval threshold, monthly ceiling, alert thresholds, channels, UTM naming and creative rules. Money: announcement required, no ad platform is ever touched.',
+  REFERRAL_RULES: 'Patient referral qualification, caps and eligible care types (non-clinical only).',
+  REWARD_RULES: 'Reward mode (coupon or credit), amounts, expiry, caps and redemption limits. Money: announcement required.',
+  LIFECYCLE_POLICY: 'Message classes, frequency caps, quiet hours, journeys and allowlisted segments.',
+  ASSISTANT_POLICY: 'WhatsApp assistant: languages, tools per state, token and cost budgets, retention, escalation SLA, model mode.',
+  INTEGRATION: 'Read-only marketing integrations by kind: mode, secret reference names, pull schedule, rate budget, retention.',
   MARKET_GROWTH: 'Per-market growth facts: currency, phone code, locales, booking link host, integrations on/off, secret references.',
 };
 

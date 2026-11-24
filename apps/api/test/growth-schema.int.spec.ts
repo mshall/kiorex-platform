@@ -152,7 +152,7 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
       await c.prisma.growthEvent.createMany({ data: [{ name: 'PageViewed', visitorKey: 'v_me' }, { name: 'PageViewed', visitorKey: 'v_other' }, { name: 'BookingConfirmed', bookingId: d.bookingId }] });
 
       const r = await maint.eraseSubject('sub_me');
-      expect(r).toEqual({ touchpointsDeleted: 2, touchpointsAnonymised: 1, eventsDeleted: 1, visitorKeys: 1 });
+      expect(r).toMatchObject({ touchpointsDeleted: 2, touchpointsAnonymised: 1, eventsDeleted: 1, visitorKeys: 1 }); // GRW-P2-X1: the result also carries the Phase 2 counters
       const left = await c.prisma.growthTouchpoint.findMany({ orderBy: { id: 'asc' } });
       expect(left.map((t) => t.id).sort()).toEqual([keep.id, cited.id].sort());
       expect(left.find((t) => t.id === viaKeyOnly.id)).toBeUndefined();
@@ -173,7 +173,7 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
     it('is idempotent and rejects an empty subject', async () => {
       await touch({ sub: 'sub_me', visitorKey: 'v' });
       await maint.eraseSubject('sub_me');
-      expect(await maint.eraseSubject('sub_me')).toEqual({ touchpointsDeleted: 0, touchpointsAnonymised: 0, eventsDeleted: 0, visitorKeys: 0 });
+      expect(await maint.eraseSubject('sub_me')).toMatchObject({ touchpointsDeleted: 0, touchpointsAnonymised: 0, eventsDeleted: 0, visitorKeys: 0 });
       await rejects(maint.eraseSubject('  '), /sub is required/);
     });
   });
@@ -193,13 +193,13 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
       await c.prisma.growthFraudSignal.createMany({ data: [{ ruleId: 'burst', subjectHash: 'x', createdAt: at('2028-01-01') }, { ruleId: 'burst', subjectHash: 'y', createdAt: at('2029-05-01') }] });
 
       const r = await maint.purgeExpired({ now });
-      expect(r).toEqual({ ipHashBlanked: 1, touchpointsDeletedUnlinked: 1, touchpointsDeletedLinked: 1, eventsDeleted: 1, fraudSignalsDeleted: 1 });
+      expect(r).toMatchObject({ ipHashBlanked: 1, touchpointsDeletedUnlinked: 1, touchpointsDeletedLinked: 1, eventsDeleted: 1, fraudSignalsDeleted: 1 });
       const ids = (await c.prisma.growthTouchpoint.findMany()).map((t) => t.id).sort();
       expect(ids).toEqual([fresh.id, dayOld.id, unlinkedYoung.id, linkedYoung.id].sort());
       expect((await c.prisma.growthTouchpoint.findUniqueOrThrow({ where: { id: dayOld.id } })).ipHash).toBe('');
       expect((await c.prisma.growthTouchpoint.findUniqueOrThrow({ where: { id: fresh.id } })).ipHash).toBe('h1');
       expect(await c.prisma.auditLog.count({ where: { action: 'growth.purge_expired' } })).toBe(1);
-      expect(await maint.purgeExpired({ now })).toEqual({ ipHashBlanked: 0, touchpointsDeletedUnlinked: 0, touchpointsDeletedLinked: 0, eventsDeleted: 0, fraudSignalsDeleted: 0 });
+      expect(await maint.purgeExpired({ now })).toMatchObject({ ipHashBlanked: 0, touchpointsDeletedUnlinked: 0, touchpointsDeletedLinked: 0, eventsDeleted: 0, fraudSignalsDeleted: 0 });
       await rejects(maint.purgeExpired({ now, linkedMonths: 0 }), /retention months/);
     });
   });

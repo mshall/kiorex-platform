@@ -31,11 +31,11 @@ function mockConfig(rows: unknown[], access = caps(), inForceSource = "ACTIVE") 
 }
 
 describe("Growth navigation", () => {
-  it("lists the 22 founder sections plus configuration versions, in order, and marks the planned ones", async () => {
+  it("lists the 22 founder sections, the 9 added by GRW-P2-X1, and configuration versions, in order, and marks the planned ones", async () => {
     renderOps(<GrowthNav />, { route: "/growth" });
     const items = await screen.findAllByRole("link");
     expect(items).toHaveLength(GROWTH_SECTIONS.length);
-    expect(GROWTH_SECTIONS.filter((s) => s.key !== "config")).toHaveLength(22);
+    expect(GROWTH_SECTIONS.filter((s) => s.key !== "config")).toHaveLength(31);
     expect(items.map((a) => a.getAttribute("data-testid"))).toEqual(GROWTH_SECTIONS.map((s) => `growth-nav-${s.key}`));
     expect(within(screen.getByTestId("growth-nav-campaigns")).getByText("P2")).toBeInTheDocument();
     expect(within(screen.getByTestId("growth-nav-experiments")).getByText("P3")).toBeInTheDocument();

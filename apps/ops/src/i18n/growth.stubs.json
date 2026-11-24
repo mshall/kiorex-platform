@@ -1,0 +1,311 @@
+{
+  "en": {
+    "growth": {
+      "sections": {
+        "approvals": {
+          "nav": "Campaign approvals",
+          "title": "Campaign approvals",
+          "hint": "Second-person approval of campaign activation, budget increases and reactivation.",
+          "scope": [
+            "Queue of pending approvals with the exact payload hash that was reviewed",
+            "Approve or reject with a reason; the requester can never decide their own request",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P2-A campaign engine",
+            "Flag growth.campaign_approval_required",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "No approval exists yet.",
+          "flag": "growth.campaigns"
+        },
+        "assistant": {
+          "nav": "Assistant conversations",
+          "title": "Assistant conversations",
+          "hint": "Escalations, budgets and usage of the WhatsApp booking assistant.",
+          "scope": [
+            "Escalation queue with the SLA clock",
+            "Token and cost usage against the daily budgets, and the breaker state",
+            "Redacted turn audit (30 days)"
+          ],
+          "deps": [
+            "GRW-P2-D WhatsApp assistant",
+            "Launch-locked flag kiorex.whatsapp_ai_assistant; real model behind growth.assistant_real_model",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "The deterministic WhatsApp booking machine answers today; no assistant turn runs.",
+          "flag": "kiorex.whatsapp_ai_assistant"
+        },
+        "attribution-models": {
+          "nav": "Attribution models",
+          "title": "Attribution models",
+          "hint": "Multi-touch reporting models side by side. Reporting only; commission stays on the deterministic decision.",
+          "scope": [
+            "First, last, last non-direct, linear, time-decay and position-based reports",
+            "A data-driven model that refuses to run under 1,000 conversions in 90 days",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P3-B advanced attribution",
+            "Contracts 1.13.0",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "Only the deterministic attribution decision exists. See Attribution.",
+          "flag": "growth.attribution_models"
+        },
+        "cohorts": {
+          "nav": "Cohorts and LTV",
+          "title": "Cohorts and LTV",
+          "hint": "Retention cohorts and lifetime value estimates, labelled as estimates.",
+          "scope": [
+            "Acquisition cohorts with k >= 10 suppression",
+            "LTV curve with intervals; contribution net of reward cost",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P3-C cohorts and LTV",
+            "Rewards ledger (GRW-P2-B2)",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "The provider cohort table exists in provider analytics; there is no LTV.",
+          "flag": "growth.cohorts_ltv"
+        },
+        "review-queue": {
+          "nav": "Fraud review queue",
+          "title": "Fraud review queue",
+          "hint": "Cases, scores and holds from fraud scoring (shadow mode first).",
+          "scope": [
+            "Cases with explainable rule contributions",
+            "Hold and release of rewards; never changes an attribution decision or a commission",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P3-D fraud detection",
+            "Referral and rewards (GRW-P2-B)",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "Fraud signals are reviewed on the Fraud page. There are no cases or scores yet.",
+          "flag": "growth.fraud_scoring"
+        },
+        "onboarding": {
+          "nav": "Market onboarding",
+          "title": "Market onboarding",
+          "hint": "A wizard to configure a new market without code.",
+          "scope": [
+            "Market profile, geography, specialties, regulation flags and data cell",
+            "Dry-run checks before a market can be switched live",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P3-G international expansion",
+            "Contracts 1.13.0 MARKET_PROFILE",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "Markets are configured on the Markets page; market.<cc>.live stays the human gate.",
+          "flag": "growth.market_onboarding"
+        },
+        "recommendations": {
+          "nav": "Recommendations",
+          "title": "Recommendations",
+          "hint": "AI-assisted campaign recommendations, proposed and decided by people.",
+          "scope": [
+            "Recommendation inbox with evidence and expected effect",
+            "Accept or decline with maker-checker; nothing is applied automatically",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P3-E marketing automation and recommendations",
+            "KX-11 AI governance",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "No recommendations exist.",
+          "flag": "growth.ai_recommendations"
+        },
+        "corporate": {
+          "nav": "Corporate programmes",
+          "title": "Corporate programmes",
+          "hint": "Employer and partner programmes with aggregate-only reporting.",
+          "scope": [
+            "Corporate accounts, codes and sponsor-funded credit through the reward ledger",
+            "Reports only at k >= 10; no employer sees an identifiable employee",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P4-C corporate partnerships",
+            "Launch-locked flag growth.corporate (counsel)",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "No corporate programme exists.",
+          "flag": "growth.corporate"
+        },
+        "loyalty": {
+          "nav": "Loyalty",
+          "title": "Loyalty",
+          "hint": "Tiers and partnership offers on the same ledger.",
+          "scope": [
+            "Tiers, accrual events, caps, expiry and partner offers",
+            "Counsel-gated",
+            "Every string in Arabic and English, RTL verified"
+          ],
+          "deps": [
+            "GRW-P4-D loyalty and partnerships",
+            "Launch-locked flag growth.loyalty (counsel)",
+            "No health data, no health targeting and no patient identifiers, ever"
+          ],
+          "today": "No loyalty programme exists.",
+          "flag": "growth.loyalty"
+        }
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "sections": {
+        "approvals": {
+          "nav": "موافقات الحملات",
+          "title": "موافقات الحملات",
+          "hint": "موافقة شخص ثانٍ على تفعيل الحملات وزيادة الميزانية وإعادة التفعيل.",
+          "scope": [
+            "قائمة بالموافقات المعلقة مع بصمة المحتوى الذي تمت مراجعته",
+            "اعتماد أو رفض مع سبب، ولا يمكن لمقدم الطلب البت في طلبه",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة محرك الحملات GRW-P2-A",
+            "العلم growth.campaign_approval_required",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "لا توجد موافقات بعد."
+        },
+        "assistant": {
+          "nav": "محادثات المساعد",
+          "title": "محادثات المساعد",
+          "hint": "التصعيدات والميزانيات واستخدام مساعد الحجز عبر واتساب.",
+          "scope": [
+            "قائمة التصعيد مع عداد اتفاقية الخدمة",
+            "استهلاك الرموز والتكلفة مقابل الميزانيات اليومية وحالة القاطع",
+            "سجل مراجعة للرسائل بعد إخفاء البيانات (30 يوماً)"
+          ],
+          "deps": [
+            "حزمة مساعد واتساب GRW-P2-D",
+            "علم مقفل حتى الإطلاق kiorex.whatsapp_ai_assistant، والنموذج الحقيقي خلف growth.assistant_real_model",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "تجيب آلة الحجز الحتمية على واتساب اليوم ولا يعمل أي مساعد."
+        },
+        "attribution-models": {
+          "nav": "نماذج الإسناد",
+          "title": "نماذج الإسناد",
+          "hint": "نماذج إسناد متعددة النقاط للتقارير فقط، وتبقى العمولة على القرار الحتمي.",
+          "scope": [
+            "تقارير الأول والأخير وغير المباشر الأخير والخطي والمتناقص زمنياً والموزع",
+            "نموذج قائم على البيانات يرفض العمل تحت ١٠٠٠ تحويل في ٩٠ يوماً",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P3-B",
+            "العقود 1.13.0",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "يوجد القرار الحتمي فقط. راجع صفحة الإسناد."
+        },
+        "cohorts": {
+          "nav": "الأفواج والقيمة الدائمة",
+          "title": "الأفواج والقيمة الدائمة",
+          "hint": "أفواج الاحتفاظ وتقديرات القيمة الدائمة مع وضوح أنها تقديرات.",
+          "scope": [
+            "أفواج الاكتساب مع إخفاء أقل من ١٠",
+            "منحنى القيمة الدائمة بفواصل ثقة وصافي بعد تكلفة المكافآت",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P3-C",
+            "دفتر المكافآت GRW-P2-B2",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "يوجد جدول الأفواج في تحليلات المزود فقط ولا توجد قيمة دائمة."
+        },
+        "review-queue": {
+          "nav": "قائمة مراجعة الاحتيال",
+          "title": "قائمة مراجعة الاحتيال",
+          "hint": "حالات ودرجات وتجميدات من نظام تقييم الاحتيال (وضع الظل أولاً).",
+          "scope": [
+            "حالات مع مساهمة كل قاعدة بشكل قابل للتفسير",
+            "تجميد المكافآت وإطلاقها، دون تغيير قرار إسناد أو عمولة",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P3-D",
+            "الإحالات والمكافآت GRW-P2-B",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "تتم مراجعة إشارات الاحتيال في صفحة الاحتيال ولا توجد حالات أو درجات بعد."
+        },
+        "onboarding": {
+          "nav": "إطلاق الأسواق",
+          "title": "إطلاق الأسواق",
+          "hint": "معالج لتهيئة سوق جديد بلا كود.",
+          "scope": [
+            "ملف السوق والجغرافيا والتخصصات وأعلام التنظيم وخلية البيانات",
+            "فحوصات تجريبية قبل تشغيل السوق",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P3-G",
+            "العقود 1.13.0 MARKET_PROFILE",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "تتم تهيئة الأسواق في صفحة الأسواق ويبقى market.<cc>.live بوابة بشرية."
+        },
+        "recommendations": {
+          "nav": "التوصيات",
+          "title": "التوصيات",
+          "hint": "توصيات حملات بمساعدة الذكاء الاصطناعي يقترحها النظام ويقرر فيها البشر.",
+          "scope": [
+            "صندوق توصيات مع الأدلة والأثر المتوقع",
+            "قبول أو رفض بمبدأ الشخصين، ولا يطبق شيء تلقائياً",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P3-E",
+            "حوكمة الذكاء الاصطناعي KX-11",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "لا توجد توصيات."
+        },
+        "corporate": {
+          "nav": "البرامج المؤسسية",
+          "title": "البرامج المؤسسية",
+          "hint": "برامج أصحاب العمل والشركاء مع تقارير مجمعة فقط.",
+          "scope": [
+            "حسابات مؤسسية وأكواد ورصيد ممول من الجهة الراعية عبر دفتر المكافآت",
+            "تقارير بحد أدنى ١٠ فقط، ولا يرى صاحب العمل موظفاً بعينه",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P4-C",
+            "علم مقفل growth.corporate (استشارة قانونية)",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "لا يوجد برنامج مؤسسي."
+        },
+        "loyalty": {
+          "nav": "الولاء",
+          "title": "الولاء",
+          "hint": "مستويات وعروض شراكة على الدفتر نفسه.",
+          "scope": [
+            "المستويات وأحداث الاكتساب والحدود والانتهاء وعروض الشركاء",
+            "يحتاج موافقة قانونية",
+            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+          ],
+          "deps": [
+            "حزمة GRW-P4-D",
+            "علم مقفل growth.loyalty (استشارة قانونية)",
+            "لا بيانات صحية ولا استهداف صحي ولا معرفات مرضى أبداً"
+          ],
+          "today": "لا يوجد برنامج ولاء."
+        }
+      }
+    }
+  }
+}

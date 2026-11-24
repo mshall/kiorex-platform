@@ -15,6 +15,8 @@ export interface ConfigActor { sub: string; roles: string[] }
 /** Kinds whose change moves money or evidence rules: effectiveFrom must be at least 7 days after approval and an announcement text is required (ARCH section 16). */
 export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION'];
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
+/** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
+export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY'];
 export const DEFAULT_ACTOR = 'system:proposed-default';
 
 export interface ResolvedConfig<T = Record<string, unknown>> {
@@ -195,6 +197,7 @@ export class GrowthConfigService {
     const current = await this.inForcePayload(row.kind, row.scope, row.scopeId, row.id);
     const g = evaluateGuardrails({ kind: row.kind, scope: row.scope, scopeId: row.scopeId, payload: row.payload as Record<string, unknown>, current, ticket: row.ticket });
     errors.push(...g.errors); warnings.push(...g.warnings);
+    if (ANNOUNCEMENT_KINDS.includes(row.kind) && (!row.announcement || row.announcement.trim().length < 10)) errors.push('/announcement: an announcement (10+ characters) is required for this kind');
     if (MONEY_POLICY_KINDS.includes(row.kind)) {
       if (!row.announcement || row.announcement.trim().length < 10) errors.push('/announcement: a provider-facing announcement (10+ characters) is required for this kind');
       const min = now.getTime() + MONEY_POLICY_LEAD_MS;
@@ -345,6 +348,7 @@ export class GrowthConfigService {
     if (s.scope === 'MARKET' && !/^[A-Z]{2}$/.test(s.scopeId)) throw growthError('GROWTH_INVALID_REQUEST', 'MARKET scope needs an ISO country code as scopeId');
   }
   private assertMoneyPolicy(row: { kind: string; effectiveFrom: Date | null; announcement: string | null }, now: Date) {
+    if (ANNOUNCEMENT_KINDS.includes(row.kind) && (!row.announcement || row.announcement.trim().length < 10)) throw growthError('GROWTH_CONFIG_INVALID', 'An announcement text is required for this kind', { errors: ['/announcement required'] });
     if (!MONEY_POLICY_KINDS.includes(row.kind)) return;
     if (!row.announcement || row.announcement.trim().length < 10) throw growthError('GROWTH_CONFIG_INVALID', 'An announcement text for providers is required for this kind', { errors: ['/announcement required'] });
     if (!row.effectiveFrom || row.effectiveFrom.getTime() < now.getTime() + MONEY_POLICY_LEAD_MS) throw growthError('GROWTH_CONFIG_EFFECTIVE_TOO_SOON', 'effectiveFrom must be at least 7 days after approval for this kind', { minEffectiveFrom: new Date(now.getTime() + MONEY_POLICY_LEAD_MS).toISOString() });

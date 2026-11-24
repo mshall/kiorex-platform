@@ -45,7 +45,23 @@ const GrowthMarketsPage = lazy(() => import("@/pages/growth/GrowthMarketsPage"))
 const GrowthIntegrationsPage = lazy(() => import("@/pages/growth/GrowthIntegrationsPage"));
 const GrowthAuditPage = lazy(() => import("@/pages/growth/GrowthAuditPage"));
 const GrowthConfigPage = lazy(() => import("@/pages/growth/GrowthConfigPage"));
-const GrowthPlannedPage = lazy(() => import("@/pages/growth/GrowthPlannedPage"));
+// every Phase 2 to 4 route is registered up front (GRW-P2-X1); the owning package replaces pages/growth/<name>/Page.tsx
+const GrowthCampaignsPage = lazy(() => import("@/pages/growth/campaigns/Page"));
+const GrowthApprovalsPage = lazy(() => import("@/pages/growth/approvals/Page"));
+const GrowthPromotionsPage = lazy(() => import("@/pages/growth/promotions/Page"));
+const GrowthReferralsPage = lazy(() => import("@/pages/growth/referrals/Page"));
+const GrowthRewardsPage = lazy(() => import("@/pages/growth/rewards/Page"));
+const GrowthWhatsappPage = lazy(() => import("@/pages/growth/whatsapp/Page"));
+const GrowthAssistantPage = lazy(() => import("@/pages/growth/assistant/Page"));
+const GrowthLifecyclePage = lazy(() => import("@/pages/growth/lifecycle/Page"));
+const GrowthExperimentsPage = lazy(() => import("@/pages/growth/experiments/Page"));
+const GrowthAttributionModelsPage = lazy(() => import("@/pages/growth/attribution-models/Page"));
+const GrowthCohortsPage = lazy(() => import("@/pages/growth/cohorts/Page"));
+const GrowthReviewQueuePage = lazy(() => import("@/pages/growth/review-queue/Page"));
+const GrowthOnboardingPage = lazy(() => import("@/pages/growth/onboarding/Page"));
+const GrowthRecommendationsPage = lazy(() => import("@/pages/growth/recommendations/Page"));
+const GrowthCorporatePage = lazy(() => import("@/pages/growth/corporate/Page"));
+const GrowthLoyaltyPage = lazy(() => import("@/pages/growth/loyalty/Page"));
 
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
 const client = makeQueryClient();
@@ -95,7 +111,22 @@ export function AppRoutes() {
           <Route path="growth/integrations" element={<GrowthIntegrationsPage />} />
           <Route path="growth/audit" element={<GrowthAuditPage />} />
           <Route path="growth/config" element={<GrowthConfigPage />} />
-          {(["campaigns", "referrals", "rewards", "promotions", "whatsapp", "lifecycle", "experiments"] as const).map((k) => <Route key={k} path={`growth/${k}`} element={<GrowthPlannedPage section={k} />} />)}
+          <Route path="growth/campaigns" element={<GrowthCampaignsPage />} />
+          <Route path="growth/approvals" element={<GrowthApprovalsPage />} />
+          <Route path="growth/promotions" element={<GrowthPromotionsPage />} />
+          <Route path="growth/referrals" element={<GrowthReferralsPage />} />
+          <Route path="growth/rewards" element={<GrowthRewardsPage />} />
+          <Route path="growth/whatsapp" element={<GrowthWhatsappPage />} />
+          <Route path="growth/assistant" element={<GrowthAssistantPage />} />
+          <Route path="growth/lifecycle" element={<GrowthLifecyclePage />} />
+          <Route path="growth/experiments" element={<GrowthExperimentsPage />} />
+          <Route path="growth/attribution-models" element={<GrowthAttributionModelsPage />} />
+          <Route path="growth/cohorts" element={<GrowthCohortsPage />} />
+          <Route path="growth/review-queue" element={<GrowthReviewQueuePage />} />
+          <Route path="growth/onboarding" element={<GrowthOnboardingPage />} />
+          <Route path="growth/recommendations" element={<GrowthRecommendationsPage />} />
+          <Route path="growth/corporate" element={<GrowthCorporatePage />} />
+          <Route path="growth/loyalty" element={<GrowthLoyaltyPage />} />
           <Route path="*" element={<Navigate to="/flags" replace />} />
         </Route>
       </Routes>

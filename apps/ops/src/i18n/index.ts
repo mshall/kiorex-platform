@@ -4,6 +4,15 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import "./rtl.css";
 import ar from "./locales/ar.json";
 import en from "./locales/en.json";
+import growthStubs from "./growth.stubs.json";
+import growthCampaigns from "./growth.campaigns.json";
+
+/** Deep merge: the namespaced per-package files (GRW-P2-X1: `growth.<pkg>.json`, shape {en,ar}) add keys and never reorder or overwrite the main catalogue. */
+const merge = (base: Record<string, any>, ...extra: Array<Record<string, any>>): Record<string, any> => {
+  const out: Record<string, any> = { ...base };
+  for (const e of extra) for (const [k, v] of Object.entries(e)) out[k] = v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" ? merge(out[k], v) : out[k] === undefined ? v : out[k];
+  return out;
+};
 
 export const SUPPORTED = ["ar", "en"] as const;
 export type Lang = (typeof SUPPORTED)[number];
@@ -21,7 +30,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: ar }, en: { translation: en } },
+    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en) } },
     fallbackLng: "en",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

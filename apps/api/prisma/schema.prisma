@@ -1459,10 +1459,12 @@ model GrowthMetricDaily {
   channel     String   @default("")
   platform    String   @default("")
   product     String   @default("")
+  /// GRW-P2-X1: campaign dimension by id ('' = not applicable). The key moved to GrowthMetricDaily_dim2_key (superseding unique index, migration 20261203090000).
+  campaignId  String   @default("")
   value       Int      @default(0)
   updatedAt   DateTime @updatedAt
 
-  @@unique([market, day, metric, sourceKind, landingKind, careType, origin, city, district, specialty, providerRef, doctorRef, branchRef, campaign, channel, platform, product], map: "GrowthMetricDaily_dim_key")
+  @@unique([market, day, metric, sourceKind, landingKind, careType, origin, city, district, specialty, providerRef, doctorRef, branchRef, campaign, channel, platform, product, campaignId], map: "GrowthMetricDaily_dim2_key")
   @@index([day])
   @@index([metric, day])
 }
@@ -1503,8 +1505,13 @@ model GrowthSpendEntry {
   createdAt   DateTime  @default(now())
   decidedBy   String?
   decidedAt   DateTime?
+  /// GRW-P2-X1: the campaign this spend belongs to (null = not campaign spend). source MANUAL | ADAPTER | CAMPAIGN_PLAN; adapterRef is the external row id for ADAPTER (de-duplication key with campaignId, day, source).
+  campaignId  String?
+  source      String    @default("MANUAL")
+  adapterRef  String?
 
   @@index([day, status])
+  @@index([campaignId, day])
 }
 
 /// Immutable versioned growth configuration (ARCH section 16). Rows are never edited after leaving DRAFT; rollback = a new version copying an older payload.
@@ -1662,4 +1669,457 @@ model CommunicationSuppression {
 
   @@unique([market, channel, addressHash])
   @@index([addressHash])
+}
+
+// ═════════════════════════════════════ Growth Phase 2 (GRW-P2-X1, W5; contracts 1.12.0) ═════════════════════════════════════
+// One schema owner per wave. Migrations 20261203090000 .. 20261203099000. Every table carries `market` (column default, never a code branch).
+// `sub` columns are the Passport subject; hashes are keyed hashes from the growth hash helper. Non-Prisma constraints (CHECKs, partial unique indexes,
+// append-only triggers, balance trigger) live in the migrations and are listed by test/growth-p2-schema.int.spec.ts.
+
+/// A campaign PLAN (never an ad-platform object, AD-1). Money fields are minor units. status: DRAFT PENDING_APPROVAL SCHEDULED ACTIVE PAUSED COMPLETED ARCHIVED.
+model GrowthCampaign {
+  id                  String    @id @default(cuid())
+  market              String    @default("EG")
+  key                 String
+  /// `<market lower case>-<key>`: the value of utm_campaign. Unique per market. Never changes after the campaign was ACTIVE.
+  utmCampaign         String
+  name                String
+  objective           String
+  status              String    @default("DRAFT")
+  startsAt            DateTime?
+  endsAt              DateTime?
+  autoExpiresAt       DateTime?
+  budgetTotalMinor    Int
+  budgetDailyMinor    Int
+  currency            String    @default("EGP")
+  channels            String[]
+  eligibility         Json      @default("{}")
+  utmConfig           Json      @default("{}")
+  landingPageId       String?
+  policyVersionId     String
+  ownerSub            String
+  /// sha256 of the money-relevant payload the last approval covered; a later edit of those fields clears it (approval invalidated).
+  approvedPayloadHash String?
+  /// Next day boundary (market timezone) until which a daily-cap pause holds; null for other pauses.
+  pausedUntil         DateTime?
+  pauseReason         String? // BUDGET | MANUAL | GUARDRAIL
+  /// Alert thresholds (basis points of the total budget) already announced: each fires once.
+  thresholdsFiredBp   Int[]
+  statusReason        String?
+  version             Int       @default(1)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  activatedAt         DateTime?
+  completedAt         DateTime?
+  archivedAt          DateTime?
+
+  creatives   GrowthCampaignCreative[]
+  approvals   GrowthCampaignApproval[]
+  history     GrowthCampaignStatusHistory[]
+  budgetDaily GrowthCampaignBudgetDaily[]
+
+  @@unique([market, key])
+  @@unique([market, utmCampaign])
+  @@index([market, status])
+  @@index([status, startsAt])
+  @@index([status, endsAt])
+}
+
+model GrowthCampaignCreative {
+  id         String   @id @default(cuid())
+  campaignId String
+  kind       String // IMAGE VIDEO COPY LANDING LINK
+  assetRef   String // S3 key under growth/creatives/<market>/<campaignId>/ or an https URL on the policy allowlist
+  locale     String   @default("ar")
+  status     String   @default("DRAFT") // DRAFT APPROVED RETIRED
+  checksum   String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  campaign GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
+
+/// Maker-checker for ACTIVATE, BUDGET_INCREASE and REACTIVATE. CHECK decidedBy <> requestedBy in the migration. `snapshot` holds the exact reviewed payload and its hash.
+model GrowthCampaignApproval {
+  id           String    @id @default(cuid())
+  campaignId   String
+  kind         String // ACTIVATE BUDGET_INCREASE REACTIVATE
+  requestedBy  String
+  requestedAt  DateTime  @default(now())
+  decidedBy    String?
+  decidedAt    DateTime?
+  decision     String? // APPROVED REJECTED
+  reason       String?
+  snapshot     Json
+  snapshotHash String
+
+  campaign GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, requestedAt])
+  @@index([decision, requestedAt])
+}
+
+/// Append-only (trigger): every transition of every campaign.
+model GrowthCampaignStatusHistory {
+  id         String   @id @default(cuid())
+  campaignId String
+  from       String
+  to         String
+  actor      String // ops sub, or system:scheduler / system:budget
+  reasonCode String
+  at         DateTime @default(now())
+
+  campaign GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, at])
+}
+
+model GrowthCampaignBudgetDaily {
+  campaignId         String
+  day                DateTime @db.Date
+  plannedMinor       Int      @default(0)
+  approvedSpendMinor Int      @default(0)
+  pendingSpendMinor  Int      @default(0)
+  utilisationBp      Int      @default(0)
+  updatedAt          DateTime @updatedAt
+
+  campaign GrowthCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, day])
+}
+
+/// One referral code per patient and market (8 Crockford base32, CHECK in the migration).
+model ReferralCode {
+  id        String   @id @default(cuid())
+  market    String   @default("EG")
+  sub       String
+  code      String   @unique
+  status    String   @default("ACTIVE") // ACTIVE SUSPENDED
+  createdAt DateTime @default(now())
+
+  relationships ReferralRelationship[]
+
+  @@unique([market, sub])
+}
+
+model ReferralRelationship {
+  id                 String    @id @default(cuid())
+  market             String    @default("EG")
+  referrerSub        String
+  refereeSub         String
+  codeId             String
+  touchId            String?
+  status             String    @default("INVITED") // INVITED SIGNED_UP BOOKED QUALIFIED REJECTED EXPIRED
+  rejectReason       String?
+  firstBookingId     String?
+  qualifiedBookingId String?
+  ruleVersionId      String
+  createdAt          DateTime  @default(now())
+  qualifiedAt        DateTime?
+
+  code   ReferralCode                 @relation(fields: [codeId], references: [id])
+  checks ReferralQualificationCheck[]
+
+  @@unique([market, refereeSub])
+  @@index([referrerSub, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Append-only (trigger). detail never holds personal data.
+model ReferralQualificationCheck {
+  id             String   @id @default(cuid())
+  relationshipId String
+  checkKey       String
+  passed         Boolean
+  detail         Json     @default("{}")
+  at             DateTime @default(now())
+
+  relationship ReferralRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId, at])
+}
+
+/// Keyed hashes of identity signals for duplicate detection (PHONE, PAY_FINGERPRINT, DEVICE, IP24). DEVICE is off by default (REFERRAL_RULES.signals.deviceSignal).
+model ReferralIdentitySignal {
+  id          String   @id @default(cuid())
+  sub         String
+  kind        String
+  valueHash   String
+  firstSeenAt DateTime @default(now())
+
+  @@unique([kind, valueHash, sub])
+  @@index([sub])
+}
+
+/// A bundle of reward value. `status` is a cache; the truth is RewardLedgerEntry.
+model RewardLot {
+  id             String   @id @default(cuid())
+  market         String   @default("EG")
+  sub            String
+  kind           String // REFERRER REFEREE REPEAT PROMO CORPORATE LOYALTY
+  mode           String // CREDIT COUPON
+  currency       String   @default("EGP")
+  amountMinor    Int
+  couponCodeHash String?
+  status         String   @default("ACTIVE") // ACTIVE HELD EXHAUSTED EXPIRED REVERSED
+  ruleVersionId  String
+  relationshipId String?
+  campaignId     String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  entries RewardLedgerEntry[]
+
+  @@index([sub, status])
+  @@index([expiresAt, status])
+  @@index([relationshipId])
+  @@index([campaignId])
+}
+
+/// Append-only ledger (trigger reward_ledger_immutable). amountMinor > 0. idempotencyKey unique: a retry can never double an entry.
+/// A constraint trigger refuses any entry that would make available, held or reserved negative (FOR UPDATE on the lot row).
+model RewardLedgerEntry {
+  id             String   @id @default(cuid())
+  lotId          String
+  type           String // ISSUE HOLD RELEASE_HOLD RESERVE UNRESERVE REDEEM REVERSE EXPIRE
+  amountMinor    Int
+  currency       String   @default("EGP")
+  idempotencyKey String   @unique
+  ruleVersionId  String
+  bookingId      String?
+  payLinkId      String?
+  relationshipId String?
+  reasonCode     String
+  actor          String
+  createdAt      DateTime @default(now())
+
+  lot RewardLot @relation(fields: [lotId], references: [id])
+
+  @@index([lotId, createdAt])
+  @@index([bookingId])
+}
+
+model RewardIssuanceBudget {
+  ruleVersionId String   @id
+  issuedMinor   Int      @default(0)
+  ceilingMinor  Int
+  updatedAt     DateTime @updatedAt
+}
+
+/// Non-clinical lifecycle facts per patient (GRW-P2-E). NO specialty, provider, diagnosis or visit-reason column may ever be added: test/growth-p2-schema.int.spec.ts lists the allowed columns.
+model PatientLifecycle {
+  sub            String
+  market         String    @default("EG")
+  stage          String
+  stageAt        DateTime  @default(now())
+  registeredAt   DateTime
+  lastBookingAt  DateTime?
+  lastAttendedAt DateTime?
+  bookingsCount  Int       @default(0)
+  platform       String    @default("")
+  language       String    @default("ar")
+  city           String?
+  district       String?
+  referralStatus String    @default("NONE")
+  hasDependants  Boolean   @default(false)
+
+  @@id([sub, market])
+  @@index([market, stage])
+}
+
+model LifecycleEnrollment {
+  id             String    @id @default(cuid())
+  sub            String
+  market         String    @default("EG")
+  journeyKey     String
+  journeyVersion Int       @default(1)
+  state          String    @default("ACTIVE") // ACTIVE ENDED
+  step           Int       @default(0)
+  nextRunAt      DateTime?
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  endReason      String?
+
+  @@unique([sub, journeyKey, journeyVersion])
+  @@index([state, nextRunAt])
+}
+
+/// Append-only (trigger, maintenance bypass for erasure). Why a message was or was not sent.
+model LifecycleMessageDecision {
+  id           String   @id @default(cuid())
+  sub          String
+  market       String   @default("EG")
+  journeyKey   String
+  step         Int
+  messageClass String // TRANSACTIONAL SECURITY CLINICAL MARKETING
+  channel      String
+  templateKey  String
+  decision     String // SEND SKIP
+  reason       String
+  at           DateTime @default(now())
+  messageLogId String?
+
+  @@index([sub, at])
+  @@index([journeyKey, step, at])
+}
+
+/// k-anonymous counts only.
+model LifecycleSegmentSnapshot {
+  day         DateTime @db.Date
+  market      String   @default("EG")
+  segmentKey  String
+  countBucket String
+
+  @@id([day, market, segmentKey])
+}
+
+model AssistantSession {
+  id                    String    @id @default(cuid())
+  market                String    @default("EG")
+  channelConversationId String    @unique
+  sub                   String?
+  phoneHash             String
+  state                 String    @default("START")
+  language              String    @default("ar")
+  consentVersion        String    @default("")
+  tokenBudgetUsed       Int       @default(0)
+  costMinorUsed         Int       @default(0)
+  turns                 Int       @default(0)
+  lastToolAt            DateTime?
+  escalatedAt           DateTime?
+  closedAt              DateTime?
+  createdAt             DateTime  @default(now())
+  expiresAt             DateTime
+
+  turnRows    AssistantTurn[]
+  escalations AssistantEscalation[]
+
+  @@index([sub])
+  @@index([phoneHash])
+  @@index([expiresAt])
+}
+
+model AssistantTurn {
+  id           String   @id @default(cuid())
+  sessionId    String
+  seq          Int
+  direction    String // IN OUT
+  redactedText String   @default("")
+  intent       String?
+  toolName     String?
+  modelMode    String   @default("mock")
+  tokensIn     Int      @default(0)
+  tokensOut    Int      @default(0)
+  costMinor    Int      @default(0)
+  latencyMs    Int      @default(0)
+  outcome      String   @default("OK")
+  createdAt    DateTime @default(now())
+  purgeAfter   DateTime
+
+  session   AssistantSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  toolCalls AssistantToolCall[]
+
+  @@unique([sessionId, seq, direction])
+  @@index([purgeAfter])
+}
+
+model AssistantToolCall {
+  id               String   @id @default(cuid())
+  turnId           String
+  tool             String
+  argsRedacted     Json     @default("{}")
+  resultKind       String
+  resultRef        String?
+  confirmNonceHash String?
+  createdAt        DateTime @default(now())
+
+  turn AssistantTurn @relation(fields: [turnId], references: [id], onDelete: Cascade)
+
+  @@index([turnId])
+  @@index([createdAt])
+}
+
+model AssistantUsageDaily {
+  day            DateTime @db.Date
+  market         String   @default("EG")
+  tokens         Int      @default(0)
+  costMinor      Int      @default(0)
+  conversations  Int      @default(0)
+  breakerTripped Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  @@id([day, market])
+}
+
+model AssistantEscalation {
+  id        String   @id @default(cuid())
+  sessionId String
+  reason    String
+  status    String   @default("OPEN") // OPEN ACKED CLOSED
+  ackBy     String?
+  slaDueAt  DateTime
+  createdAt DateTime @default(now())
+
+  session AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([status, slaDueAt])
+}
+
+/// One pull of a read-only marketing integration (mock first). Never stores credentials or response bodies.
+model GrowthIntegrationRun {
+  id         String    @id @default(cuid())
+  market     String    @default("EG")
+  kind       String
+  mode       String    @default("mock")
+  windowFrom DateTime? @db.Date
+  windowTo   DateTime? @db.Date
+  status     String // OK PARTIAL FAILED
+  rows       Int       @default(0)
+  error      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([kind, startedAt])
+}
+
+model GrowthExternalMetricDaily {
+  id           String   @id @default(cuid())
+  market       String   @default("EG")
+  kind         String
+  day          DateTime @db.Date
+  dimensionKey String   @default("")
+  metric       String
+  value        Decimal  @db.Decimal(20, 4)
+  currency     String?
+  fetchedAt    DateTime @default(now())
+
+  @@unique([market, kind, day, dimensionKey, metric], map: "GrowthExternalMetricDaily_key")
+  @@index([kind, day])
+}
+
+model GrowthIntegrationHealth {
+  kind                String
+  market              String    @default("EG")
+  lastOkAt            DateTime?
+  lastErrorAt         DateTime?
+  consecutiveFailures Int       @default(0)
+  circuit             String    @default("CLOSED") // OPEN CLOSED HALF_OPEN
+  updatedAt           DateTime  @updatedAt
+
+  @@id([kind, market])
+}
+
+/// Heartbeat of every growth job (one row per run).
+model GrowthJobRun {
+  id         String    @id @default(cuid())
+  job        String
+  instanceId String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  rows       Int       @default(0)
+  error      String?
+
+  @@index([job, startedAt])
 }

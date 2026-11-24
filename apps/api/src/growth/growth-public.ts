@@ -25,3 +25,9 @@ export { GrowthRollupService, ROLLUP_METRICS, VISITOR_STREAM_METRICS } from './a
 export { GrowthMetricsService, parseFilters, type GrowthFilters, type Audience } from './analytics/metrics.service';
 export { GrowthSpendService } from './analytics/spend.service';
 export { applyKAnonymity, maskTotal, maskCount, K_MIN } from './analytics/kanon';
+// GRW-P2-X1 (Phase 2 module stubs; each package fills its own folder)
+export { CampaignsModule } from './campaigns/campaigns-public';
+export { ReferralModule } from './referral/referral-public';
+export { RewardsModule } from './rewards/rewards-public';
+export { LifecycleModule } from './lifecycle/lifecycle-public';
+export { IntegrationsModule } from './integrations/integrations-public';

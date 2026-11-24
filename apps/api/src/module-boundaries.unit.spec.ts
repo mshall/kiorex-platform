@@ -72,6 +72,18 @@ describe('module boundaries', () => {
     }
   });
 
+  it('GRW-P2-X1: the Phase 2 stub modules are registered in app.module, each with a *-public barrel in its own folder', () => {
+    const app = readFileSync(join(SRC, 'app.module.ts'), 'utf8');
+    const stubs: Array<[string, string, string]> = [['growth/campaigns', 'campaigns', 'CampaignsModule'], ['growth/referral', 'referral', 'ReferralModule'], ['growth/rewards', 'rewards', 'RewardsModule'], ['growth/lifecycle', 'lifecycle', 'LifecycleModule'], ['growth/integrations', 'integrations', 'IntegrationsModule'], ['ai-gateway/assistant', 'assistant', 'AssistantModule']];
+    for (const [dir, name, cls] of stubs) {
+      expect(readdirSync(join(SRC, dir))).toContain(`${name}-public.ts`);
+      expect(app).toMatch(new RegExp(`imports: \\[[^\\]]*\\b${cls}\\b`));
+    }
+    // the growth barrel re-exports the folders; the ai-gateway barrel re-exports the assistant (no root file reaches into a sub-folder)
+    expect(readFileSync(join(SRC, 'growth', 'growth-public.ts'), 'utf8')).toContain("from './campaigns/campaigns-public'");
+    expect(readFileSync(join(SRC, 'ai-gateway', 'ai-gateway-public.ts'), 'utf8')).toContain("from './assistant/assistant-public'");
+  });
+
   it('no AWS SDK outside src/platform/adapters; no imports of other products\' source', () => {
     for (const f of all) {
       for (const spec of importsOf(f)) {

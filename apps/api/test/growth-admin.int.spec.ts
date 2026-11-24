@@ -173,9 +173,9 @@ describe('Growth admin API (package K)', () => {
       const kinds = (await api('get', '/config/kinds', ops).expect(200)).body as Array<{ kind: string; schema: { properties: Record<string, unknown> } }>;
       expect(Object.keys(kinds.find((k) => k.kind === 'SEO')!.schema.properties)).toEqual(expect.arrayContaining(['minLiveProviders', 'templates', 'paginatedIndexable']));
     });
-    it('the kinds endpoint serves the contract schemas and the PROPOSED_DEFAULT payloads for the five Phase 1 kinds', async () => {
+    it('the kinds endpoint serves the contract schemas and the PROPOSED_DEFAULT payloads for the five Phase 1 kinds and the six Phase 2 kinds (contracts 1.12.0)', async () => {
       const k = (await api('get', '/config/kinds', ops).expect(200)).body as Array<{ kind: string; schema: { additionalProperties: boolean }; defaults: unknown; moneyPolicy: boolean }>;
-      expect(k.map((x) => x.kind).sort()).toEqual(['ATTRIBUTION_POLICY', 'CONSENT_DEFAULTS', 'MARKET_GROWTH', 'SEO', 'WIDGET_POLICY']);
+      expect(k.map((x) => x.kind).sort()).toEqual(['ASSISTANT_POLICY', 'ATTRIBUTION_POLICY', 'CAMPAIGN_POLICY', 'CONSENT_DEFAULTS', 'INTEGRATION', 'LIFECYCLE_POLICY', 'MARKET_GROWTH', 'REFERRAL_RULES', 'REWARD_RULES', 'SEO', 'WIDGET_POLICY']);
       expect(k.every((x) => x.schema.additionalProperties === false)).toBe(true);
       expect(k.find((x) => x.kind === 'ATTRIBUTION_POLICY')!.moneyPolicy).toBe(true);
     });

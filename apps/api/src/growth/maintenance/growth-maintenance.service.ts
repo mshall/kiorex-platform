@@ -3,8 +3,12 @@ import { subRefOf } from '../../common/privacy-hash';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DEFAULT_RETENTION } from '../config/growth-defaults';
 
-export interface EraseResult { touchpointsDeleted: number; touchpointsAnonymised: number; eventsDeleted: number; visitorKeys: number }
-export interface PurgeResult { ipHashBlanked: number; touchpointsDeletedUnlinked: number; touchpointsDeletedLinked: number; eventsDeleted: number; fraudSignalsDeleted: number }
+export interface EraseResult { touchpointsDeleted: number; touchpointsAnonymised: number; eventsDeleted: number; visitorKeys: number; [phase2: string]: number }
+export interface PurgeResult {
+  ipHashBlanked: number; touchpointsDeletedUnlinked: number; touchpointsDeletedLinked: number; eventsDeleted: number; fraudSignalsDeleted: number;
+  /** GRW-P2-X1 (growth_purge_expired_v2): the Phase 2 tables. */
+  assistantTurnsDeleted?: number; assistantToolCallsDeleted?: number; assistantSessionsDeleted?: number; lifecycleDecisionsDeleted?: number; rewardLedgerEntriesDeleted?: number; rewardLotsDeleted?: number; qualificationChecksDeleted?: number; jobRunsDeleted?: number;
+}
 
 /**
  * Thin, logic-free wrappers over the two SECURITY DEFINER SQL functions that are the ONLY way to change or remove a GrowthTouchpoint
@@ -25,7 +29,7 @@ export class GrowthMaintenanceService {
 
   async purgeExpired(opts: { now?: Date; linkedMonths?: number; unlinkedMonths?: number } = {}): Promise<PurgeResult> {
     const now = opts.now ?? new Date();
-    const rows = await this.prisma.$queryRaw<{ r: PurgeResult }[]>`SELECT growth_purge_expired(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
+    const rows = await this.prisma.$queryRaw<{ r: PurgeResult }[]>`SELECT growth_purge_expired_v2(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
     return rows[0].r;
   }
 }
