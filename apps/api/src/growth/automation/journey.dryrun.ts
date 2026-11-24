@@ -1,6 +1,6 @@
 import { evaluateSendGate, type GateChannel, type GateOutcome } from '../lifecycle/send-gate';
 import { inSegment, type SegmentFacts } from '../lifecycle/lifecycle-segments';
-import { quietWindow, DEFAULT_QUIET } from '../lifecycle/quiet-hours';
+import { quietWindow, defaultQuiet } from '../lifecycle/quiet-hours';
 import type { CompiledJourney } from './journey.compiler';
 
 /**
@@ -31,7 +31,7 @@ export function syntheticCohort(size: number, seed: number): SyntheticPerson[] {
 export function dryRun(c: CompiledJourney, o: DryRunOptions): DryRunResult {
   const size = Math.max(10, Math.min(5000, o.size ?? 1000)); const seed = o.seed ?? 20270128; const now = o.now ?? Date.UTC(2027, 0, 28, 10, 0, 0);
   const caps = o.caps ?? { perDay: 1, perWeek: 3 };
-  const quiet = quietWindow(o.quiet ?? DEFAULT_QUIET, null);
+  const quiet = quietWindow(o.quiet ?? defaultQuiet(), null);
   const people = syntheticCohort(size, seed);
   const exits: Record<string, number> = {}; const bump = (k: string) => { exits[k] = (exits[k] ?? 0) + 1; };
   const steps: DryRunStepResult[] = c.def.steps.map((s) => ({ step: s.step, template: s.kind, messageClass: s.messageClass, reached: 0, sent: 0, skipped: {}, deferred: 0 }));
