@@ -5,6 +5,8 @@ import "./rtl.css";
 import ar from "./locales/ar.json";
 import en from "./locales/en.json";
 import referralAr from "./referral.ar.json";
+import corporateAr from "./corporate.ar.json";
+import corporateEn from "./corporate.en.json";
 import referralEn from "./referral.en.json";
 import continuityAr from "./continuity.ar.json";
 import continuityEn from "./continuity.en.json";
@@ -27,7 +29,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: { ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr } }, en: { translation: { ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn } } }, // GRW-P2-B3: namespace referral.* in its own files
+    resources: { ar: { translation: { ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr, corporate: corporateAr } }, en: { translation: { ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn, corporate: corporateEn } } }, // GRW-P2-B3: namespace referral.* in its own files
     fallbackLng: "ar",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

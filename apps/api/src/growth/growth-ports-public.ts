@@ -116,3 +116,19 @@ export interface SponsoredPayPort {
   payoutHoldMinor(bookingId: string, postedMinor: number): Promise<number>;
 }
 export const SPONSORED_PAY_PORT = 'SPONSORED_PAY_PORT';
+
+// ───────────── GRW-P4-C (wave 8): the corporate sponsor-funded benefit. Its OWN ledger (CorporateBenefitEntry): never patient credit, never provider credit. Pay reaches it through this port only. ─────────────
+export interface CorporateBenefitQuoteOut { accountRef: string; amountMinor: number; currency: string; sponsor: { ar: string; en: string }; endsAt: string | null }
+export interface CorporateBenefitPort {
+  /** What the corporate programme would cover of the deposit of MY booking (read only). Null when the flag is OFF, I am not an active member, the booking is not mine or has no deposit. */
+  quote(sub: string, bookingId: string): Promise<CorporateBenefitQuoteOut | null>;
+  /** Holds the benefit for a booking (idempotent per booking; the database refuses a hold above the account ceiling or the member cap). Null when nothing applies. Never throws into a booking. */
+  reserve(sub: string, bookingId: string): Promise<{ amountMinor: number; currency: string; reservationRef: string } | null>;
+  /** The deposit was captured: the held amount becomes redeemed. Returns the amount redeemed (0 when nothing was held). */
+  redeem(bookingId: string, reason?: string): Promise<number>;
+  /** The booking died or the payment failed: the held amount goes back to the account ceiling and the member cap. Returns the amount released. */
+  release(bookingId: string, reason?: string): Promise<number>;
+  /** The deposit was refunded: the redeemed amount (all of it, or `amountMinor`) goes back. Returns the amount reversed. */
+  reverse(bookingId: string, amountMinor?: number, reason?: string): Promise<number>;
+}
+export const CORPORATE_BENEFIT_PORT = 'CORPORATE_BENEFIT_PORT';

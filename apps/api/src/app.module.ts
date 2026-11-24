@@ -9,6 +9,7 @@ import { ControlPlaneModule } from './control-plane/control-plane-public';
 import { EngagementModule } from './engagement/engagement-public';
 import { HealthModule } from './health/health.module';
 import { CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, GrowthModule, AttributionModelsModule, ExperimentsModule, SponsoredPromotionsModule, FraudModule, SeoAutomationModule, AutomationModule, RecommendationsModule, CohortsModule, MarketOnboardingModule } from './growth/growth-public';
+import { CorporateModule } from './growth/corporate-public';
 import { PublicSiteModule } from './public-site/public-site-public';
 import { WidgetModule } from './widget/widget-public';
 import { AnalyticsModule } from './analytics/analytics-public';
@@ -36,6 +37,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AttributionModelsModule, ExperimentsModule, SponsoredPromotionsModule, FraudModule, SeoAutomationModule, AutomationModule, RecommendationsModule, CohortsModule, MarketOnboardingModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AttributionModelsModule, ExperimentsModule, SponsoredPromotionsModule, FraudModule, SeoAutomationModule, AutomationModule, RecommendationsModule, CohortsModule, MarketOnboardingModule, CorporateModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
 })
 export class AppModule {}

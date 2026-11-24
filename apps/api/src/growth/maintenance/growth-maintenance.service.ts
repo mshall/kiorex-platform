@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { subRefOf } from '../../common/privacy-hash';
+import { memberHashOf } from '../corporate/corporate-code';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DEFAULT_RETENTION } from '../config/growth-defaults';
 
@@ -10,6 +11,8 @@ export interface PurgeResult {
   assistantTurnsDeleted?: number; assistantToolCallsDeleted?: number; assistantSessionsDeleted?: number; lifecycleDecisionsDeleted?: number; rewardLedgerEntriesDeleted?: number; rewardLotsDeleted?: number; qualificationChecksDeleted?: number; jobRunsDeleted?: number;
   /** GRW-P3-A (growth_purge_experiments). */
   experimentExposuresPurged?: number;
+  /** GRW-P4-C (growth_purge_corporate). */
+  corporateHrRowsPurged?: number; corporateHrBatchesPurged?: number; corporateLedgerEntriesPurged?: number;
 }
 
 /**
@@ -29,7 +32,9 @@ export class GrowthMaintenanceService {
     const registered = await this.prisma.growthEvent.deleteMany({ where: { dedupeKey: `fact|PatientRegistered|${subRefOf(sub)}` } });
     // GRW-P3-A (migration 20270107090000): experiment exposures of an authenticated unit
     const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_experiments(${sub}) AS r`;
-    const r = { ...rows[0].r, ...more[0].r, ...exp[0].r };
+    // GRW-P4-C (migration 20270128093000): a corporate member row is keyed by a hash only the application can compute, so it is passed in
+    const corp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_corporate(${memberHashOf(sub)}) AS r`;
+    const r = { ...rows[0].r, ...more[0].r, ...exp[0].r, ...corp[0].r };
     return { ...r, eventsDeleted: Number(r.eventsDeleted) + registered.count };
   }
 
@@ -37,6 +42,8 @@ export class GrowthMaintenanceService {
     const now = opts.now ?? new Date();
     const rows = await this.prisma.$queryRaw<{ r: PurgeResult }[]>`SELECT growth_purge_expired_v2(${now}::timestamptz, ${opts.linkedMonths ?? DEFAULT_RETENTION.linkedMonths}::int, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
     const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_experiments(${now}::timestamptz, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
-    return { ...rows[0].r, ...exp[0].r } as PurgeResult;
+    // GRW-P4-C: HR list rows past their match window and ledger rows of long-ended accounts
+    const corp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_corporate(${now}::timestamptz) AS r`;
+    return { ...rows[0].r, ...exp[0].r, ...corp[0].r } as PurgeResult;
   }
 }

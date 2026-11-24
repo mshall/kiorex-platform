@@ -28,9 +28,9 @@ export const KIORLY_WEBHOOK_SECRET = 'kx_dev_webhook_secret';
 export interface TestCtx {
   app: INestApplication; prisma: PrismaService; flags: FlagsService; kiorly: FakeKiorly;
   http: () => ReturnType<typeof request>;
-  token(o?: { sub?: string; roles?: string[]; sid?: string; phone?: string; name?: string; aud?: string; iss?: string }): Promise<string>;
+  token(o?: { sub?: string; roles?: string[]; sid?: string; phone?: string; name?: string; aud?: string; iss?: string; email?: string; emailVerified?: boolean }): Promise<string>;
   logoutToken(o: { sub?: string; sid?: string; event?: string }): Promise<string>;
-  as(sub: string, o?: { sid?: string; roles?: string[] }): Promise<{ Authorization: string }>;
+  as(sub: string, o?: { sid?: string; roles?: string[]; phone?: string; email?: string; emailVerified?: boolean }): Promise<{ Authorization: string }>;
   webhook(type: string, data: Record<string, unknown>, o?: { aggregateId?: string; eventId?: string; aggregateType?: string; badSig?: boolean }): Promise<request.Response>;
   get<T>(c: new (...a: any[]) => T): T;
   reset(): Promise<void>;
@@ -53,9 +53,9 @@ export async function createCtx(opts: { devMarketGate?: boolean } = {}): Promise
   const ctx: TestCtx = {
     app, prisma, flags, kiorly,
     http: () => request(app.getHttpServer()),
-    token: (o = {}) => sign({ kx_roles: o.roles ?? ['patient'], phone_number: o.phone ?? '+201000000001', name: o.name ?? 'Amira Samy', locale: 'ar', ...(o.sid ? { sid: o.sid } : {}) }, { aud: o.aud, iss: o.iss, sub: o.sub ?? 'sub_amira' }),
+    token: (o = {}) => sign({ kx_roles: o.roles ?? ['patient'], phone_number: o.phone ?? '+201000000001', name: o.name ?? 'Amira Samy', locale: 'ar', ...(o.sid ? { sid: o.sid } : {}), ...(o.email ? { email: o.email, email_verified: o.emailVerified === true } : {}) }, { aud: o.aud, iss: o.iss, sub: o.sub ?? 'sub_amira' }),
     logoutToken: (o) => sign({ events: { 'http://schemas.openid.net/event/backchannel-logout': {} }, ...(o.event ? { event: o.event } : {}), ...(o.sid ? { sid: o.sid } : {}) }, { aud: 'kiorex-api', sub: o.sub }),
-    as: async (sub, o = {}) => ({ Authorization: `Bearer ${await ctx.token({ sub, sid: o.sid, roles: o.roles })}` }),
+    as: async (sub, o = {}) => ({ Authorization: `Bearer ${await ctx.token({ sub, sid: o.sid, roles: o.roles, phone: o.phone, email: o.email, emailVerified: o.emailVerified })}` }),
     webhook: async (type, data, o = {}) => {
       const body = JSON.stringify({ eventId: o.eventId ?? `ev_${Math.random().toString(36).slice(2)}`, type, aggregateType: o.aggregateType ?? 'Appointment', aggregateId: o.aggregateId ?? 'apt_1', target: 'KIOREX', occurredAt: new Date().toISOString(), data });
       const s = signWebhook({ secret: o.badSig ? 'wrong' : KIORLY_WEBHOOK_SECRET, body, eventType: type });

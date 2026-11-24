@@ -68,7 +68,7 @@ export const PRIVATE_SPA_ROUTES = [
   "/preferences", "/:locale/:cc/preferences", "/invite/:code", "/:locale/:cc/invite/:code",
   "/auth/callback", "/visit-status/:token", "/search", "/doctors/:id", "/checkout/:bookingId", "/appointments", "/appointments/:id", "/appointments/:id/review", "/services",
   "/waitlist", "/records", "/records/:id", "/pharmacy", "/pharmacy/orders", "/pharmacy/orders/:id", "/lab", "/lab/bookings", "/lab/bookings/:id", "/telemedicine",
-  "/telemedicine/:id", "/telemedicine/:id/room", "/account", "/notifications", "/account/addresses", "/care-plans", "/referral", "/referral/rewards",
+  "/telemedicine/:id", "/telemedicine/:id/room", "/account", "/notifications", "/account/addresses", "/care-plans", "/referral", "/referral/rewards", "/corporate",
 ] as const;
 
 /** Pages under /{locale}/{cc}/ that the SPA renders itself (mirrors SPA_PASSTHROUGH_PAGES in the API). */

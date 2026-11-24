@@ -14,6 +14,8 @@ export interface AuthUser {
   roles: string[];
   phone?: string;
   email?: string;
+  /** `email_verified` claim of the Passport token, true only when explicitly true. */
+  emailVerified?: boolean;
   name?: string;
   locale?: string;
   sid?: string;

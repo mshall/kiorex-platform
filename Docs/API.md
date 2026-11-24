@@ -269,6 +269,38 @@
 | GET | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A spend lines booked against the campaign, with the daily utilisation |
 | POST | `/api/v1/admin/growth/campaigns/{id}/spend` | GRW-P2-A enter a spend line for the campaign (PENDING until a different person approves it on the Finance page) |
 
+## growth-corporate
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/corporate/accounts` | GRW-P4-C corporate accounts (company data and terms) |
+| POST | `/api/v1/admin/growth/corporate/accounts` | GRW-P4-C open a corporate account (LEAD) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}` | GRW-P4-C one account |
+| PUT | `/api/v1/admin/growth/corporate/accounts/{id}/terms` | GRW-P4-C edit the commercial terms (LEAD or PAUSED only); the editor cannot activate |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/activate` | GRW-P4-C activate (a second person; terms complete) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/pause` | GRW-P4-C pause |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/end` | GRW-P4-C end the programme (final) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/codes` | GRW-P4-C codes: label, counters, state (never the code or its hash) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes` | GRW-P4-C create a code (the plain code is returned once) |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes/{codeId}/revoke` | GRW-P4-C revoke a code |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/report` | GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/statement` | GRW-P4-C invoice basis of one month (finance) |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C manual invoice notes |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C record the sponsor spend of a month for manual invoicing |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/hr-lists` | GRW-P4-C HR lists as counts only |
+| POST | `/api/v1/admin/growth/corporate/accounts/{id}/hr-lists` | GRW-P4-C upload an HR list (phone or e-mail per row; only keyed hashes are stored; a second person approves) |
+| POST | `/api/v1/admin/growth/corporate/hr-lists/{batchId}/decision` | GRW-P4-C approve or reject an HR list (not the uploader) |
+| GET | `/api/v1/admin/growth/corporate/leads` | GRW-P4-C enterprise leads and the pipeline counts |
+| POST | `/api/v1/admin/growth/corporate/leads` | GRW-P4-C add an inbound or outbound lead (company data only) |
+| GET | `/api/v1/admin/growth/corporate/leads/{id}` | GRW-P4-C one lead with its history |
+| POST | `/api/v1/admin/growth/corporate/leads/{id}/transition` | GRW-P4-C move a lead through the pipeline |
+| POST | `/api/v1/admin/growth/corporate/leads/{id}/assign` | GRW-P4-C assign an owner |
+| PUT | `/api/v1/admin/growth/corporate/leads/{id}/notes` | GRW-P4-C replace the company notes |
+| GET | `/api/v1/growth/v1/corporate/me` | GRW-P4-C my programme and my allowance usage |
+| POST | `/api/v1/growth/v1/corporate/join` | GRW-P4-C join with a company code, or with a verified work e-mail when no code is sent |
+| POST | `/api/v1/growth/v1/corporate/leave` | GRW-P4-C leave the programme |
+| GET | `/api/v1/growth/v1/corporate/benefit/quote` | GRW-P4-C what the programme would cover of the deposit of one of MY bookings |
+
 ## growth-credit
 
 | Method | Path | Summary |

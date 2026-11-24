@@ -18,7 +18,7 @@ import { PublicSiteCache } from '../public-site/public-site-public';
 import { WidgetRegistrationService } from '../widget/widget-public';
 import { VerificationUpdateService } from '../partner-onboarding/partner-onboarding-public';
 import { CROSS_PRODUCT_EVENTS, GROWTH_REVENUE, LINK_REGISTRY, type CrossProductEventPort, type GrowthRevenuePort, type LinkRegistryPort } from '../growth/growth-ports-public';
-import { PromotionProjectionService, PromotionReviewService, SponsoredDiscountService } from '../growth/growth-public';
+import { B2bReferralService, PromotionProjectionService, PromotionReviewService, SponsoredDiscountService } from '../growth/growth-public';
 
 const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINTMENT_RESCHEDULED', 'CANCELLED_BY_CLINIC', 'CANCELLED_BY_PATIENT', 'CHECKED_IN', 'CHECK_IN_REVERTED', 'COMPLETED', 'NO_SHOW', 'MARKETPLACE_BOOKING_CONFIRM_TIMEOUT', 'HOME_VISIT_ASSIGNED', 'HOME_VISIT_EN_ROUTE', 'HOME_VISIT_ABORTED_UNSAFE']);
 
@@ -26,7 +26,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, private readonly corporateLeads: B2bReferralService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -132,6 +132,8 @@ export class WebhooksService {
       }
       case 'SponsoredDiscountReserved': case 'SponsoredDiscountDebited': case 'SponsoredDiscountReleased': case 'SponsoredDiscountReversed': // GRW-P2-S: the booking line follows the Clinic's budget ledger
         return this.sponsoredDiscounts.applyClinicEvent(type, data);
+      case 'CorporateLeadReferred': // GRW-P4-C: a provider referred a company; stored as an enterprise lead (company data only, no reward, works with growth.corporate OFF)
+        return this.corporateLeads.ingestFromClinic({ ...data, orgRef: data.orgRef ?? (env as any).tenantId });
       case 'WAITLIST_OFFER_CREATED': // GRW-GC-2: same payload as WAITLIST_OFFER (which stays the delivered event); acknowledged, no second notification
       case 'WAITLIST_OFFER_EXPIRED': // the offer lapsed or was withdrawn: nothing to deliver, the patient's offer view reads the Clinic
         return 'IGNORED';
