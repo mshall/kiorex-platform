@@ -4,7 +4,7 @@ describe('safety: emergency routing (KXM-DS-06, KX-16 H07)', () => {
   it.each([
     ['I have severe chest pain', 'CHEST_PAIN'], ["can't breathe", 'BREATHING'], ['my father had a stroke', 'STROKE'], ['she is unconscious', 'CONSCIOUSNESS'],
     ['severe bleeding after fall', 'BLEEDING'], ['seizure', 'SEIZURE'], ['overdose of pills', 'POISONING'], ['I want to die', 'SELF_HARM'],
-    ['ألم في الصدر', 'CHEST_PAIN'], ['ضيق في التنفس', 'BREATHING'], ['فقدان الوعي', 'CONSCIOUSNESS'], ['نزيف شديد', 'BLEEDING'], ['عايز اموت', 'SELF_HARM'], ['إغماء', 'CONSCIOUSNESS'],
+    ['my father is not breathing', 'BREATHING'], ['the baby stopped breathing', 'BREATHING'], ['ابني مش قادر يتنفس', 'BREATHING'], ['توقف التنفس', 'BREATHING'], ['ألم شديد في الصدر', 'CHEST_PAIN'], ['عندي وجع في الصدر', 'CHEST_PAIN'], ['ألم في الصدر', 'CHEST_PAIN'], ['ضيق في التنفس', 'BREATHING'], ['فقدان الوعي', 'CONSCIOUSNESS'], ['نزيف شديد', 'BLEEDING'], ['عايز اموت', 'SELF_HARM'], ['إغماء', 'CONSCIOUSNESS'],
   ])('%s → emergency %s', (text, cat) => {
     const r = detectEmergency(text);
     expect(r.emergency).toBe(true);

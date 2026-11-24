@@ -7,8 +7,9 @@ import { normalizeText } from './text';
 export const EMERGENCY_NUMBER = '123';
 
 const TERMS: Record<string, string[]> = {
-  CHEST_PAIN: ['chest pain', 'heart attack', 'crushing chest', 'الم في الصدر', 'الم الصدر', 'نوبه قلبيه', 'جلطه في القلب'],
-  BREATHING: ['cant breathe', "can't breathe", 'cannot breathe', 'difficulty breathing', 'shortness of breath', 'choking', 'ضيق في التنفس', 'ضيق تنفس', 'مش قادر اتنفس', 'اختناق'],
+  CHEST_PAIN: ['chest pain', 'heart attack', 'crushing chest', 'الم في الصدر', 'الم الصدر', 'نوبه قلبيه', 'جلطه في القلب', 'الم شديد في الصدر', 'وجع في الصدر', 'وجع الصدر', 'وجع شديد في الصدر', 'الم شديد في القلب'], // GRW-GC-4: the last five, the most natural Arabic phrasings, were missed
+  // GRW-GC-4 red-team additions (25 Nov 2026): "not breathing" phrases slipped through to the generic reply. Additive only; the CMO list review (NEEDS_HUMAN) covers them.
+  BREATHING: ['cant breathe', "can't breathe", 'cannot breathe', 'difficulty breathing', 'shortness of breath', 'choking', 'not breathing', 'stopped breathing', 'isnt breathing', 'trouble breathing', 'struggling to breathe', 'hard to breathe', 'ضيق في التنفس', 'ضيق تنفس', 'مش قادر اتنفس', 'اختناق', 'مش قادر يتنفس', 'مش قادره تتنفس', 'مش بيتنفس', 'مش بتتنفس', 'توقف التنفس', 'صعوبه في التنفس', 'صعوبه تنفس'],
   STROKE: ['stroke', 'face drooping', 'slurred speech', 'سكته دماغيه', 'جلطه في المخ', 'شلل مفاجئ'],
   CONSCIOUSNESS: ['unconscious', 'passed out', 'not responding', 'فقدان الوعي', 'اغماء', 'مغمي عليه', 'فاقد الوعي'],
   BLEEDING: ['severe bleeding', 'bleeding heavily', 'cant stop bleeding', 'نزيف شديد', 'نزيف حاد'],
