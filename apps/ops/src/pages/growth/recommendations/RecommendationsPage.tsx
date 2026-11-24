@@ -34,7 +34,7 @@ export default function RecommendationsPage() {
             {rows.map((r) => (
               <li key={r.id} className="rounded-xl border bg-card p-3" data-testid={`rec-row-${r.id}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Link to={`/growth/recommendations?id=${r.id}`} className="font-semibold underline-offset-4 hover:underline" data-testid={`rec-open-${r.id}`}>{t(`growth.recommendations.kind.${r.kind}`)}</Link>
+                  <Link to={`/growth/recommendations?id=${r.id}`} className="inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline" data-testid={`rec-open-${r.id}`}>{t(`growth.recommendations.kind.${r.kind}`)}</Link>
                   <span className="flex flex-wrap gap-2"><StatusChip tone={REC_TONE[r.status]}>{t(`growth.recommendations.status.${r.status}`)}</StatusChip><StatusChip tone={r.aiAssisted ? "brand" : "neutral"} data-testid={`rec-ai-${r.id}`}>{r.aiAssisted ? t("growth.recommendations.ai") : t("growth.recommendations.rulesOnly")}</StatusChip></span>
                 </div>
                 <p className="mt-2 text-sm">{textOf(r, i18n.language)}</p>

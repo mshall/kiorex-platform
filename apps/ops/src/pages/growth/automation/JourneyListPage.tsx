@@ -26,7 +26,7 @@ export default function JourneyListPage() {
               return (
                 <li key={j.id} className="rounded-xl border bg-card p-3" data-testid={`auto-row-${j.key}-${j.version}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0"><Link to={`/growth/automation?id=${j.id}`} className="font-semibold underline-offset-4 hover:underline" data-testid={`auto-open-${j.key}-${j.version}`}>{j.name || j.key}</Link><p className="break-all text-xs text-muted-foreground" dir="ltr">{j.key}</p></div>
+                    <div className="min-w-0"><Link to={`/growth/automation?id=${j.id}`} className="inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline" data-testid={`auto-open-${j.key}-${j.version}`}>{j.name || j.key}</Link><p className="break-all text-xs text-muted-foreground" dir="ltr">{j.key}</p></div>
                     <StatusLabel status={j.status} killed={!!j.killedAt} />
                   </div>
                   <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
