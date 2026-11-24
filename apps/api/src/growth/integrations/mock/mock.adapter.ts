@@ -38,7 +38,7 @@ const GEN: Record<GrowthIntegrationKind, Partial<Record<'spend' | 'performance' 
   crux: { coreVitals: dimRows(['template:doctor', 'template:clinic', 'template:all'], [['lcp_p75', 1800, 3200], ['inp_p75', 90, 280], ['cls_p75', 2, 14]]) }, // cls in hundredths
 };
 
-export class MockAdapter implements GrowthAdapter {
+export class MockGrowthAdapter implements GrowthAdapter {
   readonly mode = 'mock' as const;
   constructor(readonly kind: GrowthIntegrationKind, private readonly opts: MockOptions = {}) {}
   async health(): Promise<AdapterHealth> { if (this.opts.failWith) throw this.opts.failWith; return { ok: true, mode: 'mock', detail: 'synthetic series, no network' }; }
@@ -52,5 +52,5 @@ export class MockAdapter implements GrowthAdapter {
   /** The mock never sends anything, so there is nothing to push. */
   async pushConversion() { return { accepted: false }; }
 }
-export const mockFor = (kind: GrowthIntegrationKind, opts?: MockOptions) => new MockAdapter(kind, opts);
+export const mockFor = (kind: GrowthIntegrationKind, opts?: MockOptions) => new MockGrowthAdapter(kind, opts);
 export { PULLS };
