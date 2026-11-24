@@ -24,6 +24,7 @@ describe("server entry: render(input) returns body HTML, metadata and JSON-LD fo
     const out = await render(toInput(state("en", "doctor", "/en/eg/doctor/sara-hassan", doctor)));
     for (const s of ["Dr Sara Hassan", "Cardiology", "Maadi, Cairo", "Nile Clinic", "Very thorough", 'href="/doctors/lst_a?book=1"', "Book an appointment"]) expect(out.html).toContain(s);
     expect(out.jsonLd.map((j) => (j as { "@type": string })["@type"])).toEqual(["Physician", "BreadcrumbList"]);
+    expect((out.jsonLd[0] as { aggregateRating?: unknown }).aggregateRating).toMatchObject({ reviewCount: 12 });
     expect(out.meta.title).toBe("Dr Sara Hassan, Cardiology | Kiorex");
   });
 
@@ -35,12 +36,13 @@ describe("server entry: render(input) returns body HTML, metadata and JSON-LD fo
   });
 
   it("listing: provider without a slug renders without a link; pagination links and related facets are real hrefs", async () => {
-    const out = await render(toInput(state("en", "city", "/en/eg/doctors/cardiology/cairo", { ...list, page: 2 })));
+    const out = await render(toInput(state("en", "city", "/en/eg/doctors/cardiology/cairo", { ...list, page: 2, pagination: { page: 2, pages: 3, prevPath: "/en/eg/doctors/cardiology/cairo", nextPath: "/en/eg/doctors/cardiology/cairo?page=3" } })));
     expect(out.html).toContain('href="/en/eg/doctor/sara-hassan"');
     expect(out.html).toContain("Dr No Slug");
     expect(out.html).not.toMatch(/href="\/en\/eg\/doctor\/null/);
-    expect(out.html).toContain('rel="prev" href="/en/eg/doctors/cardiology/cairo"');
-    expect(out.html).toContain('rel="next" href="/en/eg/doctors/cardiology/cairo?page=3"');
+    // pagination (GRW-P1-F): plain self-contained links, no rel=prev/next (search engines ignore them)
+    expect(out.html).not.toMatch(/rel="(prev|next)"/);
+    expect(out.html).toContain('href="/en/eg/doctors/cardiology/cairo?page=3"');
     expect(out.html).toContain('href="/en/eg/doctors/cardiology/cairo/maadi"');
   });
 

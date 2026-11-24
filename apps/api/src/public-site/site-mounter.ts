@@ -3,6 +3,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { Express } from 'express';
 import { RenderController } from './render.controller';
 import { RobotsController } from './robots.controller';
+import { verificationCfg } from './search-engines';
 import { SitemapController } from './sitemap.controller';
 import { siteCfg } from './site.config';
 
@@ -23,6 +24,13 @@ export class SiteMounter implements OnModuleInit {
     app.get('/robots.txt', this.robots.handle);
     app.get('/sitemap.xml', this.sitemaps.index);
     app.get(/^\/sitemaps\/([A-Za-z0-9._-]+)$/, (req, res, next) => { req.params.file = String(req.params[0] ?? ''); void this.sitemaps.shard(req, res, next); });
+    // search engine ownership files (names and tokens are configuration; a missing config answers 404, never a placeholder)
+    app.get(/^\/(google[a-z0-9]{8,64}\.html|BingSiteAuth\.xml)$/, (req, res, next) => {
+      const v = verificationCfg(); const name = String(req.params[0] ?? '');
+      if (cfg.indexable && v.googleFile && name === v.googleFile.name) { res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff' }).send(v.googleFile.body); return; }
+      if (cfg.indexable && v.bingAuthXml && name === 'BingSiteAuth.xml') { res.status(200).set({ 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff' }).send(v.bingAuthXml); return; }
+      next();
+    });
     app.get('/_site/health', this.render.health);
     app.get('/_site/metrics', this.render.metrics);
     app.get(/^\/_p\/.+$/, this.render.assets);

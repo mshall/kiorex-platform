@@ -4,6 +4,8 @@
       "url": [
         "http://localhost:4000/ar/eg",
         "http://localhost:4000/ar/eg/doctors/cardiology/cairo",
+        "http://localhost:4000/ar/eg/locations/cairo",
+        "http://localhost:4000/ar/eg/same-day/cardiology",
         "http://localhost:4000/ar/eg/doctor/__SLUG__"
       ],
       "numberOfRuns": 3,

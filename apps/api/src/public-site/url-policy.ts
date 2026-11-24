@@ -8,7 +8,7 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'ar';
 export const isLocale = (v: string): v is Locale => (LOCALES as readonly string[]).includes(v);
 
-export const PAGE_TYPES = ['home', 'hub', 'city', 'district', 'care-district', 'doctor', 'clinic', 'nurse', 'pharmacy', 'lab', 'static'] as const;
+export const PAGE_TYPES = ['home', 'hub', 'city', 'district', 'care-district', 'city-hub', 'district-hub', 'same-day', 'telemedicine', 'doctor', 'clinic', 'nurse', 'pharmacy', 'lab', 'static'] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
 
 export interface RouteDef {
@@ -19,7 +19,7 @@ export interface RouteDef {
   slugEntity: 'DOCTOR' | 'CLINIC' | 'PHARMACY' | 'LAB' | null;
   /** Listed in sitemaps when the entity passes its guard. */
   inSitemap: boolean;
-  /** false = the route exists in the table but is not served yet (404), e.g. pharmacy and lab are Phase 4. */
+  /** false = the route exists in the table but is not served yet (404). Pharmacy and lab pages are served from GRW-P1-F (per-entity gate: LIVE partner and the feature flag). */
   enabled: boolean;
 }
 
@@ -30,11 +30,16 @@ export const ROUTES: readonly RouteDef[] = [
   { type: 'city', pattern: 'doctors/:specialty/:city', slugEntity: null, inSitemap: true, enabled: true },
   { type: 'district', pattern: 'doctors/:specialty/:city/:district', slugEntity: null, inSitemap: true, enabled: true },
   { type: 'care-district', pattern: ':care/:city/:district', slugEntity: null, inSitemap: true, enabled: true },
+  // GRW-P1-F: location hubs (all care types in a city / district) and availability hubs per specialty
+  { type: 'city-hub', pattern: 'locations/:city', slugEntity: null, inSitemap: true, enabled: true },
+  { type: 'district-hub', pattern: 'locations/:city/:district', slugEntity: null, inSitemap: true, enabled: true },
+  { type: 'same-day', pattern: 'same-day/:specialty', slugEntity: null, inSitemap: true, enabled: true },
+  { type: 'telemedicine', pattern: 'telemedicine/:specialty', slugEntity: null, inSitemap: true, enabled: true },
   { type: 'doctor', pattern: 'doctor/:slug', slugEntity: 'DOCTOR', inSitemap: true, enabled: true },
   { type: 'clinic', pattern: 'clinic/:slug', slugEntity: 'CLINIC', inSitemap: true, enabled: true },
   { type: 'nurse', pattern: 'nurse/:slug', slugEntity: 'DOCTOR', inSitemap: true, enabled: true },
-  { type: 'pharmacy', pattern: 'pharmacy/:slug', slugEntity: 'PHARMACY', inSitemap: false, enabled: false },
-  { type: 'lab', pattern: 'lab/:slug', slugEntity: 'LAB', inSitemap: false, enabled: false },
+  { type: 'pharmacy', pattern: 'pharmacy/:slug', slugEntity: 'PHARMACY', inSitemap: true, enabled: true },
+  { type: 'lab', pattern: 'lab/:slug', slugEntity: 'LAB', inSitemap: true, enabled: true },
   { type: 'static', pattern: ':page', slugEntity: null, inSitemap: false, enabled: false },
 ];
 

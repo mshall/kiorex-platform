@@ -11,6 +11,7 @@ describe("public route table", () => {
   const samples: Record<string, Record<string, string>> = {
     home: {}, hub: { specialty: "cardiology" }, city: { specialty: "cardiology", city: "cairo" }, district: { specialty: "cardiology", city: "cairo", district: "maadi" },
     "care-district": { care: "home-nursing", city: "cairo", district: "maadi" }, doctor: { slug: "sara-hassan" }, clinic: { slug: "nile-clinic" }, nurse: { slug: "mona-adel" }, pharmacy: { slug: "x-pharm" }, lab: { slug: "x-lab" },
+    "city-hub": { city: "cairo" }, "district-hub": { city: "cairo", district: "maadi" }, "same-day": { specialty: "cardiology" }, telemedicine: { specialty: "cardiology" },
   };
   it("matches and builds every public type", () => {
     for (const r of PUBLIC_ROUTES) {

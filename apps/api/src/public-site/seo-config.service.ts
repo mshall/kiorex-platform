@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { GROWTH_DEFAULT_PAYLOADS } from '../growth/growth-public';
+import { mergeSeoExtensions, SEO_EXTENSION_DEFAULTS, type SeoExtensions } from '../growth/seo/seo-public';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** The SEO growth config (contract kind SEO). Defaults are the PROPOSED_DEFAULT payload; an ACTIVE GrowthConfigVersion (MARKET then GLOBAL) overrides it. */
-export interface SeoConfig {
+export interface SeoConfig extends SeoExtensions {
   canonicalHost: string;
   locales: string[];
   defaultLocale: string;
@@ -18,14 +19,14 @@ export interface SeoConfig {
   districtPagesEnabled: boolean;
 }
 
-const DEFAULTS = (): SeoConfig => ({ ...(GROWTH_DEFAULT_PAYLOADS.SEO as unknown as SeoConfig) });
+const DEFAULTS = (): SeoConfig => ({ ...(GROWTH_DEFAULT_PAYLOADS.SEO as unknown as SeoConfig), ...SEO_EXTENSION_DEFAULTS() });
 
 /** Merge a stored payload over the defaults, ignoring wrongly typed values (a bad config row never takes the site down). */
 export function mergeSeoConfig(base: SeoConfig, payload: unknown): SeoConfig {
   if (!payload || typeof payload !== 'object') return base;
-  const out: Record<string, unknown> = { ...base };
+  const out: Record<string, unknown> = { ...base, ...mergeSeoExtensions(base, payload) };
   for (const [k, v] of Object.entries(payload as Record<string, unknown>)) {
-    if (k in base && typeof v === typeof (base as unknown as Record<string, unknown>)[k] && (!Array.isArray(v) || Array.isArray((base as unknown as Record<string, unknown>)[k]))) out[k] = v;
+    if (k in base && !(k in SEO_EXTENSION_DEFAULTS()) && typeof v === typeof (base as unknown as Record<string, unknown>)[k] && (!Array.isArray(v) || Array.isArray((base as unknown as Record<string, unknown>)[k]))) out[k] = v;
   }
   return out as unknown as SeoConfig;
 }

@@ -26,16 +26,16 @@ describe("meta shaping", () => {
 describe("JSON-LD builders (ARCH section 5: only what the page shows, no contact data)", () => {
   const url = "https://kiorex.test/en/eg/doctor/sara-hassan";
   it("Physician has locality-level address only, no phone, street or coordinates", () => {
-    const j = physician(doctor.provider, "https://kiorex.test", "en", "eg", url, { reviewMarkup: true, bookable: true });
+    const j = physician(doctor.provider, "https://kiorex.test", "en", "eg", url, { ratingMarkup: true, bookable: true });
     expect(j["@type"]).toBe("Physician");
     expect(j.address).toEqual({ "@type": "PostalAddress", addressLocality: "Maadi", addressRegion: "Cairo", addressCountry: "EG" });
     expect(JSON.stringify(j)).not.toMatch(/telephone|streetAddress|latitude|longitude|geo/);
     expect(j.isAcceptingNewPatients).toBe(true);
   });
   it("rating markup only when enabled AND reviews exist", () => {
-    expect(physician(doctor.provider, "h", "en", "eg", url, { reviewMarkup: true, bookable: true }).aggregateRating).toMatchObject({ ratingValue: 4.6, reviewCount: 12 });
-    expect(physician(doctor.provider, "h", "en", "eg", url, { reviewMarkup: false, bookable: true }).aggregateRating).toBeUndefined();
-    expect(physician({ ...doctor.provider, rating: { average: 0, count: 0 } }, "h", "en", "eg", url, { reviewMarkup: true, bookable: true }).aggregateRating).toBeUndefined();
+    expect(physician(doctor.provider, "h", "en", "eg", url, { ratingMarkup: true, bookable: true }).aggregateRating).toMatchObject({ ratingValue: 4.6, reviewCount: 12 });
+    expect(physician(doctor.provider, "h", "en", "eg", url, { ratingMarkup: false, bookable: true }).aggregateRating).toBeUndefined();
+    expect(physician({ ...doctor.provider, rating: { average: 0, count: 0 } }, "h", "en", "eg", url, { ratingMarkup: true, bookable: true }).aggregateRating).toBeUndefined();
   });
   it("breadcrumbs need two items; the last item points at the page itself; item lists skip providers without a slug", () => {
     expect(breadcrumbs("https://k.test", doctor.crumbs.slice(0, 1), "en", "/x")).toBeNull();

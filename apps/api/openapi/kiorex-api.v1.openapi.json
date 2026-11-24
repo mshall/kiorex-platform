@@ -8894,6 +8894,469 @@
           "health"
         ]
       }
+    },
+    "/api/v1/ops/growth-analytics/overview": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J executive overview (k >= 10; GBV is never revenue)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/funnel": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_funnel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J canonical funnel with step and cumulative conversion (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/channels": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_channels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J channel table: bookings, ANP, spend, CAC, ROAS, LTV to CAC (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/breakdown/{dimension}": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_breakdown",
+        "parameters": [
+          {
+            "name": "dimension",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J breakdown by city, district, specialty, provider, doctor, branch, campaign, channel, platform, careType, sourceKind or origin (k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/cohorts": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_cohorts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J acquisition cohort retention at 30, 90 and 180 days (closed windows only; k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/unit-economics": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_unit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J LTV inputs and definitions",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/export/{report}": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_csv",
+        "parameters": [
+          {
+            "name": "report",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "GRW-P1-J CSV export with the same k >= 10 masking",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend": {
+      "get": {
+        "operationId": "GrowthAnalyticsOpsController_listSpend",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J spend entries (manual; maker-checker)",
+        "tags": [
+          "growth"
+        ]
+      },
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_createSpend",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpendBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J enter a spend line (PENDING until a different ops user approves it)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend/{id}/approve": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J approve a spend line (not the author)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/spend/{id}/reject": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J reject a spend line (not the author)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/ops/growth-analytics/rollup": {
+      "post": {
+        "operationId": "GrowthAnalyticsOpsController_rollup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J recompute the daily rollups for the last N days (idempotent)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/overview": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider overview (own organisation, signed partner, k >= 10)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/funnel": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_funnel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider booking funnel (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/channels": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_channels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider channel table (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/cohorts": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_cohorts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P1-J provider cohort retention (own organisation)",
+        "tags": [
+          "growth"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/provider-analytics/export/{report}": {
+      "get": {
+        "operationId": "GrowthAnalyticsProviderController_csv",
+        "parameters": [
+          {
+            "name": "report",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "GRW-P1-J provider CSV export (same masking)",
+        "tags": [
+          "growth"
+        ]
+      }
     }
   },
   "info": {
@@ -12811,6 +13274,11 @@
           },
           "addressId": {
             "type": "string"
+          },
+          "lt": {
+            "type": "string",
+            "maxLength": 600,
+            "description": "GRW-P1-C signed in-session provider-link token carried from the provider link, QR or widget. Optional; a forged or expired token is ignored, never an error."
           }
         },
         "required": [
@@ -20038,6 +20506,14 @@
           "providers",
           "leadSigning"
         ]
+      },
+      "RollupBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "SpendBody": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

@@ -1,6 +1,6 @@
-# Public site, SEO and server rendering (GRW-P1-E)
+# Public site, SEO and server rendering (GRW-P1-E, GRW-P1-F)
 
-Status: **As-built** for infrastructure (24 Nov 2026). Page copy, FAQ blocks and richer structured data are package F. Decisions: ADR-043 (hybrid SSR, canonical convention) and ADR-044 (frame exception for the widget host only) are **Proposed**; every default below is `PROPOSED_DEFAULT`. Nothing is deployed.
+Status: **As-built** for infrastructure (E, 24 Nov 2026) and for templates, slugs, structured data, guard rules, audit and ops API (F, 24 Nov 2026; see the section "Package F" at the end). The Arabic and English copy (titles, FAQ) is PROPOSED and needs CMO review before launch. Decisions: ADR-043 (hybrid SSR, canonical convention) and ADR-044 (frame exception for the widget host only) are **Proposed**; every default below is `PROPOSED_DEFAULT`. Nothing is deployed.
 
 ## What it is
 Public pages (`/{ar|en}/{cc}/...`) are server-rendered by a **role of the existing Kiorex API image** (no Next.js, no new service). The authenticated patient SPA is unchanged and stays a SPA (its shell now carries `noindex`).
@@ -43,7 +43,9 @@ SEO parameters come from the `SEO` growth config (`GrowthConfigVersion`, ACTIVE 
 | care-district | `/home-nursing/{city}/{district}`, `/physiotherapy/{city}/{district}` | guard passes and the care type is enabled (flag) |
 | doctor, nurse | `/doctor/{slug}`, `/nurse/{slug}` | LIVE, listed (`clinic.kiorex_listing`), care type enabled |
 | clinic | `/clinic/{slug}` | at least 1 LIVE doctor |
-| pharmacy, lab | `/pharmacy/{slug}`, `/lab/{slug}` | in the table, **disabled** (404) until Phase 4 |
+| city-hub, district-hub | `/locations/{city}`, `/locations/{city}/{district}` | guard passes (counts, blocks, sibling overlap, **not a copy of the parent**) |
+| same-day, telemedicine | `/same-day/{specialty}`, `/telemedicine/{specialty}` | guard passes with its own availability minimum (`minAvailableProviders`) |
+| pharmacy, lab | `/pharmacy/{slug}`, `/lab/{slug}` | partner registry LIVE **and** the launch-locked flag `kiorex.pharmacy_orders` / `kiorex.lab_bookings` effective, else 404 (F) |
 
 - Canonical keeps only `page` > 1 (self-referencing); `sort`, `utm_*`, `gclid`, `fbclid`, `s`, `ref`, `lt` never change content, canonical or cache key. Page 2+ is `noindex,follow`.
 - hreflang on every page and sitemap URL: `ar`, `en` (self-referencing, reciprocal, absolute) plus `x-default` (the default-locale version while one market is live; the host root once a selector exists, `rootSelector`).
@@ -92,3 +94,48 @@ Slugs come from package F's bootstrap; until then insert `GrowthSlug` rows (see 
 
 ## Open items
 Search Console property verification and Rich Results checks (NEEDS_HUMAN, package F checklist); real CDN invalidation; Apple Team ID and Play fingerprints (served by the market module, package H); the widget `frame-ancestors` list (package G); slug bootstrap and FAQ copy (package F, CMO review); root `/` redirect and the CDN routing of `/` (founder: second service or one, open decision 25).
+
+
+## Package F: templates, slugs, structured data, audit (GRW-P1-F, As-built 24 Nov 2026)
+
+### Slugs
+`growth/seo/slug-bootstrap.service.ts` (`SlugBootstrapService.runOnce`, job every 15 min while jobs are enabled, ops `POST /ops/growth/seo/slugs/bootstrap`, `dryRun` supported) gives every LIVE or PAUSED provider (doctors, physiotherapists and nurses share the `DOCTOR` namespace), every clinic and every LIVE pharmacy or lab partner connection a slug through B's `SlugService.ensure`: Kiorly `bookingSlug` when valid, else the transliterated English name, else the transliterated Arabic name, else `<type>-<short id>`; collisions get `-2`, `-3`; idempotent; a rename (`SlugService.rename`) keeps the old slug as a 301 forever. Arabic rules (`growth/seo/arabic.ts`): a dictionary of conventional spellings (Mohamed, Abdel, Sara, Nasr City ...), honorifics dropped (`د.`, `دكتور`, `Dr`), article `ال` handled, a plain letter map for the rest. The slug is a URL token, not a translation; operators can rename.
+
+### Pages and internal linking
+Home (country page), specialty hub, specialty in city, specialty in district, care type in district (nurse, physio), **city hub** and **district hub** (all care types in a place), **same-day** and **telemedicine** hubs per specialty, doctor, nurse, clinic, pharmacy, lab, not found. Every listing derives its text from real data (count, fee range, languages, rating distribution from VISIBLE reviews, next slot, same-day count, specialty mix) and links, only to pages that pass the guard, to: parent hubs, nearby districts, other cities, related specialties and availability hubs. Doctor pages add similar providers (same specialty and city). FAQ blocks (`faq.*` keys, native `<details>`, no script, no medical claims, always the 123 pointer) are written once per template. FAQPage markup is deliberately NOT emitted (Google shows FAQ rich results only for well-known authority sites, so the markup would add risk and no value).
+
+### Guard rules added by F
+`minAvailableProviders` (same-day, telemedicine), `maxParentSimilarityPercent` (district hub vs city hub, city hub vs the whole market, same-day and telemedicine vs the specialty hub: a page that lists the same providers as its parent is a doorway and is `noindex,follow`, no navigation links, not in sitemaps; reason `PARENT_OVERLAP_AT_OR_ABOVE_<n>`). In a one-city market the city hub is therefore noindex by design (the home page carries that set). "Same day" means a next slot within `sameDayWindowHours` (24). Telemedicine lists only providers that DECLARED video in their Kiorly profile (the mock-mode default of the telemedicine module is not used). Specialty city and district pages keep E's rule (sibling overlap only), so a single-city launch still indexes `doctors/{specialty}/{city}`.
+
+### Pagination
+Self-referencing canonical per page, plain links, **no `rel=prev/next`**, page 2+ is `noindex,follow` and outside sitemaps unless the SEO config sets `paginatedIndexable` (then indexable, still outside sitemaps; page 1 is the sitemap entry).
+
+### Versioned configuration (extension keys of the `SEO` payload)
+`templates` (title and description per locale and page type, placeholders `{name} {specialty} {city} {district} {country} {clinic} {count} {fees} {rating} {where} {care} {brand}`, no markup, <= 120/320 characters, unknown placeholders rejected; a title template never contains the brand, `| Kiorex` is appended when it fits in 60 characters), `paginatedIndexable`, `reviewMarkupMinCount` (5), `sameDayWindowHours` (24), `minAvailableProviders` (2), `maxParentSimilarityPercent` (100). Resolution: ACTIVE MARKET over GLOBAL over code defaults (`seo-config.service.ts`, cached 30 s); a bad value is ignored, never applied. **Gap:** `SEO.schema.json` in kiorex-contracts still has `additionalProperties: false`, so the maker-checker write path (`validateGrowthConfig`) rejects these keys until the contract adds them as optional properties (additive, 1.11.0). Package K must call `POST /ops/growth/seo/config/validate` (or `validateSeoExtensions` from `growth/seo/seo-public.ts`) before it stores a version.
+
+### Structured data (`apps/web/src/public/seo/jsonld.ts`)
+Organization, WebSite, BreadcrumbList, CollectionPage, ItemList, Physician (physicians), Dentist, MedicalBusiness (nurses, physiotherapists, labs), MedicalClinic, Pharmacy. Never: telephone, e-mail, street address, postal code, coordinates, opening hours, price, `review` objects, `sameAs`, `medicalAudience`. Locality-level address only. `aggregateRating` only when the page shows at least one VISIBLE review, the provider has at least `reviewMarkupMinCount` reviews, the config switch `reviewMarkupEnabled` is on and the rating is rendered on the page; never fabricated. `validateJsonLd` (web test) and `jsonLdIssues` (API audit) enforce the same allow and forbid lists (a test keeps them equal).
+
+### Images
+`seo/image.ts`: https only, explicit width and height, alt text from name, specialty and place, `decoding=async`, `loading=lazy` except the single LCP image (`eager` + `fetchpriority=high`). With `SITE_IMAGE_CDN` set (an image resizer answering `GET {cdn}/image?url=&w=&f=avif|webp|jpeg`; go-live task) the doctor photo becomes a `<picture>` with AVIF and WebP sources at three widths. Without it the original is used.
+
+### Duplicate content
+One canonical per page (E), clean-URL 301s (case, trailing and duplicate slash), Arabic and underscore variants 301 once to the clean URL (`loose-path.ts`, only when the target parses; the target then applies its own 200/301/404 rules), sibling and parent overlap guard, unique titles (homonym providers get `#2`), unique FAQ and data blocks per template.
+
+### Sitemaps, redirects, delisting
+Sitemaps come from the same facet table and entity rules as the renderer (so every sitemap URL is indexable and every noindex generated page is outside them, asserted by the crawl test); pharmacies and labs are added when their gate passes. Slug history 301, delisted provider 301 to an indexable hub else 404 then 410 after `delistedGoneAfterDays` (E). Ops `GET /ops/growth/seo/redirects` lists both.
+
+### Search Console and Bing (scaffolding, mock by default)
+`public-site/search-engines.ts`. Verification from configuration: `SITE_GOOGLE_SITE_VERIFICATION` and `SITE_BING_SITE_VERIFICATION` (meta tags on the home page only, production only), `SITE_GOOGLE_VERIFICATION_FILE` (`google<hex>.html`), `SITE_BING_AUTH_USER` (`/BingSiteAuth.xml`); tokens are validated. `SearchEnginePort` (submit sitemap, pull performance) with a mock adapter (default, rows labelled `sample`) and a real adapter that refuses (`SITE_SEARCH_ENGINE_MODE=real` is NEEDS_HUMAN: property verification, OAuth or service account, Bing API key). `SitemapSubmitJob` runs daily in production only.
+
+### Ops API (`public-site/seo-ops.controller.ts`, ops or super admin)
+Read-only: `GET /ops/growth/seo/overview | pages | slugs | redirects | config | search-engines | search-engines/performance`. Idempotent audited actions: `POST rebuild` (recomputes the guard table into `GrowthLandingPage` per page and locale, drops caches), `POST slugs/bootstrap`, `POST search-engines/submit-sitemap` (mock). Hook for package K: `POST config/validate`.
+
+### Audit and Core Web Vitals
+`public-site/seo-audit.ts` (pure) is run by `test/public-site-seo.int.spec.ts`, which crawls every sitemap URL of a seeded market in CI: status, title and description length, canonical, hreflang (present, self-referencing, reciprocal, absolute, in the sitemap), robots, lang and dir, one h1, Open Graph and Twitter tags, JSON-LD (parse, allowed types, forbidden keys, rating validity, links on the host), duplicate titles and descriptions, broken internal links, image width, height and alt, one eager image, no render-blocking CSS or script, HTML size. Against a running site: `npm run seo:audit -w apps/api -- --base http://localhost:4000 --host https://kiorex.com` (exit 1 on any error). Lab scores (Lighthouse) are still NOT measured here (`lighthouserc.json` and `ssr-smoke.mjs --lighthouse` are ready).
+
+### Tests
+Web (`npm test -w apps/web`): `templates.test.tsx` (30 AR and EN structure snapshots, meta length and uniqueness, template overrides, FAQ completeness and wording, JSON-LD validity, rating policy, privacy regex over every page, pagination, images, axe on doctor, listing and home), hydration for every page type. API unit: arabic, slug names, extensions, loose paths, facets and guard, search engines, audit. API integration: `public-site-seo.int.spec.ts`.
+
+### Manual checklist (NEEDS_HUMAN)
+Search Console and Bing property verification (set the four variables above), Rich Results Test on one page per type (Physician, MedicalClinic, Pharmacy, BreadcrumbList, ItemList), sitemap submission after launch, CMO review of every `meta`, `faq.*` and template string in AR and EN, decision whether paginated pages should be indexable, image resizer for `SITE_IMAGE_CDN`, partner location fields (pharmacy and lab pages only know the name today).

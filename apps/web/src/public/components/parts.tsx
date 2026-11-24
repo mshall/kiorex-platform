@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { KiorexLogo } from "@/brand/components/web/KiorexLogo";
-import type { Crumb, ProviderCard, TemplateCtx } from "../types";
+import type { Crumb, FacetLink, PaginationData, ProviderCard, RatingBucket, TemplateCtx } from "../types";
+import type { ImageModel } from "../seo/image";
 import { day, money } from "../format";
 
 const homePath = (c: TemplateCtx) => `/${c.locale}/${c.cc}`;
@@ -84,3 +85,59 @@ export function ProviderList({ providers, ctx }: { providers: ProviderCard[]; ct
     </ul>
   );
 }
+
+// ── GRW-P1-F building blocks ──────────────────────────────────────────────────────────────────────────────────
+
+/** Pagination: plain links, self-referencing canonical per page, NO rel prev/next (search engines ignore them; removed on purpose). */
+export function Pager({ p, ctx }: { p: PaginationData; ctx: TemplateCtx }) {
+  if (p.pages <= 1) return null;
+  return (
+    <nav className="kxp-pager" aria-label={ctx.t("list.pages")}>
+      {p.prevPath ? <a href={p.prevPath}>{ctx.t("list.prev")}</a> : <span />}
+      <span aria-current="page">{ctx.t("list.pageOf", { n: p.page, total: p.pages })}</span>
+      {p.nextPath ? <a href={p.nextPath}>{ctx.t("list.nextPage")}</a> : <span />}
+    </nav>
+  );
+}
+
+export function Chips({ items, ctx, count = true }: { items: FacetLink[]; ctx: TemplateCtx; count?: boolean }) {
+  if (!items.length) return null;
+  return <ul className="kxp-chips">{items.map((s) => <li key={s.path}><a href={s.path}>{ctx.pick(s.label)}{count && s.count ? <> <span className="kxp-muted">({s.count})</span></> : null}</a></li>)}</ul>;
+}
+
+/** Question and answer pairs written once per template (CMO review pending); native <details>, no script. Answers never state medical claims. */
+export function Faq({ group, ctx, vars, n = 3 }: { group: string; ctx: TemplateCtx; vars?: Record<string, string | number>; n?: number }) {
+  const items = Array.from({ length: n }, (_, i) => ({ q: ctx.t(`faq.${group}.${i + 1}.q`, vars), a: ctx.t(`faq.${group}.${i + 1}.a`, vars) }));
+  return (
+    <section className="kxp-faq" aria-labelledby="kxp-faq-h">
+      <h2 id="kxp-faq-h">{ctx.t("faq.title")}</h2>
+      {items.map((x, i) => <details key={i}><summary>{x.q}</summary><p>{x.a}</p></details>)}
+    </section>
+  );
+}
+
+/** Real star counts of visible reviews; renders nothing when there are none. */
+export function RatingBars({ buckets, ctx }: { buckets: RatingBucket[]; ctx: TemplateCtx }) {
+  const total = buckets.reduce((s, b) => s + b.count, 0);
+  if (!total) return null;
+  return (
+    <section>
+      <h2>{ctx.t("list.distribution")}</h2>
+      <table className="kxp-bars"><tbody>
+        {buckets.map((b) => (
+          <tr key={b.stars}><th scope="row">{ctx.t("list.stars", { n: b.stars })}</th><td><span className="kxp-bar" aria-hidden="true"><span style={{ width: `${Math.round((b.count / total) * 100)}%` }} /></span></td><td className="kxp-num">{b.count}</td></tr>
+        ))}
+      </tbody></table>
+    </section>
+  );
+}
+
+/** Responsive picture: AVIF and WebP sources when an image CDN is configured, always width and height, alt text, lazy unless it is the LCP image. */
+export function Picture({ model, className }: { model: ImageModel | null; className?: string }) {
+  if (!model) return null;
+  const { img, sources } = model;
+  const tag = <img src={img.src} srcSet={img.srcSet} sizes={img.sizes} width={img.width} height={img.height} alt={img.alt} loading={img.loading} decoding={img.decoding} fetchPriority={img.fetchPriority} className={className} />;
+  return sources.length ? <picture>{sources.map((s) => <source key={s.type} type={s.type} srcSet={s.srcSet} sizes={img.sizes} />)}{tag}</picture> : tag;
+}
+
+export const Emergency = ({ ctx }: { ctx: TemplateCtx }) => <p className="kxp-notice" role="note">{ctx.t("footer.emergency")}</p>;

@@ -1,0 +1,1029 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AR and EN structure snapshots for every public page type > ar care-district 1`] = `
+{
+  "description": "30 من مقدّمي التمريض المنزلي الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز زيارة مؤكدة على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "التمريض المنزلي في المعادي",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/home-nursing/cairo/maadi",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "التمريض المنزلي في المعادي، القاهرة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar city 1`] = `
+{
+  "description": "30 من أطباء القلب الموثّقين في القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء القلب في القاهرة",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء القلب في القاهرة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar city-hub 1`] = `
+{
+  "description": "30 من مقدّمي الرعاية الموثّقين في القاهرة: أطباء بكل التخصصات ورعاية منزلية. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء ورعاية صحية في القاهرة",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "التخصصات المتاحة هنا",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/locations/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء ورعاية صحية في القاهرة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar clinic 1`] = `
+{
+  "description": "عيادة النيل: 1 من الأطباء يمكنك الحجز عندهم أونلاين في Maadi، Cairo. مواعيد حقيقية وتقييمات صادقة على كيوركس.",
+  "faq": 2,
+  "h1": [
+    "عيادة النيل",
+  ],
+  "h2": [
+    "الأطباء في هذه العيادة",
+    "اكتشف أماكن وتخصصات قريبة",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/clinic/nile-clinic",
+    "/en/eg/doctors/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalClinic",
+    "BreadcrumbList",
+  ],
+  "title": "عيادة النيل | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar district 1`] = `
+{
+  "description": "30 من أطباء القلب الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء القلب في المعادي",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "مناطق قريبة",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء القلب في المعادي، القاهرة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar district-hub 1`] = `
+{
+  "description": "30 من مقدّمي الرعاية الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء ورعاية صحية في المعادي، القاهرة",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "مناطق قريبة",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/locations/cairo/maadi",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء ورعاية صحية في المعادي، القاهرة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar doctor 1`] = `
+{
+  "description": "احجز د. سارة حسن، القلب في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وحجز مؤكد على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "د. سارة حسن",
+  ],
+  "h2": [
+    "تقييمات موثّقة من المرضى",
+    "أطباء آخرون بنفس التخصص بالقرب منك",
+    "اكتشف أماكن وتخصصات قريبة",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/omar-nabil",
+    "/doctors/lst_a?book=1",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "Physician",
+    "BreadcrumbList",
+  ],
+  "title": "د. سارة حسن، القلب | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar home 1`] = `
+{
+  "description": "ابحث عن أطباء وعيادات ورعاية منزلية موثّقة في مصر. شاهد المواعيد الحقيقية واقرأ تقييمات صادقة واحجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "اعثر على طبيبك واحجز موعدًا حقيقيًا",
+  ],
+  "h2": [
+    "تصفّح حسب التخصص",
+    "تصفّح حسب المدينة",
+    "متاحون اليوم وبالفيديو",
+    "الرعاية في المنزل",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/home-nursing/cairo/maadi",
+    "/en/eg/locations/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "Organization",
+    "WebSite",
+  ],
+  "title": "احجز طبيبك في مصر | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar hub 1`] = `
+{
+  "description": "30 من أطباء القلب الموثّقين. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. قارن التقييمات واللغات ثم احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء القلب",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء القلب | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar lab 1`] = `
+{
+  "description": "احجز تحاليلك لدى معمل النيل عبر كيوركس واطّلع على النتيجة في التطبيق عندما ينشرها المعمل.",
+  "faq": 2,
+  "h1": [
+    "معمل النيل",
+  ],
+  "h2": [
+    "كيف يتم الحجز",
+    "معامل شريكة أخرى",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/en/eg",
+    "/en/eg/lab/nile-lab",
+    "/en/eg/pharmacy/delta-pharmacy",
+    "/lab",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalBusiness",
+    "BreadcrumbList",
+  ],
+  "title": "معمل النيل، معمل تحاليل | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar not-found 1`] = `
+{
+  "description": "ربما نُقلت الصفحة أو لم تعد مدرجة. يمكنك البحث عن طبيب أو العودة إلى الصفحة الرئيسية.",
+  "faq": 0,
+  "h1": [
+    "لم نعثر على هذه الصفحة",
+  ],
+  "h2": [],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/en/eg/account",
+    "/search",
+  ],
+  "jsonLd": [],
+  "title": "الصفحة غير موجودة | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar nurse 1`] = `
+{
+  "description": "احجز د. سارة حسن للرعاية في المنزل في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وزيارة مؤكدة على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "د. سارة حسن",
+  ],
+  "h2": [
+    "تقييمات موثّقة من المرضى",
+    "أطباء آخرون بنفس التخصص بالقرب منك",
+    "اكتشف أماكن وتخصصات قريبة",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/omar-nabil",
+    "/doctors/lst_a?book=1",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/nurse/mona-adel",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalBusiness",
+    "BreadcrumbList",
+  ],
+  "title": "د. سارة حسن، تمريض منزلي | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar pharmacy 1`] = `
+{
+  "description": "اطلب وصفتك من صيدلية النيل عبر كيوركس وتابع الطلب من هاتفك.",
+  "faq": 2,
+  "h1": [
+    "صيدلية النيل",
+  ],
+  "h2": [
+    "كيف يتم الطلب",
+    "صيدليات شريكة أخرى",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/en/eg",
+    "/en/eg/pharmacy/delta-pharmacy",
+    "/en/eg/pharmacy/nile-pharmacy",
+    "/pharmacy",
+    "/search",
+  ],
+  "jsonLd": [
+    "Pharmacy",
+    "BreadcrumbList",
+  ],
+  "title": "صيدلية النيل، صيدلية | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar same-day 1`] = `
+{
+  "description": "30 من أطباء القلب الموثّقين لديهم موعد خلال 24 ساعة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "أطباء القلب متاحون اليوم",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "أطباء القلب متاحون اليوم | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > ar telemedicine 1`] = `
+{
+  "description": "30 من أطباء القلب الموثّقين يقدّمون استشارات بالفيديو. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "faq": 3,
+  "h1": [
+    "استشارات القلب بالفيديو",
+  ],
+  "h2": [
+    "مقدّمو الخدمة الموثّقون",
+    "كيف قيّم المرضى هؤلاء المقدّمين",
+    "متاحون اليوم وبالفيديو",
+    "المناطق",
+    "مدن أخرى",
+    "تخصصات ذات صلة",
+    "العودة إلى القائمة الأوسع",
+    "أسئلة شائعة",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/ar/eg/doctor/sara-hassan",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/en/eg/telemedicine/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "استشارات القلب بالفيديو | كيوركس",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en care-district 1`] = `
+{
+  "description": "30 verified providers of home nursing in Maadi, Cairo. Fees from EGP 300 to EGP 450. Book a confirmed visit on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Home nursing in Maadi",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/home-nursing/cairo/maadi",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "home nursing in Maadi, Cairo | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en city 1`] = `
+{
+  "description": "30 verified Cardiology doctors in Cairo. Fees from EGP 300 to EGP 450. Average rating 4.4 from 40 reviews. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Cardiology doctors in Cairo",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/doctors/cardiology/cairo",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Cardiology doctors in Cairo | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en city-hub 1`] = `
+{
+  "description": "30 verified providers in Cairo: doctors by specialty, home care and more. Fees from EGP 300 to EGP 450. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Doctors and care in Cairo",
+  ],
+  "h2": [
+    "Verified providers",
+    "Specialties available here",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/locations/cairo",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Doctors and care in Cairo | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en clinic 1`] = `
+{
+  "description": "Nile Clinic: 1 doctors you can book online in Maadi, Cairo. Real availability and honest reviews on Kiorex.",
+  "faq": 2,
+  "h1": [
+    "Nile Clinic",
+  ],
+  "h2": [
+    "Doctors at this clinic",
+    "Explore nearby and related",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/clinic/nile-clinic",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalClinic",
+    "BreadcrumbList",
+  ],
+  "title": "Nile Clinic | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en district 1`] = `
+{
+  "description": "30 verified Cardiology doctors in Maadi, Cairo. Fees from EGP 300 to EGP 450. Average rating 4.4 from 40 reviews. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Cardiology doctors in Maadi",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Nearby districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Cardiology doctors in Maadi, Cairo | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en district-hub 1`] = `
+{
+  "description": "30 verified providers in Maadi, Cairo. Fees from EGP 300 to EGP 450. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Doctors and care in Maadi, Cairo",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Nearby districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/locations/cairo/maadi",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Doctors and care in Maadi, Cairo | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en doctor 1`] = `
+{
+  "description": "Book Dr Sara Hassan, Cardiology in Maadi, Cairo. Average rating 4.6 from 12 reviews. Real availability and a confirmed appointment on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Dr Sara Hassan",
+  ],
+  "h2": [
+    "Verified patient reviews",
+    "Other doctors nearby with the same specialty",
+    "Explore nearby and related",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/doctor/sara-hassan",
+    "/doctors/lst_a?book=1",
+    "/en/eg",
+    "/en/eg/doctor/omar-nabil",
+    "/en/eg/doctors/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "Physician",
+    "BreadcrumbList",
+  ],
+  "title": "Dr Sara Hassan, Cardiology | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en home 1`] = `
+{
+  "description": "Find verified doctors, clinics and home care across Egypt. See real availability, read honest reviews and book a confirmed appointment on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Find a doctor and book a real slot",
+  ],
+  "h2": [
+    "Browse by specialty",
+    "Browse by city",
+    "Available today and by video",
+    "Care at home",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg",
+    "/en/eg",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/home-nursing/cairo/maadi",
+    "/en/eg/locations/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "Organization",
+    "WebSite",
+  ],
+  "title": "Book doctors in Egypt | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en hub 1`] = `
+{
+  "description": "30 verified Cardiology doctors. Fees from EGP 300 to EGP 450. Compare ratings and languages, then book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Cardiology doctors",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/doctors/cardiology",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Cardiology doctors | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en lab 1`] = `
+{
+  "description": "Book lab tests with Nile Lab through Kiorex. See the result in the app when the lab publishes it.",
+  "faq": 2,
+  "h1": [
+    "Nile Lab",
+  ],
+  "h2": [
+    "How booking works",
+    "Other partner labs",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/lab/nile-lab",
+    "/en/eg",
+    "/en/eg/pharmacy/delta-pharmacy",
+    "/lab",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalBusiness",
+    "BreadcrumbList",
+  ],
+  "title": "Nile Lab, medical lab | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en not-found 1`] = `
+{
+  "description": "The page may have moved or is no longer listed. You can search for a doctor or go back to the home page.",
+  "faq": 0,
+  "h1": [
+    "We could not find this page",
+  ],
+  "h2": [],
+  "hrefs": [
+    "#main",
+    "/ar/eg/account",
+    "/en/eg",
+    "/search",
+  ],
+  "jsonLd": [],
+  "title": "Page not found | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en nurse 1`] = `
+{
+  "description": "Book Dr Sara Hassan for care at home in Maadi, Cairo. Average rating 4.6 from 12 reviews. Real availability and a confirmed visit on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Dr Sara Hassan",
+  ],
+  "h2": [
+    "Verified patient reviews",
+    "Other doctors nearby with the same specialty",
+    "Explore nearby and related",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/nurse/mona-adel",
+    "/doctors/lst_a?book=1",
+    "/en/eg",
+    "/en/eg/doctor/omar-nabil",
+    "/en/eg/doctors/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "MedicalBusiness",
+    "BreadcrumbList",
+  ],
+  "title": "Dr Sara Hassan, home nursing | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en pharmacy 1`] = `
+{
+  "description": "Order your prescription from Nile Pharmacy through Kiorex. Track the order from your phone.",
+  "faq": 2,
+  "h1": [
+    "Nile Pharmacy",
+  ],
+  "h2": [
+    "How ordering works",
+    "Other partner pharmacies",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/pharmacy/nile-pharmacy",
+    "/en/eg",
+    "/en/eg/pharmacy/delta-pharmacy",
+    "/pharmacy",
+    "/search",
+  ],
+  "jsonLd": [
+    "Pharmacy",
+    "BreadcrumbList",
+  ],
+  "title": "Nile Pharmacy, pharmacy | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en same-day 1`] = `
+{
+  "description": "30 verified Cardiology doctors with a slot in the next 24 hours. Fees from EGP 300 to EGP 450. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Cardiology doctors available today",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/same-day/cardiology",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Cardiology doctors available today | Kiorex",
+}
+`;
+
+exports[`AR and EN structure snapshots for every public page type > en telemedicine 1`] = `
+{
+  "description": "30 verified Cardiology doctors who offer video consultations. Fees from EGP 300 to EGP 450. Book a confirmed slot on Kiorex.",
+  "faq": 3,
+  "h1": [
+    "Cardiology video consultations",
+  ],
+  "h2": [
+    "Verified providers",
+    "How patients rated these providers",
+    "Available today and by video",
+    "Districts",
+    "Other cities",
+    "Related specialties",
+    "Back to the wider list",
+    "Common questions",
+  ],
+  "hrefs": [
+    "#main",
+    "/ar/eg/telemedicine/cardiology",
+    "/en/eg",
+    "/en/eg/doctor/sara-hassan",
+    "/en/eg/doctors/cardiology",
+    "/en/eg/doctors/cardiology/cairo/maadi",
+    "/en/eg/doctors/cardiology/cairo?page=2",
+    "/en/eg/doctors/cardiology/giza",
+    "/en/eg/doctors/dermatology/cairo",
+    "/en/eg/same-day/cardiology",
+    "/search",
+  ],
+  "jsonLd": [
+    "CollectionPage",
+    "BreadcrumbList",
+    "ItemList",
+  ],
+  "title": "Cardiology video consultations | Kiorex",
+}
+`;

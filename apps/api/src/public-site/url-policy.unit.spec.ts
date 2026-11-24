@@ -32,7 +32,7 @@ describe('public site URL policy (canonical convention kiorex.com/{ar|en}/{cc}/{
   });
 
   it('buildPath is the inverse of parsePublicPath for every enabled route', () => {
-    const samples: Record<string, Record<string, string>> = { home: {}, hub: { specialty: 'cardiology' }, city: { specialty: 'cardiology', city: 'cairo' }, district: { specialty: 'cardiology', city: 'cairo', district: 'maadi' }, 'care-district': { care: 'home-nursing', city: 'cairo', district: 'maadi' }, doctor: { slug: 'sara-hassan' }, clinic: { slug: 'nile-clinic' }, nurse: { slug: 'mona-adel' }, pharmacy: { slug: 'x-pharm' }, lab: { slug: 'x-lab' } };
+    const samples: Record<string, Record<string, string>> = { 'city-hub': { city: 'cairo' }, 'district-hub': { city: 'cairo', district: 'maadi' }, 'same-day': { specialty: 'cardiology' }, telemedicine: { specialty: 'cardiology' }, home: {}, hub: { specialty: 'cardiology' }, city: { specialty: 'cardiology', city: 'cairo' }, district: { specialty: 'cardiology', city: 'cairo', district: 'maadi' }, 'care-district': { care: 'home-nursing', city: 'cairo', district: 'maadi' }, doctor: { slug: 'sara-hassan' }, clinic: { slug: 'nile-clinic' }, nurse: { slug: 'mona-adel' }, pharmacy: { slug: 'x-pharm' }, lab: { slug: 'x-lab' } };
     for (const r of ROUTES.filter((x) => x.type !== 'static')) {
       const path = buildPath('en', 'EG', r.type, samples[r.type]);
       expect(ok(path)).toMatchObject({ type: r.type, params: samples[r.type] });

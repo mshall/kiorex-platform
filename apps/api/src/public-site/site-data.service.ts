@@ -3,12 +3,13 @@ import { CatalogService } from '../catalog/catalog-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { isSpecialtyCode, SPECIALTY_LABELS } from '../safety/safety-public';
 import { TrustService } from '../trust/trust-public';
+import { normalizeArabic } from '../growth/seo/seo-public';
 import { buildFacets, facetKey, type Facet, type FacetTable } from './facets';
 import { slugifyPlace, specialtyFromSegment, specialtySegment } from './geo';
 import { RedirectsService } from './redirects.service';
 import { SeoConfigService, type SeoConfig } from './seo-config.service';
 import { SiteIndexService, type IndexedProvider, type SiteIndex } from './site-index.service';
-import type { Bilingual, ClinicData, Crumb, DoctorData, FacetLink, HomeData, ListData, LoadResult, ProviderCard } from './site-data.types';
+import type { Bilingual, ClinicData, Crumb, DoctorData, FacetLink, HomeData, ListData, ListLinks, LoadResult, PartnerData, ProviderCard, RatingBucket } from './site-data.types';
 import { buildPath, type Locale, type PageQuery, type ParsedPath } from './url-policy';
 
 export const PAGE_SIZE = 12;
@@ -38,7 +39,7 @@ export class SiteDataService {
     const [index, seo] = await Promise.all([this.index.get(market), this.seo.get(market)]);
     const enabled = new Set<string>();
     for (const ct of CARE_TYPES) if ((await this.catalog.careTypeEnabled(ct, market)).enabled) enabled.add(ct);
-    const facets = buildFacets(index.providers, { minLiveProviders: seo.minLiveProviders, minUniqueBlocks: seo.minUniqueBlocks, maxSiblingSimilarityPercent: seo.maxSiblingSimilarityPercent }, enabled, seo.districtPagesEnabled);
+    const facets = buildFacets(index.providers, { minLiveProviders: seo.minLiveProviders, minUniqueBlocks: seo.minUniqueBlocks, maxSiblingSimilarityPercent: seo.maxSiblingSimilarityPercent, minAvailableProviders: seo.minAvailableProviders, maxParentSimilarityPercent: seo.maxParentSimilarityPercent }, enabled, seo.districtPagesEnabled, { sameDayWindowHours: seo.sameDayWindowHours });
     const value = { index, seo, facets, enabled };
     this.snap.set(market, { at: Date.now(), value });
     return value;
@@ -49,7 +50,7 @@ export class SiteDataService {
   private card(p: IndexedProvider, slugs: Map<string, string>): ProviderCard {
     const spec = p.specialty && isSpecialtyCode(p.specialty) ? { code: p.specialty, label: SPECIALTY_LABELS[p.specialty] } : p.specialty ? { code: p.specialty, label: { en: p.specialty, ar: p.specialty } } : null;
     return {
-      id: p.id, slug: slugs.get(p.id) ?? null, kind: p.careType === 'HOME_NURSING' ? 'nurse' : 'doctor',
+      id: p.id, slug: slugs.get(p.id) ?? null, kind: p.careType === 'HOME_NURSING' ? 'nurse' : 'doctor', profession: p.profession,
       name: { en: p.nameEn ?? p.nameAr ?? '', ar: p.nameAr ?? p.nameEn ?? '' }, specialty: spec,
       clinicName: { en: p.clinicNameEn ?? p.clinicNameAr ?? '', ar: p.clinicNameAr ?? p.clinicNameEn ?? '' },
       area: p.area, governorate: p.governorate, rating: { average: Math.round(p.ratingAvg * 10) / 10, count: p.ratingCount },
@@ -99,7 +100,8 @@ export class SiteDataService {
     const snap = await this.snapshot(market);
     switch (route.type) {
       case 'home': return this.home(route, snap);
-      case 'hub': case 'city': case 'district': case 'care-district': return this.list(route, q, snap);
+      case 'hub': case 'city': case 'district': case 'care-district': case 'city-hub': case 'district-hub': case 'same-day': case 'telemedicine': return this.list(route, q, snap);
+      case 'pharmacy': case 'lab': return this.partner(route, snap);
       case 'doctor': case 'nurse': return this.provider(route, snap);
       case 'clinic': return this.clinic(route, snap);
       default: return { status: 404, reason: 'ROUTE_NOT_ENABLED' };
@@ -109,7 +111,8 @@ export class SiteDataService {
   private home(route: ParsedPath, s: SiteSnapshot): LoadResult {
     const { locale, cc } = route;
     const ok = s.facets.all.filter((f) => f.guard.indexable);
-    const specialties = ok.filter((f) => f.type === 'hub').sort((a, b) => b.providers.length - a.providers.length || (a.key < b.key ? -1 : 1)).slice(0, 12)
+    const byCount = (a: Facet, b: Facet) => b.providers.length - a.providers.length || (a.key < b.key ? -1 : 1);
+    const specialties = ok.filter((f) => f.type === 'hub').sort(byCount).slice(0, 12)
       .map((f) => this.link(f, locale, cc, this.spLabel(f.specialtyCode!)));
     const cityCounts = new Map<string, { label: Bilingual; ids: Set<string>; spec: string }>();
     for (const f of ok.filter((x) => x.type === 'city')) {
@@ -118,15 +121,37 @@ export class SiteDataService {
       cityCounts.set(f.params.city!, c);
     }
     const cities: FacetLink[] = [...cityCounts.entries()].map(([slug, c]) => ({ label: c.label, count: c.ids.size, path: `${buildPath(locale, cc, 'hub', { specialty: c.spec })}/${slug}` })).sort((a, b) => b.count - a.count).slice(0, 12);
-    const data: HomeData = { kind: 'home', liveProviders: s.facets.visible.length, specialties, cities, crumbs: [] };
+    const cityHubs = ok.filter((f) => f.type === 'city-hub').sort(byCount).slice(0, 12).map((f) => this.link(f, locale, cc, f.city!));
+    const availability = ok.filter((f) => f.type === 'same-day' || f.type === 'telemedicine').sort(byCount).slice(0, 8)
+      .map((f) => this.link(f, locale, cc, this.availabilityLabel(f.type as 'same-day' | 'telemedicine', this.spLabel(f.specialtyCode!))));
+    const careTypes: FacetLink[] = [];
+    for (const care of ['home-nursing', 'physiotherapy'] as const) {
+      const fs = ok.filter((f) => f.type === 'care-district' && f.params.care === care);
+      if (fs.length) { const ids = new Set(fs.flatMap((f) => f.providers.map((p) => p.id))); const top = [...fs].sort(byCount)[0]!; careTypes.push({ label: CARE_LABELS[care]!, path: buildPath(locale, cc, 'care-district', top.params), count: ids.size }); }
+    }
+    const partners = { pharmacies: s.index.partners.filter((x) => x.kind === 'PHARMACY').length, labs: s.index.partners.filter((x) => x.kind === 'LAB').length };
+    const data: HomeData = { kind: 'home', liveProviders: s.facets.visible.length, specialties, cities, crumbs: [], cityHubs, availability, careTypes, partners };
     return { status: 200, data, indexable: true, noindexReasons: [], lastModified: s.facets.visible.reduce<Date | null>((m, p) => (!m || p.lastModified > m ? p.lastModified : m), null), tags: ['list', `market:${cc}`] };
+  }
+
+  private availabilityLabel(kind: 'same-day' | 'telemedicine', spec: Bilingual): Bilingual {
+    return kind === 'same-day' ? { en: `${spec.en} doctors available today`, ar: `أطباء ${spec.ar} متاحون اليوم` } : { en: `${spec.en} video consultations`, ar: `استشارات ${spec.ar} بالفيديو` };
+  }
+
+  /** Real review star counts of the VISIBLE reviews of the listed providers (an empty list when there are none: nothing is invented). */
+  private async ratingDistribution(ids: string[]): Promise<RatingBucket[]> {
+    if (!ids.length) return [];
+    const rows = await this.prisma.review.groupBy({ by: ['rating'], where: { providerId: { in: ids.slice(0, 5000) }, status: 'VISIBLE' }, _count: { _all: true } });
+    const out: RatingBucket[] = ([5, 4, 3, 2, 1] as const).map((stars) => ({ stars, count: rows.find((r) => r.rating === stars)?._count._all ?? 0 }));
+    return out.some((b) => b.count > 0) ? out : [];
   }
 
   private async list(route: ParsedPath, q: PageQuery, s: SiteSnapshot): Promise<LoadResult> {
     const { locale, cc, type, params } = route;
+    const withSpecialty = ['hub', 'city', 'district', 'same-day', 'telemedicine'].includes(type);
     if (type === 'care-district') {
       if (!s.enabled.has(params.care === 'physiotherapy' ? 'PHYSIOTHERAPY' : 'HOME_NURSING')) return { status: 404, reason: 'CARE_TYPE_NOT_LIVE' };
-    } else if (!isSpecialtyCode(specialtyFromSegment(params.specialty!))) return { status: 404, reason: 'UNKNOWN_SPECIALTY' };
+    } else if (withSpecialty && !isSpecialtyCode(specialtyFromSegment(params.specialty!))) return { status: 404, reason: 'UNKNOWN_SPECIALTY' };
     const key = facetKey(type as Facet['type'], params);
     const facet = s.facets.byKey.get(key);
     if (!facet) {
@@ -139,34 +164,107 @@ export class SiteDataService {
     const specLabel = facet.specialtyCode ? this.spLabel(facet.specialtyCode) : null;
     const careLabel = params.care ? CARE_LABELS[params.care]! : null;
     const place = facet.district ?? facet.city;
-    const title: Bilingual = specLabel
-      ? { en: place ? `${specLabel.en} doctors in ${place.en}` : `${specLabel.en} doctors`, ar: place ? `أطباء ${specLabel.ar} في ${place.ar}` : `أطباء ${specLabel.ar}` }
-      : { en: `${careLabel!.en} in ${place!.en}`, ar: `${careLabel!.ar} في ${place!.ar}` };
-    // related links: only to pages that pass the guard (no internal links to thin pages)
-    const sibs = s.facets.all.filter((f) => f.guard.indexable && f.key !== key);
+    const title: Bilingual = this.listTitle(type, specLabel, careLabel, place, facet);
+    const ok = (f: Facet) => f.guard.indexable && f.key !== key; // links go ONLY to pages that pass the guard
+    const sibs = s.facets.all.filter(ok);
     const related: FacetLink[] = [];
-    if (type === 'hub') for (const f of sibs.filter((x) => x.type === 'city' && x.params.specialty === params.specialty)) related.push(this.link(f, locale, cc, f.city!));
+    const links: ListLinks = { districts: [], cities: [], relatedSpecialties: [], availability: [], parents: [] };
+    const lab = (f: Facet) => (f.district ?? f.city ?? this.spLabel(f.specialtyCode!));
+    if (type === 'hub') for (const f of sibs.filter((x) => x.type === 'city' && x.params.specialty === params.specialty)) { related.push(this.link(f, locale, cc, f.city!)); links.cities.push(this.link(f, locale, cc, f.city!)); }
     if (type === 'city') {
-      for (const f of sibs.filter((x) => x.type === 'district' && x.params.specialty === params.specialty && x.params.city === params.city)) related.push(this.link(f, locale, cc, f.district!));
-      for (const f of sibs.filter((x) => x.type === 'city' && x.params.specialty !== params.specialty && x.params.city === params.city).slice(0, 6)) related.push(this.link(f, locale, cc, this.spLabel(f.specialtyCode!)));
+      for (const f of sibs.filter((x) => x.type === 'district' && x.params.specialty === params.specialty && x.params.city === params.city)) { related.push(this.link(f, locale, cc, f.district!)); links.districts.push(this.link(f, locale, cc, f.district!)); }
+      for (const f of sibs.filter((x) => x.type === 'city' && x.params.specialty !== params.specialty && x.params.city === params.city).slice(0, 6)) { related.push(this.link(f, locale, cc, this.spLabel(f.specialtyCode!))); links.relatedSpecialties.push(this.link(f, locale, cc, this.spLabel(f.specialtyCode!))); }
+      for (const f of sibs.filter((x) => x.type === 'city' && x.params.specialty === params.specialty && x.params.city !== params.city).slice(0, 6)) links.cities.push(this.link(f, locale, cc, f.city!));
     }
-    if (type === 'district') for (const f of sibs.filter((x) => x.type === 'district' && x.params.specialty === params.specialty && x.params.city === params.city)) related.push(this.link(f, locale, cc, f.district!));
-    if (type === 'care-district') for (const f of sibs.filter((x) => x.type === 'care-district' && x.params.care === params.care && x.params.city === params.city)) related.push(this.link(f, locale, cc, f.district!));
+    if (type === 'district') {
+      for (const f of sibs.filter((x) => x.type === 'district' && x.params.specialty === params.specialty && x.params.city === params.city)) { related.push(this.link(f, locale, cc, f.district!)); links.districts.push(this.link(f, locale, cc, f.district!)); }
+      for (const f of sibs.filter((x) => x.type === 'district' && x.params.specialty !== params.specialty && x.params.city === params.city && x.params.district === params.district).slice(0, 6)) links.relatedSpecialties.push(this.link(f, locale, cc, this.spLabel(f.specialtyCode!)));
+    }
+    if (type === 'care-district') for (const f of sibs.filter((x) => x.type === 'care-district' && x.params.care === params.care && x.params.city === params.city)) { related.push(this.link(f, locale, cc, f.district!)); links.districts.push(this.link(f, locale, cc, f.district!)); }
+    if (type === 'city-hub') for (const f of sibs.filter((x) => x.type === 'district-hub' && x.params.city === params.city)) { related.push(this.link(f, locale, cc, f.district!)); links.districts.push(this.link(f, locale, cc, f.district!)); }
+    if (type === 'district-hub') for (const f of sibs.filter((x) => x.type === 'district-hub' && x.params.city === params.city)) { related.push(this.link(f, locale, cc, f.district!)); links.districts.push(this.link(f, locale, cc, f.district!)); }
+    if (type === 'city-hub' || type === 'district-hub') for (const f of sibs.filter((x) => x.type === 'city-hub').slice(0, 8)) links.cities.push(this.link(f, locale, cc, f.city!));
+    if (type === 'hub') for (const f of sibs.filter((x) => x.type === 'hub').sort((a, b) => b.providers.length - a.providers.length || (a.key < b.key ? -1 : 1)).slice(0, 8)) links.relatedSpecialties.push(this.link(f, locale, cc, lab(f)));
+    // availability hubs for this specialty (same-day, video), only when they pass their own guard
+    if (facet.specialtyCode && ['hub', 'city', 'district', 'same-day', 'telemedicine'].includes(type)) {
+      for (const f of sibs.filter((x) => (x.type === 'same-day' || x.type === 'telemedicine') && x.params.specialty === params.specialty)) links.availability.push(this.link(f, locale, cc, this.availabilityLabel(f.type as 'same-day' | 'telemedicine', specLabel!)));
+    }
+    // parent hubs: the specialty hub (for specialty pages) or the city hub (for district hubs), only when indexable
+    const parentKeys = type === 'city' || type === 'district' || type === 'same-day' || type === 'telemedicine' ? [`hub:${params.specialty}`] : type === 'district-hub' ? [`city-hub:${params.city}`] : [];
+    for (const k of parentKeys) { const f = s.facets.byKey.get(k); if (f && f.guard.indexable) links.parents.push(this.link(f, locale, cc, f.type === 'hub' ? this.spLabel(f.specialtyCode!) : f.city!)); }
+    // specialty mix of a location or availability page
+    const specialtyMix: FacetLink[] = [];
+    if (type === 'city-hub' || type === 'district-hub') {
+      const mix = new Map<string, number>();
+      for (const p of facet.providers) if (p.careType === 'DOCTORS' && p.specialty) mix.set(p.specialty, (mix.get(p.specialty) ?? 0) + 1);
+      for (const [code, count] of [...mix].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 12)) {
+        const seg = specialtySegment(code);
+        const target = (type === 'city-hub' ? s.facets.byKey.get(`city:${seg}/${params.city}`) : s.facets.byKey.get(`district:${seg}/${params.city}/${params.district}`)) ?? s.facets.byKey.get(`hub:${seg}`);
+        if (target?.guard.indexable) specialtyMix.push({ label: this.spLabel(code), path: buildPath(locale, cc, target.type, target.params), count });
+      }
+    }
+    const crumbs = this.listCrumbs(route, facet, specLabel, careLabel, s);
+    const pages = Math.max(1, Math.ceil(facet.providers.length / PAGE_SIZE));
+    const base = buildPath(locale, cc, type as Facet['type'], params);
+    const sameDayUntil = Date.now() + s.seo.sameDayWindowHours * 3_600_000;
+    const data: ListData = {
+      kind: type as ListData['kind'], title, specialty: facet.specialtyCode ? { code: facet.specialtyCode, label: specLabel! } : null, city: facet.city, district: facet.district, careType: facet.careType,
+      liveProviders: facet.providers.length, page: q.page, pageSize: PAGE_SIZE, providers: await this.cards(route.cc.toUpperCase(), pageItems), facets: this.facetsOf(facet.providers), related, crumbs,
+      links, ratingDistribution: await this.ratingDistribution(facet.providers.map((p) => p.id)), specialtyMix,
+      sameDayCount: facet.providers.filter((p) => p.nextSlotAt && p.nextSlotAt.getTime() > Date.now() && p.nextSlotAt.getTime() <= sameDayUntil).length,
+      pagination: { page: q.page, pages, prevPath: q.page > 1 ? (q.page === 2 ? base : `${base}?page=${q.page - 1}`) : null, nextPath: q.page < pages ? `${base}?page=${q.page + 1}` : null },
+    };
+    // pagination policy: page 2+ is `noindex,follow` unless the SEO config makes paginated pages indexable (canonical stays self-referencing either way)
+    const reasons = [...facet.guard.reasons, ...(q.page > 1 && !s.seo.paginatedIndexable ? ['PAGINATED'] : [])];
+    return { status: 200, data, indexable: reasons.length === 0, noindexReasons: reasons, lastModified: facet.lastModified, tags: ['list', ...pageItems.map((p) => `provider:${p.id}`)] };
+  }
+
+  private listTitle(type: string, spec: Bilingual | null, care: Bilingual | null, place: Bilingual | null, f: Facet): Bilingual {
+    if (type === 'same-day' || type === 'telemedicine') return this.availabilityLabel(type, spec!);
+    if (type === 'city-hub') return { en: `Doctors and care in ${f.city!.en}`, ar: `أطباء ورعاية صحية في ${f.city!.ar}` };
+    if (type === 'district-hub') return { en: `Doctors and care in ${f.district!.en}, ${f.city!.en}`, ar: `أطباء ورعاية صحية في ${f.district!.ar}، ${f.city!.ar}` };
+    return spec
+      ? { en: place ? `${spec.en} doctors in ${place.en}` : `${spec.en} doctors`, ar: place ? `أطباء ${spec.ar} في ${place.ar}` : `أطباء ${spec.ar}` }
+      : { en: `${care!.en} in ${place!.en}`, ar: `${care!.ar} في ${place!.ar}` };
+  }
+
+  private listCrumbs(route: ParsedPath, facet: Facet, specLabel: Bilingual | null, careLabel: Bilingual | null, s: SiteSnapshot): Crumb[] {
+    const { locale, cc, type, params } = route;
     const crumbs: Crumb[] = [this.homeCrumb(locale, cc)];
+    const linkIf = (k: string, fallback: string | null, label: Bilingual): Crumb => { const f = s.facets.byKey.get(k); return { label, path: f?.guard.indexable ? buildPath(locale, cc, f.type, f.params) : fallback }; };
+    if (type === 'city-hub') { crumbs.push({ label: facet.city!, path: null }); return crumbs; }
+    if (type === 'district-hub') { crumbs.push(linkIf(`city-hub:${params.city}`, null, facet.city!), { label: facet.district!, path: null }); return crumbs; }
+    if (type === 'same-day' || type === 'telemedicine') { crumbs.push(linkIf(`hub:${params.specialty}`, null, specLabel!), { label: this.availabilityLabel(type, specLabel!), path: null }); return crumbs; }
     if (specLabel) {
-      crumbs.push({ label: specLabel, path: buildPath(locale, cc, 'hub', { specialty: params.specialty! }) });
+      crumbs.push({ label: specLabel, path: type === 'hub' ? null : buildPath(locale, cc, 'hub', { specialty: params.specialty! }) });
       if (facet.city) crumbs.push({ label: facet.city, path: type === 'city' ? null : buildPath(locale, cc, 'city', { specialty: params.specialty!, city: params.city! }) });
       if (facet.district) crumbs.push({ label: facet.district, path: null });
+      if (type === 'hub') crumbs[1] = { label: specLabel, path: null };
     } else {
       crumbs.push({ label: careLabel!, path: null }, { label: facet.city!, path: null });
       if (facet.district) crumbs.push({ label: facet.district, path: null });
     }
-    const data: ListData = {
-      kind: type as ListData['kind'], title, specialty: facet.specialtyCode ? { code: facet.specialtyCode, label: specLabel! } : null, city: facet.city, district: facet.district, careType: facet.careType,
-      liveProviders: facet.providers.length, page: q.page, pageSize: PAGE_SIZE, providers: await this.cards(route.cc.toUpperCase(), pageItems), facets: this.facetsOf(facet.providers), related, crumbs,
-    };
-    const reasons = [...facet.guard.reasons, ...(q.page > 1 ? ['PAGINATED'] : [])];
-    return { status: 200, data, indexable: reasons.length === 0, noindexReasons: reasons, lastModified: facet.lastModified, tags: ['list', ...pageItems.map((p) => `provider:${p.id}`)] };
+    return crumbs;
+  }
+
+  // ── pharmacy and lab ─────────────────────────────────────────────────────────────────────────────────────────
+
+  private async partner(route: ParsedPath, s: SiteSnapshot): Promise<LoadResult> {
+    const { locale, cc, type, params } = route;
+    const market = cc.toUpperCase();
+    const entity = type === 'pharmacy' ? 'PHARMACY' : 'LAB';
+    const r = await this.redirects.resolve(market, entity, params.slug!);
+    if (r.kind === 'unknown') return { status: 404, reason: 'UNKNOWN_SLUG' };
+    if (r.kind === 'moved') return { status: 301, to: buildPath(locale, cc, type, { slug: r.slug }) };
+    const p = s.index.partners.find((x) => x.id === r.entityId && x.kind === entity);
+    // not LIVE, or the feature flag is OFF in this market: no public page (the SSR layer answers 404; a delisted partner keeps no URL)
+    if (!p) return { status: 404, reason: 'PARTNER_NOT_LIVE' };
+    const slugs = await this.redirects.slugsFor(market, entity, s.index.partners.filter((x) => x.kind === entity).map((x) => x.id));
+    const name: Bilingual = { en: p.nameEn, ar: p.nameAr ?? p.nameEn };
+    const others: FacetLink[] = s.index.partners.filter((x) => x.kind === entity && x.id !== p.id && slugs.get(x.id)).slice(0, 6)
+      .map((x) => ({ label: { en: x.nameEn, ar: x.nameAr ?? x.nameEn }, path: buildPath(locale, cc, type, { slug: slugs.get(x.id)! }), count: 0 }));
+    const data: PartnerData = { kind: type as 'pharmacy' | 'lab', partner: { id: p.id, slug: r.slug, name }, others, crumbs: [this.homeCrumb(locale, cc), { label: type === 'pharmacy' ? { en: 'Pharmacies', ar: 'الصيدليات' } : { en: 'Labs', ar: 'المعامل' }, path: null }, { label: name, path: null }] };
+    return { status: 200, data, indexable: true, noindexReasons: [], lastModified: p.lastModified, tags: [`partner:${p.id}`, 'list'] };
   }
 
   private async provider(route: ParsedPath, s: SiteSnapshot): Promise<LoadResult> {
@@ -207,6 +305,14 @@ export class SiteDataService {
     const nameLabel = card!.name;
     crumbs.push({ label: nameLabel, path: null });
     const bookable = row.status === 'LIVE';
+    // similar providers: same specialty and city, LIVE and listed, best rated first (real neighbours, not a template swap)
+    const similarRaw = this.sortProviders(s.index.providers.filter((x) => x.id !== row.id && x.status === 'LIVE' && x.listed && x.careType === row.careType && x.specialty === row.specialty && slugifyPlace(x.governorate) === citySlug), null).slice(0, 4);
+    const similar = await this.cards(market, similarRaw);
+    // rating markup policy: verified reviews visible ON the page and at least `reviewMarkupMinCount` of them in total (SEO config); never otherwise
+    const ratingMarkup = s.seo.reviewMarkupEnabled && reviews.length > 0 && card!.rating.count >= s.seo.reviewMarkupMinCount;
+    const sameName = (a: IndexedProvider, b: IndexedProvider) => a.id !== b.id && a.specialty === b.specialty && normalizeArabic(a.nameEn || a.nameAr) === normalizeArabic(b.nameEn || b.nameAr);
+    const homonymSuffix = /-(\d+)$/.exec(r.slug)?.[1];
+    const homonym = homonymSuffix && ip && s.index.providers.some((x) => x.status === 'LIVE' && x.listed && sameName(ip, x)) ? `#${homonymSuffix}` : null;
     const data: DoctorData = {
       kind,
       provider: {
@@ -217,7 +323,7 @@ export class SiteDataService {
         // coverage DISTRICTS only (KXMDS05): the provider's home address is never part of the projection
         coverageDistricts: row.serviceLocations.includes('HOME') ? row.coverageDistricts : [],
       },
-      bookable, reviews, bookPath: `/doctors/${row.id}?book=1`, related, crumbs,
+      bookable, reviews, bookPath: `/doctors/${row.id}?book=1`, related, crumbs, similar, ratingMarkup, homonym,
     };
     return { status: 200, data, indexable: bookable, noindexReasons: bookable ? [] : ['PAUSED_LISTING'], lastModified: base.lastModified, tags: [`provider:${row.id}`, `clinic:${row.clinicId}`] };
   }
@@ -233,8 +339,17 @@ export class SiteDataService {
     const live = all.filter((p) => p.status === 'LIVE');
     const first = all[0]!;
     const sorted = this.sortProviders(live, null);
+    const specs = [...new Set(live.map((p) => p.specialty).filter((x): x is string => !!x))].sort();
+    const cityF = first.governorate ? s.facets.byKey.get(`city-hub:${slugifyPlace(first.governorate)}`) : undefined;
+    const clinicLinks: FacetLink[] = [];
+    if (cityF?.guard.indexable) clinicLinks.push(this.link(cityF, locale, cc, cityF.city!));
+    for (const sp of specs) { const h = s.facets.byKey.get(`hub:${specialtySegment(sp)}`); if (h?.guard.indexable) clinicLinks.push(this.link(h, locale, cc, this.spLabel(sp))); }
+    const clinicName = (p: IndexedProvider) => normalizeArabic(p.clinicNameEn || p.clinicNameAr);
+    const otherClinicSameName = s.index.providers.some((x) => x.clinicId !== r.entityId && x.status === 'LIVE' && x.listed && clinicName(x) === clinicName(first));
+    const clinicSuffix = /-(\d+)$/.exec(r.slug)?.[1];
     const data: ClinicData = {
-      kind: 'clinic',
+      homonym: otherClinicSameName && clinicSuffix ? `#${clinicSuffix}` : null,
+      kind: 'clinic', specialties: specs.map((c) => ({ code: c, label: this.spLabel(c) })), facets: this.facetsOf(live), links: clinicLinks,
       clinic: { id: r.entityId, slug: r.slug, name: { en: first.clinicNameEn ?? first.clinicNameAr ?? '', ar: first.clinicNameAr ?? first.clinicNameEn ?? '' }, area: first.area, governorate: first.governorate },
       providers: await this.cards(market, sorted), liveProviders: live.length,
       crumbs: [this.homeCrumb(locale, cc), { label: { en: first.clinicNameEn ?? first.clinicNameAr ?? '', ar: first.clinicNameAr ?? first.clinicNameEn ?? '' }, path: null }],

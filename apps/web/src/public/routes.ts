@@ -13,11 +13,15 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { type: "city", pattern: "doctors/:specialty/:city", enabled: true },
   { type: "district", pattern: "doctors/:specialty/:city/:district", enabled: true },
   { type: "care-district", pattern: ":care/:city/:district", enabled: true },
+  { type: "city-hub", pattern: "locations/:city", enabled: true },
+  { type: "district-hub", pattern: "locations/:city/:district", enabled: true },
+  { type: "same-day", pattern: "same-day/:specialty", enabled: true },
+  { type: "telemedicine", pattern: "telemedicine/:specialty", enabled: true },
   { type: "doctor", pattern: "doctor/:slug", enabled: true },
   { type: "clinic", pattern: "clinic/:slug", enabled: true },
   { type: "nurse", pattern: "nurse/:slug", enabled: true },
-  { type: "pharmacy", pattern: "pharmacy/:slug", enabled: false },
-  { type: "lab", pattern: "lab/:slug", enabled: false },
+  { type: "pharmacy", pattern: "pharmacy/:slug", enabled: true },
+  { type: "lab", pattern: "lab/:slug", enabled: true },
 ];
 
 const SLUG = "[a-z0-9-]{2,60}";

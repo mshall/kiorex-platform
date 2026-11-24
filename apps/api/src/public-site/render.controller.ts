@@ -6,6 +6,8 @@ import { FlagsService } from '../control-plane/control-plane-public';
 import { GROWTH_FLAG } from '../growth/growth-public';
 import { PublicSiteCache } from './cache-tags';
 import { composeDocument, escapeHtml } from './head';
+import { looseRedirectTarget } from './loose-path';
+import { verificationCfg } from './search-engines';
 import { errorCacheControl, etagMatches, etagOf, noStore, publicCacheControl, securityHeaders } from './headers';
 import { RedirectsService } from './redirects.service';
 import { SeoConfigService } from './seo-config.service';
@@ -39,11 +41,18 @@ export class RenderController {
     if (req.method !== 'GET' && req.method !== 'HEAD') { next(); return; }
     const started = performance.now();
     try {
-      const parsed = parsePublicPath(req.path);
+      // percent-encoded, non-ASCII or underscore variants (Arabic names): resolve BEFORE the case normaliser, which would lower-case the escapes
+      const loose = /%|_|[^\x00-\x7f]/.test(req.path) ? looseRedirectTarget(req.path) : null;
+      const parsed = loose ? ({ kind: 'redirect', to: loose, reason: 'case' } as const) : parsePublicPath(req.path);
       const search = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
       if (parsed.kind === 'redirect') { this.redirect(res, parsed.to + search, 301, await this.edgeSeconds()); this.cache.metrics.inc('redirects'); return; }
       if (parsed.kind === 'spa') { await this.spaShell(req, res, 'SPA_PAGE'); return; }
-      if (parsed.kind === 'none') { await this.notFound(req, res, req.path, 'ROUTE_NOT_FOUND', 404); return; }
+      if (parsed.kind === 'none') {
+        // Arabic, case or underscore variants of a real URL: ONE 301 to the clean canonical (never a second URL for the same page)
+        const loose = looseRedirectTarget(req.path);
+        if (loose) { this.redirect(res, loose + search, 301, await this.edgeSeconds()); this.cache.metrics.inc('redirects_loose'); return; }
+        await this.notFound(req, res, req.path, 'ROUTE_NOT_FOUND', 404); return;
+      }
       const route = parsed.value;
       const market = route.cc.toUpperCase();
       if (!(await this.index.marketLive(market))) { await this.notFound(req, res, req.path, 'MARKET_NOT_LIVE', 404); return; }
@@ -57,7 +66,7 @@ export class RenderController {
       let response: CachedResponse;
       if (loaded.status === 301) response = this.redirectResponse(loaded.to, seo.edgeCacheSeconds);
       else if (loaded.status !== 200) response = await this.notFoundResponse(req.path, loaded.reason, loaded.status, route.locale, route.cc);
-      else response = await this.renderPage(route, q, loaded, seo.edgeCacheSeconds, seo.staleWhileRevalidateSeconds, seo.reviewMarkupEnabled);
+      else response = await this.renderPage(route, q, loaded, seo.edgeCacheSeconds, seo.staleWhileRevalidateSeconds, seo.reviewMarkupEnabled, seo.templates);
       this.cache.metrics.observeRender(performance.now() - started);
       this.cache.metrics.inc(`status_${response.status}`);
       this.cache.pages.set(key, response);
@@ -69,9 +78,9 @@ export class RenderController {
     }
   };
 
-  private async renderPage(route: NonNullable<ReturnType<typeof parsePublicPath> & { kind: 'match' }>['value'], q: ReturnType<typeof readPageQuery>, loaded: Extract<LoadResult, { status: 200 }>, sMaxAge: number, swr: number, reviewMarkup: boolean): Promise<CachedResponse> {
+  private async renderPage(route: NonNullable<ReturnType<typeof parsePublicPath> & { kind: 'match' }>['value'], q: ReturnType<typeof readPageQuery>, loaded: Extract<LoadResult, { status: 200 }>, sMaxAge: number, swr: number, reviewMarkup: boolean, templates: Record<string, Record<string, { title?: string; description?: string }>> = {}): Promise<CachedResponse> {
     const cfg = siteCfg();
-    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: loaded.data, site: { canonicalHost: cfg.canonicalHost, reviewMarkup } });
+    const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: loaded.data, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null } });
     const indexable = cfg.indexable && loaded.indexable;
     const path = this.pathOf(route);
     const alternates = hreflangAlternates(cfg.canonicalHost, route.cc, route.rest);
@@ -80,6 +89,7 @@ export class RenderController {
       locale: route.locale, cc: route.cc, canonical: canonicalUrl(cfg.canonicalHost, path, q), alternates, indexable, title: out.meta.title, description: out.meta.description,
       ogImage: out.meta.ogImage ?? `${cfg.canonicalHost}/og-image.png`, siteName: 'Kiorex', jsonLd: out.jsonLd, bodyHtml: out.html,
       state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: loaded.data }, assets,
+      ...(route.type === 'home' && cfg.indexable ? { verification: { google: verificationCfg().googleMeta, bing: verificationCfg().bingMeta } } : {}),
     });
     const headers: Record<string, string> = {
       ...securityHeaders({ styleHashes: assets.css ? [styleHash] : [], frameAncestors: cfg.frameAncestors }),

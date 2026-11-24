@@ -24,6 +24,8 @@ export interface DocumentInput {
   assets: ClientAssets;
   /** noindex even if the page is indexable (staging, flag OFF, fallbacks). */
   forceNoindex?: boolean;
+  /** Search Console / Bing ownership meta tags (home page only; tokens come from configuration). */
+  verification?: { google?: string | null; bing?: string | null };
 }
 
 export const robotsMeta = (indexable: boolean): string => (indexable ? 'index,follow,max-image-preview:large,max-snippet:-1' : 'noindex,follow');
@@ -46,7 +48,10 @@ export function composeDocument(i: DocumentInput): { html: string; styleHash: st
     `<meta property="og:title" content="${escapeHtml(i.title)}"><meta property="og:description" content="${escapeHtml(i.description)}">`,
     `<meta property="og:url" content="${escapeHtml(i.canonical)}"><meta property="og:image" content="${escapeHtml(i.ogImage)}">`,
     `<meta property="og:locale" content="${ogLocale}"><meta property="og:locale:alternate" content="${altLocale}">`,
-    '<meta name="twitter:card" content="summary_large_image">',
+    `<meta property="og:image:alt" content="${escapeHtml(i.title)}">`,
+    `<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(i.title)}"><meta name="twitter:description" content="${escapeHtml(i.description)}"><meta name="twitter:image" content="${escapeHtml(i.ogImage)}">`,
+    ...(i.verification?.google ? [`<meta name="google-site-verification" content="${escapeHtml(i.verification.google)}">`] : []),
+    ...(i.verification?.bing ? [`<meta name="msvalidate.01" content="${escapeHtml(i.verification.bing)}">`] : []),
     '<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">',
     ...i.assets.fontPreloads.map((f) => `<link rel="preload" as="font" type="font/woff2" href="${escapeHtml(f)}" crossorigin>`),
     ...i.assets.modulePreloads.map((m) => `<link rel="modulepreload" href="${escapeHtml(m)}">`),

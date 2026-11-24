@@ -12,6 +12,8 @@ export interface ProviderCard {
   slug: string | null;
   /** Page route the card links to. */
   kind: 'doctor' | 'nurse';
+  /** PHYSICIAN | DENTIST | PHYSIOTHERAPIST | NURSE (null = legacy doctor): decides the honest schema.org type. */
+  profession?: string | null;
   name: Bilingual;
   specialty: { code: string; label: Bilingual } | null;
   clinicName: Bilingual;
@@ -25,9 +27,17 @@ export interface ProviderCard {
 
 export interface FacetLink { label: Bilingual; path: string; count: number }
 
-export interface HomeData { kind: 'home'; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[] }
+export interface HomeData {
+  kind: 'home'; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[];
+  /** GRW-P1-F: indexable city hubs (all care in a city), same-day and video hubs, and the partner counts that exist on the market. */
+  cityHubs: FacetLink[]; availability: FacetLink[]; careTypes: FacetLink[]; partners: { pharmacies: number; labs: number };
+}
+/** Internal links of a listing page (only to pages that pass the thin-page guard). */
+export interface ListLinks { districts: FacetLink[]; cities: FacetLink[]; relatedSpecialties: FacetLink[]; availability: FacetLink[]; parents: FacetLink[] }
+export interface RatingBucket { stars: 1 | 2 | 3 | 4 | 5; count: number }
+export interface PaginationData { page: number; pages: number; prevPath: string | null; nextPath: string | null }
 export interface ListData {
-  kind: 'hub' | 'city' | 'district' | 'care-district';
+  kind: 'hub' | 'city' | 'district' | 'care-district' | 'city-hub' | 'district-hub' | 'same-day' | 'telemedicine';
   title: Bilingual; // the facet (specialty, "specialty in city", ...)
   specialty: { code: string; label: Bilingual } | null;
   city: Bilingual | null;
@@ -40,6 +50,13 @@ export interface ListData {
   facets: { feeRange: { minMinor: number; maxMinor: number; currency: string } | null; languages: string[]; rating: { average: number; count: number } | null; nextSlotAt: string | null };
   related: FacetLink[];
   crumbs: Crumb[];
+  /** GRW-P1-F data blocks: real counts only (never invented). */
+  links: ListLinks;
+  ratingDistribution: RatingBucket[];
+  sameDayCount: number;
+  /** Specialties available here (location hubs): the real mix of this page's providers. */
+  specialtyMix: FacetLink[];
+  pagination: PaginationData;
 }
 export interface DoctorData {
   kind: 'doctor' | 'nurse';
@@ -51,6 +68,12 @@ export interface DoctorData {
   bookPath: string;
   related: FacetLink[];
   crumbs: Crumb[];
+  /** Other LIVE providers of the same specialty in the same city (max 4). */
+  similar: ProviderCard[];
+  /** aggregateRating is allowed only when verified, visible reviews meet the policy (SEO config reviewMarkupMinCount) and are shown on the page. */
+  ratingMarkup: boolean;
+  /** Set ("#2") when another listed provider has the same name and specialty: keeps titles and descriptions unique (duplicate-title rule). */
+  homonym: string | null;
 }
 export interface ClinicData {
   kind: 'clinic';
@@ -58,9 +81,21 @@ export interface ClinicData {
   providers: ProviderCard[];
   liveProviders: number;
   crumbs: Crumb[];
+  specialties: { code: string; label: Bilingual }[];
+  facets: ListData['facets'];
+  links: FacetLink[];
+  /** "#2" when another listed clinic has the same name (keeps titles unique). */
+  homonym: string | null;
+}
+export interface PartnerData {
+  kind: 'pharmacy' | 'lab';
+  partner: { id: string; slug: string; name: Bilingual };
+  /** Other partners of the same kind on the market (names and links only). */
+  others: FacetLink[];
+  crumbs: Crumb[];
 }
 export interface NotFoundData { kind: 'not-found'; reason: string }
-export type PageData = HomeData | ListData | DoctorData | ClinicData | NotFoundData;
+export type PageData = HomeData | ListData | DoctorData | ClinicData | PartnerData | NotFoundData;
 
 /** Loader outcome: what the controller turns into 200/301/404/410. */
 export type LoadResult =

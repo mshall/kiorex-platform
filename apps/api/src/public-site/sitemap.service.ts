@@ -45,6 +45,12 @@ export class SitemapService {
     for (const p of visible) { const d = byClinic.get(p.clinicId); if (!d || p.lastModified > d) byClinic.set(p.clinicId, p.lastModified); }
     const clinicSlugs = await this.redirects.slugsFor(market, 'CLINIC', [...byClinic.keys()]);
     for (const [clinicId, lastmod] of byClinic) { const slug = clinicSlugs.get(clinicId); if (slug) out.push({ type: 'clinic', rest: `clinic/${slug}`, lastmod }); }
+    // pharmacies and labs: LIVE partners with the feature flag effective (the same set the renderer serves)
+    for (const [kind, entity] of [['pharmacy', 'PHARMACY'], ['lab', 'LAB']] as const) {
+      const list = s.index.partners.filter((x) => x.kind === entity);
+      const pslugs = await this.redirects.slugsFor(market, entity, list.map((x) => x.id));
+      for (const x of list) { const slug = pslugs.get(x.id); if (slug) out.push({ type: kind, rest: `${kind}/${slug}`, lastmod: x.lastModified }); }
+    }
     out.sort((a, b) => (a.type === b.type ? (a.rest < b.rest ? -1 : 1) : a.type < b.type ? -1 : 1));
     const built: Built = { at: Date.now(), entries: out, shardSize: Math.max(1, Math.min(s.seo.sitemapShardSize, 50_000)), host: siteCfg().canonicalHost };
     this.built.set(market, built);

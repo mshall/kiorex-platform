@@ -11,6 +11,7 @@ export interface ProviderCard {
   id: string;
   slug: string | null;
   kind: "doctor" | "nurse";
+  profession?: string | null;
   name: Bilingual;
   specialty: { code: string; label: Bilingual } | null;
   clinicName: Bilingual;
@@ -22,9 +23,15 @@ export interface ProviderCard {
   nextSlotAt: string | null;
 }
 export interface FacetLink { label: Bilingual; path: string; count: number }
-export interface HomeData { kind: "home"; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[] }
+export interface HomeData {
+  kind: "home"; liveProviders: number; specialties: FacetLink[]; cities: FacetLink[]; crumbs: Crumb[];
+  cityHubs: FacetLink[]; availability: FacetLink[]; careTypes: FacetLink[]; partners: { pharmacies: number; labs: number };
+}
+export interface ListLinks { districts: FacetLink[]; cities: FacetLink[]; relatedSpecialties: FacetLink[]; availability: FacetLink[]; parents: FacetLink[] }
+export interface RatingBucket { stars: 1 | 2 | 3 | 4 | 5; count: number }
+export interface PaginationData { page: number; pages: number; prevPath: string | null; nextPath: string | null }
 export interface ListData {
-  kind: "hub" | "city" | "district" | "care-district";
+  kind: "hub" | "city" | "district" | "care-district" | "city-hub" | "district-hub" | "same-day" | "telemedicine";
   title: Bilingual;
   specialty: { code: string; label: Bilingual } | null;
   city: Bilingual | null;
@@ -37,6 +44,11 @@ export interface ListData {
   facets: { feeRange: { minMinor: number; maxMinor: number; currency: string } | null; languages: string[]; rating: { average: number; count: number } | null; nextSlotAt: string | null };
   related: FacetLink[];
   crumbs: Crumb[];
+  links: ListLinks;
+  ratingDistribution: RatingBucket[];
+  sameDayCount: number;
+  specialtyMix: FacetLink[];
+  pagination: PaginationData;
 }
 export interface DoctorData {
   kind: "doctor" | "nurse";
@@ -46,6 +58,9 @@ export interface DoctorData {
   bookPath: string;
   related: FacetLink[];
   crumbs: Crumb[];
+  similar: ProviderCard[];
+  ratingMarkup: boolean;
+  homonym: string | null;
 }
 export interface ClinicData {
   kind: "clinic";
@@ -53,18 +68,31 @@ export interface ClinicData {
   providers: ProviderCard[];
   liveProviders: number;
   crumbs: Crumb[];
+  specialties: { code: string; label: Bilingual }[];
+  facets: ListData["facets"];
+  links: FacetLink[];
+  homonym: string | null;
+}
+export interface PartnerData {
+  kind: "pharmacy" | "lab";
+  partner: { id: string; slug: string; name: Bilingual };
+  others: FacetLink[];
+  crumbs: Crumb[];
 }
 export interface NotFoundData { kind: "not-found"; reason: string }
-export type PageData = HomeData | ListData | DoctorData | ClinicData | NotFoundData;
+export type PageData = HomeData | ListData | DoctorData | ClinicData | PartnerData | NotFoundData;
 
-export type PublicPageType = "home" | "hub" | "city" | "district" | "care-district" | "doctor" | "clinic" | "nurse" | "pharmacy" | "lab" | "static" | "not-found";
+export type PublicPageType = "home" | "hub" | "city" | "district" | "care-district" | "city-hub" | "district-hub" | "same-day" | "telemedicine" | "doctor" | "clinic" | "nurse" | "pharmacy" | "lab" | "static" | "not-found";
 export interface PageQuery { page: number; sort: "rating" | "fee" | "earliest" | null }
 
 /** What the API sends to `render()` and embeds in the HTML for hydration. */
 export interface SsrInput {
   locale: Locale; cc: string; type: PublicPageType; path: string; query: PageQuery; data: PageData;
-  site: { canonicalHost: string; reviewMarkup: boolean };
+  site: { canonicalHost: string; reviewMarkup: boolean; templates?: MetaTemplates; imageCdn?: string | null };
 }
+/** Versioned SEO configuration: title and description templates per locale and page type (see seo/meta-templates.ts). */
+export type MetaTemplates = Partial<Record<Locale, Record<string, { title?: string; description?: string }>>>;
+
 export interface SsrOutput {
   html: string;
   meta: { title: string; description: string; ogImage?: string | null };
@@ -78,6 +106,8 @@ export interface TemplateCtx {
   path: string;
   canonicalHost: string;
   reviewMarkup: boolean;
+  templates: MetaTemplates;
+  imageCdn: string | null;
   query: PageQuery;
   /** Translate a key of the `public` catalogue. */
   t: (key: string, vars?: Record<string, string | number>) => string;

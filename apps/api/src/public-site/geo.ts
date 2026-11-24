@@ -1,8 +1,11 @@
+import { normalizeArabic, transliterateArabic } from '../growth/seo/seo-public';
 import type { Bilingual } from './site-data.types';
 
 /** URL segment for a free-text place name ("Nasr City" -> nasr-city). ASCII, lowercase, 2..60 chars; null when nothing usable remains. */
 export function slugifyPlace(v: string | null | undefined): string | null {
   if (!v) return null;
+  // Arabic place names (Kiorly stores free text): known Arabic labels resolve to the same slug as their English spelling, others are transliterated
+  if (/[\u0600-\u06FF]/.test(v)) { const known = arabicPlaceSlug(v); if (known) return known; v = transliterateArabic(v); }
   const s = v.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
   return s.length >= 2 ? s : null;
 }
@@ -26,3 +29,7 @@ export function placeLabel(kind: 'city' | 'district', name: string): Bilingual {
   const ar = (kind === 'city' ? GOVERNORATES_AR : AREAS_AR)[seg];
   return { en: name, ar: ar ?? name };
 }
+
+/** Arabic label (any spelling variant) to the place slug: reverse of the two label tables above. */
+const REVERSE: Map<string, string> = new Map([...Object.entries(GOVERNORATES_AR), ...Object.entries(AREAS_AR)].map(([slug, ar]) => [normalizeArabic(ar), slug]));
+export function arabicPlaceSlug(v: string): string | null { return REVERSE.get(normalizeArabic(v)) ?? null; }
