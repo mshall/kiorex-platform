@@ -196,7 +196,23 @@ describe('GRW-P2-D WhatsApp assistant (mock model, mock messaging, real database
 
     it('without the AI_PROCESSING consent the deterministic machine answers and no assistant turn runs', async () => {
       await setupAssistant(c, { consent: false });
-      const r = await say(c, 'hi'); expect(r[0]).toContain('Pick a specialty by number'); expect(await c.prisma.assistantTurn.count()).toBe(0);
+      const r = await say(c, 'hi'); expect(r.some((m) => m.includes('Pick a specialty by number'))).toBe(true); expect(await c.prisma.assistantTurn.count()).toBe(0);
+    });
+
+    it('without the AI_PROCESSING consent a verified patient gets ONE consent invite per week with a one-time link that continues to the account page; nothing is switched on', async () => {
+      await setupAssistant(c, { consent: false });
+      const r1 = await say(c, 'hi');
+      expect(r1.some((m) => m.includes('Pick a specialty by number'))).toBe(true); // the deterministic machine still answers
+      const sent = async () => r1.filter((m) => /assistant\?al=kxa1\./.test(m));
+      const invite = (await sent())[0]; expect(invite).toBeTruthy();
+      expect(await c.prisma.assistantSession.count()).toBe(0);
+      const token = /al=(kxa1\.[A-Za-z0-9_.-]+)/.exec(invite!)![1];
+      const v = await c.http().post('/api/v1/growth/v1/assistant/link').send({ token }).expect(200);
+      expect(decodeURIComponent(v.body.continuePath)).toContain('/account?consent=AI_PROCESSING&src=whatsapp');
+      expect(JSON.stringify(v.body)).not.toMatch(/\+20|sub_/);
+      expect((await c.http().post('/api/v1/growth/v1/assistant/link').send({ token })).body.code).toBe('ASSISTANT_LINK_USED');
+      const r2 = await say(c, 'hello again');
+      expect(r2.filter((m) => /assistant\?al=kxa1\./.test(m))).toHaveLength(0); // no second invite inside the week
     });
 
     it('flag OFF (launch-locked, no gate evidence): the deterministic machine answers exactly as before', async () => {

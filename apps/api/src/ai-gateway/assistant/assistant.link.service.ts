@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { sha } from './assistant.audit';
 import { LIMITS } from './assistant.policy';
 
-export type LinkIntent = 'BOOK' | 'VERIFY' | 'PAY';
+export type LinkIntent = 'BOOK' | 'VERIFY' | 'PAY' | 'CONSENT';
 export interface LinkPayload { providerId?: string; startsAt?: string; typeId?: string; bookingId?: string }
 
 /**

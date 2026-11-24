@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AssistantAudit } from './assistant.audit';
 import { AssistantPolicyService } from './assistant.config';
 import { AssistantCostService } from './assistant.cost.service';
+import { AssistantLinkService } from './assistant.link.service';
 import { AssistantModelFactory } from './assistant.model.factory';
 import { AssistantOrchestrator, templateId } from './assistant.orchestrator';
 import { AssistantRateLimit, ConcurrencyGate } from './assistant.rate-limit';
@@ -31,8 +32,19 @@ export class AssistantRouter {
   private readonly gate = new ConcurrencyGate();
   constructor(
     private readonly flags: FlagsService, private readonly patients: PatientService, private readonly prisma: PrismaService, private readonly orchestrator: AssistantOrchestrator, private readonly cost: AssistantCostService,
-    private readonly policies: AssistantPolicyService, private readonly models: AssistantModelFactory, private readonly rate: AssistantRateLimit, private readonly audit: AssistantAudit, private readonly sessions: AssistantSessionService, private readonly hub: MessagingHub,
+    private readonly policies: AssistantPolicyService, private readonly models: AssistantModelFactory, private readonly rate: AssistantRateLimit, private readonly audit: AssistantAudit, private readonly sessions: AssistantSessionService, private readonly hub: MessagingHub, private readonly links: AssistantLinkService,
   ) {}
+
+  /** Once a week per number: a one-time link to the account page where the patient can allow AI processing (optional, withdrawable). Never sent for an unverified number. */
+  private async inviteConsent(inbound: InboundText, conv: ConversationRef, profile: ProfileRef): Promise<void> {
+    const ph = phoneHashOf(conv.phone);
+    const once = await this.rate.limiter.hit(`assistant:consent-invite:${ph}`, 1, 7 * 24 * 3_600_000);
+    if (!once.ok) return;
+    const l = await this.links.create({ phoneHash: ph, intent: 'CONSENT' }); if (!l) return;
+    const d = detectLang(inbound.text ?? '', conv.locale === 'en' ? 'en' : 'ar') === 'en' ? 'en' : detectDialect(inbound.text ?? '', 'ar');
+    await this.hub.send({ channel: 'WHATSAPP', sub: profile.sub, to: conv.phone, templateId: templateId('consent_invite'), locale: d === 'en' ? 'en' : 'ar', body: R.consentInvite(d, l.url).body });
+    await this.audit.record('consent_invite', null, { outcome: 'INVITED' });
+  }
 
   async route(inbound: InboundText, conv: ConversationRef, profile: ProfileRef | null): Promise<RouteDecision> {
     const market = profile?.market ?? DEFAULT_MARKET;
@@ -45,7 +57,11 @@ export class AssistantRouter {
       const policy = await this.policies.get(market);
       const model = await this.models.get(policy, market);
       if (profile) {
-        if (!(await this.patients.hasConsent(profile.sub, 'AI_PROCESSING'))) { await this.audit.record('consent_missing', live?.id ?? null, { outcome: 'DETERMINISTIC', reason: 'NO_AI_CONSENT' }); return 'DETERMINISTIC'; }
+        if (!(await this.patients.hasConsent(profile.sub, 'AI_PROCESSING'))) {
+          await this.audit.record('consent_missing', live?.id ?? null, { outcome: 'DETERMINISTIC', reason: 'NO_AI_CONSENT' });
+          await this.inviteConsent(inbound, conv, profile).catch((e) => this.log.warn(`consent invite failed: ${(e as Error).message}`)); // an invite, never a switch: the deterministic machine still answers this message
+          return 'DETERMINISTIC';
+        }
       } else if (model.mode === 'real') return 'DETERMINISTIC'; // an unverified number's text never leaves the platform
       const sessionRef = live ?? { turns: 0, tokenBudgetUsed: 0 };
       const verdict = await this.cost.check({ market, sub: profile?.sub ?? null, session: sessionRef, policy, now });

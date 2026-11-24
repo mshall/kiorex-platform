@@ -34,7 +34,8 @@ export class AssistantLinkController {
     const q = new URLSearchParams({ src: 'whatsapp' });
     if (p.providerId) q.set('provider', p.providerId);
     if (p.startsAt) q.set('slot', p.startsAt);
-    const path = v.intent === 'PAY' && p.bookingId ? `/bookings/${encodeURIComponent(p.bookingId)}/pay` : v.intent === 'VERIFY' ? `/signin?next=${encodeURIComponent(`/book?${q.toString()}`)}` : `/book?${q.toString()}`;
+    const consentNext = `/account?${new URLSearchParams({ consent: 'AI_PROCESSING', src: 'whatsapp' }).toString()}`;
+    const path = v.intent === 'CONSENT' ? `/signin?next=${encodeURIComponent(consentNext)}` : v.intent === 'PAY' && p.bookingId ? `/bookings/${encodeURIComponent(p.bookingId)}/pay` : v.intent === 'VERIFY' ? `/signin?next=${encodeURIComponent(`/book?${q.toString()}`)}` : `/book?${q.toString()}`;
     return { continuePath: path };
   }
 }
