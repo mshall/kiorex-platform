@@ -4737,6 +4737,570 @@
         ]
       }
     },
+    "/api/v1/partners/v1/connection-requests": {
+      "post": {
+        "operationId": "PartnerConnectionPublicController_intake",
+        "parameters": [
+          {
+            "name": "x-kiorly-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorly-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-kiorex-enrolment",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef)",
+        "tags": [
+          "partner-connections"
+        ]
+      }
+    },
+    "/api/v1/partners/v1/connection-requests/{id}": {
+      "get": {
+        "operationId": "PartnerConnectionPublicController_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-connection-token",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Partner polls its own status with the status token returned at creation",
+        "tags": [
+          "partner-connections"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/enrolments": {
+      "get": {
+        "operationId": "PartnerEnrolmentController_list",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: enrolment codes (never the code itself)",
+        "tags": [
+          "ops-onboarding"
+        ]
+      },
+      "post": {
+        "operationId": "PartnerEnrolmentController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrolmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "OP: create a one-time enrolment code; the code is in this response only",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/enrolments/{id}": {
+      "delete": {
+        "operationId": "PartnerEnrolmentController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: revoke an unused enrolment code",
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners": {
+      "get": {
+        "operationId": "PartnerOnboardingController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}": {
+      "get": {
+        "operationId": "PartnerOnboardingController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/audit": {
+      "get": {
+        "operationId": "PartnerOnboardingController_audit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/run-checks": {
+      "post": {
+        "operationId": "PartnerOnboardingController_run",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/steps/review_documents": {
+      "post": {
+        "operationId": "PartnerOnboardingController_docs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerNoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/steps/verify_licence": {
+      "post": {
+        "operationId": "PartnerOnboardingController_lic",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LicenceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/steps/fees": {
+      "post": {
+        "operationId": "PartnerOnboardingController_fees",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/request-changes": {
+      "post": {
+        "operationId": "PartnerOnboardingController_changes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/reject": {
+      "post": {
+        "operationId": "PartnerOnboardingController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/request-approval": {
+      "post": {
+        "operationId": "PartnerOnboardingController_request",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/approve": {
+      "post": {
+        "operationId": "PartnerOnboardingController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/go-live": {
+      "post": {
+        "operationId": "PartnerOnboardingController_live",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/pause": {
+      "post": {
+        "operationId": "PartnerOnboardingController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/resume": {
+      "post": {
+        "operationId": "PartnerOnboardingController_resume",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/partners/{id}/apply-rotation": {
+      "post": {
+        "operationId": "PartnerOnboardingController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops-onboarding"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",
@@ -5339,7 +5903,16 @@
     "/api/v1/pharmacy/pharmacies": {
       "get": {
         "operationId": "PharmacyController_pharmacies",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "partnerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -5375,6 +5948,14 @@
           },
           {
             "name": "pharmacyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "partnerId",
             "required": false,
             "in": "query",
             "schema": {
@@ -5628,6 +6209,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "partnerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5774,6 +6363,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "partnerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5824,6 +6421,14 @@
           },
           {
             "name": "tests",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "partnerId",
             "required": false,
             "in": "query",
             "schema": {
@@ -5969,6 +6574,14 @@
         "parameters": [
           {
             "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "partnerId",
             "required": false,
             "in": "query",
             "schema": {
@@ -13863,6 +14476,89 @@
           "reason"
         ]
       },
+      "EnrolmentBody": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "NURSE",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "orgRef": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "ttlHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 336
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ]
+      },
+      "PartnerNoteBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "LicenceBody": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "reference"
+        ]
+      },
+      "FeesBody": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "STANDARD",
+              "ORG_OVERRIDE"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "PartnerReasonBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "VaultItemDto": {
         "type": "object",
         "properties": {
@@ -14721,6 +15417,11 @@
           "id": {
             "type": "string"
           },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) id that owns this pharmacy; pass it as partnerId when the same pharmacy id could be offered by two partners"
+          },
           "name": {
             "type": "string"
           },
@@ -14750,6 +15451,11 @@
         "properties": {
           "pharmacyId": {
             "type": "string"
+          },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) that owns this pharmacy"
           },
           "sku": {
             "type": "string"
@@ -14859,6 +15565,11 @@
             "type": "string",
             "nullable": true
           },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) that owns the cart pharmacy"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -14928,6 +15639,10 @@
         "properties": {
           "pharmacyId": {
             "type": "string"
+          },
+          "partnerId": {
+            "type": "string",
+            "maxLength": 80
           },
           "items": {
             "minItems": 1,
@@ -15166,6 +15881,11 @@
           "pharmacyId": {
             "type": "string"
           },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) that owns the pharmacy and receives this order"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -15312,6 +16032,11 @@
           "labId": {
             "type": "string"
           },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) id that owns this lab; pass it as partnerId when the same lab id could be offered by two partners"
+          },
           "labName": {
             "type": "string"
           },
@@ -15392,6 +16117,10 @@
           "labId": {
             "type": "string"
           },
+          "partnerId": {
+            "type": "string",
+            "nullable": true
+          },
           "collectionType": {
             "type": "string",
             "enum": [
@@ -15460,6 +16189,10 @@
         "properties": {
           "labId": {
             "type": "string"
+          },
+          "partnerId": {
+            "type": "string",
+            "maxLength": 80
           },
           "testCodes": {
             "minItems": 1,
@@ -15552,6 +16285,11 @@
           },
           "labId": {
             "type": "string"
+          },
+          "partnerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Registration (partner) that owns the lab and receives this booking"
           },
           "tests": {
             "type": "array",

@@ -26,7 +26,8 @@ export class WebhooksService {
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
     // Partners sign with a PER-PARTNER secret selected by X-Kiorly-Client-Key (PartnerRegistry); Kiorly Clinic keeps the single global secret.
-    const secret = source === 'kiorly' ? cfg().kiorlyWebhookSecret : await this.partners.webhookSecret(source === 'pharmacy' ? 'PHARMACY' : 'LAB', h.clientKey);
+    const auth = source === 'kiorly' ? { secret: cfg().kiorlyWebhookSecret, registrationId: null as string | null } : await this.partners.webhookAuth(source === 'pharmacy' ? 'PHARMACY' : 'LAB', h.clientKey);
+    const secret = auth?.secret; const registrationId = auth?.registrationId ?? null; // the registration whose secret verified this event: it may only touch its own orders / bookings
     if (!secret || !verifyWebhook(secret, h.signature, raw, h.timestamp)) throw new ApiError(401, 'INVALID_SIGNATURE', 'Webhook signature rejected');
     let env: any;
     try { env = JSON.parse(raw); } catch { throw new ApiError(400, 'INVALID_JSON', 'Body is not JSON'); }
@@ -40,7 +41,7 @@ export class WebhooksService {
     const inserted = await this.prisma.webhookReceipt.createMany({ data: [{ eventId, source, type: env.type, aggregateId: env.aggregateId, payload: RecordsService.redactEnvelope(env) }], skipDuplicates: true });
     if (!inserted.count) return { status: 'DUPLICATE' };
     try {
-      const outcome = await this.route(env);
+      const outcome = await this.route(env, { registrationId });
       await this.prisma.webhookReceipt.update({ where: { eventId }, data: { status: outcome === 'IGNORED' || outcome === 'UNKNOWN_BOOKING' ? 'IGNORED' : 'PROCESSED', processedAt: new Date(), error: outcome === 'UNKNOWN_BOOKING' ? 'no matching Kiorex booking or linked patient' : null } });
       return { status: outcome };
     } catch (e) {
@@ -50,7 +51,7 @@ export class WebhooksService {
     }
   }
 
-  private async route(env: { type: string; aggregateId?: string; data?: Record<string, any> }): Promise<string> {
+  private async route(env: { type: string; aggregateId?: string; data?: Record<string, any> }, ctx: { registrationId: string | null }): Promise<string> {
     const data = env.data ?? {};
     const type = env.type;
     if (BOOKING_EVENTS.has(type)) return this.booking.applyEvent({ type, aggregateId: env.aggregateId, data });
@@ -83,21 +84,21 @@ export class WebhooksService {
       }
       case 'LabResultReleased': {
         const nurse = await this.nurseLab.onResultReleased({ orderId: data.orderId, reportId: data.reportId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink });
-        const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels }); // vault link for a linked Kiorex patient (consented channel only)
+        const o = await this.lab.onResultReleased({ patientRef: data.patientRef, reportId: data.reportId, orderId: data.orderId, labId: data.labId, reportVersion: data.reportVersion, signedAt: data.signedAt, secureLink: data.secureLink, channels: data.channels }, ctx); // vault link for a linked Kiorex patient (consented channel only)
         if (nurse === 'APPLIED') return 'APPLIED';
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNMAPPED_PATIENT' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'LabOrderStatusChanged': {
         const nurse = await this.nurseLab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
         if (nurse !== 'UNKNOWN_ORDER') return nurse; // a Nurse hand-off: never also a Kiorex booking
-        const o = await this.lab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus });
+        const o = await this.lab.onStatusChanged({ orderId: data.orderId, sourceRef: data.sourceRef, nextStatus: data.nextStatus }, ctx);
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'OrderReady':
       case 'OrderOutForDelivery': // 1.8.0, additive: READY -> OUT_FOR_DELIVERY (DELIVERY orders)
       case 'DispenseCompleted':
       case 'OrderRejected': { // Kiorly Pharmacy (kiorex-contracts v2-draft); pharmacist sign-off enforced in the module
-        const o = await this.pharmacy.onPartnerEvent(type, data);
+        const o = await this.pharmacy.onPartnerEvent(type, data, ctx);
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
       case 'COMMISSION_CHARGE_CREATED':

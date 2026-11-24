@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PARTNER_API_PATH } from '@kiorex/contracts';
 import { cfg } from '../common/config';
 import { decryptField, encryptField } from '../common/crypto';
-import { badRequest, notFound } from '../common/errors';
+import { badRequest, notFound, unavailable } from '../common/errors';
 import { PartnerConn } from '../common/partner-http';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -14,7 +14,9 @@ const KIND = (k: string): PartnerKind => { const u = k.toUpperCase().replace('-'
 
 /**
  * Partner registry (kiorex-contracts 1.4.0): base URL host + HMAC client credentials + webhook secret PER PARTNER RECORD, ops-editable.
- * Resolution: the first active registration of the kind; with none, the env defaults (dev PARTNER_DEV_DEFAULTS) so a fresh checkout works.
+ * Resolution (per-registration routing): a call that names a registration id goes to THAT registration (even if it was paused since: in-flight orders must still be
+ * cancelled/settled); a call without one (legacy rows, tooling) uses the first active registration of the kind; with none, the env defaults (dev PARTNER_DEV_DEFAULTS).
+ * Pharmacy orders, carts and lab bookings carry `registrationId`, so several live partners of one kind each receive only their own traffic.
  * Secrets are encrypted at rest and never returned by the API (masked).
  */
 @Injectable()
@@ -29,9 +31,13 @@ export class PartnerRegistry {
     return { baseUrl: c.labBaseUrl, clientKey: c.labClientKey, clientSecret: c.labClientSecret, webhookSecret: c.labWebhookSecret };
   }
 
-  /** Connection for outbound calls (path prefix included). */
-  async conn(kind: PartnerKind): Promise<PartnerConn> {
-    const reg = await this.prisma.partnerRegistration.findFirst({ where: { kind, active: true }, orderBy: { createdAt: 'asc' } });
+  /** Connection for outbound calls (path prefix included). `registrationId` pins the registration that owns the order / booking / cart. */
+  async conn(kind: PartnerKind, registrationId?: string | null): Promise<PartnerConn> {
+    let reg;
+    if (registrationId) {
+      reg = await this.prisma.partnerRegistration.findUnique({ where: { id: registrationId } });
+      if (!reg || reg.kind !== kind) throw unavailable('PARTNER_REGISTRATION_MISSING', 'The partner that owns this request is no longer registered', { retryable: false });
+    } else reg = await this.prisma.partnerRegistration.findFirst({ where: { kind, active: true }, orderBy: { createdAt: 'asc' } });
     const c = reg ? { baseUrl: reg.baseUrl, clientKey: reg.clientKey, clientSecret: decryptField(reg.clientSecretEnc) } : this.envConn(kind);
     return { baseUrl: `${c.baseUrl.replace(/\/+$/, '')}${PATH[kind]}`, clientKey: c.clientKey, clientSecret: c.clientSecret, timeoutMs: cfg().partnerTimeoutMs };
   }
@@ -40,14 +46,26 @@ export class PartnerRegistry {
    * Webhook secret for an inbound partner event. `clientKey` (X-Kiorly-Client-Key) selects the registration; unknown key => null (401).
    * Without the header only the env secret is accepted, and never in production (a registered key is mandatory there).
    */
-  async webhookSecret(kind: PartnerKind, clientKey: string | undefined): Promise<string | null> {
+  async webhookSecret(kind: PartnerKind, clientKey: string | undefined): Promise<string | null> { return (await this.webhookAuth(kind, clientKey))?.secret ?? null; }
+
+  /** Same as webhookSecret, plus WHICH registration the key selected (null = env default): the receiver binds the event to that registration's own orders. */
+  async webhookAuth(kind: PartnerKind, clientKey: string | undefined): Promise<{ secret: string; registrationId: string | null } | null> {
     if (clientKey) {
       const reg = await this.prisma.partnerRegistration.findFirst({ where: { kind, clientKey, active: true } });
-      if (reg) return decryptField(reg.webhookSecretEnc);
+      if (reg) return { secret: decryptField(reg.webhookSecretEnc), registrationId: reg.id };
       const e = this.envConn(kind);
-      return !cfg().isProd && e.clientKey === clientKey ? e.webhookSecret : null;
+      return !cfg().isProd && e.clientKey === clientKey && e.webhookSecret ? { secret: e.webhookSecret, registrationId: null } : null;
     }
-    return cfg().isProd ? null : this.envConn(kind).webhookSecret;
+    return cfg().isProd || !this.envConn(kind).webhookSecret ? null : { secret: this.envConn(kind).webhookSecret, registrationId: null };
+  }
+
+  /** Active registrations of a kind, oldest first (the order the legacy "first active" rule used). */
+  async activeRegistrations(kind: PartnerKind) { return this.prisma.partnerRegistration.findMany({ where: { kind, active: true }, orderBy: { createdAt: 'asc' }, select: { id: true, kind: true, name: true, clientKey: true } }); }
+  async registration(id: string | null | undefined) { return id ? this.prisma.partnerRegistration.findUnique({ where: { id }, select: { id: true, kind: true, name: true, clientKey: true, active: true } }) : null; }
+  /** The partner's own organisation id (PartnerConnection.orgRef) behind a registration: org-scope flags and policy overrides are keyed by it. Null for dev/env registrations. */
+  async orgRefOf(registrationId: string | null | undefined): Promise<string | null> {
+    if (!registrationId) return null;
+    return (await this.prisma.partnerConnection.findFirst({ where: { registrationId }, select: { orgRef: true } }))?.orgRef ?? null;
   }
 
   private present(r: { id: string; kind: string; name: string; baseUrl: string; clientKey: string; active: boolean; createdAt: Date; updatedAt: Date }) {

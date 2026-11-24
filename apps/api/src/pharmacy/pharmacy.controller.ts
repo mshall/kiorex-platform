@@ -11,6 +11,7 @@ import { PharmacyService } from './pharmacy.service';
 export class CartItemBody { @IsString() @MaxLength(64) sku!: string; @IsInt() @Min(1) @Max(20) qty!: number }
 export class CartBody {
   @IsString() pharmacyId!: string;
+  @IsOptional() @IsString() @MaxLength(80) partnerId?: string;
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(30) @ValidateNested({ each: true }) @Type(() => CartItemBody) items!: CartItemBody[];
   @IsOptional() @IsString() prescriptionRecordId?: string;
 }
@@ -43,11 +44,11 @@ export class PharmacyController {
 
   @Get('pharmacy/pharmacies') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Pharmacies that accept Kiorex orders (from Kiorly Pharmacy)' })
   @ApiOkResponse({ type: PharmacyDto, isArray: true })
-  pharmacies() { return this.svc.pharmacies(); }
+  pharmacies(@Query('partnerId') partnerId?: string) { return this.svc.pharmacies(partnerId); }
 
   @Get('pharmacy/search') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Medicine search with availability-to-promise (controlled medicines are never returned)' })
   @ApiOkResponse({ type: CatalogueResultDto })
-  search(@Query('q') q?: string, @Query('pharmacyId') pharmacyId?: string) { return this.svc.search({ q, pharmacyId }); }
+  search(@Query('q') q?: string, @Query('pharmacyId') pharmacyId?: string, @Query('partnerId') partnerId?: string) { return this.svc.search({ q, pharmacyId, partnerId }); }
 
   @Get('pharmacy/cart') @RequiresFlag('kiorex.pharmacy_orders') @ApiOkResponse({ type: CartDto }) cart(@CurrentUser() u: AuthUser) { return this.svc.getCart(u.sub); }
   @Put('pharmacy/cart') @RequiresFlag('kiorex.pharmacy_orders') @ApiOperation({ summary: 'Replace the cart (one pharmacy per cart); prices come from the pharmacy quote' })
@@ -71,7 +72,7 @@ export class PharmacyController {
 
   @ApiOkResponse({ schema: { type: 'array', items: { allOf: [{ $ref: '#/components/schemas/PharmacyOrderDto' }, { type: 'object', properties: { sub: { type: 'string' }, platformFeeMinor: { type: 'number' }, takeRateBps: { type: 'number' } } }] } } })
 
-  @OpsOnly() @Get('admin/pharmacy/orders') @ApiOperation({ summary: 'OP: pharmacy orders (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @OpsOnly() @Get('admin/pharmacy/orders') @ApiOperation({ summary: 'OP: pharmacy orders (status filter)' }) opsList(@Query('status') status?: string, @Query('partnerId') partnerId?: string) { return this.svc.opsList(status, partnerId); }
   @ApiOkResponse({ schema: { type: 'object', properties: { order: { $ref: '#/components/schemas/PharmacyOrderDto' }, refundTotalMinor: { type: 'number' } } } })
   @OpsOnly() @Post('admin/pharmacy/orders/:id/resolve-partial') @HttpCode(200) @ApiOperation({ summary: 'OP: settle a PARTIAL_REVIEW order with the market/org partial-fulfilment policy (pro-rata refund of the undispensed lines)' })
   resolvePartial(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: ResolvePartialBody) { return this.svc.resolvePartial(id, u.sub, b); }

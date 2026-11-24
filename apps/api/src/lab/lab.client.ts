@@ -16,14 +16,15 @@ import { PartnerRegistry } from '../partners/partners-public';
 @Injectable()
 export class LabClient {
   constructor(private readonly registry: PartnerRegistry) {}
-  private conn() { return this.registry.conn('LAB'); }
-  async tests(q: { q?: string; labId?: string }) { return partnerRequest<{ items: LabTestDto[] }>(await this.conn(), { method: 'GET', path: '/tests', query: q }); }
-  async quote(body: { labId: string; testCodes: string[]; collectionType: string }) { return partnerRequest<{ tests: { code: string; name: string; nameAr?: string; priceMinor: number }[]; collectionFeeMinor: number }>(await this.conn(), { method: 'POST', path: '/tests/quote', body }); }
-  async slots(labId: string, q: { collectionType: string; from: string; to: string; tests?: string }) { return partnerRequest<{ slots: { startsAt: string; endsAt: string }[] }>(await this.conn(), { method: 'GET', path: `/labs/${encodeURIComponent(labId)}/slots`, query: q }); }
+  /** `registrationId` = the registration that owns the lab (per-registration routing); omitted/null = legacy first-active / env default. */
+  private conn(registrationId?: string | null) { return this.registry.conn('LAB', registrationId); }
+  async tests(q: { q?: string; labId?: string }, registrationId?: string | null) { return partnerRequest<{ items: LabTestDto[] }>(await this.conn(registrationId), { method: 'GET', path: '/tests', query: q }); }
+  async quote(body: { labId: string; testCodes: string[]; collectionType: string }, registrationId?: string | null) { return partnerRequest<{ tests: { code: string; name: string; nameAr?: string; priceMinor: number }[]; collectionFeeMinor: number }>(await this.conn(registrationId), { method: 'POST', path: '/tests/quote', body }); }
+  async slots(labId: string, q: { collectionType: string; from: string; to: string; tests?: string }, registrationId?: string | null) { return partnerRequest<{ slots: { startsAt: string; endsAt: string }[] }>(await this.conn(registrationId), { method: 'GET', path: `/labs/${encodeURIComponent(labId)}/slots`, query: q }); }
   /** Idempotent on `sourceRef` (= Kiorex booking id); the lab answers its internal order id and status (never REJECTED: refusals are 4xx). */
-  async createOrder(key: string, body: LabOrderIntent) { return partnerRequest<{ orderId: string; orderNumber?: string; status: string; created?: boolean }>(await this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
+  async createOrder(key: string, body: LabOrderIntent, registrationId?: string | null) { return partnerRequest<{ orderId: string; orderNumber?: string; status: string; created?: boolean }>(await this.conn(registrationId), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
   /** `sourceRef` = Kiorex booking id. 409/422 when the specimen was already collected. */
-  async cancelOrder(sourceRef: string, _reason: string) { return partnerRequest<{ orderId: string; status: string }>(await this.conn(), { method: 'POST', path: `/orders/${encodeURIComponent(sourceRef)}/cancel`, body: {} }); }
+  async cancelOrder(sourceRef: string, _reason: string, registrationId?: string | null) { return partnerRequest<{ orderId: string; status: string }>(await this.conn(registrationId), { method: 'POST', path: `/orders/${encodeURIComponent(sourceRef)}/cancel`, body: {} }); }
 }
 
 /** Kiorex booking -> Lab inbound order (strict contract shape; no clinical data, identity checked again at collection). */

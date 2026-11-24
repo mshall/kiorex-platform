@@ -5,6 +5,7 @@ import { cfg } from '../common/config';
 import { badRequest, conflict, forbidden, notFound, unavailable, unprocessable } from '../common/errors';
 import { newId } from '../common/ids';
 import { PartnerHttpError, PartnerTransientError } from '../common/partner-http';
+import { PartnerRegistry, PartnerRouting } from '../partners/partners-public';
 import { computePartialSettlement, DispensedLine, PartialSettlement, PolicyService, PROPOSED_DEFAULT_NOTE } from '../policy/policy-public';
 import { EngagementService } from '../engagement/engagement-public';
 import { PatientService } from '../patient/patient-public';
@@ -13,7 +14,9 @@ import { PrismaService, Tx } from '../prisma/prisma.service';
 import { RecordsService } from '../records/records-public';
 import { PharmacyClient, PharmacyOrderIntent, QuoteDto } from './pharmacy.client';
 
-export interface CartInput { pharmacyId: string; items: { sku: string; qty: number }[]; prescriptionRecordId?: string }
+/** Per-partner (ORG scope) capability flag: switched off for one partner organisation it hides that partner's pharmacies and refuses new carts/orders for it. The global launch-locked kiorex.pharmacy_orders stays the route guard. */
+const FLAG = 'pharmacy.kiorex_orders';
+export interface CartInput { pharmacyId: string; partnerId?: string; items: { sku: string; qty: number }[]; prescriptionRecordId?: string }
 export interface Address { line1: string; area?: string; governorate?: string; notes?: string; phone?: string }
 type Line = { sku: string; name: string; nameAr?: string; strength?: string; form?: string; formAr?: string; qty: number; unitPriceMinor: number; rxRequired: boolean; available: boolean };
 const FINAL = new Set(['DISPENSED', 'PARTIALLY_FULFILLED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED']);
@@ -30,6 +33,7 @@ export class PharmacyService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly client: PharmacyClient, private readonly pay: PayService, private readonly records: RecordsService,
     private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly policy: PolicyService,
+    private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry,
   ) {}
 
   onModuleInit() {
@@ -52,13 +56,32 @@ export class PharmacyService implements OnModuleInit {
       throw e;
     }
   }
-  async pharmacies() {
-    const d = await this.partner(() => this.client.pharmacies());
-    return d.items.map((p) => ({ id: p.id, name: p.name, pickup: p.pickup, deliveryEnabled: p.delivery.enabled, deliveryFeeMinor: p.delivery.feeMinor, prepMinutes: p.prepMinutes }));
+  /** Pharmacy ids one registration serves (location lookup for routing). */
+  private readonly lister = async (registrationId: string) => (await this.client.pharmacies(registrationId)).data.items.map((p) => p.id);
+
+  /** Calls every selected registration (null = the env default connection) in parallel and tags each item with the partner that owns it. A partner that fails is skipped; all failing is an error. */
+  private async fan<T>(regs: ({ id: string } | null)[], fn: (registrationId: string | null) => Promise<{ data: { items: T[] } }>): Promise<(T & { partnerId: string | null })[]> {
+    const settled = await Promise.allSettled(regs.map(async (r) => ({ id: r?.id ?? null, items: (await fn(r?.id ?? null)).data.items })));
+    const ok = settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []));
+    if (!ok.length && settled.length) await this.partner(() => Promise.reject((settled.find((s) => s.status === 'rejected') as PromiseRejectedResult).reason));
+    return ok.flatMap((g) => g.items.map((i) => ({ ...i, partnerId: g.id })));
   }
-  async search(q: { q?: string; pharmacyId?: string }) {
-    const d = await this.partner(() => this.client.catalogue(q));
-    return { items: d.items.filter((i) => !i.controlled).map(({ controlled: _c, ...i }) => i) }; // defence in depth: controlled items never reach the app (KPRX05)
+  /** Registrations a search / listing without an explicit pharmacy fans out to: every live partner whose org flag is ON (none registered => the env default). */
+  private async liveRegs(): Promise<({ id: string } | null)[]> {
+    const live = await this.routing.live('PHARMACY', FLAG);
+    return live.length || (await this.routing.hasAny('PHARMACY')) ? live : [null];
+  }
+
+  async pharmacies(partnerId?: string) {
+    const regs = partnerId ? [await this.routing.byPartnerId('PHARMACY', FLAG, partnerId)] : await this.liveRegs();
+    const items = await this.fan(regs, (id) => this.client.pharmacies(id));
+    return items.map((p) => ({ id: p.id, name: p.name, partnerId: p.partnerId, pickup: p.pickup, deliveryEnabled: p.delivery.enabled, deliveryFeeMinor: p.delivery.feeMinor, prepMinutes: p.prepMinutes }));
+  }
+  async search(q: { q?: string; pharmacyId?: string; partnerId?: string }) {
+    const regs = q.partnerId ? [await this.routing.byPartnerId('PHARMACY', FLAG, q.partnerId)]
+      : q.pharmacyId ? [await this.routing.resolve('PHARMACY', FLAG, q.pharmacyId, undefined, this.lister)] : await this.liveRegs();
+    const items = await this.fan(regs, (id) => this.client.catalogue({ q: q.q, pharmacyId: q.pharmacyId }, id));
+    return { items: items.filter((i) => !i.controlled).map(({ controlled: _c, ...i }) => i) }; // defence in depth: controlled items never reach the app (KPRX05)
   }
 
   // ───────────── cart ─────────────
@@ -77,7 +100,7 @@ export class PharmacyService implements OnModuleInit {
     const c = await this.prisma.pharmacyCart.findUnique({ where: { sub } });
     const items = ((c?.items ?? []) as Line[]);
     const fee = c?.deliveryMethod === 'DELIVERY' ? ((c.deliveryAddress as any)?._feeMinor ?? cfg().deliveryFeeMinor) : 0;
-    return { pharmacyId: c?.pharmacyId ?? null, items, deliveryMethod: c?.deliveryMethod ?? null, prescriptionRecordId: c?.prescriptionRecordId ?? null, ...this.totals(items, c?.deliveryMethod ?? null, fee), currency: 'EGP', rxRequired: items.some((i) => i.rxRequired) };
+    return { pharmacyId: c?.pharmacyId ?? null, partnerId: c?.registrationId ?? null, items, deliveryMethod: c?.deliveryMethod ?? null, prescriptionRecordId: c?.prescriptionRecordId ?? null, ...this.totals(items, c?.deliveryMethod ?? null, fee), currency: 'EGP', rxRequired: items.some((i) => i.rxRequired) };
   }
   getCart(sub: string) { return this.presentCart(sub); }
 
@@ -85,11 +108,13 @@ export class PharmacyService implements OnModuleInit {
     if (!i.items?.length) throw badRequest('CART_EMPTY', 'items must not be empty');
     if (i.items.length > 30 || i.items.some((x) => !Number.isInteger(x.qty) || x.qty < 1 || x.qty > 20)) throw badRequest('INVALID_ITEMS', 'max 30 lines, quantity 1-20');
     if (i.prescriptionRecordId) await this.records.prescriptionForOrder(sub, i.prescriptionRecordId);
-    const quote = await this.partner(() => this.client.quote({ pharmacyId: i.pharmacyId, items: i.items }));
+    const reg = await this.routing.resolve('PHARMACY', FLAG, i.pharmacyId, i.partnerId, this.lister); // the registration that owns this pharmacy (null = env default)
+    const registrationId = reg?.id ?? null;
+    const quote = await this.partner(() => this.client.quote({ pharmacyId: i.pharmacyId, items: i.items }, registrationId));
     this.assertNoControlled(quote);
     const existing = await this.prisma.pharmacyCart.findUnique({ where: { sub } });
-    const data = { pharmacyId: i.pharmacyId, items: this.lines(quote) as object[], prescriptionRecordId: i.prescriptionRecordId ?? null };
-    await this.prisma.pharmacyCart.upsert({ where: { sub }, create: { sub, ...data }, update: { ...data, ...(existing?.pharmacyId !== i.pharmacyId ? { deliveryMethod: null, deliveryAddress: Prisma.DbNull } : {}) } });
+    const data = { pharmacyId: i.pharmacyId, registrationId, items: this.lines(quote) as object[], prescriptionRecordId: i.prescriptionRecordId ?? null };
+    await this.prisma.pharmacyCart.upsert({ where: { sub }, create: { sub, ...data }, update: { ...data, ...(existing?.pharmacyId !== i.pharmacyId || existing?.registrationId !== registrationId ? { deliveryMethod: null, deliveryAddress: Prisma.DbNull } : {}) } });
     return this.presentCart(sub);
   }
 
@@ -99,11 +124,11 @@ export class PharmacyService implements OnModuleInit {
     let feeMinor = 0;
     if (d.method === 'DELIVERY') {
       if (!d.address?.line1?.trim()) throw badRequest('ADDRESS_REQUIRED', 'Delivery needs an address');
-      const ph = (await this.partner(() => this.client.pharmacies())).items.find((p) => p.id === cart.pharmacyId);
+      const ph = (await this.partner(() => this.client.pharmacies(cart.registrationId))).items.find((p) => p.id === cart.pharmacyId);
       if (!ph?.delivery.enabled) throw unprocessable('DELIVERY_NOT_AVAILABLE', 'This pharmacy does not deliver');
       feeMinor = ph.delivery.feeMinor ?? cfg().deliveryFeeMinor;
     } else {
-      const ph = (await this.partner(() => this.client.pharmacies())).items.find((p) => p.id === cart.pharmacyId);
+      const ph = (await this.partner(() => this.client.pharmacies(cart.registrationId))).items.find((p) => p.id === cart.pharmacyId);
       if (ph && !ph.pickup) throw unprocessable('PICKUP_NOT_AVAILABLE', 'This pharmacy does not offer pickup');
     }
     await this.prisma.pharmacyCart.update({ where: { sub }, data: { deliveryMethod: d.method, deliveryAddress: d.method === 'DELIVERY' ? ({ ...d.address, _feeMinor: feeMinor } as object) : Prisma.DbNull } });
@@ -118,7 +143,8 @@ export class PharmacyService implements OnModuleInit {
     const items = (cart?.items ?? []) as Line[];
     if (!cart?.pharmacyId || !items.length) throw badRequest('CART_EMPTY', 'Your cart is empty');
     if (!cart.deliveryMethod) throw badRequest('DELIVERY_REQUIRED', 'Choose pickup or delivery');
-    const quote = await this.partner(() => this.client.quote({ pharmacyId: cart.pharmacyId!, items: items.map((i) => ({ sku: i.sku, qty: i.qty })), delivery: { method: cart.deliveryMethod! } })); // price authority: Pharmacy
+    await this.routing.assertOrgAllows(cart.registrationId, FLAG); // the partner's own organisation may have switched the capability off since the cart was built
+    const quote = await this.partner(() => this.client.quote({ pharmacyId: cart.pharmacyId!, items: items.map((i) => ({ sku: i.sku, qty: i.qty })), delivery: { method: cart.deliveryMethod! } }, cart.registrationId)); // price authority: the pharmacy that owns this cart
     this.assertNoControlled(quote);
     const lines = this.lines(quote);
     const missing = lines.filter((l) => !l.available).map((l) => l.sku);
@@ -133,13 +159,16 @@ export class PharmacyService implements OnModuleInit {
     const { _feeMinor, ...address } = ((cart.deliveryAddress ?? {}) as Record<string, unknown>);
     void _feeMinor;
     const order = await this.prisma.pharmacyOrder.create({
-      data: { id, sub, pharmacyId: cart.pharmacyId, status: 'PENDING_PAYMENT', items: lines as object[], ...t, deliveryMethod: cart.deliveryMethod, deliveryAddress: cart.deliveryMethod === 'DELIVERY' ? (address as object) : undefined, prescriptionRecordId: rxId, rxStatus: rxNeeded ? 'PENDING' : 'NOT_REQUIRED', takeRateBps: cfg().pharmacyTakeRateBps },
+      data: { id, sub, pharmacyId: cart.pharmacyId, registrationId: cart.registrationId, status: 'PENDING_PAYMENT', items: lines as object[], ...t, deliveryMethod: cart.deliveryMethod, deliveryAddress: cart.deliveryMethod === 'DELIVERY' ? (address as object) : undefined, prescriptionRecordId: rxId, rxStatus: rxNeeded ? 'PENDING' : 'NOT_REQUIRED', takeRateBps: cfg().pharmacyTakeRateBps },
     });
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'PHARMACY', sub, partnerId: `ph:${cart.pharmacyId}`, amountMinor: t.totalMinor, currency: order.currency });
     await this.prisma.pharmacyOrder.update({ where: { id }, data: { paymentId: p.id } });
     await this.prisma.pharmacyCart.delete({ where: { sub } });
     return this.present(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id } }));
   }
+
+  /** Organisation scope for per-org policy overrides: the owning partner's own organisation id; dev/env registrations (no connection record) keep keying by the pharmacy id. */
+  private async policyOrg(o: PharmacyOrder) { return (await this.registry.orgRefOf(o.registrationId)) ?? o.pharmacyId; }
 
   /** The patient's own delivery address, as given (drops internal fields such as the cached fee). */
   private publicAddress(a: unknown): Address | null {
@@ -150,7 +179,7 @@ export class PharmacyService implements OnModuleInit {
   async present(o: PharmacyOrder) {
     const p = o.paymentId ? await this.pay.getIntent(o.paymentId) : null;
     return {
-      id: o.id, status: o.status, pharmacyId: o.pharmacyId, items: o.items as unknown as Line[], subtotalMinor: o.subtotalMinor, deliveryFeeMinor: o.deliveryFeeMinor, totalMinor: o.totalMinor, currency: o.currency, deliveryMethod: o.deliveryMethod,
+      id: o.id, status: o.status, pharmacyId: o.pharmacyId, partnerId: o.registrationId, items: o.items as unknown as Line[], subtotalMinor: o.subtotalMinor, deliveryFeeMinor: o.deliveryFeeMinor, totalMinor: o.totalMinor, currency: o.currency, deliveryMethod: o.deliveryMethod,
       rxStatus: o.rxStatus, deliveryAddress: o.deliveryMethod === 'DELIVERY' ? this.publicAddress(o.deliveryAddress) : null, rejectionReason: o.rejectionReason, readyAt: o.readyAt?.toISOString() ?? null, outForDeliveryAt: o.outForDeliveryAt?.toISOString() ?? null, dispensedAt: o.dispensedAt?.toISOString() ?? null,
       refund: await this.presentRefund(o),
       payment: p ? { paymentId: p.id, status: p.status, checkoutUrl: p.status === 'CREATED' ? p.checkoutUrl : null } : null, createdAt: o.createdAt.toISOString(),
@@ -170,7 +199,7 @@ export class PharmacyService implements OnModuleInit {
   }
   async list(sub: string) { return Promise.all((await this.prisma.pharmacyOrder.findMany({ where: { sub }, orderBy: { createdAt: 'desc' }, take: 100 })).map((o) => this.present(o))); }
   async get(sub: string, id: string) { return this.present(await this.owned(sub, id)); }
-  async opsList(status?: string) { return Promise.all((await this.prisma.pharmacyOrder.findMany({ where: status ? { status } : {}, orderBy: { createdAt: 'desc' }, take: 200 })).map(async (o) => ({ ...(await this.present(o)), sub: o.sub, platformFeeMinor: o.platformFeeMinor, takeRateBps: o.takeRateBps }))); }
+  async opsList(status?: string, partnerId?: string) { const names = new Map((await this.prisma.partnerRegistration.findMany({ where: { kind: 'PHARMACY' }, select: { id: true, name: true } })).map((r) => [r.id, r.name])); return Promise.all((await this.prisma.pharmacyOrder.findMany({ where: { ...(status ? { status } : {}), ...(partnerId ? { registrationId: partnerId } : {}) }, orderBy: { createdAt: 'desc' }, take: 200 })).map(async (o) => ({ ...(await this.present(o)), partnerName: (o.registrationId && names.get(o.registrationId)) || null, sub: o.sub, platformFeeMinor: o.platformFeeMinor, takeRateBps: o.takeRateBps }))); }
 
   // ───────────── fulfilment ─────────────
 
@@ -203,13 +232,13 @@ export class PharmacyService implements OnModuleInit {
       prescription: rx as PharmacyOrderIntent['prescription'],
     };
     try {
-      const { data } = await this.client.createOrder(o.id, intent);
+      const { data } = await this.client.createOrder(o.id, intent, o.registrationId);
       if (data.status === 'REJECTED' || data.status === 'CANCELLED' || data.status === 'EXPIRED') return this.reject(o, `PHARMACY_${data.status}`);
       await this.move(o, ['PAID'], 'SUBMITTED', { partnerOrderId: data.orderId });
       if (rx) {
-        const v = await this.client.validatePrescription({ orderId: data.orderId, prescriptionRef: rx.recordRef as string, verificationToken: rx.verificationToken as string, patientRef: o.sub });
+        const v = await this.client.validatePrescription({ orderId: data.orderId, prescriptionRef: rx.recordRef as string, verificationToken: rx.verificationToken as string, patientRef: o.sub }, o.registrationId);
         await this.prisma.pharmacyOrder.update({ where: { id: o.id }, data: { rxStatus: v.data.status === 'INVALID' ? 'INVALID' : v.data.status } });
-        if (v.data.status === 'INVALID') { await this.client.cancelOrder(data.orderId, 'RX_INVALID').catch(() => undefined); return this.reject(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id: o.id } }), v.data.reason ?? 'RX_INVALID', ['SUBMITTED']); }
+        if (v.data.status === 'INVALID') { await this.client.cancelOrder(data.orderId, 'RX_INVALID', o.registrationId).catch(() => undefined); return this.reject(await this.prisma.pharmacyOrder.findUniqueOrThrow({ where: { id: o.id } }), v.data.reason ?? 'RX_INVALID', ['SUBMITTED']); }
       }
       return 'SUBMITTED';
     } catch (e) {
@@ -236,9 +265,14 @@ export class PharmacyService implements OnModuleInit {
   }
 
   /** OrderReady / DispenseCompleted / OrderRejected (kiorex-contracts v2-draft). Pharmacist sign-off is mandatory (KPRX06). */
-  async onPartnerEvent(type: string, data: Record<string, any>): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
+  async onPartnerEvent(type: string, data: Record<string, any>, ctx: { registrationId?: string | null } = {}): Promise<'APPLIED' | 'IGNORED' | 'UNKNOWN_ORDER'> {
     const o = await this.prisma.pharmacyOrder.findFirst({ where: { OR: [{ partnerOrderId: String(data.orderId) }, { id: String(data.orderId) }] } });
     if (!o) return 'UNKNOWN_ORDER';
+    // the event was verified against ONE registration's webhook secret: it may only touch that registration's own orders (a second partner cannot move another's order)
+    if (ctx.registrationId && o.registrationId && ctx.registrationId !== o.registrationId) {
+      await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.event_from_other_registration', resource: 'PharmacyOrder', resourceId: o.id, metadata: { type, from: ctx.registrationId, owner: o.registrationId } } });
+      return 'IGNORED';
+    }
     if (FINAL.has(o.status)) return 'IGNORED';
     if ((type === 'OrderReady' || type === 'DispenseCompleted') && !data.pharmacistSignoff?.userId) {
       await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.event_without_signoff', resource: 'PharmacyOrder', resourceId: o.id, metadata: { type } } });
@@ -261,7 +295,7 @@ export class PharmacyService implements OnModuleInit {
     }
     if (type === 'DispenseCompleted') {
       if (data.partial) {
-        const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: o.pharmacyId }).value;
+        const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: await this.policyOrg(o) }).value;
         const lines = Array.isArray(data.lines) ? (data.lines as { sku: string; quantityDispensed: number }[]) : null;
         if (pol.mode === 'PRO_RATA_REFUND' && lines) { await this.settlePartial(o, { dispensed: lines, deliveryMade: data.deliveryMade, dispensedAt: new Date(data.dispensedAt ?? Date.now()) }, IN_FLIGHT, 'pharmacy'); return 'APPLIED'; }
         // no per-line amounts (pre-1.8.0 pharmacy) or the market chose manual review: never auto-release, ops decides (POST /admin/pharmacy/orders/:id/resolve-partial)
@@ -286,7 +320,7 @@ export class PharmacyService implements OnModuleInit {
    * settled through the PSP outbox and covered by the daily reconciliation. Nothing fulfilled => the ordinary full refund (REJECTED).
    */
   private async settlePartial(o: PharmacyOrder, i: { dispensed: DispensedLine[]; deliveryMade?: boolean; dispensedAt: Date }, from: string[], actor: string): Promise<PartialSettlement> {
-    const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: o.pharmacyId });
+    const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: await this.policyOrg(o) });
     const calc = computePartialSettlement({ items: o.items as unknown as Line[], deliveryMethod: o.deliveryMethod, deliveryFeeMinor: o.deliveryFeeMinor, dispensed: i.dispensed, deliveryMade: i.deliveryMade }, pol.value);
     if (calc.nothingFulfilled) { await this.reject(o, 'NOTHING_DISPENSED', from); return calc; }
     const fee = Math.round((calc.fulfilledGoodsMinor * o.takeRateBps) / 10000); // take on the fulfilled goods only
@@ -326,7 +360,7 @@ export class PharmacyService implements OnModuleInit {
     if (o.status === 'PENDING_PAYMENT') { await this.moveAndRefund(o, ['PENDING_PAYMENT'], 'CANCELLED'); return this.get(sub, id); }
     if (!['PAID', 'SUBMITTED'].includes(o.status)) throw conflict('ORDER_NOT_CANCELLABLE', `Order is ${o.status}`);
     if (o.partnerOrderId) {
-      try { await this.client.cancelOrder(o.partnerOrderId, 'PATIENT_CANCELLED'); } catch (e) {
+      try { await this.client.cancelOrder(o.partnerOrderId, 'PATIENT_CANCELLED', o.registrationId); } catch (e) {
         if (e instanceof PartnerHttpError) throw conflict('ORDER_NOT_CANCELLABLE', 'The pharmacy already started preparing this order');
         throw unavailable('PHARMACY_SYSTEM_BUSY', 'Pharmacy system busy, try again shortly', { retryable: true });
       }

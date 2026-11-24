@@ -20,7 +20,7 @@ const LAB = ["PENDING_PAYMENT", "PAID", "SUBMITTED", "RESULT_RELEASED", "REJECTE
 const tone = (s: string) => (["DISPENSED", "READY", "OUT_FOR_DELIVERY", "RESULT_RELEASED"].includes(s) ? "success" : ["REJECTED", "CANCELLED"].includes(s) ? "destructive" : ["PAID", "PARTIAL_REVIEW", "PENDING_PAYMENT"].includes(s) ? "warning" : "info") as "success" | "destructive" | "warning" | "info";
 const sel = "mb-3 h-11 rounded-xl border border-input bg-card px-3 text-sm";
 
-interface Row { id: string; status: string; sub: string; totalMinor: number; platformFeeMinor: number; takeRateBps: number; currency: string; createdAt: string; rejectionReason: string | null; summary: string }
+interface Row { id: string; status: string; sub: string; totalMinor: number; platformFeeMinor: number; takeRateBps: number; currency: string; createdAt: string; rejectionReason: string | null; summary: string; partnerName: string | null }
 
 function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: string[] }) {
   const { t, i18n } = useTranslation();
@@ -35,6 +35,7 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
   const canAct = !!user && isSuperAdmin(user.roles);
   const rows: Row[] = ((kind === "pharmacy" ? ph.data : lb.data) ?? []).map((o) => ({
     id: o.id, status: o.status, sub: o.sub, totalMinor: o.totalMinor, platformFeeMinor: o.platformFeeMinor, takeRateBps: o.takeRateBps, currency: o.currency, createdAt: o.createdAt, rejectionReason: o.rejectionReason,
+    partnerName: (o as { partnerName?: string | null }).partnerName ?? null, // which registered partner owns the order (per-registration routing)
     summary: "items" in o ? o.items.map((i) => `${i.name} ×${i.qty}`).join(", ") : o.tests.map((x) => x.code).join(", "),
   }));
   const resubmit = (r: Row) => (kind === "pharmacy" ? rePh : reLb).mutate(r.id, {
@@ -49,6 +50,7 @@ function Monitor({ kind, statuses }: { kind: "pharmacy" | "lab"; statuses: strin
   const columns: Column<Row>[] = [
     { key: "id", header: t("orders.id"), cell: (r) => <code className="text-xs" dir="ltr">{r.id}</code> },
     { key: "s", header: t("orders.status"), cell: (r) => <div className="space-y-1"><Badge variant={tone(r.status)} data-testid="order-status">{r.status}</Badge>{r.rejectionReason && <p className="text-xs text-destructive">{r.rejectionReason}</p>}</div> },
+    { key: "p", header: t("orders.partner"), cell: (r) => <span className="text-xs" dir="auto" data-testid="order-partner">{r.partnerName ?? "—"}</span> },
     { key: "i", header: t("orders.items"), cell: (r) => <p className="max-w-xs truncate text-xs" title={r.summary}>{r.summary}</p> },
     { key: "t", header: t("orders.total"), cell: (r) => formatMinor(r.totalMinor, lang, r.currency) },
     { key: "f", header: t("orders.fee"), cell: (r) => <span title={formatBps(r.takeRateBps, lang)}>{formatMinor(r.platformFeeMinor, lang, r.currency)} <span className="text-xs text-muted-foreground">({formatBps(r.takeRateBps, lang)})</span></span> },

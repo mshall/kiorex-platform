@@ -794,6 +794,8 @@ model PharmacyCart {
   id              String   @id @default(cuid())
   sub             String   @unique
   pharmacyId      String?
+  /// PartnerRegistration that owns `pharmacyId` (routing: every outbound call of this cart goes there). NULL = legacy/env default.
+  registrationId  String?
   items           Json // [{ sku, name, qty, unitPriceMinor, rxRequired }]
   deliveryMethod  String? // PICKUP | DELIVERY
   deliveryAddress Json?
@@ -805,6 +807,8 @@ model PharmacyOrder {
   id                   String    @id // kx_ph_<id>; also the Idempotency-Key towards Kiorly Pharmacy
   sub                  String
   pharmacyId           String
+  /// PartnerRegistration that owns the pharmacy: quote, order, Rx validation and cancel go to this registration only; its webhooks are the only ones accepted for the order.
+  registrationId       String?
   status               String // PENDING_PAYMENT PAID SUBMITTED READY OUT_FOR_DELIVERY DISPENSED PARTIALLY_FULFILLED PARTIAL_REVIEW REJECTED CANCELLED
   items                Json
   subtotalMinor        Int
@@ -831,12 +835,15 @@ model PharmacyOrder {
 
   @@index([sub, status])
   @@index([partnerOrderId])
+  @@index([registrationId])
 }
 
 model LabBooking {
   id               String    @id // kx_lb_<id>
   sub              String
   labId            String
+  /// PartnerRegistration that owns the lab (slots, quote, order, cancel; only its webhooks apply). NULL = legacy/env default.
+  registrationId   String?
   tests            Json // [{ code, name, priceMinor }]
   collectionType   String // HOME | WALK_IN
   slotStartsAt     DateTime
@@ -858,6 +865,7 @@ model LabBooking {
 
   @@index([sub, status])
   @@index([partnerOrderId])
+  @@index([registrationId])
 }
 
 model TeleSession {

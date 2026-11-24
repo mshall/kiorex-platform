@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LabTestDto {
   @ApiProperty() labId!: string;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) id that owns this lab; pass it as partnerId when the same lab id could be offered by two partners' }) partnerId?: string | null;
   @ApiProperty() labName!: string;
   @ApiProperty() code!: string;
   @ApiProperty() name!: string;
@@ -20,6 +21,7 @@ export class LabSlotDto {
 }
 export class LabSlotsResultDto {
   @ApiProperty() labId!: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) partnerId?: string | null;
   @ApiProperty({ enum: ['HOME', 'WALK_IN'] }) collectionType!: string;
   @ApiProperty({ type: [LabSlotDto] }) slots!: LabSlotDto[];
 }
@@ -38,6 +40,7 @@ export class LabBookingDto {
   @ApiProperty() id!: string;
   @ApiProperty({ enum: ['PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'RESULT_RELEASED', 'REJECTED', 'CANCELLED'] }) status!: string;
   @ApiProperty() labId!: string;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) that owns the lab and receives this booking' }) partnerId?: string | null;
   @ApiProperty({ type: [LabBookingTestDto] }) tests!: LabBookingTestDto[];
   @ApiProperty({ enum: ['HOME', 'WALK_IN'] }) collectionType!: string;
   @ApiProperty({ format: 'date-time' }) slotStartsAt!: string;

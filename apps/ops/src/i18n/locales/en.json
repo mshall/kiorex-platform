@@ -261,7 +261,8 @@
     "resubmitBody": "The paid order is sent to the partner again with the same idempotency key, so it cannot be created twice.",
     "resubmitted": "Resubmitted: {{status}}",
     "settlePartial": "Settle with policy",
-    "settled": "Partial order settled: {{amount}} refunded"
+    "settled": "Partial order settled: {{amount}} refunded",
+    "partner": "Partner"
   },
   "operations": {
     "title": "Operations",

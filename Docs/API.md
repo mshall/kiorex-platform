@@ -239,6 +239,31 @@
 | POST | `/api/v1/admin/onboarding/imports/{id}/rollback` |  |
 | POST | `/api/v1/admin/onboarding/imports/{id}/purge-staging` |  |
 | GET | `/api/v1/admin/onboarding/imports/{id}/audit` |  |
+| GET | `/api/v1/admin/onboarding/enrolments` | OP: enrolment codes (never the code itself) |
+| POST | `/api/v1/admin/onboarding/enrolments` | OP: create a one-time enrolment code; the code is in this response only |
+| DELETE | `/api/v1/admin/onboarding/enrolments/{id}` | OP: revoke an unused enrolment code |
+| GET | `/api/v1/admin/onboarding/partners` |  |
+| GET | `/api/v1/admin/onboarding/partners/{id}` |  |
+| GET | `/api/v1/admin/onboarding/partners/{id}/audit` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/run-checks` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/review_documents` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/verify_licence` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/steps/fees` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/request-changes` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/reject` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/request-approval` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/approve` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/go-live` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/pause` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/resume` |  |
+| POST | `/api/v1/admin/onboarding/partners/{id}/apply-rotation` |  |
+
+## partner-connections
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/v1/partners/v1/connection-requests` | Submit / re-submit a connection request (HMAC-signed with ts.rawBody); idempotent per (kind, orgRef) |
+| GET | `/api/v1/partners/v1/connection-requests/{id}` | Partner polls its own status with the status token returned at creation |
 
 ## patient
 

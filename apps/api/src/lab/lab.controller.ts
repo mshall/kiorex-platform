@@ -18,6 +18,7 @@ export class LabAddressBody {
 }
 export class LabBookBody {
   @IsString() labId!: string;
+  @IsOptional() @IsString() @MaxLength(80) partnerId?: string;
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(20) @IsString({ each: true }) testCodes!: string[];
   @IsIn(['HOME', 'WALK_IN']) collectionType!: 'HOME' | 'WALK_IN';
   @ValidateNested() @Type(() => LabSlotBody) slot!: LabSlotBody;
@@ -31,15 +32,15 @@ export class LabController {
   constructor(private readonly svc: LabService) {}
 
   @Get('lab/tests') @RequiresFlag('kiorex.lab_bookings') @ApiOperation({ summary: 'Lab test catalogue search' }) @ApiOkResponse({ type: LabTestsResultDto })
-  tests(@Query('q') q?: string, @Query('labId') labId?: string) { return this.svc.searchTests({ q, labId }); }
+  tests(@Query('q') q?: string, @Query('labId') labId?: string, @Query('partnerId') partnerId?: string) { return this.svc.searchTests({ q, labId, partnerId }); }
 
   @Get('lab/slots') @RequiresFlag('kiorex.lab_bookings') @ApiOperation({ summary: 'Collection slots (home collection or walk-in) from the lab' }) @ApiOkResponse({ type: LabSlotsResultDto })
-  slots(@Query('labId') labId: string, @Query('collectionType') collectionType = 'HOME', @Query('from') from?: string, @Query('to') to?: string, @Query('tests') tests?: string) {
+  slots(@Query('labId') labId: string, @Query('collectionType') collectionType = 'HOME', @Query('from') from?: string, @Query('to') to?: string, @Query('tests') tests?: string, @Query('partnerId') partnerId?: string) {
     if (!labId) throw badRequest('LAB_REQUIRED', 'labId required');
     const f = from ? new Date(from) : new Date();
     const t = to ? new Date(to) : new Date(f.getTime() + 7 * 86400_000);
     if (Number.isNaN(f.getTime()) || Number.isNaN(t.getTime())) throw badRequest('INVALID_RANGE', 'invalid from/to');
-    return this.svc.slots(labId, collectionType, f, t, tests);
+    return this.svc.slots(labId, collectionType, f, t, tests, partnerId);
   }
 
   @Post('lab/bookings') @HttpCode(201) @RequiresFlag('kiorex.lab_bookings')
@@ -53,7 +54,7 @@ export class LabController {
 
   @ApiOkResponse({ schema: { type: 'array', items: { allOf: [{ $ref: '#/components/schemas/LabBookingDto' }, { type: 'object', properties: { sub: { type: 'string' }, platformFeeMinor: { type: 'number' }, takeRateBps: { type: 'number' } } }] } } })
 
-  @OpsOnly() @Get('admin/lab/bookings') @ApiOperation({ summary: 'OP: lab bookings (status filter)' }) opsList(@Query('status') status?: string) { return this.svc.opsList(status); }
+  @OpsOnly() @Get('admin/lab/bookings') @ApiOperation({ summary: 'OP: lab bookings (status filter)' }) opsList(@Query('status') status?: string, @Query('partnerId') partnerId?: string) { return this.svc.opsList(status, partnerId); }
   @ApiOkResponse({ schema: { type: 'object', properties: { status: { type: 'string', description: 'SUBMITTED | REJECTED | ...' } } } })
   @OpsOnly() @Post('admin/lab/bookings/:id/resubmit') @HttpCode(200) @ApiOperation({ summary: 'OP: re-send a PAID booking to Kiorly Lab (idempotent)' }) resubmit(@Param('id') id: string) { return this.svc.resubmit(id); }
 }

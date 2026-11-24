@@ -17,14 +17,15 @@ import { PartnerRegistry } from '../partners/partners-public';
 @Injectable()
 export class PharmacyClient {
   constructor(private readonly registry: PartnerRegistry) {}
-  private conn() { return this.registry.conn('PHARMACY'); }
-  async pharmacies() { return partnerRequest<{ items: PharmacyDto[] }>(await this.conn(), { method: 'GET', path: '/pharmacies' }); }
-  async catalogue(q: { q?: string; pharmacyId?: string }) { return partnerRequest<{ items: CatalogueItemDto[] }>(await this.conn(), { method: 'GET', path: '/catalogue', query: q }); }
-  async quote(body: { pharmacyId: string; items: { sku: string; qty: number }[]; delivery?: { method: string } }) { return partnerRequest<QuoteDto>(await this.conn(), { method: 'POST', path: '/catalogue/quote', body }); }
+  /** `registrationId` = the registration that owns the pharmacy (per-registration routing); omitted/null = legacy first-active / env default. */
+  private conn(registrationId?: string | null) { return this.registry.conn('PHARMACY', registrationId); }
+  async pharmacies(registrationId?: string | null) { return partnerRequest<{ items: PharmacyDto[] }>(await this.conn(registrationId), { method: 'GET', path: '/pharmacies' }); }
+  async catalogue(q: { q?: string; pharmacyId?: string }, registrationId?: string | null) { return partnerRequest<{ items: CatalogueItemDto[] }>(await this.conn(registrationId), { method: 'GET', path: '/catalogue', query: q }); }
+  async quote(body: { pharmacyId: string; items: { sku: string; qty: number }[]; delivery?: { method: string } }, registrationId?: string | null) { return partnerRequest<QuoteDto>(await this.conn(registrationId), { method: 'POST', path: '/catalogue/quote', body }); }
   /** `key` = Kiorex order id: the Idempotency-Key header AND the contract's `orderId`, so a retry (timeout, outbox replay) can never double-create. */
-  async createOrder(key: string, body: PharmacyOrderIntent) { return partnerRequest<{ orderId: string; status: PharmacyPartnerStatus; slaDueAt?: string; replayed?: boolean }>(await this.conn(), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
-  async validatePrescription(body: { orderId: string; prescriptionRef: string; verificationToken: string; patientRef: string }) { return partnerRequest<{ status: 'VALID' | 'INVALID' | 'PENDING'; reason?: string }>(await this.conn(), { method: 'POST', path: '/prescriptions/validate', body }); }
-  async cancelOrder(orderId: string, reason: string) { return partnerRequest<{ status: string }>(await this.conn(), { method: 'POST', path: `/orders/${encodeURIComponent(orderId)}/cancel`, body: { reason } }); }
+  async createOrder(key: string, body: PharmacyOrderIntent, registrationId?: string | null) { return partnerRequest<{ orderId: string; status: PharmacyPartnerStatus; slaDueAt?: string; replayed?: boolean }>(await this.conn(registrationId), { method: 'POST', path: '/orders', body, idempotencyKey: key }); }
+  async validatePrescription(body: { orderId: string; prescriptionRef: string; verificationToken: string; patientRef: string }, registrationId?: string | null) { return partnerRequest<{ status: 'VALID' | 'INVALID' | 'PENDING'; reason?: string }>(await this.conn(registrationId), { method: 'POST', path: '/prescriptions/validate', body }); }
+  async cancelOrder(orderId: string, reason: string, registrationId?: string | null) { return partnerRequest<{ status: string }>(await this.conn(registrationId), { method: 'POST', path: `/orders/${encodeURIComponent(orderId)}/cancel`, body: { reason } }); }
 }
 
 export type PharmacyPartnerStatus = 'RECEIVED' | 'ACCEPTED' | 'PARTIALLY_ACCEPTED' | 'READY' | 'OUT_FOR_DELIVERY' | 'DISPENSED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';

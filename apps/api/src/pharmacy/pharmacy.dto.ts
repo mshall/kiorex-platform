@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PharmacyDto {
   @ApiProperty() id!: string;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) id that owns this pharmacy; pass it as partnerId when the same pharmacy id could be offered by two partners' }) partnerId?: string | null;
   @ApiProperty() name!: string;
   @ApiProperty() pickup!: boolean;
   @ApiProperty() deliveryEnabled!: boolean;
@@ -10,6 +11,7 @@ export class PharmacyDto {
 }
 export class CatalogueItemDto {
   @ApiProperty() pharmacyId!: string;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) that owns this pharmacy' }) partnerId?: string | null;
   @ApiProperty() sku!: string;
   @ApiProperty() name!: string;
   @ApiPropertyOptional({ description: 'Arabic brand name when the pharmacy holds one; fall back to `name`. Search matches Arabic and English.' }) nameAr?: string;
@@ -35,6 +37,7 @@ export class CartLineDto {
 }
 export class CartDto {
   @ApiProperty({ nullable: true, type: String }) pharmacyId!: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) that owns the cart pharmacy' }) partnerId?: string | null;
   @ApiProperty({ type: [CartLineDto] }) items!: CartLineDto[];
   @ApiProperty({ enum: ['PICKUP', 'DELIVERY'], nullable: true, type: String }) deliveryMethod!: string | null;
   @ApiProperty({ nullable: true, type: String }) prescriptionRecordId!: string | null;
@@ -81,6 +84,7 @@ export class PharmacyOrderDto {
   @ApiProperty() id!: string;
   @ApiProperty({ enum: ['PENDING_PAYMENT', 'PAID', 'SUBMITTED', 'READY', 'OUT_FOR_DELIVERY', 'DISPENSED', 'PARTIALLY_FULFILLED', 'PARTIAL_REVIEW', 'REJECTED', 'CANCELLED'], description: 'OUT_FOR_DELIVERY: DELIVERY orders handed to the courier. PARTIALLY_FULFILLED: part of the order was dispensed and the rest refunded (see `refund`). PARTIAL_REVIEW: parked for ops (manual review).' }) status!: string;
   @ApiProperty() pharmacyId!: string;
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'Registration (partner) that owns the pharmacy and receives this order' }) partnerId?: string | null;
   @ApiProperty({ type: [CartLineDto] }) items!: CartLineDto[];
   @ApiProperty() subtotalMinor!: number;
   @ApiProperty() deliveryFeeMinor!: number;

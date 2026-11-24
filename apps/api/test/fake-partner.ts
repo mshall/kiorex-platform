@@ -40,26 +40,31 @@ export class FakePartner {
   orderClients = new Map<string, string>();
   /** The partner switched its own flag OFF (pharmacy.kiorex_orders / lab.kiorex_bookings): every call answers 403 FEATURE_DISABLED. */
   flagOff = false;
-  readonly catalogue = [
+  catalogue = [
     { pharmacyId: 'ph_1', sku: 'PARA500', name: 'Paracetamol 500mg', nameAr: 'باراسيتامول ٥٠٠', activeIngredient: 'paracetamol', strength: '500mg', form: 'tablet', formAr: 'أقراص', priceMinor: 2500, rxRequired: false, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'AMOX500', name: 'Amoxicillin 500mg', strength: '500mg', form: 'capsule', priceMinor: 8000, rxRequired: true, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'VITC', name: 'Vitamin C 1000mg', strength: '1000mg', form: 'effervescent tablet', priceMinor: 4000, rxRequired: false, controlled: false, available: true },
     { pharmacyId: 'ph_1', sku: 'CTRL1', name: 'Controlled substance', priceMinor: 9999, rxRequired: true, controlled: true, available: true },
     { pharmacyId: 'ph_1', sku: 'OUT1', name: 'Out of stock item', priceMinor: 1000, rxRequired: false, controlled: false, available: false },
   ];
-  readonly labTests = [
+  labTests = [
     { labId: 'lab_1', labName: 'Nile Lab', code: 'CBC', name: 'Complete blood count', nameAr: 'صورة دم كاملة', priceMinor: 15000, sampleType: 'blood', sampleTypeAr: 'دم', homeCollection: true, preparation: 'No preparation needed', preparationAr: 'لا يلزم أي تحضير' },
     { labId: 'lab_1', labName: 'Nile Lab', code: 'TSH', name: 'Thyroid stimulating hormone', priceMinor: 20000, sampleType: 'blood', homeCollection: true },
   ];
 
-  constructor(public readonly kind: PartnerKind) {}
-  get cfg() { return CFG[this.kind]; }
+  /**
+   * `opts` makes this a SECOND partner of the same kind (another tenant): own client key/secret/webhook secret, own pharmacy / lab ids, and it does not touch the
+   * env default connection. The registration for it is created by the test (PartnerRegistry.upsert with baseUrl = `url`).
+   */
+  constructor(public readonly kind: PartnerKind, private readonly opts: { clientKey?: string; clientSecret?: string; webhookSecret?: string; pharmacies?: { id: string; name: string }[]; setEnv?: boolean } = {}) {}
+  get url() { return `http://127.0.0.1:${this.port}`; }
+  get cfg() { return { ...CFG[this.kind], ...(this.opts.clientKey ? { clientKey: this.opts.clientKey } : {}), ...(this.opts.clientSecret ? { clientSecret: this.opts.clientSecret } : {}), ...(this.opts.webhookSecret ? { webhookSecret: this.opts.webhookSecret } : {}) }; }
   async start() {
     if (this.kind === 'lab') this.validateOrder = inboundOrderValidator();
     this.server = createServer((req, res) => void this.handle(req, res));
     await new Promise<void>((r) => this.server.listen(0, '127.0.0.1', r));
     this.port = (this.server.address() as any).port;
-    process.env[this.cfg.env] = `http://127.0.0.1:${this.port}`; // host only: the client appends the contract path
+    if (this.opts.setEnv !== false) process.env[CFG[this.kind].env] = `http://127.0.0.1:${this.port}`; // host only: the client appends the contract path
     return this;
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
@@ -93,7 +98,7 @@ export class FakePartner {
     const hang = () => new Promise<void>(() => undefined);
 
     if (this.kind === 'pharmacy') {
-      if (m === 'GET' && path === '/pharmacies') return send(200, { items: [{ id: 'ph_1', name: 'Nile Pharmacy', delivery: { enabled: true, feeMinor: 3000, radiusKm: 8 }, pickup: true, prepMinutes: 20 }, { id: 'ph_2', name: 'Pickup Only', delivery: { enabled: false, feeMinor: 0 }, pickup: true }] });
+      if (m === 'GET' && path === '/pharmacies') return send(200, { items: this.opts.pharmacies ? this.opts.pharmacies.map((p) => ({ id: p.id, name: p.name, delivery: { enabled: true, feeMinor: 3000 }, pickup: true })) : [{ id: 'ph_1', name: 'Nile Pharmacy', delivery: { enabled: true, feeMinor: 3000, radiusKm: 8 }, pickup: true, prepMinutes: 20 }, { id: 'ph_2', name: 'Pickup Only', delivery: { enabled: false, feeMinor: 0 }, pickup: true }] });
       if (m === 'GET' && path === '/catalogue') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return send(200, { items: this.catalogue.filter((i) => !q || i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q) || ((i as any).nameAr ?? '').includes(q)) }); }
       if (m === 'POST' && path === '/catalogue/quote') {
         const items = body.items.map((l: any) => { const c = this.catalogue.find((x) => x.sku === l.sku); return c ? { sku: c.sku, name: c.name, ...((c as any).nameAr ? { nameAr: (c as any).nameAr } : {}), ...(c.strength ? { strength: c.strength } : {}), ...(c.form ? { form: c.form } : {}), ...((c as any).formAr ? { formAr: (c as any).formAr } : {}), qty: l.qty, unitPriceMinor: c.priceMinor, rxRequired: c.rxRequired, controlled: c.controlled, available: c.available } : { sku: l.sku, name: 'unknown', qty: l.qty, unitPriceMinor: 0, rxRequired: false, controlled: false, available: false }; });
