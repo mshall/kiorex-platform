@@ -65,7 +65,7 @@ export async function createCtx(opts: { devMarketGate?: boolean } = {}): Promise
     reset: async () => {
       kiorly.reset();
       app.get(KiorlyClient).resetCircuit();
-      const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations'`;
+      const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename <> '_prisma_migrations'`;
       await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(',')} RESTART IDENTITY CASCADE`);
       await flags.seed();
       // TEST FIXTURE — DEV label, not a real gate: Egypt must be live for the booking/search suites (see prisma/seed.ts)

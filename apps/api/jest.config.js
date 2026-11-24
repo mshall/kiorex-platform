@@ -16,6 +16,7 @@ module.exports = {
       testMatch: ["<rootDir>/test/**/*.int.spec.ts"],
       setupFiles: ["<rootDir>/test/env-setup.ts"],
       globalSetup: "<rootDir>/test/global-setup.ts",
+      globalTeardown: "<rootDir>/test/global-teardown.ts",
     },
   ],
 };
