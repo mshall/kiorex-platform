@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import { ApiError } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -34,7 +35,7 @@ export class ReferralQualificationService implements ReferralPort {
     try {
       const b = await this.prisma.bookingIntent.findUnique({ where: { id: bookingId } });
       if (!b || b.dependantId) return; // dependants never qualify a referral
-      const rel = await this.prisma.referralRelationship.findUnique({ where: { market_refereeSub: { market: 'EG', refereeSub: b.sub } } });
+      const rel = await this.prisma.referralRelationship.findUnique({ where: { market_refereeSub: { market: DEFAULT_MARKET, refereeSub: b.sub } } });
       if (!rel || !['SIGNED_UP', 'BOOKED'].includes(rel.status)) { await this.afterRepeat(b.id, b.sub); return; }
       const { rules } = await this.policy.referralRules();
       const holdUntil = new Date((b.terminalAt ?? new Date()).getTime() + rules.qualification.holdDays * DAY);
@@ -61,7 +62,7 @@ export class ReferralQualificationService implements ReferralPort {
   private async afterRepeat(bookingId: string, refereeSub: string) {
     const { rules } = await this.policy.referralRules();
     if (rules.repeatBonus.count <= 0 || !(await this.policy.referralOn())) return;
-    const rel = await this.prisma.referralRelationship.findUnique({ where: { market_refereeSub: { market: 'EG', refereeSub } } });
+    const rel = await this.prisma.referralRelationship.findUnique({ where: { market_refereeSub: { market: DEFAULT_MARKET, refereeSub } } });
     if (!rel || rel.status !== 'QUALIFIED' || !rel.qualifiedBookingId || rel.qualifiedBookingId === bookingId) return;
     const b = await this.prisma.bookingIntent.findUnique({ where: { id: bookingId } });
     const first = await this.prisma.bookingIntent.findUnique({ where: { id: rel.qualifiedBookingId } });

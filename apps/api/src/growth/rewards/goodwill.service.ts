@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../../common/errors';
 import { addressHash } from '../../common/privacy-hash';
@@ -52,7 +53,7 @@ export class GoodwillService {
     const existing = await db.goodwillGrant.findFirst({ where: { lotId: res.lotId } });
     const grant = existing ?? await db.goodwillGrant.create({ data: { sub: g.sub, reason: g.reason, bookingId: g.bookingId, ticketRef: g.ticketRef, amountMinor: g.amountMinor, lotId: res.lotId, grantedBy, approvedBy } });
     await db.auditLog.create({ data: { actor: approvedBy ?? grantedBy, action: 'growth.goodwill.grant', resource: 'GoodwillGrant', resourceId: grant.id, metadata: { reason: g.reason, amountMinor: g.amountMinor, secondApproval: !!approvedBy, lotId: res.lotId } } });
-    await this.events.emit(db, 'GoodwillGranted', 'GoodwillGrant', grant.id, { grantRef: grant.id, lotRef: res.lotId, market: 'EG', reason: g.reason, amountMinor: g.amountMinor, currency: 'EGP', secondApproval: !!approvedBy, at: now.toISOString() }, grant.id);
+    await this.events.emit(db, 'GoodwillGranted', 'GoodwillGrant', grant.id, { grantRef: grant.id, lotRef: res.lotId, market: DEFAULT_MARKET, reason: g.reason, amountMinor: g.amountMinor, currency: 'EGP', secondApproval: !!approvedBy, at: now.toISOString() }, grant.id);
     return { status: 'GRANTED' as const, grantId: grant.id, lotId: res.lotId };
   }
 

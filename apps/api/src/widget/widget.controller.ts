@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { Body, Controller, Get, HttpCode, Post, Query, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -38,7 +39,7 @@ export class WidgetController {
   @ApiOperation({ summary: 'GRW-P1-G short-lived widget session token bound to the embedding origin (HMAC, no personal data). 403 GROWTH_WIDGET_ORIGIN_NOT_ALLOWED for an origin that is not in the organisation allow-list; 403 FEATURE_DISABLED when growth.widgets is OFF' })
   @ApiOkResponse({ description: '{ token, expiresAt, org, slug }', ...OBJ })
   async session(@Req() req: any, @Body() b: SessionBody) {
-    await this.flags.assertEnabled('growth.widgets', { market: 'EG' });
+    await this.flags.assertEnabled('growth.widgets', { market: DEFAULT_MARKET });
     const self = widgetSelfOrigin(req.protocol, req.headers?.host);
     const seen = originOfUrl(req.headers?.origin);
     if (!seen || seen !== self) { await this.audit.denied(null, req.headers?.origin ?? '', 'ORIGIN_MISMATCH', 'session'); throw forbidden('WIDGET_ORIGIN_MISMATCH', 'Sessions are issued to the widget app only'); }

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketTimezone } from '../../market/market-core-public';
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { channelMode } from '../../messaging/messaging-public';
 import { EngagementService, humanizeTimes, render, TEMPLATES, type NotifyKind } from '../../engagement/engagement-public';
@@ -41,7 +42,7 @@ export class SendGateService {
   async evaluate(r: SendRequest): Promise<{ outcome: GateOutcome; input: GateInput; params: Record<string, unknown> }> {
     const { sub, step, channel, now } = r;
     const profile = await this.patients.profileBySub(sub);
-    const market = profile?.market ?? 'EG';
+    const market = profile?.market ?? DEFAULT_MARKET;
     const marketing = step.messageClass === 'MARKETING';
     const consentKey = consentKeyOf(step.purpose, channel);
     const [consent, pref, devices] = await Promise.all([
@@ -57,7 +58,7 @@ export class SendGateService {
     const caps = { perDay: Math.min(r.policy.caps.perDay, centre.maxMarketingPerDay), perWeek: Math.min(r.policy.caps.perWeek, centre.maxMarketingPerWeek) };
     const t = TEMPLATES[step.kind as NotifyKind];
     const params = this.paramsFor(r);
-    const text = `${render(t.en, humanizeTimes(params, 'en'))}\n${render(t.ar, humanizeTimes(params, 'ar'))}`;
+    const text = `${render(t.en, humanizeTimes(params, 'en', marketTimezone(market)))}\n${render(t.ar, humanizeTimes(params, 'ar', marketTimezone(market)))}`;
     const dedupeKey = `${this.dedupeKeyOf(r)}:${channel}`;
     const dup = await this.prisma.message.findUnique({ where: { dedupeKey }, select: { id: true } });
     const mock = channel === 'INAPP' ? true : channelMode(channel as 'WHATSAPP' | 'SMS' | 'EMAIL' | 'PUSH') === 'mock';
@@ -91,7 +92,7 @@ export class SendGateService {
       messageId = ids[0] ?? null;
     }
     const decision = await this.prisma.lifecycleMessageDecision.create({
-      data: { id: newId('kx_lmd'), sub: r.sub, market: (await this.patients.profileBySub(r.sub))?.market ?? 'EG', journeyKey: r.def.key, step: r.step.step, messageClass: r.step.messageClass, channel: r.channel, templateKey: r.step.kind, decision: outcome.decision, reason: outcome.reason, messageLogId: messageId },
+      data: { id: newId('kx_lmd'), sub: r.sub, market: (await this.patients.profileBySub(r.sub))?.market ?? DEFAULT_MARKET, journeyKey: r.def.key, step: r.step.step, messageClass: r.step.messageClass, channel: r.channel, templateKey: r.step.kind, decision: outcome.decision, reason: outcome.reason, messageLogId: messageId },
     });
     return { outcome, decisionId: decision.id, messageId, channel: r.channel };
   }

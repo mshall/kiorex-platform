@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET, marketTimezone } from '../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { resolveBrand } from './brand';
@@ -57,7 +58,7 @@ export class EmbedHandlers {
     return /^\s*ar/i.test(String(req.headers['accept-language'] ?? '')) ? 'ar' : 'en';
   }
   private async enabled(): Promise<{ key: string; scope: string } | null> {
-    const r = await this.flags.evaluate('growth.widgets', { market: 'EG' });
+    const r = await this.flags.evaluate('growth.widgets', { market: DEFAULT_MARKET });
     return r.effective ? null : { key: 'growth.widgets', scope: r.scope ?? 'GLOBAL' };
   }
   private notBuilt(res: Response) { this.secure(res, "'none'"); res.status(503).json({ code: 'WIDGET_NOT_BUILT', message: 'The widget build is not available on this instance' }); }
@@ -87,7 +88,7 @@ export class EmbedHandlers {
       const brand = resolveBrand({ color: typeof q.color === 'string' ? q.color : undefined, radius: typeof q.radius === 'string' ? q.radius : undefined, logo: typeof q.logo === 'string' ? q.logo : undefined });
       const boot = {
         org: reg.orgSlug ?? reg.orgRef, locale: lang, brand, doctor: one(q.doctor, SLUGISH), specialty: one(q.specialty, SPEC), po: originOfUrl(typeof q.po === 'string' ? q.po : null), sandbox,
-        lt: one(q.lt, TOKEN), ref: one(q.ref, REFC), authority: widgetCfg().oidcAuthority, clientId: widgetCfg().oidcClientId, self, version: this.assets.sdkFile().manifest.version, tz: 'Africa/Cairo',
+        lt: one(q.lt, TOKEN), ref: one(q.ref, REFC), authority: widgetCfg().oidcAuthority, clientId: widgetCfg().oidcClientId, self, version: this.assets.sdkFile().manifest.version, tz: marketTimezone(DEFAULT_MARKET),
       };
       const a = this.assets.appFiles();
       this.secure(res, frameAncestorsOf(ancestors));

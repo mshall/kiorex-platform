@@ -6,7 +6,7 @@ export { GROWTH_DEFAULT_PAYLOADS, DEFAULT_RETENTION, PROPOSED_DEFAULT_MARKER } f
 export { decide, maxWindowMs, FirstTouchNotForCommissionError, PROVIDER_OWNED_KINDS, type Decision, type DecisionBooking, type DecisionPolicy, type DecisionTouch } from './attribution/decide';
 export { AttributionService, type StoredDecision, type DecideForBookingInput } from './attribution/attribution.service';
 export { AttributionPolicyResolver, toDecisionPolicy, type AttributionPolicyPayload } from './attribution/policy';
-export { GrowthConfigService, MONEY_POLICY_KINDS, MONEY_POLICY_LEAD_MS, type ResolvedConfig, type ConfigActor, type ConfigScope } from './config/growth-config.service';
+export { GrowthConfigService, validateGrowthConfig, LOCAL_CONFIG_KINDS, MONEY_POLICY_KINDS, MONEY_POLICY_LEAD_MS, type ResolvedConfig, type ConfigActor, type ConfigScope } from './config/growth-config.service';
 export { GrowthEventsService, type ServerFact } from './events/growth-events.service';
 export { SlugService, type SlugResolution } from './slugs/slug.service';
 export { slugify, candidateSlug, SLUG_PATTERN } from './slugs/slug';
@@ -53,3 +53,8 @@ export { sponsoredPayoutHoldMinor } from './promotions/promotion-math';
 // GRW-P3-E (wave 8, lane A1): marketing automation and AI-assisted recommendations
 export { AutomationModule } from './automation/automation.module';
 export { RecommendationsModule } from './recommendations/recommendations.module';
+// GRW-P3-C (cohorts and LTV, wave 8 lane A2)
+export { CohortsModule } from './cohorts/cohorts.module';
+export { CohortService } from './cohorts/cohort.service';
+// GRW-P3-G (market onboarding wizard, wave 8 lane A2)
+export { MarketOnboardingModule } from './markets/market-onboarding.module';

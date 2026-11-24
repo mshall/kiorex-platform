@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '../../prisma/generated/client';
 import { conflict, forbidden, notFound, unprocessable } from '../../common/errors';
@@ -23,7 +24,7 @@ const requesterOf = (orgRef: string) => `org:${orgRef}`;
 export class PromotionReviewService {
   constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService, @Inject(PROMOTION_RESERVATION_CLIENT) private readonly clinic: PromotionReservationClient) {}
 
-  private async policy(market = 'EG') { return (await this.config.resolve<{ highValueBudgetMinor: number; highValuePerBookingMinor: number; maxDiscountBp: number }>('SPONSORED_PROMOTION_POLICY', { market })).payload; }
+  private async policy(market = DEFAULT_MARKET) { return (await this.config.resolve<{ highValueBudgetMinor: number; highValuePerBookingMinor: number; maxDiscountBp: number }>('SPONSORED_PROMOTION_POLICY', { market })).payload; }
 
   /** Called when a projection reaches IN_REVIEW: opens the review rows (idempotent, one per kind) with the automated guard result attached. */
   async openReviews(promotionId: string, version: number): Promise<number> {

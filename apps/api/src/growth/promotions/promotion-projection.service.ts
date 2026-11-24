@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '../../prisma/generated/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -14,7 +15,7 @@ export class PromotionProjectionService {
   private readonly log = new Logger('promotion-projection');
   constructor(private readonly prisma: PrismaService) {}
 
-  async applyUpdated(data: Record<string, any>, market = 'EG'): Promise<'APPLIED' | 'IGNORED'> {
+  async applyUpdated(data: Record<string, any>, market = DEFAULT_MARKET): Promise<'APPLIED' | 'IGNORED'> {
     const promotionId = str(data.promotionId, 64), orgRef = str(data.orgRef, 64), status = str(data.status, 20);
     const version = Number(data.version); const at = data.at && !Number.isNaN(Date.parse(data.at)) ? new Date(data.at) : new Date();
     if (!promotionId || !orgRef || !Number.isInteger(version) || version < 1 || !STATUSES.has(status)) return 'IGNORED';

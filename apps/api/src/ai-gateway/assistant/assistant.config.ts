@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { growthPublic } from './assistant.growth-bridge';
@@ -24,7 +25,7 @@ const int = (n: unknown, d: number) => (typeof n === 'number' && Number.isFinite
 @Injectable()
 export class AssistantPolicyService {
   constructor(private readonly moduleRef: ModuleRef) {}
-  async get(market = 'EG'): Promise<AssistantPolicy> {
+  async get(market = DEFAULT_MARKET): Promise<AssistantPolicy> {
     const { GrowthConfigService } = await growthPublic();
     const r = await this.moduleRef.get(GrowthConfigService, { strict: false }).resolve<Record<string, any>>('ASSISTANT_POLICY', { market });
     const p = r.payload ?? {};

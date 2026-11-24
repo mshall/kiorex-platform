@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FRAUD_RULES_DEFAULTS, mergeFraudRules, type FraudRulesConfig } from './fraud-config';
@@ -12,7 +13,7 @@ export class FraudConfigService {
   constructor(private readonly prisma: PrismaService) {}
   invalidate(): void { this.cache.clear(); }
 
-  async get(market = 'EG'): Promise<FraudRulesConfig & { version: number | null }> {
+  async get(market = DEFAULT_MARKET): Promise<FraudRulesConfig & { version: number | null }> {
     const hit = this.cache.get(market);
     const ttl = process.env.NODE_ENV === 'test' ? 0 : 15_000;
     if (hit && Date.now() - hit.at < ttl) return { ...hit.cfg, version: hit.version };

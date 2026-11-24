@@ -42,6 +42,7 @@ const GrowthFraudPage = lazy(() => import("@/pages/growth/GrowthFraudPage"));
 const GrowthAnalyticsPage = lazy(() => import("@/pages/growth/GrowthAnalyticsPage"));
 const GrowthFinancePage = lazy(() => import("@/pages/growth/GrowthFinancePage"));
 const GrowthMarketsPage = lazy(() => import("@/pages/growth/GrowthMarketsPage"));
+const GrowthMarketWizardPage = lazy(() => import("@/pages/growth/markets/MarketWizardPage"));
 const GrowthIntegrationsPage = lazy(() => import("@/pages/growth/GrowthIntegrationsPage"));
 const GrowthAuditPage = lazy(() => import("@/pages/growth/GrowthAuditPage"));
 const GrowthConfigPage = lazy(() => import("@/pages/growth/GrowthConfigPage"));
@@ -120,6 +121,7 @@ export function AppRoutes() {
           <Route path="growth/analytics" element={<GrowthAnalyticsPage />} />
           <Route path="growth/finance" element={<GrowthFinancePage />} />
           <Route path="growth/markets" element={<GrowthMarketsPage />} />
+          <Route path="growth/markets/wizard" element={<GrowthMarketWizardPage />} />
           <Route path="growth/integrations" element={<GrowthIntegrationsPage />} />
           <Route path="growth/audit" element={<GrowthAuditPage />} />
           <Route path="growth/config" element={<GrowthConfigPage />} />

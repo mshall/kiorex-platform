@@ -1,4 +1,5 @@
 import type { GrowthConfigKind } from '@kiorex/contracts';
+import { LTV_POLICY_DEFAULT } from '../cohorts/ltv-policy';
 
 /**
  * PROPOSED_DEFAULT payloads for the growth configuration kinds (GROWTH_ARCHITECTURE_DECISIONS section 6.3 and 16, work-packages file section 7:
@@ -8,7 +9,11 @@ import type { GrowthConfigKind } from '@kiorex/contracts';
  */
 export const PROPOSED_DEFAULT_MARKER = 'PROPOSED_DEFAULT';
 
-export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind, Record<string, unknown>>> = {
+/** Kinds that exist in this repo before the contracts package carries their schema (W8: validated by their own validators in growth-config.service). */
+export type LocalConfigKind = 'LTV_POLICY' | 'MARKET_PROFILE';
+export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalConfigKind, Record<string, unknown>>> = {
+  // GRW-P3-C: no market literal here; MARKET_PROFILE has no default (the code fallback of the registry answers for EG, SA and AE)
+  LTV_POLICY: { ...LTV_POLICY_DEFAULT },
   ATTRIBUTION_POLICY: {
     providerTouchWindowDays: 30,
     patientReferralWindowDays: 30,

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable } from '@nestjs/common';
 import { GROWTH_CONFIG_SCHEMAS, type GrowthConfigKind } from '@kiorex/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,7 +16,7 @@ const clampDays = (d: unknown, def = 30) => { const n = Number(d); return Number
 const clampTake = (t: unknown, def = 100, max = 200) => { const n = Number(t); return Number.isInteger(n) ? Math.min(max, Math.max(1, n)) : def; };
 export const EDITABLE: GrowthConfigKind[] = Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[];
 const MARKET = /^[A-Z]{2}$/;
-export const marketOf = (m?: string) => (m && MARKET.test(m) ? m : 'EG');
+export const marketOf = (m?: string) => (m && MARKET.test(m) ? m : DEFAULT_MARKET);
 
 /** Growth flag keys shown next to the integrations and market pages (read-only; switches stay in the flag control plane). */
 const MARKETING_FLAGS = ['growth.marketing_messaging', 'growth.analytics_visitor', 'growth.campaigns', 'growth.patient_referral', 'growth.rewards'] as const;
@@ -264,7 +265,7 @@ export class GrowthAdminService {
 
   // ───────────────────────── markets ─────────────────────────
   async marketConfigs() {
-    const { marketFacts } = await import('../../market/market-public');
+    const { marketFacts, marketProfile } = await import('../../market/market-public');
     const defs = await this.prisma.flagDefinition.findMany({ where: { key: { startsWith: 'market.', endsWith: '.live' } }, select: { key: true } });
     const listed: Array<{ code: string; live: boolean; state: string }> = [];
     for (const cc of defs.map((d) => d.key.split('.')[1]!.toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)).sort()) { const r = await this.flags.evaluate(`market.${cc.toLowerCase()}.live`, { market: cc }); listed.push({ code: cc, live: r.effective, state: r.effective ? 'LIVE' : r.reason }); }
@@ -277,12 +278,14 @@ export class GrowthAdminService {
       ]);
       const flags = [];
       for (const key of MARKETING_FLAGS) { const r = await this.flags.evaluate(key, { market: m.code }); flags.push({ key, effective: r.effective, reason: r.reason }); }
-      const facts = marketFacts(m.code);
-      const g = (growth?.payload ?? {}) as Record<string, unknown>; const c = consent.payload as Record<string, unknown>; const a = attribution.payload as Record<string, unknown>;
+      const facts = marketFacts(m.code); const prof = marketProfile(m.code);
+      // a market with no configuration of its own must not show another market's PROPOSED_DEFAULT facts (currency, zone, regime): the registry answers, and an unknown market shows blanks
+      const own = (r: { source: string } | null) => !!prof || r?.source === 'ACTIVE';
+      const g = (growth && own(growth) ? growth.payload : {}) as Record<string, unknown>; const c = (own(consent) ? consent.payload : {}) as Record<string, unknown>; const a = attribution.payload as Record<string, unknown>;
       const brief = (r: { version: number; source: string; scope: string } | null) => (r ? { version: r.version, source: r.source, scope: r.scope } : null);
       out.push({
-        code: m.code, live: m.live, state: m.state, name: facts.name, currency: g.currency ?? facts.currency, phoneCode: g.phoneCode ?? facts.phoneCode, locales: g.locales ?? (seo.payload as Record<string, unknown>).locales,
-        timeZone: c.quietHoursTimezone, quietHours: { start: c.quietHoursStart, end: c.quietHoursEnd }, consent: { regimeId: c.regimeId, maxMarketingPerDay: c.maxMarketingPerDay, maxMarketingPerWeek: c.maxMarketingPerWeek, withdrawalPropagationSeconds: c.withdrawalPropagationSeconds },
+        code: m.code, live: m.live, state: m.state, name: facts.name, currency: facts.currency || (g.currency ?? ''), phoneCode: facts.phoneCode || (g.phoneCode ?? ''), locales: g.locales ?? (seo.payload as Record<string, unknown>).locales,
+        timeZone: prof?.timezone ?? c.quietHoursTimezone ?? null, quietHours: { start: prof?.quietHours.start ?? c.quietHoursStart ?? null, end: prof?.quietHours.end ?? c.quietHoursEnd ?? null }, consent: { regimeId: c.regimeId, maxMarketingPerDay: c.maxMarketingPerDay, maxMarketingPerWeek: c.maxMarketingPerWeek, withdrawalPropagationSeconds: c.withdrawalPropagationSeconds },
         retention: { touchEvidenceRetentionMonths: a.touchEvidenceRetentionMonths, unlinkedTouchRetentionMonths: a.unlinkedTouchRetentionMonths, visitorKeyMaxDays: a.visitorKeyMaxDays },
         marketing: { marketingLicenceConfirmed: g.marketingLicenceConfirmed ?? false, qrEnabled: g.qrEnabled ?? null, flags },
         geography: { geographyListRef: g.geographyListRef ?? null, cities, districts, note: 'District list is the market-pack list (NEEDS_HUMAN NH-040); this console only stores the reference.' },

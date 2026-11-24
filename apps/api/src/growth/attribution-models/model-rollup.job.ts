@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { cfg } from '../../common/config';
@@ -20,7 +21,7 @@ export class ModelRollupJob implements OnModuleInit, OnModuleDestroy {
     this.timer = setInterval(() => void this.runOnce().catch((e) => this.log.warn(`rollup failed: ${e.message}`)), 3_600_000); this.timer.unref();
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
-  async runOnce(market = 'EG', days = 3) {
+  async runOnce(market = DEFAULT_MARKET, days = 3) {
     if (!(await this.flags.isEnabled(GROWTH_FLAG.ATTRIBUTION, { market }).catch(() => false))) return { skipped: true as const };
     const run = await this.prisma.growthJobRun.create({ data: { job: JOB, instanceId: INSTANCE } });
     try { const r = await this.reports.rollup({ market, days }); await this.prisma.growthJobRun.update({ where: { id: run.id }, data: { finishedAt: new Date(), rows: r.conversions } }); return r; }

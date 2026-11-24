@@ -1,0 +1,180 @@
+{
+  "en": {
+    "growth": {
+      "cohorts": {
+        "tabs": "Cohort views",
+        "tab": {
+          "cohorts": "Cohorts and retention",
+          "ltv": "LTV",
+          "payback": "Payback"
+        },
+        "recompute": "Recompute now",
+        "recomputing": "Recomputing...",
+        "recomputed": "Cohorts and LTV were recomputed.",
+        "fewerThan10": "fewer than 10",
+        "privacy": "Aggregates only. A cell built from fewer than 10 people shows \"fewer than 10\" and carries no figure derived from it. Nothing here is per person.",
+        "basis": "Cohort by",
+        "basisFirst": "First completed booking",
+        "basisRegistration": "Registration month",
+        "dimension": "Break down by",
+        "value": "Value",
+        "pick": "Choose...",
+        "dim": {
+          "ALL": "All patients",
+          "SOURCE": "Source",
+          "CAMPAIGN": "Campaign",
+          "PLATFORM": "Platform"
+        },
+        "empty": "No cohort has been computed for this selection yet.",
+        "summary": "Cohort summary",
+        "cohorts": "Cohorts",
+        "cohortsHint": "Acquisition months with at least 10 patients or withheld",
+        "patients": "Acquired patients",
+        "patientsHint": "Sum of the visible cohorts",
+        "visits": "Visits per patient (months 0 to 3)",
+        "visitsHint": "Completed bookings of cohorts old enough, per acquired patient. The share of patients with a second visit needs person-level data and is not stored.",
+        "tableTitle": "Cohort table",
+        "tableHint": "Each cell: patients retained in that month since acquisition, with revenue in the market currency below.",
+        "tableCaption": "Cohorts by acquisition month: size and retained patients for months 0 to 3",
+        "notObserved": "not observed yet",
+        "col": {
+          "cohort": "Cohort",
+          "patients": "Patients",
+          "m0": "Month 0",
+          "m1": "Month 1",
+          "m2": "Month 2",
+          "m3": "Month 3"
+        },
+        "month": "Month {{n}}",
+        "months": "{{n}} months",
+        "heatTitle": "Retention heatmap",
+        "heatHint": "Share of the cohort that completed a booking in each month since acquisition. The figure is always printed; the bar only helps scanning.",
+        "heatCaption": "Retention rate by cohort and month since acquisition",
+        "estimate": "ESTIMATE",
+        "ltvNote": "Lifetime value is an estimate over {{months}} months with a {{pct}}% interval. It is a group average, never a value for a person.",
+        "ltvEmpty": "No LTV estimate yet: a group needs at least 10 acquired patients and the daily job (or a recompute) must have run.",
+        "ltvTitle": "LTV by group",
+        "ltvHint": "Model {{version}}. Observed contribution plus a decaying tail for months not yet observed.",
+        "ltvCaption": "Lifetime value estimates with intervals",
+        "ltvCol": {
+          "group": "Group",
+          "estimate": "Estimate",
+          "interval": "Interval",
+          "n": "Patients (n)",
+          "horizon": "Horizon"
+        },
+        "allPatients": "All acquired patients",
+        "methodTitle": "How it is computed",
+        "method": "Observed cumulative contribution (revenue minus platform-funded rewards) per acquired patient. For months the group is not old enough to have, a geometric tail from the decay of the last observed months, never above the last observed level. The interval is a seeded bootstrap over patients and does not include model risk. A BG/NBD style model is deliberately not built: the volume is too low to fit it honestly.",
+        "policyLine": "Policy {{source}}: horizon {{horizon}} months, {{resamples}} resamples, discount {{discount}}% a year. Change it in Growth configuration (LTV_POLICY, two people).",
+        "paybackSummary": "Payback summary",
+        "blendedCac": "Blended CAC",
+        "blendedCacHint": "Approved spend of the cohort months over patients acquired",
+        "ltvCac": "LTV : CAC",
+        "ltvCacHint": "ESTIMATE with its interval, n = {{n}}",
+        "ltvCacNone": "Needs approved spend and an LTV estimate",
+        "notAvailable": "not available",
+        "paybackTitle": "Payback by cohort",
+        "paybackHint": "The first month in which cumulative contribution per patient reaches the CAC.",
+        "paybackCaption": "Payback month by acquisition cohort",
+        "pbCol": {
+          "cohort": "Cohort",
+          "patients": "Patients",
+          "cac": "CAC",
+          "payback": "Payback"
+        },
+        "notYet": "not yet",
+        "paybackMonth": "month {{n}}"
+      }
+    }
+  },
+  "ar": {
+    "growth": {
+      "cohorts": {
+        "tabs": "عروض المجموعات",
+        "tab": {
+          "cohorts": "المجموعات والاحتفاظ",
+          "ltv": "القيمة الدائمة",
+          "payback": "فترة الاسترداد"
+        },
+        "recompute": "إعادة الحساب الآن",
+        "recomputing": "جارٍ إعادة الحساب...",
+        "recomputed": "تمت إعادة حساب المجموعات والقيمة الدائمة.",
+        "fewerThan10": "أقل من 10",
+        "privacy": "أرقام مجمّعة فقط. أي خلية مبنية على أقل من 10 أشخاص تظهر \"أقل من 10\" ولا تحمل أي رقم مشتق منها. لا يوجد هنا شيء على مستوى الشخص.",
+        "basis": "المجموعة حسب",
+        "basisFirst": "أول حجز مكتمل",
+        "basisRegistration": "شهر التسجيل",
+        "dimension": "التقسيم حسب",
+        "value": "القيمة",
+        "pick": "اختر...",
+        "dim": {
+          "ALL": "كل المرضى",
+          "SOURCE": "المصدر",
+          "CAMPAIGN": "الحملة",
+          "PLATFORM": "المنصة"
+        },
+        "empty": "لم تُحسب أي مجموعة لهذا الاختيار بعد.",
+        "summary": "ملخص المجموعات",
+        "cohorts": "المجموعات",
+        "cohortsHint": "أشهر اكتساب بها 10 مرضى على الأقل أو محجوبة",
+        "patients": "المرضى المكتسبون",
+        "patientsHint": "مجموع المجموعات الظاهرة",
+        "visits": "الزيارات لكل مريض (الأشهر 0 إلى 3)",
+        "visitsHint": "الحجوزات المكتملة للمجموعات التي بلغت العمر الكافي، لكل مريض مكتسب. نسبة من لديهم زيارة ثانية تحتاج بيانات على مستوى الشخص ولا تُخزَّن.",
+        "tableTitle": "جدول المجموعات",
+        "tableHint": "كل خلية: المرضى الذين عادوا في ذلك الشهر منذ الاكتساب، وتحتها الإيراد بعملة السوق.",
+        "tableCaption": "المجموعات حسب شهر الاكتساب: الحجم والمرضى المحتفَظ بهم للأشهر 0 إلى 3",
+        "notObserved": "لم يُرصد بعد",
+        "col": {
+          "cohort": "المجموعة",
+          "patients": "المرضى",
+          "m0": "الشهر 0",
+          "m1": "الشهر 1",
+          "m2": "الشهر 2",
+          "m3": "الشهر 3"
+        },
+        "month": "الشهر {{n}}",
+        "months": "{{n}} شهرًا",
+        "heatTitle": "خريطة الاحتفاظ الحرارية",
+        "heatHint": "نسبة المجموعة التي أكملت حجزًا في كل شهر منذ الاكتساب. الرقم مطبوع دائمًا؛ الشريط للمساعدة على المسح فقط.",
+        "heatCaption": "معدل الاحتفاظ حسب المجموعة والشهر منذ الاكتساب",
+        "estimate": "تقدير",
+        "ltvNote": "القيمة الدائمة تقدير على مدى {{months}} شهرًا بفاصل ثقة {{pct}}٪. هي متوسط مجموعة وليست قيمة لشخص.",
+        "ltvEmpty": "لا يوجد تقدير للقيمة الدائمة بعد: تحتاج المجموعة 10 مرضى مكتسبين على الأقل ويجب أن تكون المهمة اليومية (أو إعادة الحساب) قد عملت.",
+        "ltvTitle": "القيمة الدائمة حسب المجموعة",
+        "ltvHint": "النموذج {{version}}. المساهمة المرصودة مع ذيل متناقص للأشهر التي لم تُرصد بعد.",
+        "ltvCaption": "تقديرات القيمة الدائمة مع فواصلها",
+        "ltvCol": {
+          "group": "المجموعة",
+          "estimate": "التقدير",
+          "interval": "الفاصل",
+          "n": "المرضى (n)",
+          "horizon": "الأفق"
+        },
+        "allPatients": "كل المرضى المكتسبين",
+        "methodTitle": "كيف يُحسب",
+        "method": "المساهمة التراكمية المرصودة (الإيراد ناقص المكافآت التي تمولها المنصة) لكل مريض مكتسب. وللأشهر التي لم تبلغها المجموعة بعد، ذيل هندسي من تناقص الأشهر الأخيرة المرصودة، ولا يتجاوز آخر مستوى مرصود. الفاصل هو إعادة معاينة (bootstrap) بذرة ثابتة على المرضى ولا يشمل مخاطر النموذج. لم يُبنَ نموذج من نوع BG/NBD عمدًا: الحجم أقل من أن يُلائَم بصدق.",
+        "policyLine": "السياسة {{source}}: الأفق {{horizon}} شهرًا، {{resamples}} إعادة معاينة، خصم {{discount}}٪ سنويًا. تُغيَّر من إعدادات النمو (LTV_POLICY، بشخصين).",
+        "paybackSummary": "ملخص الاسترداد",
+        "blendedCac": "تكلفة الاكتساب المدمجة",
+        "blendedCacHint": "الإنفاق المعتمد لأشهر المجموعات على المرضى المكتسبين",
+        "ltvCac": "القيمة الدائمة : تكلفة الاكتساب",
+        "ltvCacHint": "تقدير مع فاصله، n = {{n}}",
+        "ltvCacNone": "يحتاج إنفاقًا معتمدًا وتقدير قيمة دائمة",
+        "notAvailable": "غير متاح",
+        "paybackTitle": "الاسترداد حسب المجموعة",
+        "paybackHint": "أول شهر تبلغ فيه المساهمة التراكمية لكل مريض تكلفة الاكتساب.",
+        "paybackCaption": "شهر الاسترداد حسب مجموعة الاكتساب",
+        "pbCol": {
+          "cohort": "المجموعة",
+          "patients": "المرضى",
+          "cac": "تكلفة الاكتساب",
+          "payback": "الاسترداد"
+        },
+        "notYet": "ليس بعد",
+        "paybackMonth": "الشهر {{n}}"
+      }
+    }
+  }
+}

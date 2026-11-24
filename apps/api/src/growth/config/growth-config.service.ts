@@ -3,6 +3,8 @@ import { GROWTH_CONFIG_KINDS, GROWTH_CONFIG_STATES, growthCanonicalJson, validat
 import { validateSeoExtensions } from '../seo/seo-public';
 import { validateFraudRules } from '../fraud/fraud-config';
 import { validateSeoAutomation } from '../seo-automation/seo-automation-config';
+import { validateLtvPolicy } from '../cohorts/ltv-policy';
+import { validateMarketProfile } from '../../market/market-core-public';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
@@ -40,7 +42,13 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  * part by F's validator. Both run on every write; nothing else may be added.
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
+/** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
+export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE'];
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
+  if (kind === 'LTV_POLICY' || kind === 'MARKET_PROFILE') {
+    const errors = kind === 'LTV_POLICY' ? validateLtvPolicy(payload).errors : validateMarketProfile(payload);
+    return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
+  }
   // GRW-P3-D and P3-F: the two Wave 7 kinds are validated by their own validators (the contract schema joins them with 1.13.0; both must pass once it does)
   if (kind === 'FRAUD_RULES' || kind === 'SEO_AUTOMATION') {
     const mine = kind === 'FRAUD_RULES' ? validateFraudRules(payload) : validateSeoAutomation(payload);
@@ -164,6 +172,7 @@ export class GrowthConfigService {
     this.assertKind(i.kind); this.assertScope(i);
     const v = validateGrowthConfig(i.kind, i.payload);
     if (!v.valid) throw growthError('GROWTH_CONFIG_INVALID', 'Payload does not match the schema for this kind', { errors: v.errors });
+    if (i.kind === 'MARKET_PROFILE' && (i.scope !== 'MARKET' || i.payload.cc !== i.scopeId)) throw growthError('GROWTH_CONFIG_INVALID', 'A market profile belongs to its own market scope', { errors: ['/cc must equal the MARKET scopeId'] });
     if (i.kind === 'ATTRIBUTION_POLICY' && i.payload.precedence === 'FIRST_TOUCH') throw growthError('GROWTH_CONFIG_INVALID', 'FIRST_TOUCH is reporting only and cannot be the commission precedence', { errors: ['/precedence FIRST_TOUCH is not allowed for commission'] });
     await this.guard({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, ticket: i.ticket }, true);
     const row = await this.createRow({ kind: i.kind, scope: i.scope, scopeId: i.scopeId ?? '', payload: i.payload, createdBy: actor.sub, effectiveFrom: i.effectiveFrom ?? null, ticket: i.ticket, reason: i.reason, announcement: i.announcement, status: 'DRAFT' });
@@ -365,7 +374,7 @@ export class GrowthConfigService {
 
   // ───────────────────────── internals ─────────────────────────
 
-  private assertKind(kind: string) { if (!(GROWTH_CONFIG_KINDS as readonly string[]).includes(kind)) throw growthError('GROWTH_INVALID_REQUEST', `Unknown config kind ${kind}`); }
+  private assertKind(kind: string) { if (!(GROWTH_CONFIG_KINDS as readonly string[]).includes(kind) && !LOCAL_CONFIG_KINDS.includes(kind)) throw growthError('GROWTH_INVALID_REQUEST', `Unknown config kind ${kind}`); }
   private assertScope(s: ConfigScope) {
     if (s.scope === 'GLOBAL' && (s.scopeId ?? '') !== '') throw growthError('GROWTH_INVALID_REQUEST', 'GLOBAL scope has no scopeId');
     if (s.scope === 'MARKET' && !/^[A-Z]{2}$/.test(s.scopeId)) throw growthError('GROWTH_INVALID_REQUEST', 'MARKET scope needs an ISO country code as scopeId');

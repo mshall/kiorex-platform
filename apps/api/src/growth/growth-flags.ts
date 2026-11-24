@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../market/market-core-public';
 import { FLAGS } from '@kiorex/contracts';
 
 /**
@@ -41,4 +42,4 @@ export const GROWTH_LAUNCH_LOCKED_FLAGS: readonly GrowthFlagKey[] = [
 ];
 
 /** Every growth table carries a market code; one live market today (EG). Code never branches on it: it is a column default and a config scope id. */
-export const GROWTH_DEFAULT_MARKET = 'EG';
+export const GROWTH_DEFAULT_MARKET = DEFAULT_MARKET;

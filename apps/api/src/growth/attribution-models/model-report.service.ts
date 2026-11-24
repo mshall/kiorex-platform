@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { applyKAnonymity, K_MIN, MASK, type Masked } from '../analytics/kanon';
@@ -29,7 +30,7 @@ export class ModelReportService {
 
   /** Recomputes the last `days` market days (default 3; late events and corrections land inside it). Idempotent: the range is replaced in one transaction per table. */
   async rollup(i: { market?: string; days?: number; from?: string; to?: string; now?: Date; config?: AttributionModelsConfig } = {}): Promise<RollupResult> {
-    const market = i.market ?? 'EG'; const zone = marketTimezone(market); const cfg = i.config ?? DEFAULT_MODELS_CONFIG; const now = i.now ?? new Date();
+    const market = i.market ?? DEFAULT_MARKET; const zone = marketTimezone(market); const cfg = i.config ?? DEFAULT_MODELS_CONFIG; const now = i.now ?? new Date();
     const to = i.to && ISO.test(i.to) ? i.to : localDay(now, zone); const from = i.from && ISO.test(i.from) ? i.from : addDays(to, -(Math.min(Math.max(i.days ?? 3, 1), 120) - 1));
     if (from > to) throw growthError('GROWTH_INVALID_REQUEST', 'from must not be after to');
     const convs = await this.data.conversions(market, from, to);
@@ -74,7 +75,7 @@ export class ModelReportService {
 
   /** Model comparison for a range: per model and source kind, with k >= 10 masking, and a per-model total that must equal every other model's total. */
   async compare(q: { market?: string; from?: string; to?: string; now?: Date }) {
-    const market = q.market ?? 'EG'; const zone = marketTimezone(market); const to = q.to && ISO.test(q.to) ? q.to : localDay(q.now ?? new Date(), zone); const from = q.from && ISO.test(q.from) ? q.from : addDays(to, -29);
+    const market = q.market ?? DEFAULT_MARKET; const zone = marketTimezone(market); const to = q.to && ISO.test(q.to) ? q.to : localDay(q.now ?? new Date(), zone); const from = q.from && ISO.test(q.from) ? q.from : addDays(to, -29);
     if (from > to) throw growthError('GROWTH_INVALID_REQUEST', 'from must not be after to');
     if (Date.parse(to) - Date.parse(from) > 366 * DAY) throw growthError('GROWTH_INVALID_REQUEST', 'a report covers at most 366 days');
     const where = { market, day: { gte: new Date(`${from}T00:00:00Z`), lte: new Date(`${to}T00:00:00Z`) } };
@@ -99,7 +100,7 @@ export class ModelReportService {
 
   /** Most common ordered source-kind paths (hashes of kinds only; rows under k = 10 are never stored). */
   async paths(q: { market?: string; from?: string; to?: string; now?: Date; take?: number }) {
-    const market = q.market ?? 'EG'; const zone = marketTimezone(market); const to = q.to && ISO.test(q.to) ? q.to : localDay(q.now ?? new Date(), zone); const from = q.from && ISO.test(q.from) ? q.from : addDays(to, -29);
+    const market = q.market ?? DEFAULT_MARKET; const zone = marketTimezone(market); const to = q.to && ISO.test(q.to) ? q.to : localDay(q.now ?? new Date(), zone); const from = q.from && ISO.test(q.from) ? q.from : addDays(to, -29);
     const g = await this.prisma.growthPathSnapshot.groupBy({ by: ['pathHash', 'length'], where: { market, day: { gte: new Date(`${from}T00:00:00Z`), lte: new Date(`${to}T00:00:00Z`) } }, _sum: { conversions: true } });
     const kinds = new Map<string, string[]>(); for (const r of await this.prisma.growthPathSnapshot.findMany({ where: { market, pathHash: { in: g.map((x) => x.pathHash) } }, select: { pathHash: true, pathKinds: true }, distinct: ['pathHash'] })) kinds.set(r.pathHash, r.pathKinds);
     const rows = g.map((x) => ({ pathHash: x.pathHash, length: x.length, kinds: kinds.get(x.pathHash) ?? [], conversions: x._sum.conversions ?? 0 })).filter((r) => r.conversions >= K_MIN).sort((a, b) => b.conversions - a.conversions || (a.pathHash < b.pathHash ? -1 : 1)).slice(0, Math.min(q.take ?? 50, 200));
@@ -109,7 +110,7 @@ export class ModelReportService {
 
   /** "Experiment-based lift": holdout units against exposed units of a P3-A experiment that has a variant keyed `holdout`. */
   async lift(q: { experimentKey: string; market?: string; alpha?: number }) {
-    const market = q.market ?? 'EG';
+    const market = q.market ?? DEFAULT_MARKET;
     const exp = await this.prisma.growthExperiment.findUnique({ where: { market_key: { market, key: q.experimentKey } } });
     if (!exp) throw notFound('EXPERIMENT_NOT_FOUND', 'experiment not found');
     const variants = ((exp.variants as Array<{ key: string }> | null) ?? []).map((v) => v.key);

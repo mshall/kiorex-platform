@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
@@ -10,7 +11,7 @@ import { ModelRollupJob } from './model-rollup.job';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 class ModelRollupBody { @IsOptional() @IsInt() @Min(1) @Max(120) days?: number }
-const market = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : 'EG');
+const market = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : DEFAULT_MARKET);
 
 /**
  * Reporting attribution models (GRW-P3-B). Reads: every Growth ops role (k >= 10 masked, no person data). A manual recompute is super admin and needs `growth.attribution` ON.

@@ -1,3 +1,4 @@
+import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Controller, Get, Inject, forwardRef } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../../common/auth';
@@ -19,7 +20,7 @@ export class LifecyclePreferencesController {
   @Get() @ApiOperation({ summary: 'GRW-P2-E the four message classes, what is required and what is optional, quiet hours and caps' }) @ApiOkResponse(OBJ)
   async get(@CurrentUser() u: AuthUser) {
     const p = await this.prefs.get(u.sub);
-    const policy = await this.policies.resolve('EG');
+    const policy = await this.policies.resolve(DEFAULT_MARKET);
     const marketing = p.marketing as { available: boolean; anyConsent: boolean; channels: Array<{ channel: string; marketingConsent: boolean; suppressed: boolean }> };
     return {
       classes: [
