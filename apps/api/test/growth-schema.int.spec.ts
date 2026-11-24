@@ -211,7 +211,12 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
       await client.connect();
       try {
         const before = (await client.query(`SELECT count(*)::int AS n FROM pg_constraint`)).rows[0].n;
+        const indexesBefore = (await client.query(`SELECT indexname FROM pg_indexes WHERE schemaname = current_schema() ORDER BY 1`)).rows.map((r) => r.indexname as string);
         await client.query(sql);
+        // Replaying growth_core also re-creates the NON-partial unique (bookingId, policyVersionId) on GrowthAttributionDecision that growth_attribution_consent dropped (a correction shares the
+        // original's booking and policy version). Left in place it made EVERY correction of a later suite in the same run fail with a unique violation, which the service reported as
+        // "decision corrected concurrently": the order-dependent flake of growth-attribution. Replay the superseding migration straight after, exactly like an upgrade path.
+        await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', '20261128120000_growth_attribution_consent', 'migration.sql'), 'utf8'));
         // Replaying growth_core re-creates the 7-column unique index on GrowthMetricDaily that growth_analytics_v1 replaced with the full-dimension key. Left in place it made every
         // later suite of the run (growth analytics rollup) fail with a unique violation, because three providers' rows differ only in columns the narrow index does not cover.
         // So the replay continues with the later migration that supersedes it, exactly like a real upgrade path, and the shared test DB ends in its migrated state.
@@ -222,6 +227,11 @@ describe('growth schema (migration 20261128100000_growth_core)', () => {
         for (const m of ['20261203095000_growth_p2_erase_retention_v2', '20261203096000_growth_p2_credit_ledger_v2']) await client.query(readFileSync(join(__dirname, '..', 'prisma', 'migrations', m, 'migration.sql'), 'utf8'));
         const after = (await client.query(`SELECT count(*)::int AS n FROM pg_constraint`)).rows[0].n;
         expect(after).toBe(before);
+        // the replay must leave the shared DB's index set exactly as migrated: an index that a later migration dropped and the replay brings back poisons every later suite of the run
+        const indexesAfter = (await client.query(`SELECT indexname FROM pg_indexes WHERE schemaname = current_schema() ORDER BY 1`)).rows.map((r) => r.indexname as string);
+        expect(indexesAfter.filter((i) => !indexesBefore.includes(i))).toEqual([]);
+        expect(indexesBefore.filter((i) => !indexesAfter.includes(i))).toEqual([]);
+        expect(indexesAfter).not.toContain('GrowthAttributionDecision_bookingId_policyVersionId_key');
         expect((await client.query(`SELECT count(*)::int AS n FROM pg_trigger WHERE tgname IN ('growth_touchpoint_immutable','growth_attribution_decision_immutable')`)).rows[0].n).toBe(2);
       } finally { await client.end(); }
     });

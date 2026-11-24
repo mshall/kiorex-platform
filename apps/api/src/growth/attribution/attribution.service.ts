@@ -161,8 +161,9 @@ export class AttributionService implements OnModuleInit {
       await this.outbox.enqueue(tx, { type: 'AttributionAssigned', aggregateType: 'BookingIntent', aggregateId: bookingId, payload: { bookingId, decisionId: r.id, origin: c.origin, reason: 'MANUAL_CORRECTION', policyVersion: cur.policyVersionId, market: cur.market, decidedAt: r.createdAt.toISOString() }, dedupeKey: `AttributionAssigned:${r.id}` });
       return r;
     }, { maxWait: 10_000, timeout: 20_000 }).catch((e) => {
-      // backstop only: the row lock makes this unreachable for corrections; the partial unique index on supersedesId stays the last arbiter
-      if ((e as { code?: string }).code === 'P2002') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The decision was corrected concurrently: reload and retry');
+      // backstop only: the row lock makes this unreachable for corrections; the partial unique index on supersedesId stays the last arbiter. ONLY that index means
+      // "corrected concurrently": any other unique violation is a different fault and must surface as itself (it used to be mislabelled the same way and hid a stale index).
+      if ((e as { code?: string }).code === 'P2002' && JSON.stringify((e as { meta?: unknown }).meta ?? '').includes('GrowthAttributionDecision_one_correction_idx')) throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The decision was corrected concurrently: reload and retry');
       throw e;
     });
     return this.stored(row, true);
