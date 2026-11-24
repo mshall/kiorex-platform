@@ -38,6 +38,16 @@ export class RewardLedgerService {
     const r = await db.$queryRaw<{ available: bigint; held: bigint; reserved: bigint }[]>(Prisma.sql`SELECT available, held, reserved FROM reward_lot_balance(${lotId})`);
     return { available: Number(r[0]?.available ?? 0), held: Number(r[0]?.held ?? 0), reserved: Number(r[0]?.reserved ?? 0) };
   }
+  /** Balances of many lots in ONE round trip (a list page must not open one query per row: 200 parallel balance queries exhausted the connection pool). */
+  async balances(db: Db, lotIds: readonly string[]): Promise<Map<string, LotBalance>> {
+    const out = new Map<string, LotBalance>();
+    const ids = [...new Set(lotIds)];
+    if (!ids.length) return out;
+    const rows = await db.$queryRaw<{ id: string; available: bigint; held: bigint; reserved: bigint }[]>(Prisma.sql`SELECT u."id", b.available, b.held, b.reserved FROM unnest(${ids}::text[]) AS u("id") CROSS JOIN LATERAL reward_lot_balance(u."id") b`);
+    for (const r of rows) out.set(r.id, { available: Number(r.available ?? 0), held: Number(r.held ?? 0), reserved: Number(r.reserved ?? 0) });
+    for (const id of ids) if (!out.has(id)) out.set(id, { available: 0, held: 0, reserved: 0 });
+    return out;
+  }
   async totals(db: Db, lotId: string): Promise<LotTotals> {
     const [b, rows] = await Promise.all([this.balance(db, lotId), db.$queryRaw<{ type: string; s: bigint }[]>(Prisma.sql`SELECT "type", SUM("amountMinor")::bigint AS s FROM "RewardLedgerEntry" WHERE "lotId" = ${lotId} GROUP BY "type"`)]);
     const t = (k: string) => Number(rows.find((x) => x.type === k)?.s ?? 0);

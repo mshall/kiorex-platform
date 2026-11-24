@@ -399,6 +399,23 @@ describe('growth rewards ledger (GRW-P2-B2)', () => {
       expect(lot.sub).toMatch(/^h:[0-9a-f]{64}$/); expect(lot.ownerSub).toMatch(/^h:/); expect(lot.couponCodeSealed).toBeNull(); expect(lot.couponCodeHash).toBeNull();
       expect(await entries(l.lotId)).toHaveLength(1);
     });
+    it('W8: GET /admin/growth/rewards/lots?take=200 answers in one balance query, never exhausts the pool, and take is bounded (200 at most, 50 by default for junk)', async () => {
+      const made: string[] = [];
+      for (let i = 0; i < 205; i++) made.push((await promo(`sub_w8_${i}`, 100 + i)).lotId);
+      const before = Date.now();
+      const calls = await Promise.all([1, 2, 3, 4].map(() => c.http().get(`${BASE}/admin/growth/rewards/lots?take=200`).set(ops).expect(200)));
+      expect(Date.now() - before).toBeLessThan(15_000);
+      for (const r of calls) {
+        expect(r.body).toHaveLength(200);
+        for (const l of r.body) expect(l.availableMinor).toBe(l.amountMinor);
+      }
+      expect((await c.http().get(`${BASE}/admin/growth/rewards/lots?take=9999`).set(ops).expect(200)).body).toHaveLength(200);
+      for (const junk of ['abc', '-5', '0', '1e999', '']) expect((await c.http().get(`${BASE}/admin/growth/rewards/lots?take=${junk}`).set(ops).expect(200)).body).toHaveLength(50);
+      expect((await c.http().get(`${BASE}/admin/growth/rewards/lots?take=3.9`).set(ops).expect(200)).body).toHaveLength(3);
+      const b = await led().balances(c.prisma, [...made.slice(0, 5), 'rl_missing']);
+      expect(b.size).toBe(6); expect(b.get('rl_missing')).toEqual({ available: 0, held: 0, reserved: 0 });
+      for (const id of made.slice(0, 5)) expect(b.get(id)).toEqual(await bal(id));
+    });
     it('ops reads show patients as opaque references only, with the pricing banner; manual issuance has a daily cap and a second approver above the threshold', async () => {
       const l = await promo('sub_amira', 2000);
       const lots = (await c.http().get(`${BASE}/admin/growth/rewards/lots`).set(ops).expect(200)).body;

@@ -22,6 +22,8 @@ import { GOODWILL_REASONS } from './goodwill-limits';
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
 const SUB = /^[A-Za-z0-9_.:@|-]{3,128}$/;
+/** A list size from the query string: a whole number from 1 to `max`, else `def`. */
+const boundedTake = (v?: string, max = 200, def = 50) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 1 ? Math.min(n, max) : def; };
 
 class ManualIssueBody { @IsString() @Matches(SUB) sub!: string; @IsInt() @Min(1) @Max(100_000_000) amountMinor!: number; @IsString() @MaxLength(300) reason!: string; @IsOptional() @IsString() @MaxLength(80) bookingId?: string; @IsOptional() @IsString() @MaxLength(80) ticketRef?: string }
 class GoodwillBody { @IsString() @Matches(SUB) sub!: string; @IsIn([...GOODWILL_REASONS]) reason!: string; @IsInt() @Min(1) @Max(100_000_000) amountMinor!: number; @IsOptional() @IsString() @MaxLength(80) bookingId?: string; @IsOptional() @IsString() @MaxLength(80) ticketRef?: string }
@@ -52,8 +54,9 @@ export class RewardsAdminController {
 
   @Get('rewards/lots') @ApiOperation({ summary: 'GRW-P2-B2 lots with balances (patient as an opaque reference)' }) @ApiOkResponse(ARR)
   async lots(@Query('status') status?: string, @Query('kind') kind?: string, @Query('funding') funding?: string, @Query('take') take?: string) {
-    const rows = await this.prisma.rewardLot.findMany({ where: { ...(status ? { status } : {}), ...(kind ? { kind } : {}), ...(funding ? { funding } : {}) }, orderBy: { createdAt: 'desc' }, take: Math.min(Number(take) || 50, 200) });
-    return Promise.all(rows.map(async (l) => { const b = await this.ledger.balance(this.prisma, l.id); return { id: l.id, patientRef: subRefOf(l.ownerSub ?? l.sub), kind: l.kind, mode: l.mode, funding: l.funding, status: l.status, amountMinor: l.amountMinor, currency: l.currency, availableMinor: b.available, heldMinor: b.held, reservedMinor: b.reserved, expiresAt: l.expiresAt, createdAt: l.createdAt, campaignId: l.campaignId, ruleVersionId: l.ruleVersionId }; }));
+    const rows = await this.prisma.rewardLot.findMany({ where: { ...(status ? { status } : {}), ...(kind ? { kind } : {}), ...(funding ? { funding } : {}) }, orderBy: { createdAt: 'desc' }, take: boundedTake(take) });
+    const balances = await this.ledger.balances(this.prisma, rows.map((l) => l.id));
+    return rows.map((l) => { const b = balances.get(l.id)!; return { id: l.id, patientRef: subRefOf(l.ownerSub ?? l.sub), kind: l.kind, mode: l.mode, funding: l.funding, status: l.status, amountMinor: l.amountMinor, currency: l.currency, availableMinor: b.available, heldMinor: b.held, reservedMinor: b.reserved, expiresAt: l.expiresAt, createdAt: l.createdAt, campaignId: l.campaignId, ruleVersionId: l.ruleVersionId }; });
   }
   @Get('rewards/lots/:id/ledger') @ApiOperation({ summary: 'GRW-P2-B2 every entry of one lot (append-only)' }) @ApiOkResponse(ARR)
   async lotLedger(@Param('id') id: string) {
