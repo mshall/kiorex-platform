@@ -18,7 +18,8 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 export class CampaignReportService {
   constructor(private readonly prisma: PrismaService, private readonly campaigns: CampaignService) {}
 
-  async report(id: string, q: { from?: string; to?: string } = {}, now = new Date()) {
+  /** `includeRevenue` is the finance capability: Kiorex commission revenue and return on spend are money views (a plain ops admin sees the funnel, the spend that was approved and the unit costs, not revenue). */
+  async report(id: string, q: { from?: string; to?: string } = {}, now = new Date(), includeRevenue = true) {
     const c = await this.campaigns.must(id); const zone = marketTimezone(c.market);
     const to = q.to && ISO.test(q.to) ? q.to : localDay(c.endsAt && c.endsAt < now ? c.endsAt : now, zone);
     const from = q.from && ISO.test(q.from) ? q.from : (() => { const start = c.startsAt ? localDay(c.startsAt, zone) : addDays(to, -29); return start < addDays(to, -365) ? addDays(to, -365) : start; })();
@@ -42,7 +43,7 @@ export class CampaignReportService {
     const revenueNet = n('RevenueMinor') - n('RevenueReversedMinor');
     const cpa = maskTotal(confirmed, { cpaMinor: spendMinor > 0 && confirmed > 0 ? Math.round(spendMinor / confirmed) : null, conversionPct: pct(confirmed, views) });
     const cacCell = maskTotal(anp, { cacMinor: (() => { const v = paidCac(spendMinor, anp); return v === null ? null : Math.round(v); })() });
-    const roasCell = maskTotal(confirmed, { roas: (() => { const v = roas(revenueNet, spendMinor); return v === null ? null : Math.round(v * 100) / 100; })() });
+    const roasCell = maskTotal(confirmed, { roas: !includeRevenue ? null : (() => { const v = roas(revenueNet, spendMinor); return v === null ? null : Math.round(v * 100) / 100; })() });
 
     const byDayRows = await this.prisma.growthMetricDaily.groupBy({ by: ['day', 'metric'], where: { ...where, metric: { in: ['PageViewed', 'BookingConfirmed', 'BookingAttended'] } }, _sum: { value: true } });
     const days = new Map<string, Record<string, number>>();
@@ -68,7 +69,7 @@ export class CampaignReportService {
       campaign: this.campaigns.brief(c), range: { from, to },
       budget: { totalMinor: c.budgetTotalMinor, dailyMinor: c.budgetDailyMinor, approvedSpendMinor: spendMinor, pendingSpendMinor: pending._sum.amountMinor ?? 0, utilisationBp: c.budgetTotalMinor ? Math.floor((used * 10_000) / c.budgetTotalMinor) : 0, currency: c.currency },
       funnel, kpis: { cpa, cac: cacCell, roas: roasCell, kMin: K_MIN, mask: MASK },
-      revenue: { netMinor: revenueNet, masked: confirmed > 0 && confirmed < K_MIN, note: 'Kiorex commission revenue net of reversals; rewards, deposits and GBV are not revenue' },
+      revenue: includeRevenue ? { netMinor: revenueNet, masked: confirmed > 0 && confirmed < K_MIN, restricted: false, note: 'Kiorex commission revenue net of reversals; rewards, deposits and GBV are not revenue' } : { netMinor: null, masked: false, restricted: true, note: 'Revenue is a finance view' },
       daily, bySource, external,
       ratios: { spendPerView: ratio(spendMinor, views) === null ? null : Math.round((spendMinor / views) * 100) / 100 },
     };

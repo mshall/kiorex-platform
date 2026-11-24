@@ -154,3 +154,9 @@ Rotation (at least yearly and whenever someone with access leaves): `scripts/set
 - **Partner credentials for the link registry lookup and the evidence endpoint**: both use the Clinic's shared marketplace client key and secret today (one organisation header is a claim by an authenticated Clinic). Per-organisation credentials are a CTO task; until then the lookup only reveals code, organisation, scope, channel and status (no person).
 - **Consent wording on the patient app** is the same draft as the web (`TODO_NEEDS_HUMAN_v0`), AR and EN, awaiting counsel and CMO; a draft chip shows in development builds only.
 - **Docker image publication and the first deploy** stay blocked until the founder says so; the image builds locally.
+
+## Campaign management (GRW-P2-A)
+- **Policy numbers** (`CAMPAIGN_POLICY`: approval above EGP 20,000, monthly ceiling EGP 500,000, daily default cap EGP 10,000, increase approval above 20 percent, alerts at 50, 80 and 100 percent, sensitive channels WhatsApp and SMS) are `PROPOSED_DEFAULT`: CEO and CFO to ratify (two-person rule, announcement text required).
+- **Health-advertising rules** for the paid channel labels and creative references (NH-13) are a counsel item: the module only plans and records; real ad-platform adapters (P2-F) must run `assertAdSafe` and the Egyptian medical-advertising list before any spend is read or written.
+- **Creative asset host allowlist** (`cdn.kiorex.com`) and the object-store prefix are placeholders until the CDN host is decided (CTO).
+- **Market time zone table** for the daily cap (EG Africa/Cairo, SA Asia/Riyadh, AE Asia/Dubai) is reference data until MARKET_PROFILE (P3-G); a new market needs its row.

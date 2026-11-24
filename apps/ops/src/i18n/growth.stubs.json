@@ -155,7 +155,8 @@
           "today": "No loyalty programme exists.",
           "flag": "growth.loyalty"
         }
-      }
+      },
+      "livePhase": "Phase {{phase}}"
     }
   },
   "ar": {
@@ -314,7 +315,8 @@
           "today": "لا يوجد برنامج ولاء.",
           "flag": "growth.loyalty"
         }
-      }
+      },
+      "livePhase": "المرحلة {{phase}}"
     }
   }
 }

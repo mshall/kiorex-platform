@@ -286,7 +286,9 @@
         "history": {
           "title": "History",
           "none": "No state changes yet.",
-          "by": "by {{who}}"
+          "by": "By",
+          "when": "When",
+          "change": "Change"
         },
         "err": {
           "CAMPAIGN_INVALID": "The campaign is not valid.",
@@ -591,7 +593,9 @@
         "history": {
           "title": "السجل",
           "none": "لا تغييرات في الحالة بعد.",
-          "by": "بواسطة {{who}}"
+          "by": "بواسطة",
+          "when": "الوقت",
+          "change": "التغيير"
         },
         "err": {
           "CAMPAIGN_INVALID": "الحملة غير صالحة.",

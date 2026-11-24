@@ -23,7 +23,8 @@ async function axeSerious(page: Page) {
     return r.violations.filter((v: any) => v.impact === "serious" || v.impact === "critical").map((v: any) => `${v.id}: ${v.nodes.slice(0, 3).map((n: any) => n.target.join(" ")).join(" | ")}`);
   });
 }
-const PLANNED: Array<[string, number]> = [["campaigns", 2], ["referrals", 2], ["rewards", 2], ["promotions", 2], ["whatsapp", 2], ["lifecycle", 2], ["experiments", 3]];
+// GRW-P2-A: Campaign Management, Promotional Campaigns and Approvals are live (growth-campaigns.spec.ts); the rest stay planned
+const PLANNED: Array<[string, number]> = [["referrals", 2], ["rewards", 2], ["whatsapp", 2], ["assistant", 2], ["lifecycle", 2], ["experiments", 3], ["cohorts", 3], ["corporate", 4]];
 
 test.describe.configure({ mode: "serial" });
 test.describe("ops Growth & Patient Acquisition (real stack)", () => {
@@ -32,12 +33,12 @@ test.describe("ops Growth & Patient Acquisition (real stack)", () => {
   test.beforeAll(async () => { mkdirSync(SHOTS, { recursive: true }); originalRolesB = rolesOf(OPS_B.phone); setRoles(OPS_B.phone, ["ops_admin", "super_admin"]); });
   test.afterAll(() => { if (originalRolesB) setRoles(OPS_B.phone, JSON.parse(originalRolesB) as string[]); resetOtp(); });
 
-  test("navigation group with the 22 founder sections plus configuration versions; planned pages are honest; the market selector stays hidden", async ({ page }) => {
+  test("navigation group with the 22 founder sections, the 9 added by GRW-P2-X1 and configuration versions; planned pages are honest; the market selector stays hidden", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript(prefs, ["en", "light"]);
     await signIn(page, "/growth");
     await expect(page.getByTestId("growth-nav-toggle")).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator('#growth-nav-list a')).toHaveCount(23);
+    await expect(page.locator('#growth-nav-list a')).toHaveCount(32);
     await expect(page.getByTestId("growth-market")).toHaveCount(0); // one live market: no selector (founder rule)
     await expect(page.getByRole("heading", { name: "Executive overview" })).toBeVisible();
     await expect(page.getByTestId("overview-source")).toBeVisible();
@@ -173,7 +174,7 @@ test.describe("ops Growth & Patient Acquisition (real stack)", () => {
       await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
       await page.addInitScript(prefs, [lang, theme]);
       await signIn(page, "/growth");
-      for (const [route, ready, name] of [["/growth", "overview-stats", "overview"], ["/growth/attribution", "config-panel-ATTRIBUTION_POLICY", "attribution"], ["/growth/integrations", "secret-rule", "integrations"], ["/growth/campaigns", "planned-state", "planned"]] as const) {
+      for (const [route, ready, name] of [["/growth", "overview-stats", "overview"], ["/growth/attribution", "config-panel-ATTRIBUTION_POLICY", "attribution"], ["/growth/integrations", "secret-rule", "integrations"], ["/growth/referrals", "planned-state", "planned"]] as const) {
         await page.goto(route); await page.getByTestId(ready).waitFor();
         await expect(page.locator("html")).toHaveAttribute("dir", lang === "ar" ? "rtl" : "ltr");
         await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);

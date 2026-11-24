@@ -38,7 +38,7 @@ export function GrowthPage({ section, children, actions, toolbar }: { section: s
         </select>
       </label>
       <PageHeader title={t(`growth.sections.${section}.title`)} hint={t(`growth.sections.${section}.hint`)} actions={actions}
-        badge={s?.status === "planned" ? <StatusChip tone="warning">{t("growth.planned.badge", { phase: s.phase })}</StatusChip> : <StatusChip tone="success">{t("growth.live")}</StatusChip>} />
+        badge={s?.status === "planned" ? <StatusChip tone="warning">{t("growth.planned.badge", { phase: s.phase })}</StatusChip> : <StatusChip tone="success">{s?.phase ? t("growth.livePhase", { phase: s.phase }) : t("growth.live")}</StatusChip>} />
       {toolbar && <div className="flex flex-wrap items-center gap-3">{toolbar}</div>}
       {children}
     </div>

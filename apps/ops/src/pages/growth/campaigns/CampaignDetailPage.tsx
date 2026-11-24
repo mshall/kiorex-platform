@@ -167,7 +167,7 @@ function ReportTab({ c }: { c: Campaign }) {
       </Section>
       <Section title={t("growth.campaigns.report.daily")} id="rp-daily">{d.daily.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.campaigns.report.nothing")}</p> : <ul className="space-y-1 text-sm" data-testid="report-daily">{d.daily.map((x) => <li key={x.day} className="flex flex-wrap justify-between gap-2 border-b py-1.5"><span>{x.day}</span><span className="tabular-nums" dir="ltr">{money(x.spendMinor, d.budget.currency)} · {mk(x.pageViews, nf)} · {mk(x.bookingsConfirmed, nf)}</span></li>)}</ul>}</Section>
       <Section title={t("growth.campaigns.report.bySource")} id="rp-source">{d.bySource.length === 0 ? <p className="text-sm text-muted-foreground">{t("growth.campaigns.report.nothing")}</p> : <ul className="space-y-1 text-sm">{d.bySource.map((x) => <li key={x.sourceKind} className="flex justify-between border-b py-1.5"><span>{x.sourceKind}</span><span className="tabular-nums">{mk(x.pageViews, nf)} · {mk(x.bookingsConfirmed, nf)}</span></li>)}</ul>}</Section>
-      <Section title={t("growth.campaigns.report.revenue")} id="rp-rev"><p className="text-sm" data-testid="report-revenue">{d.revenue.masked ? "<10" : money(d.revenue.netMinor, d.budget.currency)}</p><p className="text-xs text-muted-foreground">{d.revenue.note}</p></Section>
+      <Section title={t("growth.campaigns.report.revenue")} id="rp-rev"><p className="text-sm" data-testid="report-revenue">{d.revenue.netMinor === null ? "-" : d.revenue.masked ? "<10" : money(d.revenue.netMinor, d.budget.currency)}</p><p className="text-xs text-muted-foreground">{d.revenue.note}</p></Section>
       <Section title={d.external.connected ? t("growth.campaigns.report.connected", { kinds: d.external.kinds.join(", ") }) : t("growth.campaigns.report.notConnected")} id="rp-ext">
         <p className="text-sm" data-testid="report-external" data-connected={d.external.connected}>{d.external.connected ? Object.entries(d.external.metrics).map(([k, v]) => `${k}: ${nf(v)}`).join(" · ") : t("growth.campaigns.report.notConnectedHint")}</p>
       </Section>
@@ -178,10 +178,10 @@ function ReportTab({ c }: { c: Campaign }) {
 function HistoryTab({ c, lang }: { c: Campaign; lang: string }) {
   const { t } = useTranslation(); const q = useCampaignHistory(c.id);
   const cols: Column<NonNullable<typeof q.data>[number]>[] = [
-    { key: "at", header: t("growth.campaigns.spend.day"), cell: (h) => formatDateTime(h.at, lang) },
-    { key: "change", header: t("growth.campaigns.list.colStatus"), cell: (h) => `${t(`growth.campaigns.status.${h.from}`)} → ${t(`growth.campaigns.status.${h.to}`)}` },
+    { key: "at", header: t("growth.campaigns.history.when"), cell: (h) => formatDateTime(h.at, lang) },
+    { key: "change", header: t("growth.campaigns.history.change"), cell: (h) => `${t(`growth.campaigns.status.${h.from}`)} → ${t(`growth.campaigns.status.${h.to}`)}` },
     { key: "reason", header: t("growth.campaigns.approvals.reasonLabel"), cell: (h) => <code dir="ltr">{h.reasonCode}</code> },
-    { key: "actor", header: t("growth.campaigns.detail.owner"), cell: (h) => <code dir="ltr">{h.actor}</code> },
+    { key: "actor", header: t("growth.campaigns.history.by", { who: "" }), cell: (h) => <code dir="ltr">{h.actor}</code> },
   ];
   return <Section title={t("growth.campaigns.history.title")} id="hi"><div data-testid="campaign-history"><DataTable columns={cols} rows={q.data ?? []} rowKey={(h) => h.id} caption={t("growth.campaigns.history.title")} empty={t("growth.campaigns.history.none")} /></div></Section>;
 }

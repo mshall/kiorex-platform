@@ -24,7 +24,7 @@ export interface Report {
   budget: { totalMinor: number; dailyMinor: number; approvedSpendMinor: number; pendingSpendMinor: number; utilisationBp: number; currency: string };
   funnel: Array<{ stage: string; count: Masked; masked: boolean }>;
   kpis: { cpa: { count: Masked; masked: boolean; values: { cpaMinor: Masked | null; conversionPct: Masked | null } }; cac: { count: Masked; masked: boolean; values: { cacMinor: Masked | null } }; roas: { count: Masked; masked: boolean; values: { roas: Masked | null } }; kMin: number; mask: string };
-  revenue: { netMinor: number; masked: boolean; note: string };
+  revenue: { netMinor: number | null; masked: boolean; restricted?: boolean; note: string };
   daily: Array<{ day: string; spendMinor: number; pageViews: Masked; bookingsConfirmed: Masked }>;
   bySource: Array<{ sourceKind: string; pageViews: Masked; bookingsConfirmed: Masked }>;
   external: { connected: boolean; kinds: string[]; metrics: Record<string, number> };

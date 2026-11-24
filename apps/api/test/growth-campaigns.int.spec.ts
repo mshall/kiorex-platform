@@ -71,7 +71,7 @@ describe('growth campaigns (GRW-P2-A)', () => {
       expect((await c.http().post(BASE).set(ops).send(body())).status).toBe(403);
       expect((await c.http().patch(`${BASE}/${k.id}`).set(ops).send({ version: 1, name: 'x' })).status).toBe(403);
       expect((await c.http().post(`${BASE}/${k.id}/transition`).set(ops).send({ to: 'ARCHIVED', reasonCode: 'X' })).status).toBe(403);
-      expect((await c.http().get(BASE).set(ops)).status).toBe(200); expect((await c.http().get(`${BASE}/${k.id}`).set(ops)).status).toBe(200); expect((await c.http().get(`${BASE}/${k.id}/report`).set(ops)).status).toBe(200);
+      expect((await c.http().get(BASE).set(ops)).status).toBe(200); expect((await c.http().get(`${BASE}/${k.id}`).set(ops)).status).toBe(200); const opsReport = await c.http().get(`${BASE}/${k.id}/report`).set(ops).expect(200); expect(opsReport.body.revenue).toMatchObject({ netMinor: null, restricted: true }); expect(opsReport.body.kpis.roas.values.roas).toBeNull(); // revenue is a finance view
       expect((await c.http().get(BASE).set(patient)).status).toBe(403); expect((await c.http().get(BASE)).status).toBe(401);
     });
     it('unknown and malformed ids are 404, never 5xx', async () => {

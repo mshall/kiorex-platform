@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nes
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '../../common/auth';
 import { RequiresFlag } from '../../control-plane/control-plane-public';
-import { rolesFor } from '../admin/growth-access';
+import { can, rolesFor } from '../admin/growth-access';
 import { GrowthSpendService } from '../analytics/spend.service';
 import { GROWTH_FLAG } from '../growth-flags';
 import { AddCreativeDto, CampaignSpendDto, CreateCampaignDto, DecideApprovalDto, RequestApprovalDto, TransitionDto, UpdateCampaignDto } from './campaign-dto';
@@ -54,7 +54,7 @@ export class CampaignsAdminController {
   @Roles(...rolesFor('manageCampaigns')) @RequiresFlag(GROWTH_FLAG.CAMPAIGNS) @Post(':id/approvals') @ApiOperation({ summary: 'GRW-P2-A ask a second person to approve activation, a budget increase or reactivation' }) @ApiOkResponse(OBJ)
   requestApproval(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: RequestApprovalDto) { return this.approvals.request(user(u), id, b); }
   @Get(':id/report') @ApiOperation({ summary: 'GRW-P2-A performance: funnel, spend, utilisation, CPA, CAC, ROAS by day and source (k >= 10); external numbers only from read-only adapters' }) @ApiOkResponse(OBJ)
-  getReport(@Param('id') id: string, @Query('from') from?: string, @Query('to') to?: string) { return this.report.report(id, { from, to }); }
+  getReport(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('from') from?: string, @Query('to') to?: string) { return this.report.report(id, { from, to }, new Date(), can(u.roles, 'readFinance')); }
   @Get(':id/history') @ApiOperation({ summary: 'GRW-P2-A every state change with actor and reason' }) @ApiOkResponse(ARR)
   history(@Param('id') id: string) { return this.svc.history(id); }
   @Get(':id/creatives') @ApiOperation({ summary: 'GRW-P2-A creative asset references' }) @ApiOkResponse(ARR)
