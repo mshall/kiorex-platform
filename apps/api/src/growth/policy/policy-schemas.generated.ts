@@ -700,6 +700,13 @@ export const POLICY_SCHEMAS: Record<string, any> = {
        "real"
       ]
      },
+     "LLM_AI_GATEWAY": {
+      "type": "string",
+      "enum": [
+       "mock",
+       "real"
+      ]
+     },
      "TURN_VIDEO": {
       "type": "string",
       "enum": [
