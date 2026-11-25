@@ -4,18 +4,19 @@ import { SiteMetrics } from './metrics';
 import { SitemapService } from './sitemap.service';
 import { SiteDataService } from './site-data.service';
 import { siteCfg } from './site.config';
+import { createCdnPurgePort, MockCdnPurgeAdapter, type CdnPurgePort } from '../platform/platform-public';
 
-/** CDN invalidation port. `mock` records what a real purge would send; `real` is a go-live task (NEEDS_HUMAN, Docs/NEEDS_HUMAN.md) and is never faked. */
+/** CDN invalidation. Delegates to the `CdnPurgePort` (src/platform/adapters/cdn): `mock` records, `real` is the CloudFront skeleton (G-22), configured only by env and never faked. */
 @Injectable()
 export class CdnPurger {
   private readonly log = new Logger('CdnPurger');
-  readonly recent: { at: string; paths: string[] }[] = [];
+  private readonly port: CdnPurgePort = createCdnPurgePort(siteCfg().cdnPurgeMode, { distributionId: process.env.SITE_CDN_DISTRIBUTION_ID ?? null, region: process.env.SITE_CDN_REGION });
+  get recent(): { at: string; paths: string[] }[] { return this.port instanceof MockCdnPurgeAdapter ? this.port.recent : []; }
   async purge(paths: string[]): Promise<void> {
     if (!paths.length) return;
-    if (siteCfg().cdnPurgeMode === 'real') { this.log.warn(`SITE_CDN_PURGE_MODE=real is not implemented yet (NEEDS_HUMAN: distribution id and IAM role); ${paths.length} path(s) NOT purged`); return; }
-    this.recent.push({ at: new Date().toISOString(), paths });
-    if (this.recent.length > 50) this.recent.shift();
-    this.log.debug(`mock CDN purge: ${paths.length} path(s)`);
+    const r = await this.port.purge(paths);
+    if (r.status === 'NOT_CONFIGURED' || r.status === 'FAILED') this.log.warn(`CDN purge ${r.status}: ${r.paths} path(s) NOT purged (${r.reason ?? 'see NEEDS_HUMAN: CDN purge'})`);
+    else this.log.debug(`CDN purge ${r.status}: ${r.paths} path(s)`);
   }
 }
 
