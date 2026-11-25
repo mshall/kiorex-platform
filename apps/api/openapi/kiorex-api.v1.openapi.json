@@ -17708,6 +17708,602 @@
         ]
       }
     },
+    "/api/v1/admin/growth/loyalty/summary": {
+      "get": {
+        "operationId": "LoyaltyAdminController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D loyalty overview: tiers, points flow and partnership totals (aggregate, k >= 10)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/rules": {
+      "get": {
+        "operationId": "LoyaltyAdminController_rules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D the active LOYALTY_RULES (tiers, points, expiry, conversion) and whether they are still the zero defaults",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/tiers/preview": {
+      "get": {
+        "operationId": "LoyaltyAdminController_preview",
+        "parameters": [
+          {
+            "name": "completed",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 100000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D which tier N completed bookings give under the active rules",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships": {
+      "get": {
+        "operationId": "LoyaltyAdminController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D partnership programs with budget use",
+        "tags": [
+          "growth-loyalty"
+        ]
+      },
+      "post": {
+        "operationId": "LoyaltyAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D draft a partnership program (amounts default to 0)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}": {
+      "get": {
+        "operationId": "LoyaltyAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D one program",
+        "tags": [
+          "growth-loyalty"
+        ]
+      },
+      "put": {
+        "operationId": "LoyaltyAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D edit a draft program",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/codes": {
+      "get": {
+        "operationId": "LoyaltyAdminController_codes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D the codes of a program (counts, never the plain code)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      },
+      "post": {
+        "operationId": "LoyaltyAdminController_code",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D issue a code (the plain code is returned once)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/campaign": {
+      "post": {
+        "operationId": "LoyaltyAdminController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D link the PARTNER-channel campaign whose approval governs the program",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/activate": {
+      "post": {
+        "operationId": "LoyaltyAdminController_activate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D activate (a second person; terms complete; campaign approved)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/pause": {
+      "post": {
+        "operationId": "LoyaltyAdminController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D pause",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/end": {
+      "post": {
+        "operationId": "LoyaltyAdminController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D end the program (final)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/loyalty/partnerships/{id}/codes/{codeId}/revoke": {
+      "post": {
+        "operationId": "LoyaltyAdminController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D revoke a code",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/loyalty/me": {
+      "get": {
+        "operationId": "LoyaltyPublicController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D my tier, progress, points and the conversion on offer",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/loyalty/history": {
+      "get": {
+        "operationId": "LoyaltyPublicController_history",
+        "parameters": [
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D my points movements (no booking or provider detail)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/loyalty/convert": {
+      "post": {
+        "operationId": "LoyaltyPublicController_convert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D exchange one block of points for a voucher or credit lot (one transaction; retry-safe with the same requestKey)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
+    "/api/v1/growth/v1/loyalty/partner/redeem": {
+      "post": {
+        "operationId": "LoyaltyPublicController_redeem",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "GRW-P4-D redeem a partner code for a voucher (one per person per offer)",
+        "tags": [
+          "growth-loyalty"
+        ]
+      }
+    },
     "/api/v1/admin/growth/assistant/status": {
       "get": {
         "operationId": "AssistantAdminController_status",
@@ -29277,7 +29873,8 @@
               "SEO",
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
-              "LTV_POLICY"
+              "LTV_POLICY",
+              "LOYALTY_RULES"
             ]
           },
           "scope": {
@@ -29374,7 +29971,8 @@
               "SEO",
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
-              "LTV_POLICY"
+              "LTV_POLICY",
+              "LOYALTY_RULES"
             ]
           },
           "scope": {
@@ -30254,6 +30852,126 @@
             "maxLength": 40
           }
         }
+      },
+      "ProgramBody": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,47}$"
+          },
+          "partnerRef": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "kind": {
+            "enum": [
+              "CODE_DISCOUNT",
+              "CO_PROMO",
+              "CARD_OFFER"
+            ],
+            "type": "string"
+          },
+          "nameAr": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "legalTextRef": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          },
+          "budgetMinor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2000000000
+          },
+          "perRedemptionMinor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2000000000
+          },
+          "startsAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "endsAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "fundingMode": {
+            "enum": [
+              "PLATFORM_MARKETING",
+              "PARTNER_FUNDED"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "LinkBody": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "campaignId"
+        ]
+      },
+      "CodeBody": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "maxRedemptions": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "label",
+          "maxRedemptions"
+        ]
+      },
+      "ConvertBody": {
+        "type": "object",
+        "properties": {
+          "requestKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        },
+        "required": [
+          "requestKey"
+        ]
+      },
+      "RedeemBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "code"
+        ]
       },
       "LiveDto": {
         "type": "object",

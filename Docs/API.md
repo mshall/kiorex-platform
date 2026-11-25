@@ -440,6 +440,29 @@
 | GET | `/api/v1/admin/growth/lifecycle/lookup` | GRW-P2-E audited lookup of one subject decisions (DPO use): every call writes an audit row |
 | POST | `/api/v1/admin/growth/lifecycle/run` | GRW-P2-E run the one-minute tick once (idempotent; also what the job does) |
 
+## growth-loyalty
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/growth/loyalty/summary` | GRW-P4-D loyalty overview: tiers, points flow and partnership totals (aggregate, k >= 10) |
+| GET | `/api/v1/admin/growth/loyalty/rules` | GRW-P4-D the active LOYALTY_RULES (tiers, points, expiry, conversion) and whether they are still the zero defaults |
+| GET | `/api/v1/admin/growth/loyalty/tiers/preview` | GRW-P4-D which tier N completed bookings give under the active rules |
+| GET | `/api/v1/admin/growth/loyalty/partnerships` | GRW-P4-D partnership programs with budget use |
+| POST | `/api/v1/admin/growth/loyalty/partnerships` | GRW-P4-D draft a partnership program (amounts default to 0) |
+| GET | `/api/v1/admin/growth/loyalty/partnerships/{id}` | GRW-P4-D one program |
+| PUT | `/api/v1/admin/growth/loyalty/partnerships/{id}` | GRW-P4-D edit a draft program |
+| GET | `/api/v1/admin/growth/loyalty/partnerships/{id}/codes` | GRW-P4-D the codes of a program (counts, never the plain code) |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/codes` | GRW-P4-D issue a code (the plain code is returned once) |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/campaign` | GRW-P4-D link the PARTNER-channel campaign whose approval governs the program |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/activate` | GRW-P4-D activate (a second person; terms complete; campaign approved) |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/pause` | GRW-P4-D pause |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/end` | GRW-P4-D end the program (final) |
+| POST | `/api/v1/admin/growth/loyalty/partnerships/{id}/codes/{codeId}/revoke` | GRW-P4-D revoke a code |
+| GET | `/api/v1/growth/v1/loyalty/me` | GRW-P4-D my tier, progress, points and the conversion on offer |
+| GET | `/api/v1/growth/v1/loyalty/history` | GRW-P4-D my points movements (no booking or provider detail) |
+| POST | `/api/v1/growth/v1/loyalty/convert` | GRW-P4-D exchange one block of points for a voucher or credit lot (one transaction; retry-safe with the same requestKey) |
+| POST | `/api/v1/growth/v1/loyalty/partner/redeem` | GRW-P4-D redeem a partner code for a voucher (one per person per offer) |
+
 ## growth-market-onboarding
 
 | Method | Path | Summary |
