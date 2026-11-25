@@ -1,0 +1,21 @@
+{
+ "data": {
+  "T-OK": {
+   "status": "ok"
+  },
+  "T-DEAD": {
+   "status": "error",
+   "message": "The device cannot receive push notifications anymore",
+   "details": {
+    "error": "DeviceNotRegistered"
+   }
+  },
+  "T-BIG": {
+   "status": "error",
+   "message": "too big",
+   "details": {
+    "error": "MessageTooBig"
+   }
+  }
+ }
+}

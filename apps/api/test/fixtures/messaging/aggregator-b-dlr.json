@@ -1,0 +1,13 @@
+{
+ "reports": [
+  {
+   "smsId": "msg_ref_1",
+   "state": "UNDELIV",
+   "err": "absent subscriber"
+  },
+  {
+   "smsId": "msg_ref_2",
+   "state": "DELIVRD"
+  }
+ ]
+}

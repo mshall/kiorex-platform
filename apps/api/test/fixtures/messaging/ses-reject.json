@@ -1,0 +1,12 @@
+{
+ "Type": "Notification",
+ "MessageId": "sns-msg-1",
+ "TopicArn": "arn:aws:sns:eu-central-1:111122223333:kiorex-ses-events",
+ "Subject": "Amazon SES Email Event Notification",
+ "Message": "{\"eventType\": \"Reject\", \"mail\": {\"timestamp\": \"2026-11-25T08:00:00.000Z\", \"messageId\": \"0100019aaa111111-ses-1\", \"source\": \"Kiorex <no-reply@kiorex.com>\", \"destination\": [\"patient@example.com\"]}, \"reject\": {\"reason\": \"Bad content\"}}",
+ "Timestamp": "2026-11-25T08:00:05.000Z",
+ "SignatureVersion": "1",
+ "Signature": "UNSIGNED-FIXTURE",
+ "SigningCertURL": "https://sns.eu-central-1.amazonaws.com/SimpleNotificationService-0000000000000000000000.pem",
+ "UnsubscribeURL": "https://sns.eu-central-1.amazonaws.com/?Action=Unsubscribe"
+}

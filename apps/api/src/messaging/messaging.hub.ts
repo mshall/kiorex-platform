@@ -107,6 +107,8 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
   }
   /** Tests / go-live wiring can replace an adapter. */
   setAdapter(a: MessagingAdapter) { this.adapters.set(a.channel, a); }
+  /** Removes every adapter set with `setAdapter` (back to the env-driven ones). */
+  clearAdapters() { this.adapters.clear(); }
   onInbound(channel: MsgChannel, h: InboundHandler) { this.inbound.set(channel, h); }
 
   private waAuthFailed = false;

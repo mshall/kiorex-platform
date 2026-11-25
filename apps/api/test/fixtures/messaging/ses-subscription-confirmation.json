@@ -1,0 +1,12 @@
+{
+ "Type": "SubscriptionConfirmation",
+ "MessageId": "c1",
+ "Token": "2336412f37fb687f5d51e6e2",
+ "TopicArn": "arn:aws:sns:eu-central-1:111122223333:kiorex-ses-events",
+ "Message": "You have chosen to subscribe...",
+ "SubscribeURL": "https://sns.eu-central-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=arn:aws:sns:eu-central-1:111122223333:kiorex-ses-events&Token=2336412f37fb687f5d51e6e2",
+ "Timestamp": "2026-11-25T07:59:00.000Z",
+ "SignatureVersion": "1",
+ "Signature": "UNSIGNED-FIXTURE",
+ "SigningCertURL": "https://sns.eu-central-1.amazonaws.com/SimpleNotificationService-0000000000000000000000.pem"
+}

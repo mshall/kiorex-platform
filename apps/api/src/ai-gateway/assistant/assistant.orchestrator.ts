@@ -281,7 +281,7 @@ export class AssistantOrchestrator {
     if (t.in + t.out > 0 || t.cost > 0) await this.record(session.id, o.market, t, o.policy, o.seq === 1);
     if (t.in + t.out > 0 && o.sub) await this.prisma.aiUsage.create({ data: { sub: o.sub, purpose: 'whatsapp_assistant', provider: o.mode === 'real' ? 'assistant-real' : 'assistant-mock', promptVersion: 'assistant-v1', redactions: 0, source: o.mode === 'real' ? 'AI' : 'RULES' } }).catch(() => undefined);
     await this.sessions.addTurn({ sessionId: session.id, seq: o.seq, direction: 'OUT', intent: r.key, toolName: o.tool, modelMode: o.mode ?? 'mock', tokensIn: t.in, tokensOut: t.out, costMinor: t.cost, latencyMs: Date.now() - o.t0, outcome: o.outcome ?? 'OK', retentionDays: o.policy.retentionDays });
-    await this.hub.send({ channel: 'WHATSAPP', sub: o.sub ?? undefined, to: i.conversation.phone, templateId: templateId(r.key), locale: o.lang, body, ...(r.buttons?.length ? { data: { buttons: r.buttons } } : {}) });
+    await this.hub.send({ channel: 'WHATSAPP', sub: o.sub ?? undefined, to: i.conversation.phone, templateId: templateId(r.key), locale: o.lang, body, conversational: true, ...(r.buttons?.length ? { data: { buttons: r.buttons } } : {}) });
     return 'HANDLED';
   }
 }

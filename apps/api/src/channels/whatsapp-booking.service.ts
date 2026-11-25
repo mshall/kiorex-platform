@@ -46,7 +46,7 @@ export class WhatsAppBookingService implements OnModuleInit {
   onModuleInit() { this.hub.onInbound('WHATSAPP', (m) => this.handle(m)); }
 
   private async reply(c: ChannelConversation, id: string, body: string, sub?: string) {
-    await this.hub.send({ channel: 'WHATSAPP', sub: sub ?? c.sub ?? undefined, to: c.phone, templateId: T(id), locale: c.locale, body });
+    await this.hub.send({ channel: 'WHATSAPP', sub: sub ?? c.sub ?? undefined, to: c.phone, templateId: T(id), locale: c.locale, body, conversational: true });
   }
   private async save(c: ChannelConversation, state: State, ctx: Ctx) {
     return this.prisma.channelConversation.update({ where: { id: c.id }, data: { state, context: ctx as object } });

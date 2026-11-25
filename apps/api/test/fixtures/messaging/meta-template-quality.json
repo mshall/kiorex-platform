@@ -1,0 +1,20 @@
+{
+ "object": "whatsapp_business_account",
+ "entry": [
+  {
+   "id": "102290129340398",
+   "changes": [
+    {
+     "value": {
+      "previous_quality_score": "GREEN",
+      "new_quality_score": "YELLOW",
+      "message_template_id": 1689556908129,
+      "message_template_name": "kx_booking_confirmed_v1",
+      "message_template_language": "ar"
+     },
+     "field": "message_template_quality_update"
+    }
+   ]
+  }
+ ]
+}

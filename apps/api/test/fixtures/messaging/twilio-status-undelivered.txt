@@ -1,0 +1,1 @@
+SmsSid=SM124&SmsStatus=undelivered&MessageStatus=undelivered&ErrorCode=30006&To=%2B201001234567&MessageSid=SM124&AccountSid=ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&From=KIOREX&ApiVersion=2010-04-01

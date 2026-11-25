@@ -42,7 +42,7 @@ export class AssistantRouter {
     if (!once.ok) return;
     const l = await this.links.create({ phoneHash: ph, intent: 'CONSENT' }); if (!l) return;
     const d = detectLang(inbound.text ?? '', conv.locale === 'en' ? 'en' : 'ar') === 'en' ? 'en' : detectDialect(inbound.text ?? '', 'ar');
-    await this.hub.send({ channel: 'WHATSAPP', sub: profile.sub, to: conv.phone, templateId: templateId('consent_invite'), locale: d === 'en' ? 'en' : 'ar', body: R.consentInvite(d, l.url).body });
+    await this.hub.send({ channel: 'WHATSAPP', sub: profile.sub, to: conv.phone, templateId: templateId('consent_invite'), locale: d === 'en' ? 'en' : 'ar', body: R.consentInvite(d, l.url).body, conversational: true });
     await this.audit.record('consent_invite', null, { outcome: 'INVITED' });
   }
 
@@ -69,7 +69,7 @@ export class AssistantRouter {
       const rl = await this.rate.perNumber(phoneHashOf(conv.phone), policy.rateLimits.messagesPerNumberPerHour);
       if (!rl.ok) {
         await this.audit.record('rate_limited', live?.id ?? null, { outcome: 'RATE_LIMITED' });
-        if (rl.notify) { const d = detectLang(inbound.text ?? '', conv.locale === 'en' ? 'en' : 'ar') === 'en' ? 'en' : detectDialect(inbound.text ?? '', 'ar'); await this.hub.send({ channel: 'WHATSAPP', sub: profile?.sub, to: conv.phone, templateId: templateId('rate_limited'), locale: d === 'en' ? 'en' : 'ar', body: R.rateLimited(d).body }); }
+        if (rl.notify) { const d = detectLang(inbound.text ?? '', conv.locale === 'en' ? 'en' : 'ar') === 'en' ? 'en' : detectDialect(inbound.text ?? '', 'ar'); await this.hub.send({ channel: 'WHATSAPP', sub: profile?.sub, to: conv.phone, templateId: templateId('rate_limited'), locale: d === 'en' ? 'en' : 'ar', body: R.rateLimited(d).body, conversational: true }); }
         return 'HANDLED';
       }
       if (!this.gate.tryEnter(policy.rateLimits.globalConcurrency)) { await this.audit.record('concurrency', null, { outcome: 'DETERMINISTIC' }); return 'DETERMINISTIC'; }

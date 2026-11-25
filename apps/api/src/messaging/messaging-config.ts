@@ -70,7 +70,7 @@ export const MESSAGING_CHANNELS_DEFAULT = (): MessagingChannelsConfig => ({
   channels: {
     WHATSAPP: { enabled: true, retry: { maxRetries: 2, baseDelayMs: 250, maxDelayMs: 5000 }, rateBudget: { perSecond: 40, perDay: 1000 }, apiVersion: 'v21.0' },
     SMS: { enabled: true, retry: { maxRetries: 2, baseDelayMs: 250, maxDelayMs: 5000 }, rateBudget: { perSecond: 10 } },
-    EMAIL: { enabled: true, retry: { maxRetries: 2, baseDelayMs: 250, maxDelayMs: 5000 }, rateBudget: { perSecond: 1 } },
+    EMAIL: { enabled: true, retry: { maxRetries: 2, baseDelayMs: 250, maxDelayMs: 5000 }, rateBudget: { perSecond: 14 } }, // SES production default; the sandbox allows 1 per second: tune per account
     PUSH: { enabled: true, retry: { maxRetries: 2, baseDelayMs: 100, maxDelayMs: 2000 }, rateBudget: { perSecond: 200 } },
   },
   failoverOrder: { TRANSACTIONAL: ['WHATSAPP', 'SMS', 'EMAIL'], SECURITY: ['SMS', 'WHATSAPP'], REMINDER: ['WHATSAPP', 'SMS'], MARKETING: [] },
