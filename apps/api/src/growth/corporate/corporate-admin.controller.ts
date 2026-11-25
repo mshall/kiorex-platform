@@ -91,6 +91,7 @@ export class CorporateAdminController {
   @Get('accounts/:id/report') @ApiOperation({ summary: 'GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k' }) @ApiOkResponse(OBJ)
   report(@Param('id') id: string) { return this.reports.report(id); }
   @Roles(...rolesFor('readFinance')) @Get('accounts/:id/report/export') @ApiOperation({ summary: 'GRW-P4-C the aggregate report as a CSV or PDF file for ops to hand to the employer (no employer login; every cell below k masked; the export is audited)' })
+  @ApiOkResponse({ description: 'The file: text/csv or application/pdf', content: { 'text/csv': { schema: { type: 'string' } }, 'application/pdf': { schema: { type: 'string', format: 'binary' } } } })
   async exportReport(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('format') format: string | undefined, @Res({ passthrough: true }) res: Response) {
     const f = await this.reports.exportFile(id, format === 'pdf' ? 'pdf' : 'csv', u.sub);
     res.set({ 'content-type': f.contentType, 'content-disposition': `attachment; filename="${f.filename}"`, 'cache-control': 'no-store' });

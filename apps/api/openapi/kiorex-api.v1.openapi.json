@@ -18471,7 +18471,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "The file: text/csv or application/pdf",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         },
         "summary": "GRW-P4-C the aggregate report as a CSV or PDF file for ops to hand to the employer (no employer login; every cell below k masked; the export is audited)",
