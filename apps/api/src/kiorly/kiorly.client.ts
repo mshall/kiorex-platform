@@ -139,7 +139,7 @@ export class KiorlyClient {
   depositLinkPaid(token: string, body: { amount: number; currency: string; paymentRef: string; paidAt?: string; tender?: { cardMinor?: number; patientCreditMinor?: number; sponsoredDiscountMinor?: number } }) {
     return this.request<any>({ method: 'POST', path: `/deposit-links/${encodeURIComponent(token)}/paid`, body });
   }
-  recordPayout(body: { payoutRef: string; clinicId: string; amount: number; currency: string; paidAt: string; depositPaymentRefs: string[] }) {
+  recordPayout(body: { payoutRef: string; clinicId: string; amount: number; currency: string; paidAt: string; depositPaymentRefs: string[]; commissionDeducted?: number }) {
     return this.request<any>({ method: 'POST', path: '/payouts', body });
   }
   /** COM-1 (additive): Kiorex's commission collection run (status, totals, claims, attempts) so the provider sees the same figures; idempotent on runId, newest `version` wins. */

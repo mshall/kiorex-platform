@@ -292,11 +292,12 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
   async snapshot(runId: string) {
     const run = await this.prisma.commissionRun.findUnique({ where: { id: runId } });
     if (!run) return null;
-    const [claims, attempts] = await Promise.all([
+    const [claims, attempts, tl] = await Promise.all([
       this.prisma.commissionClaim.findMany({ where: { runId }, select: { chargeId: true, appointmentId: true, amountMinor: true, collectedMinor: true, collectionStatus: true, chargeStatus: true, decisionRef: true, feeBasisMinor: true, sponsoredDiscountMinor: true, basisPolicyVersion: true }, orderBy: { id: 'asc' } }),
       this.prisma.commissionAttempt.findMany({ where: { runId }, orderBy: { createdAt: 'asc' }, select: { attemptNo: true, kind: true, provider: true, payoutRef: true, amountMinor: true, status: true, failureCode: true, scheduledFor: true, executedAt: true } }),
+      this.prisma.commissionTimeline.findMany({ where: { subjectType: 'RUN', subjectId: runId }, orderBy: { at: 'asc' }, select: { at: true, event: true, actor: true } }),
     ]);
-    return { runId: run.id, orgRef: run.orgRef, periodKey: run.periodKey, cutoffAt: run.cutoffAt, collectAt: run.collectAt, status: run.status, mode: run.mode, modeRequested: run.modeRequested, fallbackReason: run.fallbackReason, provider: run.provider, currency: run.currency, claimsCount: run.claimsCount, claimsMinor: run.claimsMinor, collectedMinor: run.collectedMinor, deductedMinor: run.deductedMinor, invoicedMinor: run.invoicedMinor, paidMinor: run.paidMinor, invoiceNo: run.invoiceNo, invoiceDueAt: run.invoiceDueAt, version: run.updatedAt.getTime(), claims, attempts };
+    return { runId: run.id, orgRef: run.orgRef, periodKey: run.periodKey, cutoffAt: run.cutoffAt, collectAt: run.collectAt, status: run.status, mode: run.mode, modeRequested: run.modeRequested, fallbackReason: run.fallbackReason, provider: run.provider, currency: run.currency, claimsCount: run.claimsCount, claimsMinor: run.claimsMinor, collectedMinor: run.collectedMinor, deductedMinor: run.deductedMinor, invoicedMinor: run.invoicedMinor, paidMinor: run.paidMinor, invoiceNo: run.invoiceNo, invoiceDueAt: run.invoiceDueAt, version: run.updatedAt.getTime(), claims, attempts, timeline: tl.map((e) => ({ at: e.at, event: e.event, by: e.actor === 'system' ? 'system' : 'kiorex' })) };
   }
 
   private async pushToClinic(runId: string) {

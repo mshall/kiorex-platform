@@ -687,7 +687,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const po = await this.prisma.payout.findUnique({ where: { id: payload.payoutId } });
     if (!po) return;
     try {
-      await this.kiorly.recordPayout({ payoutRef: po.payoutRef, clinicId: po.clinicId, amount: toMajor(po.amountMinor), currency: po.currency, paidAt: po.paidAt.toISOString(), depositPaymentRefs: po.paymentRefs as string[] });
+      await this.kiorly.recordPayout({ payoutRef: po.payoutRef, clinicId: po.clinicId, amount: toMajor(po.amountMinor), currency: po.currency, paidAt: po.paidAt.toISOString(), depositPaymentRefs: po.paymentRefs as string[], ...(po.commissionDeductedMinor > 0 ? { commissionDeducted: toMajor(po.commissionDeductedMinor) } : {}) });
     } catch (e) {
       if (!(e instanceof KiorlyHttpError && e.status === 409)) throw e;
     }
