@@ -90,7 +90,7 @@ Rollback (no deploy needed): propose `mock` for the integration in the Integrati
 Order: sponsored discount, then corporate benefit (a cover share of what is still payable, bounded by the account ceiling, the member cap and the per-visit maximum), then patient credit, then the card (never below one minor unit). The Clinic is told the gross deposit and the tender split (`tender.corporateBenefitMinor` is additive: contracts bump, `LG-INT-PAY-9`). A refund or cancel returns the corporate share pro rata (exactly all of it with the last refund); a forfeited deposit returns it too unless `PAYMENT_CORPORATE_FORFEIT=keep`. `postToPayLedger` is false by default; both paths are tested.
 
 
-## 12. Unified layer: bank IPN, wallets, matching, links, fraud (shadow), reports
+## 11. Unified layer: bank IPN, wallets, matching, links, fraud (shadow), reports
 
 * **Bank IPN** (`#bank-ipn`): secret `/kiorex/<env>/bank-ipn-webhook-secret` -> `BANK_IPN_WEBHOOK_SECRET` (16+ characters), `PAYMENT_ENABLED_PSPS=...,bank_ipn`, webhook `https://<api>/api/v1/pay/webhooks/bank_ipn` with `X-Webhook-Timestamp` and `X-Webhook-Signature: sha256=HMAC(secret, "<ts>.<body>")`; or upload the daily file in ops > *Pay matching and risk* (`POST /admin/payments/matching/ipn`, CSV / JSON). Layout override: `BANK_IPN_CONFIG_JSON` (columns, `amountUnit`, status words, signature). Real mode needs `BANK_IPN` approved in `INTEGRATION_MODES`.
 * **Wallets**: `PAYMOB_WALLET_INTEGRATION_IDS=vodafone_cash:<id>`; a checkout with `rail: wallet` uses that integration id; without it the checkout is refused with NEEDS_HUMAN.
