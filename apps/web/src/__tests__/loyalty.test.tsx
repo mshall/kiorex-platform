@@ -6,6 +6,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/mocks/server";
 import { renderApp } from "@/test/utils";
 import LoyaltyHome from "@/pages/loyalty/LoyaltyHome";
+import AccountPage from "@/pages/AccountPage";
 import { cleanPartnerCode } from "@/api/loyalty";
 import en from "@/i18n/loyalty.en.json";
 import ar from "@/i18n/loyalty.ar.json";
@@ -69,5 +70,15 @@ describe("Loyalty page (GRW-P4-D)", () => {
     use(me(), [{ id: "e1", type: "ACCRUE", points: 10, direction: "IN", expiresAt: null, at: "2027-02-01T00:00:00Z" }]);
     renderApp(<LoyaltyHome />, { lang: "ar" }); expect(await screen.findByTestId("loyalty-tier-name")).toHaveTextContent("فضي"); expect(document.documentElement.dir).toBe("rtl"); expect(screen.getByTestId("loyalty-not-money")).toHaveTextContent("النقاط ليست مالاً");
     await screen.findByText("نقاط مكتسبة"); expect(await violations()).toEqual([]);
+  });
+});
+
+describe("Account menu entry (loyalty)", () => {
+  it("shows the loyalty entry only when the bootstrap says features.loyalty is true, and it points to /loyalty (English and Arabic)", async () => {
+    server.use(http.get("/api/v1/bootstrap", () => HttpResponse.json({ features: { referral: false, loyalty: false } })));
+    const a = renderApp(<AccountPage />, { lang: "en" }); await screen.findByTestId("link-addresses"); expect(screen.queryByTestId("link-loyalty")).toBeNull(); a.unmount();
+    server.use(http.get("/api/v1/bootstrap", () => HttpResponse.json({ features: { referral: false, loyalty: true } })));
+    const b = renderApp(<AccountPage />, { lang: "en" }); const link = await screen.findByTestId("link-loyalty"); expect(link).toHaveAttribute("href", "/loyalty"); expect(link).toHaveTextContent("Loyalty"); b.unmount();
+    renderApp(<AccountPage />, { lang: "ar" }); expect(await screen.findByTestId("link-loyalty")).toHaveTextContent(ar.title);
   });
 });

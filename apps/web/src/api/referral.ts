@@ -67,7 +67,7 @@ export function useClaimInvite() {
 export function useReferralEnabled() {
   const q = useQuery({
     queryKey: ["bootstrap", "features"], staleTime: 300_000, retry: 0,
-    queryFn: async () => { const r = await fetch(`${window.location.origin}/api/v1/bootstrap`, { headers: { Accept: "application/json", "X-Kiorex-Market": getMarket() } }); if (!r.ok) return { referral: false }; const j = (await r.json()) as { features?: { referral?: boolean } }; return { referral: j.features?.referral === true }; },
+    queryFn: async () => { const r = await fetch(`${window.location.origin}/api/v1/bootstrap`, { headers: { Accept: "application/json", "X-Kiorex-Market": getMarket() } }); if (!r.ok) return { referral: false, loyalty: false }; const j = (await r.json()) as { features?: { referral?: boolean; loyalty?: boolean } }; return { referral: j.features?.referral === true, loyalty: j.features?.loyalty === true }; },
   });
-  return { enabled: q.data?.referral === true, loading: q.isLoading };
+  return { enabled: q.data?.referral === true, loyalty: q.data?.loyalty === true, loading: q.isLoading };
 }

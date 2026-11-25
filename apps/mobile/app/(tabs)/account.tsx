@@ -17,7 +17,7 @@ import { Button, Card, Chip, Row, Screen, T, useToast } from "@/components/ui";
 import { space, useTheme, type ThemePref } from "@/theme";
 import { pick } from "@/lib/format";
 import { SignOutSheet } from "@/components/SignOutSheet";
-import { useReferralEnabled } from "@/modules/referral/api";
+import { useLoyaltyEnabled, useReferralEnabled } from "@/modules/referral/api";
 
 function NavRow({ icon, label, onPress, testID, danger }: { icon: IconName; label: string; onPress: () => void; testID?: string; danger?: boolean }) {
   const { colors } = useTheme();
@@ -81,6 +81,7 @@ function AccountInner() {
   const [signOutOpen, setSignOutOpen] = useState(false);
   const { pref, setPref } = useTheme();
   const me = useMe(status === "signedIn");
+  const loyaltyOn = useLoyaltyEnabled(); // the loyalty entry exists only when the bootstrap says features.loyalty is true
   const referralOn = useReferralEnabled(); // GRW-P2-B3: the invite entry exists only when the bootstrap says features.referral is true
 
   const settings = (
@@ -110,6 +111,7 @@ function AccountInner() {
         <NavRow testID="nav-family" icon="users" label={t("account.familyTitle")} onPress={() => router.push("/settings/family")} />
         <NavRow testID="nav-addresses" icon="pin" label={t("address.title")} onPress={() => router.push("/settings/addresses")} />
         <NavRow testID="nav-care-plans" icon="calendarPlus" label={t("carePlan.title")} onPress={() => router.push("/care-plans")} />
+        {loyaltyOn ? <NavRow testID="nav-loyalty" icon="star" label={t("loyalty.title")} onPress={() => router.push("/loyalty" as never)} /> : null}
         {referralOn ? <NavRow testID="nav-referral" icon="users" label={t("referral.nav")} onPress={() => router.push("/referral" as never)} /> : null}
         <NavRow testID="nav-sharing" icon="lock" label={t("records.sharing")} onPress={() => router.push("/records/sharing")} />
         <NavRow testID="nav-pharmacy-orders" icon="pill" label={t("pharmacy.myOrders")} onPress={() => router.push("/pharmacy/orders")} />

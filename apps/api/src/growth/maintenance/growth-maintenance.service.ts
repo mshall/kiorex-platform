@@ -14,6 +14,8 @@ export interface PurgeResult {
   experimentExposuresPurged?: number;
   /** GRW-P4-C (growth_purge_corporate). */
   corporateHrRowsPurged?: number; corporateHrBatchesPurged?: number; corporateLedgerEntriesPurged?: number;
+  /** GRW-P4-D (growth_purge_loyalty). */
+  loyaltyLedgerEntriesPurged?: number; loyaltyAccountsPurged?: number; partnershipRedemptionsPurged?: number;
 }
 
 /**
@@ -47,6 +49,8 @@ export class GrowthMaintenanceService {
     const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_experiments(${now}::timestamptz, ${opts.unlinkedMonths ?? DEFAULT_RETENTION.unlinkedMonths}::int) AS r`;
     // GRW-P4-C: HR list rows past their match window and ledger rows of long-ended accounts
     const corp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_corporate(${now}::timestamptz) AS r`;
-    return { ...rows[0].r, ...exp[0].r, ...corp[0].r } as PurgeResult;
+    // GRW-P4-D: ledger and accounts of people who have been inactive for years with no points, and redemptions of long-ended programs
+    const loy = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_loyalty(${now}::timestamptz) AS r`;
+    return { ...rows[0].r, ...exp[0].r, ...corp[0].r, ...loy[0].r } as PurgeResult;
   }
 }

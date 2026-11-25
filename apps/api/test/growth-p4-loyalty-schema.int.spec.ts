@@ -63,6 +63,26 @@ describe('growth Phase 4 schema, loyalty and partnerships (wave 9)', () => {
     await rejects(c.prisma.partnershipCodeRedemption.create({ data: { id: `pcr_${u()}`, programId: p.id, codeId: first.id, subHash: 's', lotId: 'rwl_x', amountMinor: 0, idempotencyKey: `i${u()}` } }), /amount_check|PARTNERSHIP_NOT_ACTIVE/);
     expect(k.id).toBeTruthy();
   });
+  it('growth_purge_loyalty removes only long-inactive accounts with no points (entries first), keeps anything with a balance or recent activity, purges redemptions of long-ended programs, and is idempotent', async () => {
+    const old = new Date(Date.now() - 8 * 365 * 86_400_000); const recent = new Date(Date.now() - 30 * 86_400_000);
+    const mk = async (o: { balance?: number; entryAt: Date; updatedAt?: Date }) => {
+      const a = await acct({ pointsBalanceCache: 0 });
+      await c.prisma.loyaltyAccrualEntry.create({ data: { id: `lae_${u()}`, accountId: a.id, type: 'TIER_BONUS', points: 10, idempotencyKey: `k_${u()}`, reasonCode: 'T', actor: 't', createdAt: o.entryAt, expiresAt: new Date(o.entryAt.getTime() + 365 * 86_400_000) } as never });
+      await c.prisma.loyaltyAccrualEntry.create({ data: { id: `lae_${u()}`, accountId: a.id, type: 'EXPIRE', points: 10, idempotencyKey: `k_${u()}`, reasonCode: 'T', actor: 't', createdAt: o.entryAt } as never });
+      if (o.balance) await c.prisma.loyaltyAccrualEntry.create({ data: { id: `lae_${u()}`, accountId: a.id, type: 'TIER_BONUS', points: o.balance, idempotencyKey: `k_${u()}`, reasonCode: 'T', actor: 't', createdAt: o.entryAt, expiresAt: new Date(Date.now() + 86_400_000) } as never });
+      await c.prisma.$executeRaw`UPDATE "LoyaltyAccount" SET "updatedAt" = ${o.updatedAt ?? o.entryAt} WHERE "id" = ${a.id}`;
+      return a.id;
+    };
+    const stale = await mk({ entryAt: old }); const holds = await mk({ entryAt: old, balance: 5 }); const active = await mk({ entryAt: recent });
+    const r = (await c.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_loyalty() AS r`)[0].r;
+    expect(r).toMatchObject({ loyaltyAccountsPurged: 1, loyaltyLedgerEntriesPurged: 2, partnershipRedemptionsPurged: 0 });
+    expect(await c.prisma.loyaltyAccount.count({ where: { id: stale } })).toBe(0); expect(await c.prisma.loyaltyAccrualEntry.count({ where: { accountId: stale } })).toBe(0);
+    expect(await c.prisma.loyaltyAccount.count({ where: { id: { in: [holds, active] } } })).toBe(2); expect(await c.prisma.loyaltyAccrualEntry.count({ where: { accountId: holds } })).toBe(3);
+    expect((await c.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_purge_loyalty() AS r`)[0].r).toMatchObject({ loyaltyAccountsPurged: 0, loyaltyLedgerEntriesPurged: 0 });
+    // the ledger is still append-only for everyone else
+    await rejects(c.prisma.$executeRaw`DELETE FROM "LoyaltyAccrualEntry" WHERE "accountId" = ${holds}`, /append-only/);
+    await rejects(c.prisma.$queryRaw`SELECT growth_purge_loyalty(now(), 0)`, /years must be/);
+  });
   it('growth_erase_loyalty anonymises exactly that person and keeps the ledger; it demands both arguments', async () => {
     const a = await acct({ sub: 'person1' }); await acct({ sub: 'person2' });
     const r = (await c.prisma.$queryRaw<{ r: { loyaltyAccountsAnonymised: number } }[]>`SELECT growth_erase_loyalty('person1', 'hash-1') AS r`)[0].r; expect(r.loyaltyAccountsAnonymised).toBe(1);

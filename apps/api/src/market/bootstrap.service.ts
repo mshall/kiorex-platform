@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { FlagsService } from '../control-plane/control-plane-public';
-import { GROWTH_FLAG } from '../growth/growth-public';
+import { GROWTH_FLAG, LOYALTY_FLAG } from '../growth/growth-public';
 import { chooseMarket, normalizeCc } from './deep-link-rules';
 import { marketFacts } from './market-registry';
 import { MarketService } from './market.service';
@@ -21,7 +21,7 @@ export interface Bootstrap {
   /** Effective capability switches for the resolved market (flags), so a client hides what is off without a second call. */
   capabilities: Record<'deepLinks' | 'marketplace' | 'homeVisits', boolean>;
   /** GRW-P2-B3 (additive): effective growth features for the resolved market. `referral` is true only when growth.patient_referral is ON (a launch-locked flag, so false until the gate evidence is recorded); the apps show the invite entry only then. */
-  features: { referral: boolean };
+  features: { referral: boolean; /** G-loyalty menu entry (additive): true only when growth.loyalty is effectively ON for the market (launch-locked, so false until the gate is recorded) */ loyalty: boolean };
 }
 
 /** Parses REGIONAL_API_ENDPOINTS (`{"EG":"https://api.example.com/api/v1"}`); entries that are not clean http(s) origins+path are dropped. */
@@ -63,8 +63,8 @@ export class BootstrapService {
     const hint = normalizeCc(hintCc);
     const resolvedMarket = chooseMarket(hint, live, defaultMarket);
     const ctx = { market: resolvedMarket };
-    const [deepLinks, marketplace, homeVisits, referral] = await Promise.all([
-      this.flags.isEnabled(GROWTH_FLAG.DEEP_LINKS, ctx), this.flags.isEnabled('kiorex.marketplace', ctx), this.flags.isEnabled('kiorex.home_visits', ctx), this.flags.isEnabled(GROWTH_FLAG.PATIENT_REFERRAL, ctx),
+    const [deepLinks, marketplace, homeVisits, referral, loyalty] = await Promise.all([
+      this.flags.isEnabled(GROWTH_FLAG.DEEP_LINKS, ctx), this.flags.isEnabled('kiorex.marketplace', ctx), this.flags.isEnabled('kiorex.home_visits', ctx), this.flags.isEnabled(GROWTH_FLAG.PATIENT_REFERRAL, ctx), this.flags.isEnabled(LOYALTY_FLAG, ctx),
     ]);
     return {
       defaultMarket,
@@ -76,7 +76,7 @@ export class BootstrapService {
       minAppVersion: (process.env.MIN_APP_VERSION ?? '').trim() || null,
       apiEndpoint: endpointFor(resolvedMarket),
       capabilities: { deepLinks, marketplace, homeVisits },
-      features: { referral },
+      features: { referral, loyalty },
     };
   }
 }

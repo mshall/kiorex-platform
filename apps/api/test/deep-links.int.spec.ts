@@ -26,7 +26,7 @@ describe('deep links and bootstrap', () => {
       expect(r.headers['cache-control']).toBe('public, max-age=60');
       expect(r.body).toMatchObject({
         defaultMarket: 'EG', resolvedMarket: 'EG', liveMarkets: ['EG'], showMarketSelector: false, locales: ['ar', 'en'], minAppVersion: '1.2.0',
-        apiEndpoint: 'https://api.region-eg.example.com/api/v1', capabilities: { deepLinks: true, marketplace: true }, features: { referral: false }, // GRW-P2-B3: launch-locked, so false until the gate evidence exists
+        apiEndpoint: 'https://api.region-eg.example.com/api/v1', capabilities: { deepLinks: true, marketplace: true }, features: { referral: false, loyalty: false }, // GRW-P2-B3: launch-locked, so false until the gate evidence exists
       });
       expect(r.body.markets).toEqual([{ code: 'EG', currency: 'EGP', phoneCode: '+20', name: { ar: 'مصر', en: 'Egypt' }, apiEndpoint: 'https://api.region-eg.example.com/api/v1' }]);
     });

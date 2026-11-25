@@ -50,3 +50,9 @@ export const useReferralEnabled = () => {
   const q = useQuery({ queryKey: ["bootstrap", "referral"], staleTime: 300_000, retry: 0, queryFn: async () => (await loadBootstrap())?.features?.referral === true });
   return q.data === true;
 };
+
+/** Bootstrap `features.loyalty` (additive): true only when growth.loyalty is effectively ON for the market. Unknown, offline or false all mean "hide the entry". */
+export const useLoyaltyEnabled = () => {
+  const q = useQuery({ queryKey: ["bootstrap", "loyalty"], staleTime: 300_000, retry: 0, queryFn: async () => (await loadBootstrap())?.features?.loyalty === true });
+  return q.data === true;
+};
