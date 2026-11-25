@@ -22,6 +22,7 @@ const SafetyPage = lazy(() => import("@/pages/SafetyPage"));
 const HeldDepositsPage = lazy(() => import("@/pages/HeldDepositsPage"));
 const PaymentsConnectionPage = lazy(() => import("@/pages/PaymentsConnectionPage")); // PAY-READY
 const ReconciliationPage = lazy(() => import("@/pages/ReconciliationPage")); // PAY-READY
+const CommissionsPage = lazy(() => import("@/pages/CommissionsPage")); // COM-1
 const HomeGatePage = lazy(() => import("@/pages/HomeGatePage"));
 const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
@@ -107,6 +108,7 @@ export function AppRoutes() {
           <Route path="held-deposits" element={<HeldDepositsPage />} />
           <Route path="payments-connection" element={<PaymentsConnectionPage />} />
           <Route path="reconciliation" element={<ReconciliationPage />} />
+          <Route path="commissions" element={<CommissionsPage />} />
           <Route path="home-gate" element={<HomeGatePage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="onboarding" element={<OnboardingPage />} />

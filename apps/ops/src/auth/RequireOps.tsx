@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/states";
 import { useAuth } from "./AuthProvider";
 
-export const OPS_ROLES = ["ops_admin", "super_admin", "growth_admin"];
+export const OPS_ROLES = ["ops_admin", "super_admin", "growth_admin", "finance"];
 export const isOps = (roles: string[]) => roles.some((r) => OPS_ROLES.includes(r));
 export const isSuperAdmin = (roles: string[]) => roles.includes("super_admin");
 
