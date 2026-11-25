@@ -39,6 +39,7 @@ import { GrowthLimiter } from './growth-limiter';
 import { GrowthMaintenanceService } from './maintenance/growth-maintenance.service';
 import { RetentionJob } from './retention/retention.job';
 import { SlugService } from './slugs/slug.service';
+import { MessagingConfigBinder } from './config/messaging-config.binder';
 import { TouchController } from './touch/touch.controller';
 import { TouchService } from './touch/touch.service';
 
@@ -50,7 +51,7 @@ import { TouchService } from './touch/touch.service';
 @Module({
   controllers: [TouchController, GrowthEventsController, VisitorConsentController, EvidenceController, GrowthConfigController, GrowthConfigAdminController, GrowthAdminController, ProductDecisionAdminController, CrossProductController, CrossProductAdminController, GrowthAnalyticsOpsController, GrowthAnalyticsProviderController],
   providers: [
-    GrowthMaintenanceService, GrowthConfigService, GrowthPolicyService, AttributionPolicyResolver, GrowthLimiter, FraudSignalService, TouchService, GrowthEventsService, VisitorConsentService,
+    GrowthMaintenanceService, GrowthConfigService, MessagingConfigBinder, GrowthPolicyService, AttributionPolicyResolver, GrowthLimiter, FraudSignalService, TouchService, GrowthEventsService, VisitorConsentService,
     GrowthAdminService, InternalOverviewSource, AnalyticsOverviewSource, { provide: GROWTH_OVERVIEW_SOURCE, useExisting: AnalyticsOverviewSource },
     AttributionService, EvidenceService, LinkRegistryService, CrossProductService, CrossProductFunnelService, CrossProductConsumer, CrossProductJob, CrossProductErasure, { provide: CROSS_PRODUCT_EVENTS, useExisting: CrossProductConsumer }, GrowthProductBookingService, ProductDecisionRepairJob, { provide: PRODUCT_GROWTH, useExisting: GrowthProductBookingService }, LinkRegistryJob, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthRollupJob, GrowthMetricsService, GrowthExportService, GrowthSpendService, SlugService,
     { provide: BOOKING_GROWTH, useExisting: BookingGrowthService }, { provide: GROWTH_REVENUE, useExisting: GrowthRevenueService }, { provide: LINK_REGISTRY, useExisting: LinkRegistryService }, { provide: GROWTH_FACTS, useExisting: GrowthEventsService }, RetentionJob, SubjectDeletedConsumer, ConsentWiring,

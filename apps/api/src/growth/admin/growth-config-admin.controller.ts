@@ -12,12 +12,13 @@ import { LTV_POLICY_SCHEMA } from '../cohorts/ltv-policy';
 import { LOYALTY_RULES_SCHEMA } from '../loyalty/loyalty-config';
 import { POLICY_KINDS } from '../policy/policy-registry';
 import { POLICY_SCHEMAS } from '../policy/policy-schemas.generated';
+import { MESSAGING_CHANNELS_SCHEMA } from '../../messaging/messaging-public';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
 /** Kinds with a contract JSON Schema are the ones the console can edit in Phase 1 (the other kinds arrive with their phase). */
-export const EDITABLE_KINDS = [...(Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[]), 'LTV_POLICY' as GrowthConfigKind, 'LOYALTY_RULES' as GrowthConfigKind, ...(POLICY_KINDS.filter((k) => !(k in GROWTH_CONFIG_SCHEMAS)) as unknown as GrowthConfigKind[])]; // LTV_POLICY (GRW-P3-C): its schema is local until contracts 1.13.0
-const LOCAL_SCHEMAS: Record<string, unknown> = { LTV_POLICY: LTV_POLICY_SCHEMA, LOYALTY_RULES: LOYALTY_RULES_SCHEMA, ...POLICY_SCHEMAS };
+export const EDITABLE_KINDS = [...(Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[]), 'LTV_POLICY' as GrowthConfigKind, 'LOYALTY_RULES' as GrowthConfigKind, 'MESSAGING_CHANNELS' as GrowthConfigKind, ...(POLICY_KINDS.filter((k) => !(k in GROWTH_CONFIG_SCHEMAS)) as unknown as GrowthConfigKind[])]; // LTV_POLICY (GRW-P3-C): its schema is local until contracts 1.13.0
+const LOCAL_SCHEMAS: Record<string, unknown> = { LTV_POLICY: LTV_POLICY_SCHEMA, LOYALTY_RULES: LOYALTY_RULES_SCHEMA, MESSAGING_CHANNELS: MESSAGING_CHANNELS_SCHEMA, ...POLICY_SCHEMAS };
 const KIND_NOTES: Record<string, string> = {
   ATTRIBUTION_POLICY: 'Who gets credit for a booking: windows, precedence, dwell. Money policy: 7 days notice and a provider announcement.',
   SEO: 'Public site rules: canonical host, locales, thin-page thresholds, sitemap shard size, cache lifetimes.',
@@ -31,6 +32,7 @@ const KIND_NOTES: Record<string, string> = {
   SPONSORED_PROMOTION_POLICY: 'Provider-sponsored promotions: commission basis, high-value review thresholds, funding defaults. Money: 7 days notice and an announcement.',
   INTEGRATION: 'Read-only marketing integrations by kind: mode, secret reference names, pull schedule, rate budget, retention.',
   LTV_POLICY: 'Cohort LTV model: horizon, tail fit window, discount rate, cost inclusion, bootstrap and the k-anonymity floor (never below 10). Reporting only.',
+  MESSAGING_CHANNELS: 'Real messaging channels per market: provider order and failover, sender ids, secret REFERENCES (Secrets Manager paths, never values), retry and backoff, rate budgets, cross-channel failover order, quiet hours, WhatsApp template names, push deep-link schemes. MODE mock or real stays in the environment. Announcement required.',
   LOYALTY_RULES: 'Loyalty points: points per completed booking, tier thresholds and bonuses, window, expiry, annual cap and the conversion into a reward lot. Every amount and threshold starts at 0 (0 = off). Points are not money. Announcement required.',
   EXPERIMENT_POLICY: 'Experiment guardrails: minimum run days, SRM alpha, concurrency, variants, k-anonymity (never below 10), assignment TTL. The denied-surface list can only grow.',
   AUTOMATION_POLICY: 'Journey builder limits: nodes, waits, sends per journey and per 30 days, compiled steps, branch arms.',

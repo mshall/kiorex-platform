@@ -35,7 +35,10 @@ export const NATIVE_VENDORS: Partial<Record<ProviderKind, { name: string; defaul
   EMAIL: { name: 'ses' },
   SMS: { name: 'twilio', defaultUrl: 'https://api.twilio.com', secretFromKey: (k) => k.slice(k.indexOf(':') + 1) },
 };
-const providerName = (kind: ProviderKind, env: Env): string => { const v = (env[`${kind}_PROVIDER`] ?? '').trim().toLowerCase(); return v === NATIVE_VENDORS[kind]?.name ? v : 'gateway'; };
+/** Extra native vendors per kind (besides the one in NATIVE_VENDORS): an Egyptian SMS aggregator speaks a configurable wire format (vendors/sms-aggregator.ts). */
+export const EXTRA_VENDORS: Partial<Record<ProviderKind, string[]>> = { SMS: ['aggregator'] };
+const knownVendors = (kind: ProviderKind): string[] => [NATIVE_VENDORS[kind]?.name, ...(EXTRA_VENDORS[kind] ?? [])].filter((x): x is string => !!x);
+const providerName = (kind: ProviderKind, env: Env): string => { const v = (env[`${kind}_PROVIDER`] ?? '').trim().toLowerCase(); return knownVendors(kind).includes(v) ? v : 'gateway'; };
 
 const NEEDS_SENDER: Record<ProviderKind, boolean> = { SMS: true, EMAIL: true, WHATSAPP: true, PAYMENT: false };
 /** Dev-only default so mock-mode simulators can sign. WHATSAPP keeps the historical dev secret used by the inbound booking webhook. */
@@ -61,7 +64,7 @@ function rawMode(kind: ProviderKind, env: Env): string | undefined {
 export function providerEnv(kind: ProviderKind, env: Env = process.env): ProviderEnv {
   const mode: ProviderMode = rawMode(kind, env) === 'real' ? 'real' : 'mock';
   const provider = providerName(kind, env);
-  const native = provider !== 'gateway' ? NATIVE_VENDORS[kind] : undefined;
+  const native = provider !== 'gateway' && provider === NATIVE_VENDORS[kind]?.name ? NATIVE_VENDORS[kind] : undefined;
   const apiKey = env[`${kind}_API_KEY`] ?? '';
   return {
     kind,
@@ -99,7 +102,7 @@ export function providerProblems(kind: ProviderKind, env: Env = process.env): st
   else if (p.webhookSecret.length < 16) out.push(`${kind}_WEBHOOK_SECRET must be at least 16 characters`);
   if (NEEDS_SENDER[kind] && !p.senderId) out.push(`${kind}_SENDER_ID is required when ${kind}_MODE=real`);
   const rawProvider = (env[`${kind}_PROVIDER`] ?? '').trim().toLowerCase();
-  if (rawProvider && rawProvider !== 'gateway' && rawProvider !== NATIVE_VENDORS[kind]?.name) out.push(`${kind}_PROVIDER must be gateway${NATIVE_VENDORS[kind] ? ` or ${NATIVE_VENDORS[kind]!.name}` : ''}`);
+  if (rawProvider && rawProvider !== 'gateway' && !knownVendors(kind).includes(rawProvider)) out.push(`${kind}_PROVIDER must be gateway${knownVendors(kind).length ? ` or ${knownVendors(kind).join(' or ')}` : ''}`);
   if (p.provider === 'meta' && !(env.WHATSAPP_VERIFY_TOKEN ?? '').trim()) out.push('WHATSAPP_VERIFY_TOKEN is required when WHATSAPP_PROVIDER=meta');
   if (p.provider === 'ses') {
     if (!/^[^:]+:[^:]+(:.+)?$/.test(p.apiKey)) out.push('EMAIL_API_KEY must be "<ACCESS_KEY_ID>:<SECRET_ACCESS_KEY>" when EMAIL_PROVIDER=ses');

@@ -23,7 +23,7 @@ export function platformTemplate(kind: NotifyKind, t: TemplateRow): TemplateDefi
     subject: { en: 'Kiorex', ar: 'كيوريكس' },
   });
   // WhatsApp keeps the Meta template id (placeholder until approved, Docs/NEEDS_HUMAN.md); the full text rides in vars.body for the legacy transport.
-  base.channels.WHATSAPP = (c) => { const text = render(c.locale === 'en' ? t.en : t.ar, c.params); return { text, template: { name: t.templateId, language: c.locale, vars: { body: text } } }; };
+  base.channels.WHATSAPP = (c) => { const text = render(c.locale === 'en' ? t.en : t.ar, c.params); return { text, template: { name: t.templateId, language: c.locale, vars: { ...Object.fromEntries(Object.entries(c.params ?? {}).map(([k, v]) => [k, String(v)])), body: text } } }; }; // named values ride along so a Meta template can be sent with its numbered parameters (messaging/whatsapp/wa-templates.ts)
   return base;
 }
 
@@ -45,6 +45,8 @@ export interface PlatformPrefsDeps {
   /** GRW-P2-E: suppression by keyed address hash (the raw address is never needed here). */
   isSuppressed?(channel: string, addressHash: string): Promise<boolean>;
   hasConsent(sub: string, purpose: GateConsentKey): Promise<boolean>;
+  /** MSG-REAL: quiet hours an operator set in the MESSAGING_CHANNELS config (per market, whole hours, listed channels). Undefined = the QUIET_HOURS_* env default of before. */
+  defaultQuietHours?(): { startHour: number; endHour: number; zone?: string; channels?: string[] } | undefined;
   preference(sub: string, channel: string): Promise<{ enabled: boolean; quietStart: number | null; quietEnd: number | null } | null>;
   /**
    * Marketing facts (GRW-P1-I). Absent = marketing is denied (no marketing without the dependency). `enabled`: growth.marketing_messaging effective;
@@ -75,9 +77,10 @@ export class PlatformPreferenceStore implements PreferenceStore {
     }
     const consent = await this.deps.hasConsent(sub, consentPurposeOf(ctx.purpose));
     const pref = await this.deps.preference(sub, ctx.channel);
+    const dq = this.deps.defaultQuietHours?.(); const dqApplies = !!dq && (!dq.channels || dq.channels.includes(ctx.channel));
     return {
       consent, optedOut: !!pref && !pref.enabled,
-      quiet: { startHour: pref?.quietStart ?? c.quietStart, endHour: pref?.quietEnd ?? c.quietEnd, tzOffsetMinutes: marketOffsetMinutes(), zone: marketZone() }, // the zone makes the two Cairo offset-change nights end the window at the right wall-clock hour (G-5)
+      quiet: dq && !dqApplies && pref?.quietStart === undefined ? null : { startHour: pref?.quietStart ?? (dqApplies ? dq!.startHour : c.quietStart), endHour: pref?.quietEnd ?? (dqApplies ? dq!.endHour : c.quietEnd), tzOffsetMinutes: marketOffsetMinutes(), zone: dqApplies && dq!.zone ? dq!.zone : marketZone() }, // the zone makes the two Cairo offset-change nights end the window at the right wall-clock hour (G-5)
     };
   }
 }

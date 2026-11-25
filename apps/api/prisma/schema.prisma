@@ -3285,3 +3285,48 @@ model PartnershipCodeRedemption {
   @@unique([programId, subHash])
   @@index([programId, createdAt])
 }
+
+// ───────────────────────── real messaging channels (MSG-REAL, 25 Nov 2026) ─────────────────────────
+
+/// WhatsApp customer-service window: the time of the last INBOUND message per number (keyed hash, never the raw number). A business may send free-form
+/// session messages (text, interactive buttons) only within 24 hours of it; everything else must be an approved template.
+model WhatsappContactWindow {
+  market        String   @default("EG")
+  addressHash   String
+  lastInboundAt DateTime
+  updatedAt     DateTime @updatedAt
+
+  @@id([market, addressHash])
+  @@index([lastInboundAt])
+}
+
+/// Meta template registry: one row per (Meta name, language). `key` is the Kiorex notification kind. Status comes from the Meta webhook
+/// (`message_template_status_update`) or the ops sync; ids and names are config, never code. status: DRAFT SUBMITTED PENDING APPROVED REJECTED PAUSED DISABLED FLAGGED.
+model WhatsappTemplate {
+  id             String    @id @default(cuid())
+  key            String
+  language       String
+  metaName       String
+  metaTemplateId String?
+  category       String // UTILITY MARKETING AUTHENTICATION
+  status         String    @default("DRAFT")
+  quality        String?
+  reason         String?
+  submittedAt    DateTime?
+  statusAt       DateTime?
+  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+
+  @@unique([metaName, language])
+  @@index([key, language])
+}
+
+/// Small per-channel operational state (WhatsApp quality rating and messaging tier, throttle-until, auth failure flag). Values hold no secrets and no recipients.
+model MessagingChannelState {
+  channel   String
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@id([channel, key])
+}

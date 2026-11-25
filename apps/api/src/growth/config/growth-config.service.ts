@@ -6,6 +6,7 @@ import { validateSeoAutomation } from '../seo-automation/seo-automation-config';
 import { validateLtvPolicy } from '../cohorts/ltv-policy';
 import { validateLoyaltyRules } from '../loyalty/loyalty-config';
 import { validateMarketProfile } from '../../market/market-core-public';
+import { validateMessagingChannels } from '../../messaging/messaging-public';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
@@ -22,7 +23,7 @@ export interface ConfigActor { sub: string; roles: string[] }
 export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY']; // the last: a clinic's sponsored discount changes what a provider funds, so it needs notice
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
 /** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
-export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES', ...POLICY_ANNOUNCEMENT_KINDS]; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
+export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...POLICY_ANNOUNCEMENT_KINDS]; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
 export const DEFAULT_ACTOR = 'system:proposed-default';
 
 export interface ResolvedConfig<T = Record<string, unknown>> {
@@ -45,9 +46,13 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
 /** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
-export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
+export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
   if (isPolicyKind(kind)) { const errors = validatePolicy(kind, payload); return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> }; }
+  if (kind === 'MESSAGING_CHANNELS') { // MSG-REAL: provider order, sender ids, secretRefs (paths only), retry, rate budgets, failover, quiet hours, template names, push deep links; per-market overrides inside
+    const errors = validateMessagingChannels(payload).errors;
+    return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
+  }
   if (kind === 'LTV_POLICY' || kind === 'MARKET_PROFILE' || kind === 'LOYALTY_RULES') {
     const errors = kind === 'LTV_POLICY' ? validateLtvPolicy(payload).errors : kind === 'LOYALTY_RULES' ? validateLoyaltyRules(payload).errors : validateMarketProfile(payload);
     return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };

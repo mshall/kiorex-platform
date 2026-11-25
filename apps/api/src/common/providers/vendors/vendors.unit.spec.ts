@@ -83,8 +83,8 @@ describe('WhatsApp (Meta Cloud API)', () => {
       statuses: [{ id: 'wamid.1', status: 'delivered', timestamp: '1700000000' }, { id: 'wamid.2', status: 'failed', errors: [{ code: 131026 }] }, { id: 'wamid.3', status: 'unknown' }],
       messages: [{ from: '201001234567', id: 'wamid.in1', type: 'text', text: { body: 'hello' } }, { from: '201009999999', id: 'wamid.in2', type: 'interactive', interactive: { button_reply: { id: 'CONFIRM', title: 'Confirm' } } }] } }] }] });
     const p = parseMetaWebhook(body);
-    expect(p.statuses).toEqual([{ providerRef: 'wamid.1', status: 'DELIVERED', occurredAt: '2023-11-14T22:13:20.000Z' }, { providerRef: 'wamid.2', status: 'FAILED', error: 'META_131026' }]);
-    expect(p.inbound).toEqual([{ from: '+201001234567', text: 'hello', providerRef: 'wamid.in1' }, { from: '+201009999999', text: 'Confirm', buttonPayload: 'CONFIRM', providerRef: 'wamid.in2' }]);
+    expect(p.statuses).toEqual([{ providerRef: 'wamid.1', status: 'DELIVERED', occurredAt: '2023-11-14T22:13:20.000Z' }, { providerRef: 'wamid.2', status: 'FAILED', error: 'META_131026', errorCode: 131026 }]);
+    expect(p.inbound).toEqual([{ from: '+201001234567', kind: 'text', text: 'hello', providerRef: 'wamid.in1' }, { from: '+201009999999', kind: 'interactive', text: 'Confirm', buttonPayload: 'CONFIRM', providerRef: 'wamid.in2' }]);
     expect(parseMetaWebhook('not json')).toEqual({ statuses: [], inbound: [] });
     expect(() => parseMetaSend({})).toThrow();
     expect(metaTemplateBody({ to: '+20100', templateName: 'otp', language: 'en', bodyParams: ['123456'], urlButtonParam: '123456' }).template.components).toHaveLength(2);
@@ -167,7 +167,7 @@ describe('Push (FCM HTTP v1 + Expo)', () => {
   it('FCM: exchanges a JWT for an OAuth token once, then sends with channel id and stringified data', async () => {
     const f = fake({ json: { access_token: 'ya29.tok', expires_in: 3600 } }, { json: { name: 'projects/kiorex-prod/messages/0:1' } }, { json: { name: 'projects/kiorex-prod/messages/0:2' } });
     const s = new PushSender({ fcmServiceAccountJson: Buffer.from(sa).toString('base64'), androidChannelId: 'kiorex-default' }, f.fn as never);
-    const r = await s.send({ token: 'fcm-token-abc', title: 'Hi', body: 'Booking confirmed', data: { bookingId: 'b1', n: 2 } });
+    const r = await s.send({ token: 'fcm-token-abc', title: 'Hi', body: 'Booking confirmed', data: { bookingId: 'b1', n: 2 } }); // `n` is not an allowed push data key: dropped (closed allow-list of ids)
     expect(r).toEqual({ ok: true, providerRef: 'projects/kiorex-prod/messages/0:1' });
     await s.send({ token: 'fcm-token-abc', title: 'Hi', body: 'Again' });
     expect(f.calls).toHaveLength(3); // token exchange cached for the second send
@@ -176,7 +176,7 @@ describe('Push (FCM HTTP v1 + Expo)', () => {
     expect(JSON.parse(Buffer.from(assertion.split('.')[1], 'base64url').toString())).toMatchObject({ iss: 'fcm@kiorex-prod.iam.gserviceaccount.com', scope: 'https://www.googleapis.com/auth/firebase.messaging' });
     expect(f.calls[1].url).toBe('https://fcm.googleapis.com/v1/projects/kiorex-prod/messages:send');
     expect(hdr(f.calls[1], 'authorization')).toBe('Bearer ya29.tok');
-    expect(f.calls[1].body.message).toMatchObject({ token: 'fcm-token-abc', notification: { title: 'Hi', body: 'Booking confirmed' }, data: { bookingId: 'b1', n: '2' }, android: { notification: { channel_id: 'kiorex-default' } } });
+    expect(f.calls[1].body.message).toMatchObject({ token: 'fcm-token-abc', notification: { title: 'Hi', body: 'Booking confirmed' }, data: { bookingId: 'b1' }, android: { notification: { channel_id: 'kiorex-default' } } });
   });
   it('FCM: UNREGISTERED marks the token dead; auth failure is a clean error', async () => {
     const dead = fake({ json: { access_token: 't', expires_in: 3600 } }, { status: 404, json: { error: { status: 'NOT_FOUND', details: [{ errorCode: 'UNREGISTERED' }] } } });

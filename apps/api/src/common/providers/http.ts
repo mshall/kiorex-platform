@@ -5,7 +5,7 @@ export type ProviderErrorCode =
 
 /** Error mapped from a vendor failure. `message` is safe to store/log: it never contains URLs with credentials, keys or bodies. */
 export class ProviderError extends Error {
-  constructor(public readonly code: ProviderErrorCode, public readonly retryable: boolean, public readonly status?: number, public readonly attempts = 1) {
+  constructor(public readonly code: ProviderErrorCode, public readonly retryable: boolean, public readonly status?: number, public readonly attempts = 1, /** vendor's numeric/short error code from the error body (never the message text); lets adapters classify (e.g. Meta 131047) */ public readonly vendorCode?: string) {
     super(`PROVIDER_${code}${status ? `_${status}` : ''}`);
     this.name = 'ProviderError';
   }
@@ -44,6 +44,14 @@ export function mapStatus(status: number): { code: ProviderErrorCode; retryable:
   return { code: 'REJECTED', retryable: false };
 }
 
+/** Short vendor error code from a JSON error body (Meta `error.code`, generic `code` / `errors[0].code`). Only a bounded token is kept, never text. */
+export function vendorCodeOf(text: string): string | undefined {
+  try {
+    const j = JSON.parse(text); const c = j?.error?.code ?? j?.errors?.[0]?.code ?? j?.code;
+    return (typeof c === 'number' || typeof c === 'string') && /^[A-Za-z0-9_.-]{1,40}$/.test(String(c)) ? String(c) : undefined;
+  } catch { return undefined; }
+}
+
 const BASE_DELAY_MS = 250;
 const MAX_DELAY_MS = 5000;
 
@@ -75,7 +83,7 @@ export async function providerRequest(env: ProviderEnv, req: ProviderRequest, de
       const m = mapStatus(res.status);
       const ra = Number(res.headers.get('retry-after'));
       if (Number.isFinite(ra) && ra > 0) retryAfterMs = Math.min(ra * 1000, MAX_DELAY_MS);
-      last = new ProviderError(m.code, m.retryable, res.status, attempt);
+      last = new ProviderError(m.code, m.retryable, res.status, attempt, vendorCodeOf(text));
     } catch (e) {
       if (e instanceof ProviderError) { last = e; if (!e.retryable) throw e; } // BAD_RESPONSE on a 2xx is final: the vendor did process it
       else last = new ProviderError((e as Error)?.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK', true, undefined, attempt);
@@ -84,5 +92,5 @@ export async function providerRequest(env: ProviderEnv, req: ProviderRequest, de
     const backoff = Math.min(MAX_DELAY_MS, BASE_DELAY_MS * 2 ** (attempt - 1));
     await sleep(Math.max(retryAfterMs, backoff / 2 + rnd() * (backoff / 2)));
   }
-  throw new ProviderError(last!.code, last!.retryable, last!.status, last!.attempts);
+  throw new ProviderError(last!.code, last!.retryable, last!.status, last!.attempts, last!.vendorCode);
 }

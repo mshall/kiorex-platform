@@ -3,7 +3,7 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit, forwardRef } from '@
 import { cfg } from '../common/config';
 import { notFound } from '../common/errors';
 import { quietWindowEnd } from '../common/market-time';
-import { MessagingAdapter, MessagingHub, MsgChannel } from '../messaging/messaging-public';
+import { MessagingAdapter, MessagingHub, MsgChannel, signUnsubscribeToken, unsubscribeUrlFor } from '../messaging/messaging-public';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { PatientService, PreferenceCentreService, SuppressionService, tzOffsetMinutes } from '../patient/patient-public';
 import { PrismaService } from '../prisma/prisma.service';
@@ -38,6 +38,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     this.notifier = createPlatformNotifier(hub, new PlatformPreferenceStore({
       hasConsent: (sub, purpose) => this.patients.hasConsent(sub, purpose),
       preference: (sub, channel) => this.prisma.notificationPreference.findUnique({ where: { sub_channel: { sub, channel } } }),
+      defaultQuietHours: () => { const q = this.hub.quietHoursSync(); return q?.start && q.end ? { startHour: Number(q.start.slice(0, 2)), endHour: Number(q.end.slice(0, 2)), zone: q.timezone, channels: q.channels } : undefined; },
       marketingSentSince: (sub, since) => this.marketingSentSince(sub, since),
       isSuppressed: (channel, hash) => this.suppression.isHashSuppressed([hash], channel),
       // GRW-P1-I: marketing is denied unless the flag is effective, the channel consent is granted, the address is not suppressed, and it is outside the marketing quiet window
@@ -89,6 +90,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    this.hub.waTemplates.load(TEMPLATES); // MSG-REAL: the Meta template registry is derived from the same copy (names, {{n}} order, categories); status comes from Meta
     if (!cfg().jobsEnabled) return;
     this.timer = setInterval(() => void this.processDue().catch(() => undefined), 60_000);
     this.timer.unref();
@@ -133,6 +135,7 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
     // PUSH goes to every active registered device (token registry); in MOCK mode an account without a device still gets the dev-inbox push so flows stay testable
     const devices = channel === 'PUSH' ? await this.activeDevices(m.sub) : [];
     const deviceIds = channel === 'PUSH' ? (devices.length ? devices.map((d) => d.token) : this.hub.channelMode('PUSH') === 'mock' ? [`device:${m.sub}`] : []) : undefined;
+    await this.hub.config(profile?.market ?? DEFAULT_MARKET); // warms the MESSAGING_CHANNELS cache (quiet hours, sender ids) for this market before the layer decides
     const allowed = this.notifier.registry.get(params.kind as string)?.allowedParams ?? [];
     const intentParams = Object.fromEntries(Object.entries(params).filter(([k, v]) => allowed.includes(k) && (typeof v === 'string' || typeof v === 'number'))) as Record<string, string | number>; // PHI-free guard: only declared params reach a template
     try {
@@ -141,7 +144,11 @@ export class EngagementService implements OnModuleInit, OnModuleDestroy {
         recipient: { id: m.sub, phone: profile?.phone ?? undefined, email: profile?.email ?? undefined, deviceIds, locale: m.locale === 'en' ? 'en' : 'ar' },
         params: intentParams, channels: [channel],
         idempotencyKey: `${m.id}:${m.scheduledFor.getTime()}`, // a quiet-hours deferral moves scheduledFor, so the retry is a new key
-        metadata: { messageId: m.id, sub: m.sub, templateId: m.templateId },
+        metadata: {
+          messageId: m.id, sub: m.sub, templateId: m.templateId, messageClass: purpose, market: profile?.market ?? DEFAULT_MARKET,
+          // marketing e-mail always carries a signed one-click unsubscribe (List-Unsubscribe, RFC 8058); the adapter refuses marketing mail without it
+          ...(purpose === 'MARKETING' && channel === 'EMAIL' && profile?.email ? { unsubscribeUrl: unsubscribeUrlFor(signUnsubscribeToken({ address: profile.email, sub: m.sub, market: profile?.market ?? DEFAULT_MARKET })) } : {}),
+        },
       });
       const o = outcomeOf(state, channel, purpose);
       switch (o.kind) {

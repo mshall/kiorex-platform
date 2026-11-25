@@ -5,3 +5,10 @@ export type { MsgChannel, MsgStatus, MessagingAdapter, OutboundMessage, InboundM
 export { MessageLogDto, MessageLogItemDto, MessagingStatsDto, DeliveryTickDto } from './messaging.dto';
 export { createMessagingAdapter, channelMode } from './adapters';
 export { HubChannelAdapter, InboxChannelAdapter, flattenBody } from './notification.bridge';
+export { MESSAGING_CHANNELS_DEFAULT, MESSAGING_CHANNELS_SCHEMA, MSG_CONFIG_KIND, validateMessagingChannels, effectiveMessagingConfig, quietUntil } from './messaging-config';
+export type { MessagingChannelsConfig, QuietHours } from './messaging-config';
+export { isStopKeyword } from './messaging.hub';
+export type { MessagingConfigSource } from './messaging.hub';
+export { signUnsubscribeToken, unsubscribeUrlFor } from './unsubscribe';
+export { MessagingOpsService } from './messaging-ops.service';
+export type { NotifySource } from './whatsapp/wa-templates';

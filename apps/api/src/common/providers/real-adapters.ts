@@ -7,10 +7,11 @@ import { whatsappMapping } from './whatsapp.mapping';
 import { whatsappMetaMapping } from './whatsapp.meta.mapping';
 import { emailSesMapping } from './email.ses.mapping';
 import { smsTwilioMapping } from './sms.twilio.mapping';
+import { smsAggregatorMapping } from './sms.aggregator.mapping';
 
 export type MessagingKind = 'SMS' | 'EMAIL' | 'WHATSAPP';
 export const MESSAGING_MAPPINGS: Record<MessagingKind, MessagingMapping> = { SMS: smsMapping, EMAIL: emailMapping, WHATSAPP: whatsappMapping };
-const VENDOR_MAPPINGS: Record<MessagingKind, Record<string, MessagingMapping>> = { SMS: { twilio: smsTwilioMapping }, EMAIL: { ses: emailSesMapping }, WHATSAPP: { meta: whatsappMetaMapping } };
+const VENDOR_MAPPINGS: Record<MessagingKind, Record<string, MessagingMapping>> = { SMS: { twilio: smsTwilioMapping, aggregator: smsAggregatorMapping }, EMAIL: { ses: emailSesMapping }, WHATSAPP: { meta: whatsappMetaMapping } };
 /** Vendor mapping for a kind: the native vendor only when <KIND>_MODE=real and <KIND>_PROVIDER names it; otherwise the neutral gateway mapping (so mock simulators stay deterministic). */
 export function mappingFor(kind: MessagingKind, e: ProviderEnv): MessagingMapping {
   return (e.mode === 'real' && VENDOR_MAPPINGS[kind][e.provider]) || MESSAGING_MAPPINGS[kind];
@@ -18,7 +19,7 @@ export function mappingFor(kind: MessagingKind, e: ProviderEnv): MessagingMappin
 export const messagingMapping = (kind: MessagingKind, env: Record<string, string | undefined> = process.env): MessagingMapping => mappingFor(kind, providerEnv(kind, env));
 export const messagingKindOf = (channel: string): MessagingKind | undefined => (channel === 'SMS' || channel === 'EMAIL' || channel === 'WHATSAPP' ? channel : undefined);
 
-export interface RealSend { to: string; body: string; reference: string; templateId: string; locale: string; variables?: Record<string, string>; subject?: string }
+export interface RealSend { to: string; body: string; reference: string; templateId: string; locale: string; variables?: Record<string, string>; subject?: string; html?: string; unsubscribeUrl?: string; unsubscribeMailto?: string; senderId?: string }
 export interface RealSendResult { ok: boolean; providerRef: string; error?: string }
 
 /** Real HTTP messaging transport for one kind, driven only by env + the mapping. Never logs bodies, recipients or keys. */
@@ -27,9 +28,9 @@ export class HttpMessagingTransport {
   constructor(readonly kind: MessagingKind, private readonly env: ProviderEnv = providerEnv(kind), private readonly deps: HttpDeps = {}, private readonly mapping: MessagingMapping = mappingFor(kind, env)) {}
   async send(m: RealSend): Promise<RealSendResult> {
     try {
-      const wire = this.mapping.buildSend({ to: m.to, body: m.body, senderId: this.env.senderId, reference: m.reference, templateId: m.templateId, locale: m.locale, variables: m.variables, subject: m.subject, apiUrl: this.env.apiUrl, apiKey: this.env.apiKey, publicWebhookUrl: this.env.publicWebhookUrl || undefined });
+      const wire = this.mapping.buildSend({ to: m.to, body: m.body, senderId: m.senderId || this.env.senderId, reference: m.reference, templateId: m.templateId, locale: m.locale, variables: m.variables, subject: m.subject, html: m.html, unsubscribeUrl: m.unsubscribeUrl, unsubscribeMailto: m.unsubscribeMailto, apiUrl: this.env.apiUrl, apiKey: this.env.apiKey, publicWebhookUrl: this.env.publicWebhookUrl || undefined });
       const r = await providerRequest(this.env, { path: wire.path, body: wire.body, form: wire.form, sign: wire.sign, headers: wire.headers, idempotencyKey: m.reference }, this.deps, this.mapping.authHeaders(this.env.apiKey));
-      return { ok: true, providerRef: this.mapping.parseSend(r.json).providerRef };
+      return { ok: true, providerRef: this.mapping.parseSend(r.json, m.reference).providerRef };
     } catch (e) {
       if (e instanceof ProviderError) return { ok: false, providerRef: '', error: e.message };
       return { ok: false, providerRef: '', error: 'PROVIDER_BAD_RESPONSE' };

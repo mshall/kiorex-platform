@@ -3,7 +3,7 @@ import { normalizeVendorStatus } from '@kiorex/contracts/notify';
 import { providerEnv } from '../common/providers/env';
 import { messagingKindOf, messagingMapping } from '../common/providers/real-adapters';
 import type { MessagingHub } from './messaging.hub';
-import type { MsgChannel } from './messaging.types';
+import type { MsgChannel, OutboundMessage } from './messaging.types';
 
 /** Plain text the legacy MessagingAdapter transports carry for a channel-specific notify body. */
 export function flattenBody(m: RenderedMessage): string {
@@ -14,6 +14,14 @@ export function flattenBody(m: RenderedMessage): string {
     case 'INAPP': return (m.body as { body: string }).body;
     case 'WHATSAPP': { const b = m.body as { text?: string; template?: { vars: Record<string, string> } }; return b.text ?? b.template?.vars.body ?? ''; }
   }
+}
+
+/** Named values of a WhatsApp template (everything but the full rendered `body`), the parameters a Meta template is sent with. */
+export function whatsappVars(m: RenderedMessage): Record<string, string> | undefined {
+  const v = (m.body as { template?: { vars?: Record<string, string> } }).template?.vars;
+  if (!v) return undefined;
+  const { body: _body, ...rest } = v;
+  return rest;
 }
 
 /**
@@ -28,7 +36,11 @@ export class HubChannelAdapter implements ChannelAdapter {
   async send(m: RenderedMessage): Promise<SendOutcome> {
     const r = await this.hub.send({
       messageId: m.metadata?.messageId, channel: this.channel as MsgChannel, sub: m.metadata?.sub, to: m.to,
-      templateId: m.metadata?.templateId ?? m.type, locale: m.locale, body: flattenBody(m), subject: m.channel === 'EMAIL' ? (m.body as { subject?: string }).subject : m.channel === 'PUSH' ? (m.body as { title?: string }).title : undefined,
+      templateId: m.metadata?.templateId ?? m.type, locale: m.locale, body: flattenBody(m),
+      ...(m.channel === 'WHATSAPP' ? { variables: whatsappVars(m) } : {}),
+      ...(m.metadata?.messageClass ? { messageClass: m.metadata.messageClass as OutboundMessage['messageClass'] } : {}), ...(m.metadata?.market ? { market: m.metadata.market } : {}),
+      ...(m.metadata?.unsubscribeUrl ? { unsubscribeUrl: m.metadata.unsubscribeUrl } : {}), ...(m.metadata?.conversational === 'true' ? { conversational: true } : {}),
+      subject: m.channel === 'EMAIL' ? (m.body as { subject?: string }).subject : m.channel === 'PUSH' ? (m.body as { title?: string }).title : undefined,
     });
     return { ok: r.ok, providerRef: r.providerRef ?? undefined, error: r.error ?? undefined };
   }

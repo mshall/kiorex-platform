@@ -6,7 +6,7 @@ import { verifyWebhookBody } from './webhook';
  * internal gateway) that speaks it needs no code change at all.
  */
 export type StatusState = 'QUEUED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
-export interface StatusEvent { providerRef: string; status: StatusState; error?: string; occurredAt?: string }
+export interface StatusEvent { providerRef: string; status: StatusState; error?: string; occurredAt?: string; /** addresses to add to the suppression list (SES permanent bounce, complaint) */ suppress?: Array<{ address: string; reason: 'BOUNCE' | 'COMPLAINT' }> }
 
 export interface OutboundWire {
   path: string; body?: unknown; headers?: Record<string, string>;
@@ -20,13 +20,13 @@ export interface InboundParsed { from: string; text?: string; buttonPayload?: st
 export interface MessagingMapping {
   /** Auth headers from the API key (default: `Authorization: Bearer <key>`). */
   authHeaders(apiKey: string): Record<string, string>;
-  buildSend(i: { to: string; body: string; senderId: string; reference: string; templateId: string; locale: string; variables?: Record<string, string>; subject?: string; apiUrl?: string; apiKey?: string; publicWebhookUrl?: string }): OutboundWire;
+  buildSend(i: { to: string; body: string; senderId: string; reference: string; templateId: string; locale: string; variables?: Record<string, string>; subject?: string; html?: string; unsubscribeUrl?: string; unsubscribeMailto?: string; apiUrl?: string; apiKey?: string; publicWebhookUrl?: string }): OutboundWire;
   /** Extract the vendor message id from a 2xx response. Throw if absent. */
-  parseSend(json: any): { providerRef: string };
+  parseSend(json: any, reference?: string): { providerRef: string };
   /** Parse a (signature-verified) status webhook body into events. */
   parseStatusWebhook(raw: string): StatusEvent[];
   /** Verify the webhook signature. Default = generic X-Webhook-Signature scheme. */
-  verifyWebhook(o: { secret: string; rawBody: string; headers: Record<string, unknown>; publicUrl?: string }): boolean;
+  verifyWebhook(o: { secret: string; rawBody: string; headers: Record<string, unknown>; publicUrl?: string; /** URL query parameters (aggregator DLR token) */ query?: Record<string, unknown> }): boolean;
   /** Vendor inbound customer messages carried by the same webhook (Meta WhatsApp). */
   parseInbound?(raw: string): InboundParsed[];
   /** Vendor subscription-confirmation URL to GET (SNS), when the body is one. */

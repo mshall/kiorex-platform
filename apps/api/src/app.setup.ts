@@ -32,6 +32,8 @@ export function setupApp(app: INestApplication) {
   }
   // vault uploads are JSON/base64 (<= VAULT_MAX_BYTES 5 MB => ~6.7 MB); rawBody (webhook HMAC) is preserved by Nest's parser options
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
+  // MSG-REAL: Amazon SNS posts its notifications (SES bounces, complaints, subscription confirmations) as Content-Type text/plain; the raw body is needed for the credential / signature check
+  (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('text', { type: 'text/plain', limit: '1mb' });
   // org-onboarding quarantine uploads: raw bytes (SQL dumps up to 50 MB, scanned and size-checked per kind in the service)
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('raw', { type: 'application/octet-stream', limit: '52mb' });
   app.use(strictDtoMiddleware);
