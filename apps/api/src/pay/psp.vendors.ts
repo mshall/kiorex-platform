@@ -6,6 +6,7 @@ import { paymentMapping } from '../common/providers/payment.mapping';
 import { fawryChargeBody, fawryCheckoutUrl, fawryRefundBody, fawryStatusUrl, parseFawryCallback, parseFawryCharge, parseFawryStatus, verifyFawryCallback } from '../common/providers/vendors/fawry';
 import { paymobAuth, paymobCaptureBody, paymobInquiryBody, paymobIntentionBody, paymobRefundBody, paymobTransactionIdFromInquiry, paymobVoidBody, parsePaymobCallback, parsePaymobInquiry, parsePaymobIntention, verifyPaymobHmac } from '../common/providers/vendors/paymob';
 import { enabledPsps as _e, PSP_VENDOR_MODE as _v, vendorPspProblems as _p } from '../common/providers/problems';
+import { readyWalletMethods, walletConfigFromEnv } from '@kiorex/pay-contract';
 import { PSP_CAPS, PSP_DEFAULTS, type PspName, type PspSettings } from './psp-config';
 import { HttpPspAdapter } from './psp-http';
 import type { PspAdapter, PspCapabilities, PspCheckoutInput, PspStatus, PspWebhookEvent } from './psp-types';
@@ -16,7 +17,7 @@ export const PSP_VENDOR_MODE = _v;
 export const vendorPspProblems = _p;
 
 /** Sandbox vs live hosts. Paymob serves both modes from one host (the KEYS differ); Fawry has a staging host; the neutral gateways have no default (their URL is configuration). */
-const DEFAULTS: Record<PspName, { sandbox: string; live: string }> = { paymob: { sandbox: 'https://accept.paymob.com', live: 'https://accept.paymob.com' }, fawry: { sandbox: 'https://atfawry.fawrystaging.com', live: 'https://www.atfawry.com' }, instapay: { sandbox: '', live: '' }, card: { sandbox: '', live: '' } };
+const DEFAULTS: Record<PspName, { sandbox: string; live: string }> = { paymob: { sandbox: 'https://accept.paymob.com', live: 'https://accept.paymob.com' }, fawry: { sandbox: 'https://atfawry.fawrystaging.com', live: 'https://www.atfawry.com' }, instapay: { sandbox: '', live: '' }, card: { sandbox: '', live: '' }, bank_ipn: { sandbox: '', live: '' } };
 const num = (v: string | undefined, d: number) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && v ? Math.floor(n) : d; };
 const pepperOf = (env: Env) => env.PAYMENT_FINGERPRINT_PEPPER ?? '';
 
@@ -37,7 +38,9 @@ export class PaymobPspAdapter implements PspAdapter {
   private t(retries?: number) { return transport('paymob', this.env.PAYMOB_SECRET_KEY ?? '', this.env, this.s, retries); }
   async createCheckout(i: PspCheckoutInput) {
     const t = this.t();
-    const integrationIds = ids(i.captureMode === 'MANUAL' && this.env.PAYMOB_AUTH_INTEGRATION_IDS ? this.env.PAYMOB_AUTH_INTEGRATION_IDS : this.env.PAYMOB_INTEGRATION_IDS);
+    const wallet = i.rail === 'wallet' ? readyWalletMethods(walletConfigFromEnv(this.env, 'paymob')).find((m) => !i.method || m.key === i.method) : undefined;
+    if (i.rail === 'wallet' && !wallet) throw new Error('NEEDS_HUMAN: no Paymob wallet integration is configured for this method (PAYMOB_WALLET_INTEGRATION_IDS)');
+    const integrationIds = wallet ? [wallet.integrationId as number] : ids(i.captureMode === 'MANUAL' && this.env.PAYMOB_AUTH_INTEGRATION_IDS ? this.env.PAYMOB_AUTH_INTEGRATION_IDS : this.env.PAYMOB_INTEGRATION_IDS);
     const r = await providerRequest(t, { path: '/v1/intention/', body: paymobIntentionBody({ paymentId: i.paymentId, amountMinor: i.amountMinor, currency: i.currency, integrationIds, notificationUrl: notifyUrl('paymob'), redirectionUrl: returnUrl(i.paymentId) }), idempotencyKey: `checkout:${i.paymentId}` }, { fetchImpl: this.fetchImpl }, paymobAuth(t.apiKey));
     return parsePaymobIntention(r.json, t.apiUrl, this.env.PAYMOB_PUBLIC_KEY ?? '');
   }

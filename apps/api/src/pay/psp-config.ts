@@ -6,8 +6,8 @@ import { decimalsOf } from '../common/providers/vendors/money';
  * NEVER holds a secret: secrets are env variables filled from Secrets Manager by reference (`/{product}/{env}/{purpose}`, see PSP_SECRETS); the config only names them.
  * Fees are CONFIG with no value shipped: `null` means NEEDS_HUMAN (finance, KX-12) and the system then books the fee the PSP reports, or 0 when it reports none. Nothing here invents a price.
  */
-export type PspName = 'paymob' | 'fawry' | 'instapay' | 'card';
-export const PSP_NAMES: PspName[] = ['paymob', 'fawry', 'instapay', 'card'];
+export type PspName = 'paymob' | 'fawry' | 'instapay' | 'card' | 'bank_ipn';
+export const PSP_NAMES: PspName[] = ['paymob', 'fawry', 'instapay', 'card', 'bank_ipn'];
 export type PspMode = 'sandbox' | 'live';
 export type ThreeDsMode = 'REQUIRED' | 'PREFERRED' | 'OFF';
 export type CaptureMode = 'AUTO' | 'MANUAL';
@@ -66,6 +66,7 @@ export const PSP_CAPS: Record<PspName, { capture: boolean; partialRefund: boolea
   paymob: { capture: true, partialRefund: true, threeDs: true },
   fawry: { capture: false, partialRefund: true, threeDs: false },
   instapay: { capture: false, partialRefund: true, threeDs: false },
+  bank_ipn: { capture: false, partialRefund: false, threeDs: false },
   card: { capture: true, partialRefund: true, threeDs: true },
 };
 
@@ -80,6 +81,7 @@ export const PSP_SECRETS: readonly PspSecretSpec[] = [
   { psp: 'fawry', purpose: 'fawry-secure-key', env: 'FAWRY_SECURE_KEY', kind: 'hmac' },
   { psp: 'instapay', purpose: 'instapay-api-key', env: 'INSTAPAY_API_KEY', kind: 'api-key' },
   { psp: 'instapay', purpose: 'instapay-webhook-secret', env: 'INSTAPAY_WEBHOOK_SECRET', kind: 'hmac' },
+  { psp: 'bank_ipn', purpose: 'bank-ipn-webhook-secret', env: 'BANK_IPN_WEBHOOK_SECRET', kind: 'hmac' },
   { psp: 'card', purpose: 'cardgw-api-key', env: 'CARDGW_API_KEY', kind: 'api-key' },
   { psp: 'card', purpose: 'cardgw-webhook-secret', env: 'CARDGW_WEBHOOK_SECRET', kind: 'hmac' },
   { psp: 'all', purpose: 'payment-fingerprint-pepper', env: 'PAYMENT_FINGERPRINT_PEPPER', kind: 'pepper' },

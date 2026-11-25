@@ -513,6 +513,91 @@ model PspSetting {
   @@id([psp, market])
 }
 
+/// Kiorly Pay unified layer (migration 20270302090000). One row per money-side signal (bank IPN row, settlement line) offered to the invoice matcher; low-confidence rows wait here for a finance person. Never holds money.
+model PayMatchSignal {
+  id          String    @id // pms_<id>
+  dedupeKey   String    @unique // source:psp:pspRef:kind (the same IPN row or settlement line is never matched twice)
+  source      String // IPN | SETTLEMENT | WEBHOOK
+  psp         String
+  pspRef      String
+  reference   String?
+  amountMinor Int
+  currency    String    @default("EGP")
+  occurredAt  DateTime
+  payerMasked String?
+  eventKind   String    @default("payment.captured")
+  fileId      String?
+  decision    String // AUTO | REVIEW | UNMATCHED (what the matcher decided)
+  status      String    @default("OPEN") // OPEN | APPLIED | CONFIRMED | REJECTED | DISMISSED
+  targetKind  String?
+  targetId    String?
+  confidence  Float     @default(0)
+  reasons     Json
+  candidates  Json
+  decidedBy   String?
+  decidedAt   DateTime?
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, decision, createdAt])
+  @@index([targetId])
+}
+
+/// A signed, expiring, single-use, amount-locked payment link (invoice, home visit, front desk, SaaS invoice). The token is HMAC-signed (@kiorex/pay-contract); `usedAt` is claimed with one atomic UPDATE.
+model PayLinkIssue {
+  id              String    @id // lnk_<id> (also the claim id inside the token)
+  context         String // CLINIC_INVOICE | HOME_VISIT | FRONT_DESK | SAAS_INVOICE | ORDER | OTHER
+  subjectId       String
+  organisationId  String
+  branchId        String?
+  amountMinor     Int
+  currency        String    @default("EGP")
+  rail            String    @default("card")
+  qrKind          String    @default("LINK") // PROVIDER | LINK | NONE
+  expiresAt       DateTime
+  usedAt          DateTime?
+  cancelledAt     DateTime?
+  paymentIntentId String?
+  createdBy       String
+  createdAt       DateTime  @default(now())
+
+  @@index([organisationId, createdAt])
+  @@index([subjectId])
+}
+
+/// Payment fraud scorer output (SHADOW first). One row per payment attempt that scored above zero. A person reviews it; nothing here blocks a payment or bans an account.
+model PayFraudAssessment {
+  id             String    @id // pfa_<id>
+  attemptId      String    @unique
+  paymentId      String
+  accountId      String
+  organisationId String?
+  score          Int
+  band           String // LOW | MEDIUM | HIGH
+  mode           String // SHADOW | FLAG
+  action         String // NONE | REVIEW
+  signals        Json
+  status         String    @default("OPEN") // OPEN | CONFIRMED | FALSE_POSITIVE | DISMISSED
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  note           String?
+  createdAt      DateTime  @default(now())
+
+  @@index([status, band, createdAt])
+  @@index([accountId])
+}
+
+/// Per-organisation provider preference (ordered list, blocked list). Audited; the platform settings still decide what is enabled at all.
+model PayOrgProviderPref {
+  organisationId String   @id
+  order          Json
+  blocked        Json
+  version        Int      @default(1)
+  updatedBy      String
+  updatedAt      DateTime @updatedAt
+}
+
 model ReconciliationRun {
   id            String   @id @default(cuid())
   kind          String // PSP_DAILY | BOOKING_NIGHTLY

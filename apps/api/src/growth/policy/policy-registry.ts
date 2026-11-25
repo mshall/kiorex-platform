@@ -1,4 +1,4 @@
-import { POLICY_SCHEMAS } from './policy-schemas.generated';
+import { POLICY_SCHEMAS } from './policy-schemas';
 import { POLICY_DEFAULTS } from './policy-defaults';
 import { setApprovedModesSource } from '../../common/providers/mode-guard';
 import { deepMerge, schemaDefaults, validateAgainst, type SchemaNode } from './schema-validate';
@@ -11,7 +11,7 @@ import { deepMerge, schemaDefaults, validateAgainst, type SchemaNode } from './s
  * SAFETY CONTROLS ARE NOT HERE. Nothing in this file can switch off a consent gate, a PHI filter, a k-anonymity floor below 10, the two-person rule or a launch lock:
  * those are code, and the schemas bound every number the registry accepts (e.g. k >= 10).
  */
-export const POLICY_KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'REFERRAL_FRAUD_THRESHOLDS', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES'] as const;
+export const POLICY_KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'REFERRAL_FRAUD_THRESHOLDS', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES', 'PAY_FRAUD_THRESHOLDS', 'PAY_MATCHING_POLICY', 'PAY_ROUTING_POLICY'] as const;
 export type PolicyKind = (typeof POLICY_KINDS)[number];
 export const isPolicyKind = (k: string): k is PolicyKind => (POLICY_KINDS as readonly string[]).includes(k);
 /** These kinds are read by process-wide synchronous code, so they exist at GLOBAL scope only (a MARKET row would be silently ignored, which is worse than refusing it). */
@@ -32,6 +32,7 @@ function crossChecks(kind: string, merged: Record<string, unknown>): string[] {
     const first = Number(merged.positionFirstBp ?? 4000); const last = Number(merged.positionLastBp ?? 4000);
     if (first + last > 10_000) e.push('/positionFirstBp plus positionLastBp must be at most 10000');
   }
+  if (kind === 'PAY_MATCHING_POLICY' && Number(merged.reviewThreshold ?? 0.5) > Number(merged.autoThreshold ?? 0.95)) e.push('/reviewThreshold must not exceed autoThreshold');
   if (kind === 'EXPERIMENT_POLICY' && Number(merged.kAnonymity ?? 10) < 10) e.push('/kAnonymity must be at least 10');
   if (kind === 'RECOMMENDATION_POLICY' && Number(merged.k ?? 10) < 10) e.push('/k must be at least 10');
   return e;

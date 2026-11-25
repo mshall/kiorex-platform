@@ -261,7 +261,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async settingsOf(psp: string): Promise<PspSettings> {
-    const name = (['paymob', 'fawry', 'instapay', 'card'].includes(psp) ? psp : 'paymob') as 'paymob';
+    const name = (['paymob', 'fawry', 'instapay', 'card', 'bank_ipn'].includes(psp) ? psp : 'paymob') as 'paymob';
     return this.pspConfig ? this.pspConfig.settingsFor(name) : (await import('./psp-config')).resolveSettings(name, '*');
   }
 

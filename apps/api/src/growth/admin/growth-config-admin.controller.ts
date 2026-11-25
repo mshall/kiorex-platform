@@ -11,7 +11,7 @@ import { rolesFor } from './growth-access';
 import { LTV_POLICY_SCHEMA } from '../cohorts/ltv-policy';
 import { LOYALTY_RULES_SCHEMA } from '../loyalty/loyalty-config';
 import { POLICY_KINDS } from '../policy/policy-registry';
-import { POLICY_SCHEMAS } from '../policy/policy-schemas.generated';
+import { POLICY_SCHEMAS } from '../policy/policy-schemas';
 import { MESSAGING_CHANNELS_SCHEMA } from '../../messaging/messaging-public';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;

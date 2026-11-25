@@ -9,7 +9,7 @@ import { pushProblems } from '../../common/providers/vendors/push';
  * Things the Kiorex API cannot see (Clinic and Passport deployments) are marked `observable: false`: the page says "verify in that deployment" instead of guessing.
  */
 type Env = Record<string, string | undefined>;
-export const INTEGRATION_KEYS = ['PAYMOB', 'FAWRY', 'INSTAPAY', 'CARD_GATEWAY', 'SMS', 'EMAIL', 'WHATSAPP_CLOUD', 'PUSH_FCM', 'PUSH_APNS', 'PUSH_EXPO', 'GOOGLE_ADS', 'GA4', 'SEARCH_CONSOLE', 'META_ADS', 'TIKTOK', 'PLAY_CONSOLE', 'APP_STORE_CONNECT', 'CRUX', 'LLM_ASSISTANT', 'LLM_RECOMMENDATIONS', 'LLM_AI_GATEWAY', 'TURN_VIDEO', 'PASSPORT_IDP', 'MAPS_GEOCODING', 'OBJECT_STORAGE', 'ERROR_MONITORING'] as const;
+export const INTEGRATION_KEYS = ['PAYMOB', 'FAWRY', 'INSTAPAY', 'CARD_GATEWAY', 'BANK_IPN', 'SMS', 'EMAIL', 'WHATSAPP_CLOUD', 'PUSH_FCM', 'PUSH_APNS', 'PUSH_EXPO', 'GOOGLE_ADS', 'GA4', 'SEARCH_CONSOLE', 'META_ADS', 'TIKTOK', 'PLAY_CONSOLE', 'APP_STORE_CONNECT', 'CRUX', 'LLM_ASSISTANT', 'LLM_RECOMMENDATIONS', 'LLM_AI_GATEWAY', 'TURN_VIDEO', 'PASSPORT_IDP', 'MAPS_GEOCODING', 'OBJECT_STORAGE', 'ERROR_MONITORING'] as const;
 export type IntegrationKey = (typeof INTEGRATION_KEYS)[number];
 export type IntegrationGroup = 'payments' | 'messaging' | 'push' | 'marketing' | 'ai' | 'platform';
 export type Mode = 'mock' | 'real';
@@ -67,6 +67,10 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
     requiredEnv: ['PAYMENT_MODE', 'PAYMENT_PROVIDER', 'PAYMENT_ENABLED_PSPS', 'CARDGW_API_URL', 'CARDGW_API_KEY', 'CARDGW_WEBHOOK_SECRET', 'PUBLIC_BASE_URL'], optionalEnv: ['PAYMENT_FINGERPRINT_PEPPER'],
     modeOf: pspMode('card'), problems: pspProblems('card'), webhook: { path: '/api/v1/pay/webhooks/card', secretEnv: 'CARDGW_WEBHOOK_SECRET', note: 'X-Webhook-Timestamp + X-Webhook-Signature (HMAC-SHA256)' },
     runbook: { file: 'INTEGRATION_RUNBOOK_PAYMENTS.md', anchor: 'card-gateway' }, needsHuman: ['NH-PSP'] },
+  { key: 'BANK_IPN', group: 'payments', label: { en: 'Bank transfer notifications (IPN)', ar: 'إشعارات التحويل البنكي (IPN)' }, owner: 'kiorex', observable: true,
+    requiredEnv: ['PAYMENT_MODE', 'PAYMENT_PROVIDER', 'PAYMENT_ENABLED_PSPS', 'BANK_IPN_WEBHOOK_SECRET', 'PUBLIC_BASE_URL'], optionalEnv: ['BANK_IPN_CONFIG_JSON'],
+    modeOf: pspMode('bank_ipn'), problems: pspProblems('bank_ipn'), webhook: { path: '/api/v1/pay/webhooks/bank_ipn', secretEnv: 'BANK_IPN_WEBHOOK_SECRET', note: 'Signed IPN from the bank or aggregator; a daily IPN file can be uploaded in ops. The real layout is NEEDS_HUMAN (LG-INT-PAY-12)' },
+    runbook: { file: 'INTEGRATION_RUNBOOK_PAYMENTS.md', anchor: 'bank-ipn' }, needsHuman: ['NH-PSP'] },
   { key: 'SMS', group: 'messaging', label: { en: 'SMS', ar: 'الرسائل النصية' }, owner: 'kiorex', observable: true, testSend: 'SMS',
     requiredEnv: ['SMS_MODE', 'SMS_API_URL', 'SMS_API_KEY', 'SMS_SENDER_ID', 'SMS_WEBHOOK_SECRET'], optionalEnv: ['SMS_PROVIDER', 'SMS_WEBHOOK_PUBLIC_URL', 'SMS_TIMEOUT_MS', 'SMS_MAX_RETRIES'],
     ...msgKind('SMS'), webhook: { path: '/api/v1/messaging/webhooks/sms', secretEnv: 'SMS_WEBHOOK_SECRET', note: 'Delivery status; HMAC (gateway) or the vendor signature (Twilio)' },

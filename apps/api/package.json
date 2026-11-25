@@ -44,7 +44,8 @@
     "jose": "^6.2.18",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "@kiorex/pay-contract": "file:../../vendor/kiorex-pay-contract-0.1.0.tgz"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.15",

@@ -5,7 +5,7 @@ import type { PspName } from './psp-config';
 export type PspWebhookEvent = PspEvent;
 export type { PspStatus };
 
-export interface PspCheckoutInput { paymentId: string; amountMinor: number; currency: string; captureMode?: 'AUTO' | 'MANUAL'; threeDsMode?: 'REQUIRED' | 'PREFERRED' | 'OFF'; /** Fractional digits of the currency minor unit (EGP 2). */ decimals?: number }
+export interface PspCheckoutInput { paymentId: string; amountMinor: number; currency: string; captureMode?: 'AUTO' | 'MANUAL'; threeDsMode?: 'REQUIRED' | 'PREFERRED' | 'OFF'; /** Payment rail; `wallet` makes the PSP use its wallet integration of `method` (Paymob wallet integrations, config only). */ rail?: 'card' | 'wallet'; method?: string; /** Fractional digits of the currency minor unit (EGP 2). */ decimals?: number }
 export interface PspCapabilities { capture: boolean; void: boolean; status: boolean; partialRefund: boolean; /** The PSP shows a hosted page where the card is typed (cards never touch Kiorex). */ hostedCheckout: boolean; /** The PSP reports card facts (brand, last4, 3DS, fingerprint). */ cardFacts: boolean }
 export const NO_CAPS: PspCapabilities = { capture: false, void: false, status: false, partialRefund: false, hostedCheckout: true, cardFacts: false };
 

@@ -10,6 +10,7 @@ import { HttpPspAdapter } from './psp-http';
 import { recordingFetch } from './psp-recorder';
 import { assertRealModeApproved, realModeDecision, RealModeNotApprovedError } from '../common/providers/mode-guard';
 import type { PspAdapter, PspCapabilities, PspCheckoutInput, PspWebhookEvent } from './psp-types';
+import { BankIpnPspAdapter } from './psp-bank-ipn';
 import { CardGatewayPspAdapter, enabledPsps, FawryPspAdapter, instapayEnv, PaymobPspAdapter, PSP_VENDOR_MODE, vendorPspProblems } from './psp.vendors';
 
 export { PSP_NAMES, type PspName };
@@ -48,7 +49,7 @@ export class RealModeBlockedPspAdapter implements PspAdapter {
   async status(): Promise<never> { return this.fail(); }
 }
 /** The Integrations Control Center key of each PSP. */
-export const PSP_INTEGRATION_KEY: Record<PspName, string> = { paymob: 'PAYMOB', fawry: 'FAWRY', instapay: 'INSTAPAY', card: 'CARD_GATEWAY' };
+export const PSP_INTEGRATION_KEY: Record<PspName, string> = { paymob: 'PAYMOB', fawry: 'FAWRY', instapay: 'INSTAPAY', card: 'CARD_GATEWAY', bank_ipn: 'BANK_IPN' };
 
 /** Real mode without usable config (startup check normally prevents this): fails closed. */
 export class UnconfiguredPspAdapter implements PspAdapter {
@@ -88,7 +89,7 @@ export function pspAdapter(name: string, settings?: PspSettings): PspAdapter {
     if (!realModeDecision(PSP_INTEGRATION_KEY[use]).allowed) return new RealModeBlockedPspAdapter(use, PSP_INTEGRATION_KEY[use]);
     const s2 = use === n ? s : resolveSettings(use, '*');
     const rf = recordingFetch(outboundFetch);
-    const inner: PspAdapter = use === 'paymob' ? new PaymobPspAdapter(process.env, rf, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, rf, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, rf, s2) : new HttpPspAdapter('instapay', paymentMapping, rf, () => instapayEnv(), s2);
+    const inner: PspAdapter = use === 'bank_ipn' ? new BankIpnPspAdapter(process.env) : use === 'paymob' ? new PaymobPspAdapter(process.env, rf, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, rf, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, rf, s2) : new HttpPspAdapter('instapay', paymentMapping, rf, () => instapayEnv(), s2);
     return new GuardedPspAdapter(inner, s2);
   }
   if (!providerProblems('PAYMENT').length && !realModeDecision(PSP_INTEGRATION_KEY[n]).allowed) return new RealModeBlockedPspAdapter(n, PSP_INTEGRATION_KEY[n]);

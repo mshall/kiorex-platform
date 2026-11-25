@@ -3,7 +3,7 @@
  * sandbox instruments and they change, so the matrix names the scenario and the vendor document to take the instrument from. `docs/INTEGRATION_RUNBOOK_PAYMENTS.md` section 9 holds the working
  * table with the instruments as published at the time of writing (to be confirmed in the vendor sandbox dashboard).
  */
-export interface TestScenario { id: string; scenario: string; psps: Array<'paymob' | 'fawry' | 'instapay' | 'card'>; expect: { payment: string; ledger: string; ops: string }; howToTrigger: string }
+export interface TestScenario { id: string; scenario: string; psps: Array<'paymob' | 'fawry' | 'instapay' | 'card' | 'bank_ipn'>; expect: { payment: string; ledger: string; ops: string }; howToTrigger: string }
 export const TEST_SCENARIOS: readonly TestScenario[] = [
   { id: 'T01', scenario: 'Successful card payment, 3DS challenge passed', psps: ['paymob', 'fawry', 'card'], howToTrigger: 'vendor success test card + the sandbox 3DS "approve" step', expect: { payment: 'CAPTURED, threeDsStatus PASSED, booking deposit PAID', ledger: 'capture HELD +amount; PSP_FEES only when a fee is reported or configured', ops: 'webhook receipt PROCESSED; connection check green' } },
   { id: 'T02', scenario: 'Card declined / insufficient funds', psps: ['paymob', 'fawry', 'card'], howToTrigger: 'vendor decline test card', expect: { payment: 'FAILED, credit and corporate hold released', ledger: 'no ledger entry', ops: 'payment.failed receipt; booking deposit still REQUIRED' } },

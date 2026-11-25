@@ -1,4 +1,4 @@
-import { POLICY_SCHEMAS } from './policy-schemas.generated';
+import { POLICY_SCHEMAS } from './policy-schemas';
 import { schemaDefaults } from './schema-validate';
 
 /**
@@ -26,4 +26,7 @@ export const POLICY_DEFAULTS: Record<string, Record<string, unknown>> = {
   REFERRAL_FRAUD_THRESHOLDS: schemaDefaults(POLICY_SCHEMAS.REFERRAL_FRAUD_THRESHOLDS),
   INTEGRATION_RUNTIME: schemaDefaults(POLICY_SCHEMAS.INTEGRATION_RUNTIME),
   INTEGRATION_MODES: { modes: {} },
+  PAY_FRAUD_THRESHOLDS: schemaDefaults(POLICY_SCHEMAS.PAY_FRAUD_THRESHOLDS),
+  PAY_MATCHING_POLICY: schemaDefaults(POLICY_SCHEMAS.PAY_MATCHING_POLICY),
+  PAY_ROUTING_POLICY: schemaDefaults(POLICY_SCHEMAS.PAY_ROUTING_POLICY),
 };
