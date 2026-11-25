@@ -5,7 +5,7 @@ import { AuthUser, CurrentUser, OpsOnly, SuperAdminOnly } from '../common/auth';
 import { MessagingOpsService } from './messaging-ops.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
-export class TestSendBody { @IsString() @MinLength(3) @MaxLength(300) to!: string }
+export class ChannelTestSendBody { @IsString() @MinLength(3) @MaxLength(300) to!: string }
 export class SubmitTemplatesBody {
   @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) keys?: string[];
   @IsOptional() @IsBoolean() confirm?: boolean;
@@ -37,7 +37,7 @@ export class MessagingOpsController {
   reveal(@Param('channel') channel: string, @CurrentUser() u: AuthUser) { return this.ops.webhookInfo(channel, u.sub, true); }
 
   @SuperAdminOnly() @Post(':channel/test-send') @HttpCode(200) @ApiOperation({ summary: 'MSG-REAL test send to an ALLOW-LISTED internal number / e-mail / device (mock mode: dev inbox only). 5 per hour' }) @ApiOkResponse(OBJ)
-  testSend(@Param('channel') channel: string, @Body() b: TestSendBody, @CurrentUser() u: AuthUser) { return this.ops.testSend(channel, b.to, u.sub); }
+  testSend(@Param('channel') channel: string, @Body() b: ChannelTestSendBody, @CurrentUser() u: AuthUser) { return this.ops.testSend(channel, b.to, u.sub); }
 
   @SuperAdminOnly() @Post(':channel/connection-check') @HttpCode(200) @ApiOperation({ summary: 'MSG-REAL connection check: read-only vendor calls (account, profile, identity, token); mock mode makes no call' }) @ApiOkResponse(OBJ)
   connection(@Param('channel') channel: string, @CurrentUser() u: AuthUser) { return this.ops.connectionCheck(channel, u.sub); }

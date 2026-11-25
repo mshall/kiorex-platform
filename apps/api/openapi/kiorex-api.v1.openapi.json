@@ -506,7 +506,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestSendBody"
+                "$ref": "#/components/schemas/ChannelTestSendBody"
               }
             }
           }
@@ -20264,16 +20264,13 @@
           "unsubscribed"
         ]
       },
-      "TestSendBody": {
+      "ChannelTestSendBody": {
         "type": "object",
         "properties": {
           "to": {
             "type": "string",
-            "maxLength": 64
-          },
-          "market": {
-            "type": "string",
-            "maxLength": 2
+            "minLength": 3,
+            "maxLength": 300
           }
         },
         "required": [
@@ -31902,6 +31899,22 @@
         "required": [
           "kind",
           "channel"
+        ]
+      },
+      "TestSendBody": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "market": {
+            "type": "string",
+            "maxLength": 2
+          }
+        },
+        "required": [
+          "to"
         ]
       },
       "ProposeBody": {

@@ -175,7 +175,7 @@ describe('Growth admin API (package K)', () => {
     });
     it('the kinds endpoint serves the contract schemas and the PROPOSED_DEFAULT payloads for the five Phase 1 kinds and the six Phase 2 kinds (contracts 1.12.0) and the local kinds LTV_POLICY (GRW-P3-C) and LOYALTY_RULES (GRW-P4-D), local schemas until the contracts are published', async () => {
       const k = (await api('get', '/config/kinds', ops).expect(200)).body as Array<{ kind: string; schema: { additionalProperties: boolean }; defaults: unknown; moneyPolicy: boolean }>;
-      expect(k.map((x) => x.kind).sort()).toEqual(['ASSISTANT_POLICY', 'ATTRIBUTION_POLICY', 'CAMPAIGN_POLICY', 'CONSENT_DEFAULTS', 'INTEGRATION', 'LIFECYCLE_POLICY', 'LOYALTY_RULES', 'LTV_POLICY', 'MARKET_GROWTH', 'REFERRAL_RULES', 'REWARD_RULES', 'SEO', 'SPONSORED_PROMOTION_POLICY', 'WIDGET_POLICY']);
+      expect(k.map((x) => x.kind)).toEqual(expect.arrayContaining(['ASSISTANT_POLICY', 'ATTRIBUTION_POLICY', 'CAMPAIGN_POLICY', 'CONSENT_DEFAULTS', 'INTEGRATION', 'LIFECYCLE_POLICY', 'LOYALTY_RULES', 'LTV_POLICY', 'MARKET_GROWTH', 'MESSAGING_CHANNELS', 'REFERRAL_RULES', 'REWARD_RULES', 'SEO', 'SPONSORED_PROMOTION_POLICY', 'WIDGET_POLICY'])); // the configurability sweep added the policy kinds; this list is the minimum
       expect(k.every((x) => x.schema.additionalProperties === false)).toBe(true);
       expect(k.find((x) => x.kind === 'ATTRIBUTION_POLICY')!.moneyPolicy).toBe(true);
     });
