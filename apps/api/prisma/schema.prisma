@@ -2967,6 +2967,7 @@ model CrossProductEntryPoint {
   kind            String // RX_TO_PHARMACY LAB_ORDER_TO_LAB CARE_PLAN_TO_HOME_VISIT
   factRef         String // keyed hash of the clinical fact id (encounter id, order id) or of the clinic booking id
   parentBookingId String? // the patient's own clinic booking (BookingIntent.id), resolved by the server
+  parentHinted    Boolean   @default(false) // contracts 1.13.0: the parent came from the event's appointmentId (null = that visit is not the patient's own Kiorex booking); a later order never re-infers it
   createdAt       DateTime  @default(now())
   expiresAt       DateTime
   consumedAt      DateTime?
@@ -2974,6 +2975,20 @@ model CrossProductEntryPoint {
 
   @@unique([sub, kind, factRef], map: "CrossProductEntryPoint_sub_kind_fact_key")
   @@index([sub, expiresAt], map: "CrossProductEntryPoint_sub_expires_idx")
+}
+
+/// Gap closure: the continuity hint (the patient's own prompt id or prescription record id) of a product fact, stored when the fact is decided so the repair job can replay it.
+/// Opaque ids only, no person, no content; purged by the repair job after 30 days.
+model GrowthContinuityHint {
+  id        String   @id @default(cuid())
+  factKind  String
+  factId    String
+  entryId   String?
+  recordId  String?
+  createdAt DateTime @default(now())
+
+  @@unique([factKind, factId], map: "GrowthContinuityHint_fact_key")
+  @@index([createdAt], map: "GrowthContinuityHint_createdAt_idx")
 }
 
 // ── GRW-P4-C corporate partnerships and enterprise acquisition (migration 20270128093000_growth_p4_corporate) ──

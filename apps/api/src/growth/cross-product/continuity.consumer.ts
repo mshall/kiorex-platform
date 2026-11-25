@@ -4,6 +4,7 @@ import { PatientService } from '../../patient/patient-public';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CrossProductEventPort } from '../growth-ports-public';
 import { recordGrowthFailure } from '../growth-failures';
+import { ENTRY_META } from './continuity-rules';
 import { CROSS_PRODUCT_FAILURE, CrossProductService } from './continuity.service';
 
 type Env = { type: string; data?: Record<string, unknown> | null };
@@ -15,6 +16,9 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 
  *  - `PRESCRIPTION_SHARED` -> a pharmacy prompt, only when the record exists in the patient's vault (the patient's record-share consent was honoured upstream);
  *  - `LabOrderPlaced` of the Clinic edition -> a lab prompt (the Nurse edition is relayed by its own path and is not a prompt);
  *  - `CARE_PLAN_CONFIRMED` and `MedicationOrderShared` are intentionally NOT used: a confirmed plan is already a downstream fact and a medication order already went to a pharmacy.
+ *  - `CARE_PLAN_SUGGESTED` (contracts 1.13.0) -> a home-visit prompt following the visit the clinician suggested it at.
+ * Contracts 1.13.0 adds an OPTIONAL `appointmentId` to the first two (and to the third): when present it names the visit exactly (the patient's own Kiorex booking whose `kiorlyAppointmentId` it is;
+ * a visit that was not a Kiorex booking has no parent), and when absent the old inference applies (same person, same clinic, attended, within 7 days).
  * Never throws: it is called after the webhook was applied.
  */
 @Injectable()
@@ -27,6 +31,7 @@ export class CrossProductConsumer implements CrossProductEventPort {
       if (!(await this.cross.isOn())) return { offered: 0 };
       if (env.type === 'PRESCRIPTION_SHARED') return await this.onPrescription(env.data ?? {});
       if (env.type === 'LabOrderPlaced') return await this.onLabOrder(env.data ?? {});
+      if (env.type === 'CARE_PLAN_SUGGESTED') return await this.onCarePlanSuggested(env.data ?? {});
       return { offered: 0 };
     } catch (e) { recordGrowthFailure(CROSS_PRODUCT_FAILURE.ENTRY); this.log.warn(`${CROSS_PRODUCT_FAILURE.ENTRY} ${env.type}: ${(e as Error).message}`); return { offered: 0 }; }
   }
@@ -34,15 +39,42 @@ export class CrossProductConsumer implements CrossProductEventPort {
   /** Subjects linked to a Kiorly patient id (their own accounts, never a dependant's link). */
   private subsOf(kiorlyPatientId: string) { return this.prisma.kiorlyPatientLink.findMany({ where: { kiorlyPatientId, status: 'LINKED', dependantId: null }, select: { sub: true } }); }
 
+  /**
+   * The parent booking named by an event's optional `appointmentId`: `undefined` = no hint (the caller infers), a booking id = the visit, `null` = the hint names a visit that is not this patient's
+   * own Kiorex booking (a walk-in, another person, a dependant's visit): no parent, never a guess.
+   */
+  private async parentByAppointment(sub: string, appointmentId: string | null): Promise<string | null | undefined> {
+    if (!appointmentId) return undefined;
+    const b = await this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: appointmentId, sub, dependantId: null }, select: { id: true } });
+    return b?.id ?? null;
+  }
+
+  private async onCarePlanSuggested(d: Record<string, unknown>) {
+    const patientId = str(d.patientId); const encounterId = str(d.encounterId); const clinicId = str(d.clinicId);
+    if (!patientId || !encounterId) return { offered: 0 };
+    const at = typeof d.suggestedAt === 'string' && !Number.isNaN(Date.parse(d.suggestedAt)) ? new Date(d.suggestedAt) : new Date();
+    const appointmentId = str(d.appointmentId);
+    let offered = 0;
+    for (const l of await this.subsOf(patientId)) {
+      const hinted = await this.parentByAppointment(l.sub, appointmentId);
+      const parent = hinted !== undefined ? hinted : await this.cross.parentFor(l.sub, at, ENTRY_META.CARE_PLAN_TO_HOME_VISIT.lookbackDays, clinicId);
+      if (!parent) continue; // a suggestion follows a visit of the patient's own Kiorex booking; with no such visit there is nothing to follow
+      if (await this.cross.offer({ sub: l.sub, kind: 'CARE_PLAN_TO_HOME_VISIT', fact: parent, factKind: 'CLINIC_BOOKING', at, clinicId, parentBookingId: parent, hinted: hinted !== undefined })) offered += 1; // same fact as the lazy prompt: one card per visit
+    }
+    return { offered };
+  }
+
   private async onPrescription(d: Record<string, unknown>) {
     const patientId = str(d.patientId); const encounterId = str(d.encounterId); const clinicId = str(d.clinicId);
     if (!patientId || !encounterId) return { offered: 0 };
     const signedAt = typeof d.signedAt === 'string' && !Number.isNaN(Date.parse(d.signedAt)) ? new Date(d.signedAt) : new Date();
     let offered = 0;
+    const appointmentId = str(d.appointmentId);
     for (const l of await this.subsOf(patientId)) {
       const rec = await this.prisma.sharedRecord.findFirst({ where: { sub: l.sub, kind: 'PRESCRIPTION', sourceRef: encounterId, status: 'ACTIVE' }, select: { id: true } }); // not stored (vault off, scope revoked): no prompt
       if (!rec) continue;
-      if (await this.cross.offer({ sub: l.sub, kind: 'RX_TO_PHARMACY', fact: encounterId, factKind: 'RX', at: signedAt, clinicId })) offered += 1;
+      const hinted = await this.parentByAppointment(l.sub, appointmentId);
+      if (await this.cross.offer({ sub: l.sub, kind: 'RX_TO_PHARMACY', fact: encounterId, factKind: 'RX', at: signedAt, clinicId, ...(hinted !== undefined ? { parentBookingId: hinted, hinted: true } : {}) })) offered += 1;
     }
     return { offered };
   }
@@ -52,8 +84,12 @@ export class CrossProductConsumer implements CrossProductEventPort {
     const patientRef = str(d.patientRef); const orderId = str(d.orderId); const clinicId = str(d.clinicId);
     if (!patientRef || !orderId) return { offered: 0 };
     const orderedAt = typeof d.orderedAt === 'string' && !Number.isNaN(Date.parse(d.orderedAt)) ? new Date(d.orderedAt) : new Date();
+    const appointmentId = str(d.appointmentId);
     let offered = 0;
-    for (const l of await this.subsOf(patientRef)) if (await this.cross.offer({ sub: l.sub, kind: 'LAB_ORDER_TO_LAB', fact: orderId, factKind: 'LAB_ORDER', at: orderedAt, clinicId })) offered += 1;
+    for (const l of await this.subsOf(patientRef)) {
+      const hinted = await this.parentByAppointment(l.sub, appointmentId);
+      if (await this.cross.offer({ sub: l.sub, kind: 'LAB_ORDER_TO_LAB', fact: orderId, factKind: 'LAB_ORDER', at: orderedAt, clinicId, ...(hinted !== undefined ? { parentBookingId: hinted, hinted: true } : {}) })) offered += 1;
+    }
     return { offered };
   }
 }

@@ -33,10 +33,11 @@ export class CarePlanService {
     const identity = await this.patients.bookingIdentity(sub);
     const id = newId('kx_cp');
     const plan = await this.prisma.carePlanBooking.create({ data: { id, sub, providerId: p.id, clinicId: p.clinicId, typeId: i.typeId, visitDistrict: row.district, visitAddressId: row.id, preferredStartDate: i.preferredStartDate ? new Date(i.preferredStartDate) : null, notesEnc: i.notes ? encryptField(i.notes) : null } });
-    // GRW-P4-B2 / GRW-P4-A: one decision after the care-plan booking exists, never blocking it (the port swallows and counts failures). The Nurse edition has no partner `acquisition` block in the contract yet: the decision is Kiorex-side only.
+    // GRW-P4-B2 / GRW-P4-A: one decision after the care-plan booking exists, never blocking it (the port swallows and counts failures). The Nurse partner call carries the optional `acquisition` block (contracts 1.13.0 `CarePlanRequest.acquisition`; a CROSS_PRODUCT origin travels as MARKETPLACE).
     await this.growth?.decide({ product: 'NURSE', factKind: 'CARE_PLAN_BOOKING', factId: id, sub, orgRef: p.tenantId ?? null, createdAt: plan.createdAt, continuity: { entryId: via.continuityId ?? null } });
+    const acquisition = await this.growth?.acquisitionBlock({ product: 'NURSE', factKind: 'CARE_PLAN_BOOKING', factId: id, sub, orgRef: p.tenantId ?? null, createdAt: plan.createdAt }); // same value on every retry; null when growth is OFF (the call is exactly as before)
     try {
-      await this.kiorly.createCarePlanRequest({ requestRef: id, clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, preferredStartDate: i.preferredStartDate, notes: i.notes, visitAddress: visit, patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn } });
+      await this.kiorly.createCarePlanRequest({ requestRef: id, clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, preferredStartDate: i.preferredStartDate, notes: i.notes, visitAddress: visit, patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn }, ...(acquisition ? { acquisition } : {}) });
     } catch (e) {
       await this.prisma.carePlanBooking.update({ where: { id }, data: { status: 'REJECTED', endedReason: e instanceof KiorlyHttpError ? e.code ?? `KIORLY_${e.status}` : 'CLINIC_SYSTEM_BUSY' } });
       if (e instanceof KiorlyHttpError && e.body?.code === 'OUT_OF_COVERAGE') throw await this.catalog.outOfCoverage(p, row.district);

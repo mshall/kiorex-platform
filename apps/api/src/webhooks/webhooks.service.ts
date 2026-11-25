@@ -84,6 +84,7 @@ export class WebhooksService {
       case 'SAFETY_ALERT_RAISED': return this.safety.onAlertRaised(data, (env as any).eventId); // KXMOP12 (60 s SLO)
       case 'CARE_PLAN_CONFIRMED': return this.carePlans.onConfirmed(data);
       case 'CARE_PLAN_ENDED': return this.carePlans.onEnded(data);
+      case 'CARE_PLAN_SUGGESTED': return 'IGNORED'; // contracts 1.13.0: a prompt only; the cross-product consumer (after this route) offers the patient's own home-visit card, nothing else changes
       case 'ReferralIssued': case 'MedicationOrderShared': return 'IGNORED'; // Kiorly-to-Kiorly via patient consent; Kiorex does not relay these yet
       case 'REVIEW_INVITATION_ELIGIBLE': return this.trust.onInvitationEligible(data);
       case 'REVIEW_REPLY_POSTED': return this.trust.onReply(data);

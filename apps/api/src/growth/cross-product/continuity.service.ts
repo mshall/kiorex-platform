@@ -46,13 +46,13 @@ export class CrossProductService {
   // ───────────── entry points (the patient's own prompt state) ─────────────
 
   /** Creates the prompt state once per (person, kind, fact). Never throws into the caller (a failed prompt is counted and the clinical flow is untouched). */
-  async offer(i: { sub: string; kind: ContinuityEntryKind; fact: string; factKind: Parameters<typeof factRef>[0]; at: Date; clinicId?: string | null; parentBookingId?: string | null }, market = GROWTH_DEFAULT_MARKET): Promise<string | null> {
+  async offer(i: { sub: string; kind: ContinuityEntryKind; fact: string; factKind: Parameters<typeof factRef>[0]; at: Date; clinicId?: string | null; parentBookingId?: string | null; /** the parent was named by the Clinic's appointmentId (contracts 1.13.0) */ hinted?: boolean }, market = GROWTH_DEFAULT_MARKET): Promise<string | null> {
     try {
       const meta = ENTRY_META[i.kind];
       const parent = i.parentBookingId !== undefined ? i.parentBookingId : await this.parentFor(i.sub, i.at, meta.lookbackDays, i.clinicId);
       const ref = factRef(i.factKind, i.fact);
       const expiresAt = new Date(Math.max(i.at.getTime(), Date.now()) + meta.ttlDays * DAY);
-      const row = await this.prisma.crossProductEntryPoint.upsert({ where: { sub_kind_factRef: { sub: i.sub, kind: i.kind, factRef: ref } }, create: { market, sub: i.sub, kind: i.kind, factRef: ref, parentBookingId: parent, expiresAt }, update: {} });
+      const row = await this.prisma.crossProductEntryPoint.upsert({ where: { sub_kind_factRef: { sub: i.sub, kind: i.kind, factRef: ref } }, create: { market, sub: i.sub, kind: i.kind, factRef: ref, parentBookingId: parent, parentHinted: !!i.hinted, expiresAt }, update: {} });
       return row.id;
     } catch (e) { recordGrowthFailure(CROSS_PRODUCT_FAILURE.ENTRY); this.log.warn(`${CROSS_PRODUCT_FAILURE.ENTRY} kind=${i.kind}: ${(e as Error).message}`); return null; }
   }
@@ -125,7 +125,7 @@ export class CrossProductService {
       const rec = await this.prisma.sharedRecord.findFirst({ where: { id: hint.recordId, sub: f.sub, kind: 'PRESCRIPTION', status: 'ACTIVE' }, select: { sourceRef: true, clinicId: true, signedAt: true, createdAt: true } });
       if (!rec?.sourceRef) return null;
       entry = await this.prisma.crossProductEntryPoint.findFirst({ where: { sub: f.sub, kind, factRef: factRef('RX', rec.sourceRef), expiresAt: { gt: now }, dismissedAt: null } });
-      parentBookingId = entry?.parentBookingId ?? (await this.parentFor(f.sub, rec.signedAt ?? rec.createdAt, ENTRY_META.RX_TO_PHARMACY.lookbackDays, rec.clinicId));
+      parentBookingId = entry ? (entry.parentHinted ? entry.parentBookingId : entry.parentBookingId ?? (await this.parentFor(f.sub, rec.signedAt ?? rec.createdAt, ENTRY_META.RX_TO_PHARMACY.lookbackDays, rec.clinicId))) : (await this.parentFor(f.sub, rec.signedAt ?? rec.createdAt, ENTRY_META.RX_TO_PHARMACY.lookbackDays, rec.clinicId));
     }
     if (hint.entryId && !entry) return null;
     if (!parentBookingId) return null;

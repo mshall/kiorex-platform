@@ -249,6 +249,88 @@ describe('cross-product journeys (GRW-P4-A)', () => {
     });
   });
 
+  describe('appointment hints (contracts 1.13.0, optional) with the 7-day inference as the fallback', () => {
+    const link = (sub = 'sub_amira') => c.prisma.kiorlyPatientLink.upsert({ where: { sub_clinicId_kiorlyPatientId: { sub, clinicId: 'cl_1', kiorlyPatientId: `pat_${sub}` } }, create: { sub, clinicId: 'cl_1', kiorlyPatientId: `pat_${sub}`, evidence: 'PHONE' }, update: {} });
+    const rxWith = async (extra: Record<string, unknown>, enc = 'enc_h') => { await link(); await c.webhook('PRESCRIPTION_SHARED', { patientId: 'pat_sub_amira', scope: 'PRESCRIPTIONS', encounterId: enc, clinicId: 'cl_1', signedAt: new Date(Date.now() - H).toISOString(), ...extra }, { aggregateType: 'Encounter', aggregateId: enc }); };
+    const entryOf = (kind: string) => c.prisma.crossProductEntryPoint.findFirst({ where: { sub: 'sub_amira', kind } });
+    const vault = (enc: string) => c.prisma.sharedRecord.findFirst({ where: { sub: 'sub_amira', kind: 'PRESCRIPTION', sourceRef: enc } });
+
+    it('PRESCRIPTION_SHARED with appointmentId follows exactly that booking, even when a later attended visit exists (the inference would pick the later one)', async () => {
+      await openAll(); await consent(true);
+      const older = await visit('sub_amira', { hoursAgo: 48 }); const newer = await visit('sub_amira', { hoursAgo: 3 });
+      await c.prisma.bookingIntent.update({ where: { id: older.id }, data: { kiorlyAppointmentId: 'apt_older' } });
+      await rxWith({ appointmentId: 'apt_older' });
+      expect((await entryOf('RX_TO_PHARMACY'))!.parentBookingId).toBe(older.id);
+      await c.prisma.crossProductEntryPoint.deleteMany(); await vault('enc_h').then((r) => c.prisma.sharedRecord.delete({ where: { id: r!.id } }));
+      await rxWith({}); // no hint: the old inference (latest attended visit within 7 days)
+      expect((await entryOf('RX_TO_PHARMACY'))!.parentBookingId).toBe(newer.id);
+    });
+    it('an appointmentId that is not the patient own Kiorex booking has no parent (no guess); the order is then decided on its own evidence', async () => {
+      await openAll(); await consent(true);
+      await visit('sub_amira', { hoursAgo: 3 });
+      const other = await seedBooking(c, { sub: 'sub_other' }); await c.prisma.bookingIntent.update({ where: { id: other.id }, data: { kiorlyAppointmentId: 'apt_foreign', status: 'COMPLETED' } });
+      await rxWith({ appointmentId: 'apt_foreign' }); // someone else's visit
+      expect((await entryOf('RX_TO_PHARMACY'))!.parentBookingId).toBeNull();
+      const rec = (await vault('enc_h'))!;
+      const o = await rxOrder(rec.id);
+      expect((await decisionOf('ORDER', o.id)).origin).not.toBe('CROSS_PRODUCT');
+      expect(await links()).toEqual([]);
+    });
+    it('LabOrderPlaced with appointmentId follows that booking; a malformed hint is ignored like an absent one', async () => {
+      await openAll(); await consent(true); await link();
+      const v = await visit('sub_amira', { hoursAgo: 5 }); await visit('sub_amira', { hoursAgo: 1 });
+      await c.prisma.bookingIntent.update({ where: { id: v.id }, data: { kiorlyAppointmentId: 'apt_lab' } });
+      const lab1 = (orderId: string, extra: Record<string, unknown>) => c.webhook('LabOrderPlaced', { orderId, clinicId: 'cl_1', patientRef: 'pat_sub_amira', consentToken: 'tok', orderedAt: new Date(Date.now() - H).toISOString(), items: [{ nameEn: 'CBC' }], ...extra }, { aggregateType: 'LabOrder', aggregateId: orderId });
+      await lab1('ord_h1', { appointmentId: 'apt_lab' });
+      expect((await c.prisma.crossProductEntryPoint.findFirst({ where: { sub: 'sub_amira', factRef: factRef('LAB_ORDER', 'ord_h1') } }))!.parentBookingId).toBe(v.id);
+      await lab1('ord_h2', { appointmentId: 12345 }); // not a string: no hint, inference applies
+      expect((await c.prisma.crossProductEntryPoint.findFirst({ where: { sub: 'sub_amira', factRef: factRef('LAB_ORDER', 'ord_h2') } }))!.parentBookingId).not.toBe(v.id);
+    });
+    it('CARE_PLAN_SUGGESTED offers the home-visit card of the named visit (same card the lazy inference would make: one per visit), ids only; without a visit nothing is offered', async () => {
+      await gate('growth.cross_product'); await consent(true); await unlockHome(); await link();
+      const v = await visit('sub_amira', { hoursAgo: 60 }); const later = await visit('sub_amira', { hoursAgo: 2 });
+      await c.prisma.bookingIntent.update({ where: { id: v.id }, data: { kiorlyAppointmentId: 'apt_cp' } });
+      const sugg = (extra: Record<string, unknown>, enc = 'enc_cp') => c.webhook('CARE_PLAN_SUGGESTED', { patientId: 'pat_sub_amira', encounterId: enc, clinicId: 'cl_1', suggestedAt: new Date().toISOString(), ...extra }, { aggregateType: 'Encounter', aggregateId: enc });
+      await sugg({ appointmentId: 'apt_cp' });
+      const e = (await c.prisma.crossProductEntryPoint.findMany({ where: { sub: 'sub_amira', kind: 'CARE_PLAN_TO_HOME_VISIT', factRef: factRef('CLINIC_BOOKING', v.id) } }));
+      expect(e).toHaveLength(1); expect(e[0]!.parentBookingId).toBe(v.id);
+      await sugg({}, 'enc_cp2'); // no hint: follows the latest attended visit
+      expect(await c.prisma.crossProductEntryPoint.count({ where: { sub: 'sub_amira', kind: 'CARE_PLAN_TO_HOME_VISIT', factRef: factRef('CLINIC_BOOKING', later.id) } })).toBe(1);
+      await sugg({ appointmentId: 'apt_unknown' }, 'enc_cp3'); // a visit that is not a Kiorex booking: nothing
+      expect(await c.prisma.crossProductEntryPoint.count({ where: { kind: 'CARE_PLAN_TO_HOME_VISIT' } })).toBe(2);
+      expect(JSON.stringify(await c.prisma.crossProductEntryPoint.findMany())).not.toMatch(/enc_cp|apt_cp|cl_1/);
+    });
+    it('the Nurse partner call carries the optional acquisition block (CROSS_PRODUCT as MARKETPLACE) and a repeat sends the same value', async () => {
+      c.kiorly.slots = [futureSlot(72)];
+      const pid = await seedProvider(c, { id: 'lst_home2', profession: 'NURSE', edition: 'NURSE', serviceLocations: ['HOME'], coverageDistricts: ['maadi'], assignsClinician: true, register: 'NURSING_SYNDICATE', fee: 200, homeSurcharge: 50 } as never);
+      const a = await c.http().post('/api/v1/me/addresses').set(auth).send({ label: 'Home', governorate: 'Cairo', district: 'maadi', street: 'Secret Street 1', building: '7' }).expect(201);
+      await c.http().post(`/api/v1/me/addresses/${a.body.id}/confirm`).set(auth).expect(200);
+      await gate('growth.cross_product'); await consent(true); const v = await visit(); await unlockHome();
+      const card = (await cards()).cards.find((x) => x.kind === 'CARE_PLAN_TO_HOME_VISIT')!;
+      const plan = (await c.http().post('/api/v1/care-plans').set({ ...auth, 'X-Kx-Continuity': card.id }).send({ providerId: pid, addressId: a.body.id, typeId: 'typ_home' }).expect(201)).body;
+      const sent = c.kiorly.callsTo('POST', '/care-plan-requests').pop()!.body;
+      expect(sent.acquisition).toMatchObject({ origin: 'MARKETPLACE', reason: 'MARKETPLACE_TOUCH', product: 'NURSE' });
+      expect(validateAcquisitionBlock(sent.acquisition).valid).toBe(true);
+      expect(sent.acquisition.decisionId).toBe((await decisionOf('CARE_PLAN_BOOKING', plan.id)).id);
+      expect(JSON.stringify(sent.acquisition)).not.toMatch(/continuity|cl_1|CROSS/i);
+      expect(v.id).toBeTruthy();
+    });
+    it('repair replays the stored continuity hint: an order whose first decision was skipped (attribution OFF) is repaired as CROSS_PRODUCT, and old hints are purged', async () => {
+      await openAll(); await consent(true); const v = await visit(); const rx = await shareRx();
+      const svc = c.get(GrowthProductBookingService);
+      jest.spyOn(c.prisma.growthProductDecision, 'create').mockRejectedValueOnce(new Error('db blip')); // the first attempt fails: the order continues without a decision
+      const o = await rxOrder(rx.id);
+      expect(await c.prisma.growthProductDecision.count({ where: { factKind: 'ORDER', factId: o.id } })).toBe(0);
+      expect(await c.prisma.growthContinuityHint.findUnique({ where: { factKind_factId: { factKind: 'ORDER', factId: o.id } } })).toMatchObject({ recordId: rx.id });
+      const r = await svc.repair(new Date(Date.now() - 3600_000));
+      expect(r.decided).toBeGreaterThanOrEqual(1);
+      expect(await decisionOf('ORDER', o.id)).toMatchObject({ origin: 'CROSS_PRODUCT', parentDecisionId: v.decision.id });
+      await c.prisma.growthContinuityHint.updateMany({ data: { createdAt: new Date(Date.now() - 31 * DAY) } });
+      await svc.repair(new Date(Date.now() - 3600_000));
+      expect(await c.prisma.growthContinuityHint.count()).toBe(0);
+    });
+  });
+
   describe('consumer, privacy and retention', () => {
     it('the consumer reads only the type and the ids: a payload with clinical fields and a malformed one never throw and never store them', async () => {
       await openAll(); const consumer = c.get(CrossProductConsumer);

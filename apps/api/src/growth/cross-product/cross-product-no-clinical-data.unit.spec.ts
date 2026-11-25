@@ -18,7 +18,7 @@ describe('cross-product tables hold no clinical data (schema guard)', () => {
   });
   it('CrossProductEntryPoint holds a kind, a keyed hash, the own parent booking id and dates only', () => {
     const cols = [...model('CrossProductEntryPoint').matchAll(/^\s{2}(\w+)\s+/gm)].map((m) => m[1]).filter((c) => c !== 'model');
-    expect(cols.sort()).toEqual(['consumedAt', 'createdAt', 'dismissedAt', 'expiresAt', 'factRef', 'id', 'kind', 'market', 'parentBookingId', 'sub']);
+    expect(cols.sort()).toEqual(['consumedAt', 'createdAt', 'dismissedAt', 'expiresAt', 'factRef', 'id', 'kind', 'market', 'parentBookingId', 'parentHinted', 'sub']);
   });
 });
 

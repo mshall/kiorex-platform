@@ -29,12 +29,21 @@ export class GrowthProductBookingService implements ProductGrowthPort {
   constructor(private readonly prisma: PrismaService, private readonly flags: FlagsService, private readonly policies: AttributionPolicyResolver, private readonly attribution: AttributionService, @Optional() private readonly cross?: CrossProductService) {}
 
   async decide(f: Fact & { visitorKey?: string | null; continuityParentBookingId?: string | null; continuity?: ContinuityHint | null }, market = GROWTH_DEFAULT_MARKET): Promise<{ id: string; origin: string; created: boolean } | null> {
+    await this.storeHint(f); // before the decision, so a failed or flag-OFF attempt can be replayed by repair() with the same continuity evidence
     try { return await this.decideOrThrow(f, market); }
     catch (e) {
       recordGrowthFailure(GROWTH_FAILURE.PRODUCT_DECISION);
       this.log.error(`${GROWTH_FAILURE.PRODUCT_DECISION} ${f.factKind}=${f.factId} (the ${f.product.toLowerCase()} fact continues; repair will retry): ${(e as Error).message}`, (e as Error).stack);
       return null;
     }
+  }
+
+  /** Stores the opaque continuity hint of a fact (best effort, never throws, first write wins) for the repair job. */
+  private async storeHint(f: Fact & { continuity?: ContinuityHint | null }) {
+    const h = f.continuity;
+    if (!h || (!h.entryId && !h.recordId)) return;
+    try { await this.prisma.growthContinuityHint.upsert({ where: { factKind_factId: { factKind: f.factKind, factId: f.factId } }, create: { factKind: f.factKind, factId: f.factId, entryId: h.entryId ?? null, recordId: h.recordId ?? null }, update: {} }); }
+    catch (e) { this.log.warn(`continuity hint for ${f.factKind}=${f.factId} not stored (repair will decide without it): ${(e as Error).message}`); }
   }
 
   /** Throws on infrastructure failure; returns null when the flag is OFF. Idempotent. */
@@ -134,9 +143,11 @@ export class GrowthProductBookingService implements ProductGrowthPort {
     for (const i of items) {
       out.scanned += 1;
       if (await this.prisma.growthProductDecision.findFirst({ where: { factKind: i.factKind, factId: i.id }, select: { id: true } })) continue;
-      const r = await this.decide({ product: i.product, factKind: i.factKind, factId: i.id, sub: i.sub, orgRef: await orgOf(i.registrationId), createdAt: i.createdAt }, market);
+      const hint = await this.prisma.growthContinuityHint.findUnique({ where: { factKind_factId: { factKind: i.factKind, factId: i.id } }, select: { entryId: true, recordId: true } });
+      const r = await this.decide({ product: i.product, factKind: i.factKind, factId: i.id, sub: i.sub, orgRef: await orgOf(i.registrationId), createdAt: i.createdAt, ...(hint ? { continuity: hint } : {}) }, market); // the stored continuity evidence is replayed: a repaired decision is not weaker than the first attempt
       if (r?.created) out.decided += 1; else if (!r) out.failed += 1;
     }
+    await this.prisma.growthContinuityHint.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 30 * 86_400_000) } } }).catch(() => undefined);
     return out;
   }
 
