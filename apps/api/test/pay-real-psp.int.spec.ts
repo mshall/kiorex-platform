@@ -193,6 +193,21 @@ describe('Kiorex Pay with real PSP adapters (PAY-READY)', () => {
     });
   });
 
+  describe('routing and failover (real mode, configured order)', () => {
+    const keys = ['PAYMENT_MODE', 'PAYMENT_PROVIDER', 'PAYMENT_ENABLED_PSPS', 'PAYMENT_ROUTING'];
+    afterEach(() => { for (const k of keys) delete process.env[k]; });
+    it('the first PSP of the order of preference takes the payment; when its circuit is open the next one does; with no PSP left the patient gets a retryable 503', async () => {
+      Object.assign(process.env, { PAYMENT_MODE: 'real', PAYMENT_PROVIDER: 'vendor', PAYMENT_ENABLED_PSPS: 'card,paymob' });
+      await c.prisma.pspSetting.create({ data: { psp: 'card', market: '*', settings: { maxRetries: 0, breaker: { threshold: 1, cooldownMs: 60000 } }, updatedBy: 't' } }); c.get(PspConfigService).invalidate();
+      const down = fakeVendor([{ match: '/checkouts', method: 'POST', reply: [{ status: 503 }] }]);
+      __setPspAdapterOverride((n, s) => n === 'card' ? new CardGatewayPspAdapter(CARDGW_ENV, down.fn, s) : n === 'paymob' ? new PaymobPspAdapter(PAYMOB_ENV, vendor.fn, s) : null);
+      const mk = (b: string) => pay().createDepositIntent({ bookingId: b, sub: 'sub_amira', clinicId: 'cl_1', amountMinor: 1000, currency: 'EGP' });
+      await expect(mk('b1')).rejects.toBeTruthy(); // card is first and fails (503): the real outage, not yet an open circuit... the breaker opens on this failure
+      const p2 = await mk('b2'); expect(p2.psp).toBe('paymob'); // card circuit is open: failover to Paymob
+      expect(down.calls).toHaveLength(1); // the open circuit refused instantly
+    });
+  });
+
   describe('settlement import and reconciliation', () => {
     it('imports a Paymob CSV once (idempotent on the file hash), matches captures and reports typed mismatches; the mismatch report is CSV and formula-safe', async () => {
       const ops = await c.as('sub_ops', { roles: ['ops_admin'] });

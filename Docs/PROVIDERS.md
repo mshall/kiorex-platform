@@ -50,6 +50,7 @@ Legacy aliases still work when `<KIND>_MODE` is unset: `MESSAGING_MODE=real` (SM
 **SMS** `POST {SMS_API_URL}/messages` `{ "to":"+20...", "from":"<SENDER_ID>", "body":"...", "reference":"<id>" }` -> `{ "id":"<providerRef>" }`
 **EMAIL** `POST {EMAIL_API_URL}/messages` `{ "to","from","subject","text","reference","template","locale" }` -> `{ "id" }`
 **WHATSAPP** `POST {WHATSAPP_API_URL}/messages` `{ "to","from","type":"template","template":{"name","language":"ar|en","variables":{"body"}},"reference" }` -> `{ "id" }`
+**PAYMENT (PAY-READY, extended neutral contract; runbook `INTEGRATION_RUNBOOK_PAYMENTS.md`)** checkout body also carries `capture` (bool), `threeDs` (`required|preferred|off`), `returnUrl`, `webhookUrl`; `POST /checkouts/<ref>/capture`, `POST /checkouts/<ref>/void`, `GET /checkouts/<ref>` (status); webhook types `payment.authorized|captured|failed|voided`, `refund.settled|failed`, `dispute.opened|won|lost` with optional `card{fingerprint,brand,last4,threeDs}` and `dispute{id,reasonCode,evidenceDueAt}`. Card gateway env `CARDGW_API_URL/API_KEY/WEBHOOK_SECRET`; real mode needs the approved `INTEGRATION_MODES` record.
 **PAYMENT** `POST {PAYMENT_API_URL}/checkouts` `{ "reference":"<paymentId>","amountMinor":15000,"currency":"EGP" }` -> `{ "id":"<pspRef>","checkoutUrl":"https://..." }`;
 `POST {PAYMENT_API_URL}/refunds` `{ "paymentRef","reference":"<refundId>","amountMinor" }` -> `{ "id":"<pspRefundRef>" }`. Amounts are integer minor units.
 
@@ -58,7 +59,7 @@ Legacy aliases still work when `<KIND>_MODE` is unset: `MESSAGING_MODE=real` (SM
 | Endpoint | Body | Secret |
 |---|---|---|
 | `POST /api/v1/messaging/webhooks/{sms\|email\|whatsapp}` | `{ "events":[{ "id":"<providerRef>","status":"sent\|delivered\|read\|failed","error":"...","occurredAt":"ISO" }] }` | `<KIND>_WEBHOOK_SECRET` |
-| `POST /api/v1/pay/webhooks/{paymob\|fawry\|instapay}` | `{ "id":"<eventId>","type":"payment.captured\|payment.failed\|refund.settled","paymentRef","reference":"<paymentId>","amountMinor","feeMinor","occurredAt" }` | `PAYMENT_WEBHOOK_SECRET` |
+| `POST /api/v1/pay/webhooks/{paymob\|fawry\|instapay\|card}` | `{ "id":"<eventId>","type":"payment.captured\|payment.failed\|refund.settled","paymentRef","reference":"<paymentId>","amountMinor","feeMinor","occurredAt" }` | `PAYMENT_WEBHOOK_SECRET` |
 | `POST /api/v1/channels/whatsapp/booking-intents` (inbound patient message) | normalised `{ from, text, buttonPayload }`, `X-Kiorex-Signature: sha256=HMAC(raw)` | `WHATSAPP_WEBHOOK_SECRET` |
 
 Signature (generic, replaceable in the mapping): `X-Webhook-Timestamp: <unix s>` and `X-Webhook-Signature: sha256=<hex HMAC-SHA256(secret, "<ts>.<rawBody>")>`; rejected outside +-300 s or on mismatch. Duplicates are harmless: payment events are de-duplicated on event id and ledger postings are idempotent; message statuses only move forward.

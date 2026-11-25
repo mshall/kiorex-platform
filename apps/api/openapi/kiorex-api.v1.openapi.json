@@ -2761,6 +2761,434 @@
         ]
       }
     },
+    "/api/v1/admin/payments/connection-check": {
+      "get": {
+        "operationId": "PayOpsController_check",
+        "parameters": [
+          {
+            "name": "live",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Payments connection check: PSP readiness, secret references (never values), webhook URLs, signature self-test; `live=true` adds one read-only authenticated probe per enabled PSP (real mode only)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/settings": {
+      "get": {
+        "operationId": "PayOpsController_settings",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Resolved payment settings per PSP and market (env < console), with problems",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/settings/{psp}": {
+      "put": {
+        "operationId": "PayOpsController_saveSettings",
+        "parameters": [
+          {
+            "name": "psp",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change settings of one PSP (enabled, order, fees, 3DS, capture mode, refund window, timeouts, retries, tolerance, sandbox/live, settlement format); audited; secrets are refused",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/settlement/import": {
+      "post": {
+        "operationId": "PayOpsController_importFile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportFileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Import a vendor settlement / report file (CSV or JSON), idempotent on the file hash; chargeback lines open disputes",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/settlement/files": {
+      "get": {
+        "operationId": "PayOpsController_files",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/reconciliation/{runId}/mismatches.csv": {
+      "get": {
+        "operationId": "PayOpsController_mismatches",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mismatch report of one reconciliation run (CSV)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/poll": {
+      "post": {
+        "operationId": "PayOpsController_poll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Run the status-polling fallback now (payments whose callback never arrived)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/disputes": {
+      "get": {
+        "operationId": "PayOpsController_disputes",
+        "parameters": [
+          {
+            "name": "state",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/dispute": {
+      "post": {
+        "operationId": "PayOpsController_dispute",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Record a dispute / chargeback from the PSP dashboard (OPEN, WON, LOST); idempotent per reference",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/capture": {
+      "post": {
+        "operationId": "PayOpsController_capture",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Manual capture mode: capture an authorised payment",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/void": {
+      "post": {
+        "operationId": "PayOpsController_void",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Void an authorised payment",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/refunds/{refundId}/retry": {
+      "post": {
+        "operationId": "PayOpsController_retry",
+        "parameters": [
+          {
+            "name": "refundId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Retry a FAILED refund",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/test-scenarios": {
+      "get": {
+        "operationId": "PayOpsController_scenarios",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The sandbox test scenario matrix (what to run and what Kiorex must show)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
@@ -20506,15 +20934,10 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string"
-          },
-          "gateId": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 300
           }
-        },
-        "required": [
-          "reason"
-        ]
+        }
       },
       "DefinitionBody": {
         "type": "object",
@@ -23036,6 +23459,93 @@
         },
         "required": [
           "bookingRef"
+        ]
+      },
+      "SettingsBody": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string",
+            "pattern": "^(\\*|[A-Za-z]{2})$"
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "settings"
+        ]
+      },
+      "ImportFileBody": {
+        "type": "object",
+        "properties": {
+          "psp": {
+            "type": "string",
+            "enum": [
+              "paymob",
+              "fawry",
+              "instapay",
+              "card"
+            ]
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000000
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "CSV",
+              "JSON"
+            ]
+          }
+        },
+        "required": [
+          "psp",
+          "filename",
+          "content"
+        ]
+      },
+      "DisputeBody": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "WON",
+              "LOST"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120,
+            "pattern": "^[A-Za-z0-9_.:#-]+$"
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "evidenceDueAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "reference"
         ]
       },
       "CreateBody": {

@@ -7,6 +7,7 @@ import { paymentMapping } from '../common/providers/payment.mapping';
 import { breakerFor } from './psp-breaker';
 import { PSP_NAMES, resolveSettings, type PspName, type PspSettings } from './psp-config';
 import { HttpPspAdapter } from './psp-http';
+import { recordingFetch } from './psp-recorder';
 import { assertRealModeApproved, realModeDecision, RealModeNotApprovedError } from '../common/providers/mode-guard';
 import type { PspAdapter, PspCapabilities, PspCheckoutInput, PspWebhookEvent } from './psp-types';
 import { CardGatewayPspAdapter, enabledPsps, FawryPspAdapter, instapayEnv, PaymobPspAdapter, PSP_VENDOR_MODE, vendorPspProblems } from './psp.vendors';
@@ -86,9 +87,10 @@ export function pspAdapter(name: string, settings?: PspSettings): PspAdapter {
     const on = enabledPsps(); const use = on.includes(n) ? n : on[0];
     if (!realModeDecision(PSP_INTEGRATION_KEY[use]).allowed) return new RealModeBlockedPspAdapter(use, PSP_INTEGRATION_KEY[use]);
     const s2 = use === n ? s : resolveSettings(use, '*');
-    const inner: PspAdapter = use === 'paymob' ? new PaymobPspAdapter(process.env, outboundFetch, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, outboundFetch, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, outboundFetch, s2) : new HttpPspAdapter('instapay', paymentMapping, outboundFetch, () => instapayEnv(), s2);
+    const rf = recordingFetch(outboundFetch);
+    const inner: PspAdapter = use === 'paymob' ? new PaymobPspAdapter(process.env, rf, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, rf, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, rf, s2) : new HttpPspAdapter('instapay', paymentMapping, rf, () => instapayEnv(), s2);
     return new GuardedPspAdapter(inner, s2);
   }
   if (!providerProblems('PAYMENT').length && !realModeDecision(PSP_INTEGRATION_KEY[n]).allowed) return new RealModeBlockedPspAdapter(n, PSP_INTEGRATION_KEY[n]);
-  return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new GuardedPspAdapter(new HttpPspAdapter(n, paymentMapping, outboundFetch, undefined, s), s);
+  return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new GuardedPspAdapter(new HttpPspAdapter(n, paymentMapping, recordingFetch(outboundFetch), undefined, s), s);
 }

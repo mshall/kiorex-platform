@@ -99,16 +99,22 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   /** Idempotent per booking: returns the existing open intent. Caller (booking) gates on kiorex.pay_deposits. */
   async createDepositIntent(i: { bookingId: string; sub: string; clinicId: string; amountMinor: number; currency: string; psp?: string; rewardMinor?: number; sponsoredMinor?: number; corporateMinor?: number }): Promise<PaymentIntent> {
     assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
-    const chosen = await this.pspFor(i.currency, i.psp);
+    const chosenList = this.pspConfig ? await this.pspConfig.candidates({ currency: i.currency, requested: i.psp }) : [await this.pspFor(i.currency, i.psp).then((c) => ({ psp: c.name as never, settings: c.settings }))];
     // Two concurrent checkouts of one booking (double click, two tabs) must not create two charges: serialise per booking, then re-read.
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`deposit-intent:${i.bookingId}`}))`;
       const existing = await tx.paymentIntent.findFirst({ where: { bookingId: i.bookingId, status: { in: ['CREATED', 'AUTHORIZED', 'CAPTURED'] } } });
       if (existing) return existing;
       const id = newId('pay');
-      const adapter = pspAdapter(chosen.name, chosen.settings);
-      const co = await this.checkoutCall(adapter, { paymentId: id, amountMinor: i.amountMinor, currency: i.currency, captureMode: chosen.settings.captureMode, threeDsMode: chosen.settings.threeDsMode, decimals: minorDigits(chosen.settings, i.currency) });
-      return tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, rewardMinor: i.rewardMinor ?? 0, sponsoredMinor: i.sponsoredMinor ?? 0, corporateMinor: i.corporateMinor ?? 0, pspMode: cfg().pspMode === 'real' ? chosen.settings.mode : null } });
+      let last: unknown;
+      for (const chosen of chosenList) { // failover: a PSP whose circuit is open (it is failing) is skipped for the next in the order of preference; any other error is real and stops here
+        const adapter = pspAdapter(chosen.psp, chosen.settings);
+        try {
+          const co = await adapter.createCheckout({ paymentId: id, amountMinor: i.amountMinor, currency: i.currency, captureMode: chosen.settings.captureMode, threeDsMode: chosen.settings.threeDsMode, decimals: minorDigits(chosen.settings, i.currency) });
+          return await tx.paymentIntent.create({ data: { id, bookingId: i.bookingId, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, rewardMinor: i.rewardMinor ?? 0, sponsoredMinor: i.sponsoredMinor ?? 0, corporateMinor: i.corporateMinor ?? 0, pspMode: cfg().pspMode === 'real' ? chosen.settings.mode : null } });
+        } catch (e) { last = e; if (!(e instanceof PspCircuitOpenError)) throw e; }
+      }
+      const e = last as PspCircuitOpenError; throw unavailable('PSP_UNAVAILABLE', 'The payment provider is temporarily unavailable, please try again shortly', { retryable: true, retryAfterMs: e?.retryAfterMs });
     }, { timeout: 20_000 });
   }
 

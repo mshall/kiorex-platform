@@ -136,3 +136,14 @@ describe('settlement file parsing', () => {
   });
   it('garbage never throws and never invents lines', () => { for (const g of ['', 'not json {', '[1,2', '{"a":1}', 'a\n']) expect(parseSettlement(g).lines).toEqual([]); });
 });
+
+describe('fixture recorder redacts credentials', () => {
+  it('never writes an authorization header, a secret field, or a signature in a URL', async () => {
+    const { mkdtempSync, readdirSync, readFileSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+    const { recordingFetch, redactUrl } = await import('./psp-recorder'); const dir = mkdtempSync(join(tmpdir(), 'rec-'));
+    const f = recordingFetch((async () => new Response(JSON.stringify({ id: 1, client_secret: 'zzz', is_3d_secure: true }), { status: 200 })) as never, { PAYMENT_RECORD_FIXTURES_DIR: dir, NODE_ENV: 'development' });
+    await f('https://x.test/a?signature=abc&y=1', { method: 'POST', headers: { authorization: 'Token egy_sk_test_SECRET' }, body: JSON.stringify({ amount: 1, apiKey: 'k1', card_number: '4242' }) });
+    const out = readFileSync(join(dir, readdirSync(dir)[0]), 'utf8'); expect(out).not.toMatch(/SECRET|k1|zzz|4242|signature=abc/); expect(out).toContain('"is_3d_secure": true'); expect(redactUrl('u?hmac=1&a=2')).toBe('u?hmac=[REDACTED]&a=2');
+    const prod = recordingFetch(async () => new Response('{}'), { PAYMENT_RECORD_FIXTURES_DIR: dir, NODE_ENV: 'production' }); await prod('https://x.test'); expect(readdirSync(dir)).toHaveLength(1); // never records in production
+  });
+});

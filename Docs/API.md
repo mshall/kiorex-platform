@@ -587,6 +587,19 @@
 
 | Method | Path | Summary |
 |---|---|---|
+| GET | `/api/v1/admin/payments/connection-check` | Payments connection check: PSP readiness, secret references (never values), webhook URLs, signature self-test; `live=true` adds one read-only authenticated probe per enabled PSP (real mode only) |
+| GET | `/api/v1/admin/payments/settings` | Resolved payment settings per PSP and market (env < console), with problems |
+| PUT | `/api/v1/admin/payments/settings/{psp}` | Change settings of one PSP (enabled, order, fees, 3DS, capture mode, refund window, timeouts, retries, tolerance, sandbox/live, settlement format); audited; secrets are refused |
+| POST | `/api/v1/admin/payments/settlement/import` | Import a vendor settlement / report file (CSV or JSON), idempotent on the file hash; chargeback lines open disputes |
+| GET | `/api/v1/admin/payments/settlement/files` |  |
+| GET | `/api/v1/admin/payments/reconciliation/{runId}/mismatches.csv` |  |
+| POST | `/api/v1/admin/payments/poll` | Run the status-polling fallback now (payments whose callback never arrived) |
+| GET | `/api/v1/admin/payments/disputes` |  |
+| POST | `/api/v1/admin/payments/{paymentId}/dispute` | Record a dispute / chargeback from the PSP dashboard (OPEN, WON, LOST); idempotent per reference |
+| POST | `/api/v1/admin/payments/{paymentId}/capture` | Manual capture mode: capture an authorised payment |
+| POST | `/api/v1/admin/payments/{paymentId}/void` | Void an authorised payment |
+| POST | `/api/v1/admin/payments/refunds/{refundId}/retry` | Retry a FAILED refund |
+| GET | `/api/v1/admin/payments/test-scenarios` | The sandbox test scenario matrix (what to run and what Kiorex must show) |
 | GET | `/api/v1/admin/providers` | KXM-OP-01 provider directory |
 | POST | `/api/v1/admin/providers/sync` |  |
 | GET | `/api/v1/admin/bookings` | KXM-OP-02 bookings |

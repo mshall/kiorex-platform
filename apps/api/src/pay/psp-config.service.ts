@@ -54,6 +54,24 @@ export class PspConfigService {
     return { psp, settings: all[psp] };
   }
 
+  /**
+   * Routing: every PSP that may take this payment, best first. Order of preference by default; with PAYMENT_ROUTING=cost the PSPs whose fee is CONFIGURED are ranked by their configured
+   * percentage (cheapest first, a PSP without a configured fee keeps its place by order and is never assumed cheap: fees are NEEDS_HUMAN, never invented). The requested PSP leads when it
+   * is eligible. The caller walks the list when a PSP's circuit is open (failover).
+   */
+  async candidates(i: { currency: string; requested?: string; market?: string }): Promise<Array<{ psp: PspName; settings: PspSettings }>> {
+    const market = i.market ?? marketOfCurrency(i.currency);
+    if (cfg().pspMode === 'sandbox-fake') { const one = await this.choose(i); return [one]; }
+    const all = await this.all(market); const mc = MARKET_FACTS[market]?.currency;
+    const installed = PSP_VENDOR_MODE() ? new Set<string>(enabledPsps()) : null;
+    let list = pspsForMarket(all, market, i.currency, mc).filter((n) => !installed || installed.has(n));
+    if ((process.env.PAYMENT_ROUTING ?? 'order') === 'cost') list = [...list].sort((a, b) => { const fa = all[a].fee.percentBps, fb = all[b].fee.percentBps; return fa !== null && fb !== null && fa !== fb ? fa - fb : all[a].order - all[b].order; });
+    const req = i.requested as PspName | undefined;
+    if (req && list.includes(req)) list = [req, ...list.filter((n) => n !== req)];
+    if (!list.length) throw badRequest('PSP_NOT_AVAILABLE', 'No payment provider is enabled for this market and currency');
+    return list.map((psp) => ({ psp, settings: all[psp] }));
+  }
+
   /** What the ops console shows: every PSP with its resolved settings, the problems with them (names only) and where each value comes from. Secrets never appear. */
   async view(market = 'EG') {
     const all = await this.all(market);
