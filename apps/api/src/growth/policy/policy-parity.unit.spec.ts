@@ -5,6 +5,7 @@ import { DEFAULT_STAGE_THRESHOLDS } from '../lifecycle/lifecycle.stage';
 import { ENTRY_META } from '../cross-product/continuity-rules';
 import { BREAKER_COOLDOWN_MS, BREAKER_THRESHOLD, breakerCooldownMs, breakerThreshold, maxRunAttempts } from '../integrations/circuit';
 import { MAX_ACTIVE_LOTS, RECOVERABLE_LOSS_BLOCK_DAYS, maxActiveLots, recoverableLossBlockDays } from '../rewards/reward-rules';
+import { FRAUD_THRESHOLDS } from '../referral/referral-fraud.rules';
 import { DEFAULT_WINDOWS } from '../attribution-models/windows';
 import { DEFAULT_MODEL_OPTIONS } from '../attribution-models/models';
 import { DEFAULT_DATA_DRIVEN } from '../attribution-models/data-driven';
@@ -26,6 +27,11 @@ describe('policy defaults equal the numbers that shipped in code (behaviour unch
     expect([recoverableLossBlockDays(), maxActiveLots()]).toEqual([RECOVERABLE_LOSS_BLOCK_DAYS, MAX_ACTIVE_LOTS]); expect([90, 50]).toEqual([RECOVERABLE_LOSS_BLOCK_DAYS, MAX_ACTIVE_LOTS]);
     expect([breakerThreshold(), breakerCooldownMs(), maxRunAttempts()]).toEqual([BREAKER_THRESHOLD, BREAKER_COOLDOWN_MS, 3]);
     expect(ENTRY_META.RX_TO_PHARMACY).toMatchObject({ ttlDays: 30, lookbackDays: 7 }); expect(ENTRY_META.LAB_ORDER_TO_LAB).toMatchObject({ ttlDays: 30, lookbackDays: 7 }); expect(ENTRY_META.CARE_PLAN_TO_HOME_VISIT).toMatchObject({ ttlDays: 30, lookbackDays: 30 });
+  });
+  it('referral fraud thresholds', () => {
+    expect({ ...FRAUD_THRESHOLDS }).toEqual({ signupsPerIpPrefix24h: 5, minSecondsClaimToSignup: 3, otpFailuresBot: 5, refereesPerReferrerWindow: 6, refereesWithOneProvider: 3, firstBookingsWithinMinutes: 10, firstBookingsClusterSize: 3, paymentFingerprintCluster: 2, neverBookedTwiceShare: 0.8, neverBookedTwiceMinReferees: 5, minVisitMinutes: 5, providerShareOfReferees: 0.6, providerShareMinReferees: 4, cancelledRedemptionsRecent: 3 });
+    setPolicyOverride('REFERRAL_FRAUD_THRESHOLDS', { signupsPerIpPrefix24h: 8 }); expect(FRAUD_THRESHOLDS.signupsPerIpPrefix24h).toBe(8);
+    expect(setPolicyOverride('REFERRAL_FRAUD_THRESHOLDS', { signupsPerIpPrefix24h: 500 })).toBe(false);
   });
   it('attribution models defaults equal the code constants', () => {
     const d = modelsConfigNow(); expect(d.windows).toEqual(DEFAULT_WINDOWS); expect(d.options).toEqual(DEFAULT_MODEL_OPTIONS); expect(d.dataDriven).toEqual(DEFAULT_DATA_DRIVEN);

@@ -10,7 +10,7 @@ import { deepMerge, schemaDefaults, validateAgainst, type SchemaNode } from './s
  * SAFETY CONTROLS ARE NOT HERE. Nothing in this file can switch off a consent gate, a PHI filter, a k-anonymity floor below 10, the two-person rule or a launch lock:
  * those are code, and the schemas bound every number the registry accepts (e.g. k >= 10).
  */
-export const POLICY_KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES'] as const;
+export const POLICY_KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'REFERRAL_FRAUD_THRESHOLDS', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES'] as const;
 export type PolicyKind = (typeof POLICY_KINDS)[number];
 export const isPolicyKind = (k: string): k is PolicyKind => (POLICY_KINDS as readonly string[]).includes(k);
 /** These kinds are read by process-wide synchronous code, so they exist at GLOBAL scope only (a MARKET row would be silently ignored, which is worse than refusing it). */

@@ -1,29 +1,21 @@
+import { livePolicy } from '../policy/policy-registry';
 /**
  * Referral fraud rules (GRW-P2-B1). Pure: facts in, signals out. The service gathers the facts (hashes only, never an identifier) and writes one GrowthFraudSignal per triggered rule.
  * In SHADOW mode (flag growth.referral_fraud_enforce switched OFF; the catalogue ships it ON like every flag, so enforcement is the default) the signals are recorded but the action is always ALLOW; in ENFORCE mode REJECT and HOLD take effect.
- * Weights and thresholds are code constants (REFERRAL_RULES has no fraud block in contracts 1.12.0; P3-D takes scoring over). A signal NEVER changes an attribution decision, a commission or a booking.
+ * Thresholds are live policy (`REFERRAL_FRAUD_THRESHOLDS`, maker-checker, bounded); weights stay code (REFERRAL_RULES has no fraud block in contracts 1.12.0; P3-D takes scoring over). A signal NEVER changes an attribution decision, a commission or a booking.
  */
 export type FraudAction = 'ALLOW' | 'HOLD' | 'REJECT' | 'REVERSE' | 'BLOCK_REDEMPTION';
 export type FraudStage = 'CLAIM' | 'BOOKING' | 'QUALIFICATION' | 'REDEMPTION';
 export const REFERRAL_FRAUD_RULE_IDS = ['RF_SELF', 'RF_DUP_ACCOUNT', 'RF_BOT_SIGNUP', 'RF_FARM', 'RF_FAKE_BOOKING', 'RF_PROVIDER_COLLUSION', 'RF_CANCEL_ABUSE', 'RF_REDEEM_ABUSE'] as const;
 export type ReferralFraudRuleId = (typeof REFERRAL_FRAUD_RULE_IDS)[number];
 
-export const FRAUD_THRESHOLDS = {
-  signupsPerIpPrefix24h: 5,
-  minSecondsClaimToSignup: 3,
-  otpFailuresBot: 5,
-  refereesPerReferrerWindow: 6,
-  refereesWithOneProvider: 3,
-  firstBookingsWithinMinutes: 10,
-  firstBookingsClusterSize: 3,
-  paymentFingerprintCluster: 2,
-  neverBookedTwiceShare: 0.8,
-  neverBookedTwiceMinReferees: 5,
-  minVisitMinutes: 5,
-  providerShareOfReferees: 0.6,
-  providerShareMinReferees: 4,
-  cancelledRedemptionsRecent: 3,
-} as const;
+export interface ReferralFraudThresholds {
+  signupsPerIpPrefix24h: number; minSecondsClaimToSignup: number; otpFailuresBot: number; refereesPerReferrerWindow: number; refereesWithOneProvider: number; firstBookingsWithinMinutes: number;
+  firstBookingsClusterSize: number; paymentFingerprintCluster: number; neverBookedTwiceShare: number; neverBookedTwiceMinReferees: number; minVisitMinutes: number; providerShareOfReferees: number;
+  providerShareMinReferees: number; cancelledRedemptionsRecent: number;
+}
+/** Live: the ACTIVE `REFERRAL_FRAUD_THRESHOLDS` maker-checker version over the shipped numbers (each bounded on both sides in the schema, so no rule can be switched off by a number). */
+export const FRAUD_THRESHOLDS = livePolicy<ReferralFraudThresholds & Record<string, unknown>>('REFERRAL_FRAUD_THRESHOLDS');
 
 /** One bag of facts; every field is optional so each stage supplies what it knows. Hashes are keyed hashes, never identifiers. */
 export interface FraudFacts {

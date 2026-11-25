@@ -39,6 +39,7 @@ const KIND_NOTES: Record<string, string> = {
   REWARD_GUARDS: 'Reward issuance guards: days blocked after a recoverable loss (never below 30) and the active-lot ceiling per patient.',
   LIFECYCLE_STAGES: 'Days that derive DORMANT and CHURNED, and what counts as RETAINED. Non-clinical.',
   CROSS_PRODUCT_POLICY: 'Continuity prompts: lifetime and parent-visit window per entry point (Rx to Pharmacy, lab order to Lab, care plan to home visit).',
+  REFERRAL_FRAUD_THRESHOLDS: 'Referral fraud detection numbers (signups per IP prefix, seconds to signup, OTP failures, referees per referrer, provider share and more). Bounded on both sides: no rule can be switched off by a number.',
   INTEGRATION_RUNTIME: 'Circuit-breaker threshold and cool-down and retry attempts for the growth integration jobs.',
   INTEGRATION_MODES: 'The mock or real mode the founder APPROVED per external integration (go-live approval and audit trail; never a credential). The Integrations Control Center shows drift against the deployed environment.',
   MARKET_GROWTH: 'Per-market growth facts: currency, phone code, locales, booking link host, integrations on/off, secret references.',

@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-const KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES'];
+const KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIBUTION_MODELS', 'RECOMMENDATION_POLICY', 'REWARD_GUARDS', 'LIFECYCLE_STAGES', 'CROSS_PRODUCT_POLICY', 'REFERRAL_FRAUD_THRESHOLDS', 'INTEGRATION_RUNTIME', 'INTEGRATION_MODES'];
 const src = process.argv[2]; if (!src) { console.error('contracts path required'); process.exit(1); }
 const out = {}; for (const k of KINDS) out[k] = JSON.parse(readFileSync(join(src, 'src/growth-config', `${k}.schema.json`), 'utf8'));
 const file = join(dirname(fileURLToPath(import.meta.url)), '../src/growth/policy/policy-schemas.generated.ts');

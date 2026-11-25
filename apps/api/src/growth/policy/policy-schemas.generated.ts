@@ -416,6 +416,114 @@ export const POLICY_SCHEMAS: Record<string, any> = {
    }
   }
  },
+ "REFERRAL_FRAUD_THRESHOLDS": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kiorex.com/growth-config/REFERRAL_FRAUD_THRESHOLDS.schema.json",
+  "title": "Growth config: REFERRAL_FRAUD_THRESHOLDS",
+  "description": "Detection thresholds of the eight referral fraud rules (GRW-P2-B). Every number is bounded on both sides so a tuning change cannot switch a rule off (a count cannot exceed its ceiling, a share cannot exceed 0.95). Rule weights, bands and actions stay in FRAUD_RULES; the two-person rule and the never-reward-fraud actions are code. Added in 1.13.0; defaults equal the values that shipped in code. PROPOSED_DEFAULT until ratified. Unknown keys rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+   "signupsPerIpPrefix24h": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 50,
+    "default": 5,
+    "description": "Signups from one IP prefix in 24 hours above which the claim is held."
+   },
+   "minSecondsClaimToSignup": {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": 30,
+    "default": 3,
+    "description": "Fewer seconds than this between claim and signup looks automated."
+   },
+   "otpFailuresBot": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 20,
+    "default": 5,
+    "description": "OTP failures that mark a bot pattern."
+   },
+   "refereesPerReferrerWindow": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 50,
+    "default": 6,
+    "description": "Referees one referrer may bring in the window before a hold."
+   },
+   "refereesWithOneProvider": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 20,
+    "default": 3,
+    "description": "Referees of one referrer booking with the same provider before a hold."
+   },
+   "firstBookingsWithinMinutes": {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": 120,
+    "default": 10,
+    "description": "Minutes inside which a cluster of first bookings looks coordinated."
+   },
+   "firstBookingsClusterSize": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 20,
+    "default": 3,
+    "description": "First bookings inside that window that form a cluster."
+   },
+   "paymentFingerprintCluster": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 20,
+    "default": 2,
+    "description": "Referees sharing one payment fingerprint before a hold."
+   },
+   "neverBookedTwiceShare": {
+    "type": "number",
+    "minimum": 0.5,
+    "maximum": 0.95,
+    "default": 0.8,
+    "description": "Share of referees that never booked twice that looks like farming."
+   },
+   "neverBookedTwiceMinReferees": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 100,
+    "default": 5,
+    "description": "Referees needed before the never-booked-twice share is judged."
+   },
+   "minVisitMinutes": {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": 60,
+    "default": 5,
+    "description": "A visit shorter than this many minutes does not qualify."
+   },
+   "providerShareOfReferees": {
+    "type": "number",
+    "minimum": 0.4,
+    "maximum": 0.9,
+    "default": 0.6,
+    "description": "Share of referees one provider may account for before a collusion review."
+   },
+   "providerShareMinReferees": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 100,
+    "default": 4,
+    "description": "Referees needed before the provider share is judged."
+   },
+   "cancelledRedemptionsRecent": {
+    "type": "integer",
+    "minimum": 2,
+    "maximum": 20,
+    "default": 3,
+    "description": "Recent cancelled redemptions that block further redemption."
+   }
+  }
+ },
  "INTEGRATION_RUNTIME": {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.kiorex.com/growth-config/INTEGRATION_RUNTIME.schema.json",
