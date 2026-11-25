@@ -4576,7 +4576,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "CSV",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "CSV export of one view (audited: who, filter, rows)",
@@ -4591,7 +4598,15 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         },
         "summary": "Bilingual (EN + AR) PDF statement of one organisation or of all (audited)",

@@ -57,7 +57,7 @@ export class CommissionOpsController {
   @ApiOkResponse(OBJ) @Roles(...commissionRolesFor('read')) @Get('export-audit')
   audits() { return this.q.exportAudits(); }
 
-  @ApiOperation({ summary: 'CSV export of one view (audited: who, filter, rows)' }) @Roles(...commissionRolesFor('export')) @Get('export/:view')
+  @ApiOkResponse({ description: 'CSV', schema: { type: 'string' } }) @ApiOperation({ summary: 'CSV export of one view (audited: who, filter, rows)' }) @Roles(...commissionRolesFor('export')) @Get('export/:view')
   @Header('content-type', 'text/csv; charset=utf-8')
   async export(@CurrentUser() u: AuthUser, @Param('view') view: string, @Query() q: Record<string, string>, @Res({ passthrough: true }) res: { setHeader(k: string, v: string): void }) {
     if (!(EXPORT_VIEWS as readonly string[]).includes(view)) throw badRequest('UNKNOWN_VIEW', 'Unknown export view');
@@ -66,7 +66,7 @@ export class CommissionOpsController {
     return r.csv;
   }
 
-  @ApiOperation({ summary: 'Bilingual (EN + AR) PDF statement of one organisation or of all (audited)' }) @Roles(...commissionRolesFor('export')) @Get('statement.pdf')
+  @ApiOkResponse({ description: 'PDF', schema: { type: 'string', format: 'binary' } }) @ApiOperation({ summary: 'Bilingual (EN + AR) PDF statement of one organisation or of all (audited)' }) @Roles(...commissionRolesFor('export')) @Get('statement.pdf')
   @Header('content-type', 'application/pdf')
   async statementPdf(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>, @Res({ passthrough: true }) res: { setHeader(k: string, v: string): void }) {
     const r = await this.q.statementPdf(this.filter(q), u.sub);
