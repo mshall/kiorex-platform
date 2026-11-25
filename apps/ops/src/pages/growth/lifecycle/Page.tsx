@@ -44,7 +44,7 @@ export default function LifecyclePage() {
             <StatCard label={t("growth.lifecycle.caps")} value={`${o.policy.caps.perDay} / ${o.policy.caps.perWeek}`} hint={t("growth.lifecycle.capsHint")} />
             <StatCard label={t("growth.lifecycle.quiet")} value={`${o.policy.quietHours.start} - ${o.policy.quietHours.end}`} hint={`${o.policy.quietHours.timezone} · ${t("growth.lifecycle.holdout", { pct: (o.policy.holdoutBps / 100).toFixed(1) })} · v${o.policy.version} ${o.policy.source === "PROPOSED_DEFAULT" ? t("growth.lifecycle.proposed") : ""}`} />
           </div>
-          <p className="text-xs text-muted-foreground">{t("growth.lifecycle.policyChange")} <Link className="text-primary hover:underline" to="/growth/config">{t("growth.lifecycle.policyLink")}</Link></p>
+          <p className="text-xs text-muted-foreground">{t("growth.lifecycle.policyChange")} <Link className="text-primary underline underline-offset-2" to="/growth/config">{t("growth.lifecycle.policyLink")}</Link></p>
           <DataTable columns={cols} rows={o.journeys} rowKey={(j) => j.key} caption={t("growth.lifecycle.journeys")} empty={<EmptyState title={t("growth.lifecycle.empty")} />} />
         </>
       ) : null}

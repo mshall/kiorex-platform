@@ -28,7 +28,7 @@ export default function OverviewTab() {
             <StatCard label={t("growth.seo.shards")} value={s.sitemap.shards} hint={t("growth.seo.shardHint", { size: fmtN(s.sitemap.shardSize) })} />
             <StatCard label={t("growth.seo.slugs")} value={`${s.slugs.current}/${s.slugs.history}`} hint={t("growth.seo.slugsHint")} />
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 [&>*]:min-w-0">
             <Section title={t("growth.seo.thresholds")} id="seo-thr" hint={t("growth.seo.thresholdsHint")}>
               <dl className="grid gap-2 text-sm" data-testid="seo-thresholds">{(["minLiveProviders", "minUniqueBlocks", "maxSiblingSimilarityPercent"] as const).map((k) => <div key={k} className="flex justify-between gap-3 border-b border-border/50 py-1"><dt>{t(`growth.seo.thr.${k}`)}</dt><dd className="kx-label-num font-semibold">{s.thresholds[k]}</dd></div>)}</dl>
               {s.pages.thinReasons.length > 0 && <div className="mt-3"><h3 className="mb-1 text-sm font-semibold">{t("growth.seo.thinReasons")}</h3><BarList testid="thin-reasons" tone="pulse" rows={s.pages.thinReasons.map((r) => ({ label: r.reason, value: r.count }))} /></div>}
@@ -39,7 +39,7 @@ export default function OverviewTab() {
               <p className="mt-2 text-sm" data-testid="seo-sitemap">{t("growth.seo.sitemapLine", { pages: s.sitemap.indexablePages, shards: s.sitemap.shards })} · {t("growth.seo.lastRendered", { at: formatDateTime(s.sitemap.lastRenderedAt, i18n.language) })}</p>
               <div className="mt-3 rounded-xl bg-muted/50 p-3 text-xs" data-testid="seo-live">
                 <b>{t("growth.seo.live")}</b>
-                {s.live.reachable ? (<><p>{t("growth.seo.liveRobots", { status: s.live.robots?.status ?? "—" })}</p>{s.live.robots && <pre className="mt-1 overflow-x-auto" dir="ltr">{s.live.robots.lines.join("\n")}</pre>}<p>{t("growth.seo.liveSitemap", { status: s.live.sitemap?.status ?? "—", n: s.live.sitemap?.shards ?? 0 })}</p></>) : <p>{t("growth.seo.liveUnreachable")}</p>}
+                {s.live.reachable ? (<><p>{t("growth.seo.liveRobots", { status: s.live.robots?.status ?? "—" })}</p>{s.live.robots && <pre className="mt-1 overflow-x-auto" dir="ltr" tabIndex={0} aria-label={t("growth.seo.liveRobots", { status: s.live.robots.status })}>{s.live.robots.lines.join("\n")}</pre>}<p>{t("growth.seo.liveSitemap", { status: s.live.sitemap?.status ?? "—", n: s.live.sitemap?.shards ?? 0 })}</p></>) : <p>{t("growth.seo.liveUnreachable")}</p>}
               </div>
             </Section>
           </div>

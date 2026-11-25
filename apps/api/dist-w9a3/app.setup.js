@@ -1,0 +1,64 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.REQUIRED_QUERY_PARAMS = exports.GROWTH_PUBLIC_BODY_PREFIXES = exports.GROWTH_PUBLIC_BODY_LIMIT_BYTES = exports.API_PREFIX = void 0;
+exports.setupApp = setupApp;
+exports.buildOpenApi = buildOpenApi;
+const strict_dto_1 = require("./common/strict-dto");
+const reject_nul_bytes_pipe_1 = require("./common/reject-nul-bytes.pipe");
+const swagger_1 = require("@nestjs/swagger");
+const contracts_1 = require("@kiorex/contracts");
+const express_1 = require("express");
+const errors_1 = require("./common/errors");
+exports.API_PREFIX = 'api/v1';
+exports.GROWTH_PUBLIC_BODY_LIMIT_BYTES = 32 * 1024;
+exports.GROWTH_PUBLIC_BODY_PREFIXES = [`/${exports.API_PREFIX}/growth/v1`, `/${exports.API_PREFIX}/widget/v1`];
+function setupApp(app) {
+    app.setGlobalPrefix(exports.API_PREFIX, { exclude: ['.well-known/apple-app-site-association', '.well-known/assetlinks.json', '.well-known/security.txt', 'r/:code', 'q/:code', 'a/:id', 'appointment/:id'] });
+    app.use?.(`/${exports.API_PREFIX}/partners/v1/connection-requests`, (req, res, next) => {
+        const len = Number(req.headers?.['content-length'] ?? 0);
+        if (req.method === 'POST' && len > contracts_1.INTAKE_MAX_BODY_BYTES) {
+            res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' });
+            return;
+        }
+        next();
+    });
+    const use = app.use;
+    for (const prefix of exports.GROWTH_PUBLIC_BODY_PREFIXES) {
+        use?.call(app, prefix, (0, express_1.json)({ limit: exports.GROWTH_PUBLIC_BODY_LIMIT_BYTES, verify: (req, _res, buf) => { req.rawBody = buf; } }), (err, _req, res, next) => {
+            if (err?.type === 'entity.too.large') {
+                res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' });
+                return;
+            }
+            next(err);
+        });
+    }
+    app.useBodyParser?.('json', { limit: '8mb' });
+    app.useBodyParser?.('raw', { type: 'application/octet-stream', limit: '52mb' });
+    app.use(strict_dto_1.strictDtoMiddleware);
+    app.useGlobalPipes(new reject_nul_bytes_pipe_1.RejectNulBytesPipe(), new strict_dto_1.StrictOpsValidationPipe());
+    app.useGlobalFilters(new errors_1.AllExceptionsFilter());
+    return app;
+}
+exports.REQUIRED_QUERY_PARAMS = {
+    'get /api/v1/rx/verify': ['t'],
+    'get /api/v1/control/v1/flags/snapshot': ['product'],
+    'get /api/v1/dev/channels/whatsapp/conversation': ['phone'],
+    'get /api/v1/providers/{id}/slots': ['typeId'],
+    'get /api/v1/lab/slots': ['labId'],
+};
+function buildOpenApi(app) {
+    const cfgDoc = new swagger_1.DocumentBuilder()
+        .setTitle('Kiorex API').setDescription('Kiorex marketplace API. Identity: Kiorex Passport (OIDC). Errors: { code, message, ...extra }. Flag OFF => 403 FEATURE_DISABLED {key, scope}.')
+        .setVersion('1.0.0').addBearerAuth().build();
+    const doc = swagger_1.SwaggerModule.createDocument(app, cfgDoc);
+    for (const [path, item] of Object.entries(doc.paths)) {
+        for (const [method, op] of Object.entries(item)) {
+            const required = exports.REQUIRED_QUERY_PARAMS[`${method} ${path}`] ?? [];
+            for (const prm of op?.parameters ?? [])
+                if (prm.in === 'query')
+                    prm.required = required.includes(prm.name);
+        }
+    }
+    return doc;
+}
+//# sourceMappingURL=app.setup.js.map

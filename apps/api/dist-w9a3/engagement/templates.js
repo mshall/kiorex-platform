@@ -1,0 +1,50 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.render = exports.TEMPLATES = void 0;
+exports.messageClassOf = messageClassOf;
+const templates_growth_1 = require("./templates.growth");
+const BASE_TEMPLATES = {
+    BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_booking_confirmed', reminder: false, en: 'Your visit with {doctor} is confirmed for {time}.', ar: 'تم تأكيد زيارتك مع {doctor} في {time}.' },
+    BOOKING_PENDING_CLINIC: { templateId: 'TODO_NEEDS_HUMAN_booking_pending', reminder: false, en: 'Your request with {doctor} is awaiting clinic confirmation.', ar: 'طلبك مع {doctor} في انتظار تأكيد العيادة.' },
+    BOOKING_CHANGED: { templateId: 'TODO_NEEDS_HUMAN_booking_changed', reminder: false, en: 'Your visit with {doctor} moved to {time}.', ar: 'تم تغيير موعدك مع {doctor} إلى {time}.' },
+    BOOKING_CANCELLED: { templateId: 'TODO_NEEDS_HUMAN_booking_cancelled', reminder: false, en: 'Your visit with {doctor} was cancelled.', ar: 'تم إلغاء زيارتك مع {doctor}.' },
+    BOOKING_CANCELLED_BY_CLINIC: { templateId: 'TODO_NEEDS_HUMAN_booking_cancelled_clinic', reminder: false, bypassQuiet: true, en: 'The clinic cancelled your visit with {doctor}. Any deposit is refunded automatically. Alternatives: {alternatives}', ar: 'ألغت العيادة زيارتك مع {doctor}. يُرد أي عربون تلقائيًا. بدائل: {alternatives}' },
+    BOOKING_EXPIRED: { templateId: 'TODO_NEEDS_HUMAN_booking_expired', reminder: false, en: 'Your booking request with {doctor} expired.', ar: 'انتهت صلاحية طلب الحجز مع {doctor}.' },
+    REMINDER_24H: { templateId: 'TODO_NEEDS_HUMAN_reminder_24h', reminder: true, en: 'Reminder: visit with {doctor} tomorrow at {time}.', ar: 'تذكير: زيارتك مع {doctor} غدًا في {time}.' },
+    REMINDER_2H: { templateId: 'TODO_NEEDS_HUMAN_reminder_2h', reminder: true, en: 'Reminder: visit with {doctor} in 2 hours ({time}).', ar: 'تذكير: زيارتك مع {doctor} بعد ساعتين ({time}).' },
+    REVIEW_INVITATION: { templateId: 'TODO_NEEDS_HUMAN_review_invite', reminder: true, en: 'How was your visit with {doctor}? Leave a review.', ar: 'كيف كانت زيارتك مع {doctor}؟ اترك تقييمًا.' },
+    WAITLIST_OFFER: { templateId: 'TODO_NEEDS_HUMAN_waitlist_offer', reminder: false, en: 'A slot opened with {doctor} at {time}. Open Kiorex to take it before {until}.', ar: 'توفر موعد مع {doctor} في {time}. افتح كيوريكس لحجزه قبل {until}.' },
+    FOLLOW_UP_DUE: { templateId: 'TODO_NEEDS_HUMAN_follow_up_due', reminder: true, en: 'Time for your follow-up visit. Open Kiorex to book.', ar: 'حان موعد زيارة المتابعة. افتح كيوريكس للحجز.' },
+    RECORD_SHARED: { templateId: 'TODO_NEEDS_HUMAN_record_shared', reminder: false, en: 'A new record from your clinic is in your Kiorex vault.', ar: 'وصل سجل جديد من عيادتك إلى خزنتك في كيوريكس.' },
+    PHARMACY_ORDER_READY: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_ready', reminder: false, en: 'Your pharmacy order is ready.', ar: 'طلبك من الصيدلية جاهز.' },
+    PHARMACY_ORDER_OUT_FOR_DELIVERY: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_out_for_delivery', reminder: false, en: 'Your pharmacy order is out for delivery.', ar: 'طلبك من الصيدلية في الطريق إليك.' },
+    PHARMACY_ORDER_PARTIAL_REFUND: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_partial_refund', reminder: false, bypassQuiet: true, en: 'The pharmacy could fill only part of your order. {amount} is refunded automatically; open the order for the itemised refund.', ar: 'تمكنت الصيدلية من تجهيز جزء من طلبك فقط. يُرد {amount} تلقائيًا؛ افتح الطلب لترى الرد مفصّلًا.' },
+    PHARMACY_ORDER_DISPENSED: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_dispensed', reminder: false, en: 'Your pharmacy order was handed over.', ar: 'تم تسليم طلبك من الصيدلية.' },
+    PHARMACY_ORDER_REJECTED: { templateId: 'TODO_NEEDS_HUMAN_pharmacy_order_rejected', reminder: false, bypassQuiet: true, en: 'The pharmacy could not fulfil your order. You are refunded automatically.', ar: 'تعذر على الصيدلية تنفيذ طلبك. يُرد المبلغ تلقائيًا.' },
+    LAB_BOOKING_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_lab_booking_confirmed', reminder: false, en: 'Your lab booking is confirmed for {time}.', ar: 'تم تأكيد حجز التحاليل في {time}.' },
+    LAB_RESULT_RELEASED: { templateId: 'TODO_NEEDS_HUMAN_lab_result_released', reminder: false, en: 'Your lab report is ready in your Kiorex vault.', ar: 'تقرير التحاليل جاهز في خزنتك في كيوريكس.' },
+    TELE_SESSION_READY: { templateId: 'TODO_NEEDS_HUMAN_tele_session_ready', reminder: false, en: 'Your video visit with {doctor} is ready to join.', ar: 'زيارتك بالفيديو مع {doctor} جاهزة للانضمام.' },
+    HOME_VISIT_ASSIGNED: { templateId: 'TODO_NEEDS_HUMAN_home_visit_assigned', reminder: false, en: '{assignee} will visit you for your booking with {doctor}. Open Kiorex to see their photo and badge before they arrive.', ar: 'سيزورك {assignee} في حجزك مع {doctor}. افتح كيوريكس لترى صورته وشارته قبل وصوله.' },
+    HOME_VISIT_EN_ROUTE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_en_route', reminder: false, bypassQuiet: true, en: 'Your visit with {doctor} is on the way. {minutes} min (estimate).', ar: 'زيارتك مع {doctor} في الطريق إليك. حوالي {minutes} دقيقة (تقدير).' },
+    HOME_VISIT_ABORTED: { templateId: 'TODO_NEEDS_HUMAN_home_visit_aborted', reminder: false, bypassQuiet: true, en: 'Your home visit with {doctor} was stopped for safety reasons. This is not a no-show and you are not charged for it. Our team will contact you about any deposit.', ar: 'تم إيقاف زيارتك المنزلية مع {doctor} لأسباب تتعلق بالسلامة. لا يُحتسب ذلك عدم حضور ولن تُحاسَب عليه. سيتواصل معك فريقنا بخصوص أي عربون.' },
+    HOME_VISIT_FAMILY_INVITE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_invite', reminder: false, bypassQuiet: true, en: '{patient} shared a home-visit status with you. Follow it here: {link} (reply STOP to stop).', ar: 'شاركك {patient} حالة زيارة منزلية. تابعها من هنا: {link} (أرسل STOP للإيقاف).' },
+    HOME_VISIT_FAMILY_UPDATE: { templateId: 'TODO_NEEDS_HUMAN_home_visit_family_update', reminder: false, bypassQuiet: true, en: 'Visit update for {patient}: {status}. {link}', ar: 'تحديث الزيارة لـ {patient}: {status}. {link}' },
+    CARE_PLAN_CONFIRMED: { templateId: 'TODO_NEEDS_HUMAN_care_plan_confirmed', reminder: false, en: 'Your care plan with {doctor} is confirmed: {count} visits scheduled.', ar: 'تم تأكيد خطة الرعاية مع {doctor}: {count} زيارات مجدولة.' },
+    OPS_LEAD_ALERT: { templateId: 'TODO_NEEDS_HUMAN_ops_lead_alert', reminder: false, en: 'New Kiorex partner lead: {org} ({kindLabel}). Open Ops > Partner leads.', ar: 'عميل شريك جديد على كيوريكس: {org} ({kindLabel}). افتح العمليات > العملاء المحتملون.' },
+    DEPOSIT_REFUNDED: { templateId: 'TODO_NEEDS_HUMAN_deposit_refunded', reminder: false, en: 'Your deposit was refunded.', ar: 'تم رد العربون.' },
+};
+const CLINICAL_KINDS = new Set(['LAB_RESULT_RELEASED', 'HOME_VISIT_ABORTED', 'RECORD_SHARED', 'FOLLOW_UP_DUE']);
+exports.TEMPLATES = { ...BASE_TEMPLATES, ...templates_growth_1.GROWTH_TEMPLATES };
+function messageClassOf(kind) {
+    const t = exports.TEMPLATES[kind];
+    if (!t)
+        return 'TRANSACTIONAL';
+    if (t.messageClass)
+        return t.messageClass;
+    if (t.marketing)
+        return 'MARKETING';
+    return CLINICAL_KINDS.has(kind) ? 'CLINICAL' : 'TRANSACTIONAL';
+}
+const render = (t, p = {}) => t.replace(/\{(\w+)\}/g, (_, k) => String(p[k] ?? ''));
+exports.render = render;
+//# sourceMappingURL=templates.js.map

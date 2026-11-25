@@ -29,6 +29,7 @@ export function OpsLayout() {
   const next = i18n.language.startsWith("ar") ? "en" : "ar";
   return (
     <div className="flex min-h-screen">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-primary-foreground" onClick={(e) => { e.preventDefault(); document.getElementById("main-content")?.focus(); }}>{t("common.skipToContent")}</a>
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e bg-card p-4 md:flex" aria-label={t("nav.main")}>
         <Logo className="mb-2" height={56} />
         <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("nav.console")}</p>
@@ -55,7 +56,7 @@ export function OpsLayout() {
             <Button variant="outline" size="sm" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
           </div>
         </header>
-        <main key={pathname} className="kx-page flex-1 p-4 md:p-8" tabIndex={-1}><Outlet /></main>
+        <main key={pathname} id="main-content" className="kx-page flex-1 p-4 md:p-8" tabIndex={-1}><Outlet /></main>
       </div>
     </div>
   );

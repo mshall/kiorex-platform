@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.titleMeta = exports.thinContent = exports.structuredData = exports.similarity = exports.parity = exports.orphan = exports.hreflang = exports.claims = exports.canonical = exports.CHECKS = void 0;
+const canonical_1 = require("./canonical");
+Object.defineProperty(exports, "canonical", { enumerable: true, get: function () { return canonical_1.canonical; } });
+const claims_1 = require("./claims");
+Object.defineProperty(exports, "claims", { enumerable: true, get: function () { return claims_1.claims; } });
+const hreflang_1 = require("./hreflang");
+Object.defineProperty(exports, "hreflang", { enumerable: true, get: function () { return hreflang_1.hreflang; } });
+const orphan_1 = require("./orphan");
+Object.defineProperty(exports, "orphan", { enumerable: true, get: function () { return orphan_1.orphan; } });
+const parity_ar_en_1 = require("./parity-ar-en");
+Object.defineProperty(exports, "parity", { enumerable: true, get: function () { return parity_ar_en_1.parity; } });
+const similarity_1 = require("./similarity");
+Object.defineProperty(exports, "similarity", { enumerable: true, get: function () { return similarity_1.similarity; } });
+const structured_data_1 = require("./structured-data");
+Object.defineProperty(exports, "structuredData", { enumerable: true, get: function () { return structured_data_1.structuredData; } });
+const thin_content_1 = require("./thin-content");
+Object.defineProperty(exports, "thinContent", { enumerable: true, get: function () { return thin_content_1.thinContent; } });
+const title_meta_1 = require("./title-meta");
+Object.defineProperty(exports, "titleMeta", { enumerable: true, get: function () { return title_meta_1.titleMeta; } });
+exports.CHECKS = [thin_content_1.thinContent, similarity_1.similarity, parity_ar_en_1.parity, title_meta_1.titleMeta, structured_data_1.structuredData, canonical_1.canonical, hreflang_1.hreflang, orphan_1.orphan, claims_1.claims];
+//# sourceMappingURL=index.js.map

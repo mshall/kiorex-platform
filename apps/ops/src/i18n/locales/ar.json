@@ -31,6 +31,7 @@
     "noAccessBody": "هذه اللوحة لفريق عمليات كيوركس فقط (ops_admin أو super_admin)."
   },
   "common": {
+    "skipToContent": "تخطَّ إلى المحتوى الرئيسي",
     "search": "بحث",
     "all": "الكل",
     "empty": "لا توجد بيانات",
