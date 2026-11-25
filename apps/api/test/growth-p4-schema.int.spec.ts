@@ -111,6 +111,7 @@ describe('growth Phase 4 schema, corporate (wave 8)', () => {
   it('the migration name sorts after every earlier migration and shares no prefix', () => {
     const names = readdirSync(join(__dirname, '..', 'prisma', 'migrations')).filter((f) => /^\d{14}_/.test(f)).sort();
     const prefixes = names.map((n) => n.slice(0, 14)); expect(new Set(prefixes).size).toBe(prefixes.length);
-    expect(names.indexOf('20270128093000_growth_p4_corporate')).toBe(names.length - 1);
+    expect(names.indexOf('20270128093000_growth_p4_corporate')).toBeGreaterThan(-1); // later migrations (wave 9) may follow it, the corporate one is never reordered
+    expect(names.slice(names.indexOf('20270128093000_growth_p4_corporate') + 1).every((n) => n > '20270128093000')).toBe(true);
   });
 });
