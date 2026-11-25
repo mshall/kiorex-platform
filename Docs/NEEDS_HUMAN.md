@@ -257,7 +257,7 @@ Launch guide rows 11.139 to 11.147 carry the detail. In short: **CDN purge** rea
 - **LG-W9A1-9 Contracts (one owner, with 1.13.0 and 1.14.0).** The branch `w9-a1` of `kiorex-contracts` adds the flag `growth.loyalty`, the config kind `LOYALTY_RULES` and the events `LoyaltyPointsAccrued`, `LoyaltyPointsConverted`, `PartnershipCodeRedeemed` (unreleased, nothing tagged or pushed). Cherry-pick that commit into the consolidated 1.13.0 prep and publish once; until then the platform validates the kind locally (`LOCAL_CONFIG_KINDS`) and mirrors the flag in `control-plane/flag-catalogue.ts`. After the publish move `LOYALTY_FLAG` into `GROWTH_FLAG` and drop the local kind.
 
 
-## Payments ready for real sandbox gateways (PAY-READY): launch-guide rows `LG-INT-PAY-1..13`
+## Payments ready for real sandbox gateways (PAY-READY): launch-guide rows `LG-INT-PAY-1..19`
 
 Step-by-step: `INTEGRATION_RUNBOOK_PAYMENTS.md`. Nothing below is decided or invented by the code: every value is configuration that stays empty (null) until the owner sets it.
 
@@ -274,6 +274,12 @@ Step-by-step: `INTEGRATION_RUNBOOK_PAYMENTS.md`. Nothing below is decided or inv
 - **LG-INT-PAY-11 Pay ledger posting of sponsored and corporate parts (finance, H-25).** `REWARD_RULES.postToPayLedger` stays false; both paths are tested; decision needed before launch.
 - **LG-INT-PAY-12 Card fingerprint (DPO, risk).** A hashed card fingerprint enters the referral fraud signals (RF_SELF, RF_FARM) only when the vendor gives a stable card id (card gateway); Paymob's derived fingerprint is WEAK and ignored unless `acceptWeakFingerprint`. Confirm the lawful basis and the retention (rows follow subject erasure).
 - **LG-INT-PAY-13 Unified Kiorly Pay layer, commission transparency, finance roles, QR, POS (founder, counsel CBE).** See `PAYMENTS_UNIFIED_LAYER.md`: phases not yet built, funds-flow and licensing questions for counsel (Kiorly never holds funds in the design).
+- **LG-INT-PAY-14 Bank IPN specification (finance, the bank).** Which bank or aggregator, push webhook or daily file, exact columns, amount unit, status and reversal words, signature scheme. Until then the neutral layout in `psp-bank-ipn.ts` applies (override with `BANK_IPN_CONFIG_JSON` and the secret `BANK_IPN_WEBHOOK_SECRET`; Clinic: `CLINIC_BANK_IPN_CONFIG_JSON`). Also the beneficiary label and masked account shown to payers. Kiorly never holds the funds: the payer transfers to the merchant or licensed partner account.
+- **LG-INT-PAY-15 Wallet integrations (founder).** Create the Vodafone Cash / Orange / Etisalat wallet integrations at Paymob and set `PAYMOB_WALLET_INTEGRATION_IDS=vodafone_cash:<id>,...`. No direct wallet adapter exists and none is planned.
+- **LG-INT-PAY-16 Provider QR (vendors).** Ask InstaPay's acquirer and Paymob for a QR payload API; until one exists every QR encodes the hosted payment link and is labelled as a link QR.
+- **LG-INT-PAY-17 Fraud scorer calibration (risk, support lead).** Run in SHADOW for a period, review the queue, then decide whether to switch to FLAG through the maker-checker kind `PAY_FRAUD_THRESHOLDS`. There is no automatic ban or block and none will be added without a decision.
+- **LG-INT-PAY-18 Matching authority (finance).** Who may confirm queued matches (today: `finance`, `super_admin`; Clinic: `FINANCE_OFFICER`, `GROUP_ADMIN`, `PLATFORM_SUPER_ADMIN`), and the AUTO threshold (`PAY_MATCHING_POLICY`, floor 0.9).
+- **LG-INT-PAY-19 Funds-flow and licensing review (counsel, CBE).** The whole unified layer is software for orchestration, routing, matching and reporting. Anything about who receives, holds or settles money, merchant of record, and settlement accounts is counsel's decision and is decided nowhere in code.
 
 ## Real messaging channels (MSG-REAL, 25 Nov 2026): accounts, credentials, approvals
 

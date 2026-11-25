@@ -24,3 +24,6 @@ with `@kiorex:registry=https://npm.pkg.github.com`, change the dependency to `"@
 ## Other repos (not changed here)
 `kiorly-pharmacy` and `kiorly-lab` still use `file:../../../kiorex-contracts/dist-pack/...` (other agents own those repos). Apply the same recipe there
 (copy `vendor-contracts.sh`, vendor the tarball, drop the cross-repo checkout step) before their CI can pass.
+
+## @kiorex/pay-contract (Kiorly Pay shared adapter contract)
+Same recipe, second package: repo `kiorex-pay-contract` (sibling of `kiorex-contracts`), vendored as `vendor/kiorex-pay-contract-<version>.tgz` in this repo and in the Clinic (`clinics-management/vendor/`), `file:` dependency in each `apps/api/package.json`, nothing published to any registry. Update: bump the version, `npm test && npm run pack:local` in the package repo, then `scripts/vendor-into.sh` for each consumer and commit the tarball, `package.json` and lockfile together.
