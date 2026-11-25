@@ -54,3 +54,8 @@ export interface SeoSitePort {
 /** Event trigger of the quality gate (profile update, listing publish or pause, slug change). Coalesced, non-throwing, a no-op while `growth.seo_automation` is OFF. */
 export const SEO_TRIGGER = Symbol('SEO_TRIGGER');
 export interface SeoTriggerPort { request(reason: string, market?: string): void }
+
+/** G-18: the editorial title and description a page currently carries (ACTIVE edit) or null. Read by the public renderer; the editor lives in `LandingEditService`. */
+export const SEO_EDITS = Symbol('SEO_EDITS');
+export interface LandingEditView { title: string; description: string; version: number }
+export interface LandingEditPort { activeFor(market: string, pageKey: string, locale: string): Promise<LandingEditView | null> }

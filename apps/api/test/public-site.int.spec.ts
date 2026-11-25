@@ -52,6 +52,25 @@ describe('public site SSR (GRW-P1-E)', () => {
     c.get(PublicSiteCache).purgeAll();
   });
 
+  describe('G-18 landing page edits', () => {
+    const A = { sub: 'adm_a', roles: ['super_admin'] }; const B = { sub: 'adm_b', roles: ['super_admin'] };
+    it('an approved edit replaces the title and description of a listing page in that locale only; the body, canonical and indexing stay; a withdrawal restores the generated text', async () => {
+      const { LandingEditService } = await import('../src/growth/seo-automation/landing-edit.service');
+      const svc = c.get(LandingEditService);
+      const before = doc((await get('/en/eg/doctors/cardiology').expect(200)).text);
+      const d = await svc.createDraft(A, { pageKey: 'hub:cardiology', locale: 'en', title: 'Cardiologists in Egypt, book online | Kiorex', description: 'Compare verified cardiologists across Egypt and book a visit with live availability on Kiorex.' });
+      await svc.submit(A, d.id); await svc.approve(B, d.id);
+      c.get(PublicSiteCache).purgeAll();
+      const after = doc((await get('/en/eg/doctors/cardiology').expect(200)).text);
+      expect(after.title).toBe('Cardiologists in Egypt, book online | Kiorex'); expect(after.description).toMatch(/^Compare verified cardiologists/);
+      expect(after.h1).toBe(before.h1); expect(after.canonical).toBe(before.canonical); expect(after.robots).toBe(before.robots); expect(after.alternates).toEqual(before.alternates);
+      expect(doc((await get('/ar/eg/doctors/cardiology').expect(200)).text).title).not.toBe(after.title); // the other locale is untouched
+      expect(doc((await get('/en/eg/doctors/cardiology/cairo').expect(200)).text).title).not.toBe(after.title); // so is another page
+      await svc.withdraw(B, d.id, 'wording under review again'); c.get(PublicSiteCache).purgeAll();
+      expect(doc((await get('/en/eg/doctors/cardiology').expect(200)).text).title).toBe(before.title);
+    });
+  });
+
   describe('doctor page', () => {
     it('renders title, description, h1, content, JSON-LD, canonical and hreflang without JavaScript', async () => {
       const r = await get('/en/eg/doctor/sara-hassan').expect(200);

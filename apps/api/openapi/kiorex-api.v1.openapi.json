@@ -10001,6 +10001,48 @@
         ]
       }
     },
+    "/api/v1/ops/growth/config/{id}/withdraw": {
+      "post": {
+        "operationId": "GrowthConfigAdminController_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-21 withdraw an APPROVED version before its effective date (terminal WITHDRAWN, audited, reason required)",
+        "tags": [
+          "growth-admin"
+        ]
+      }
+    },
     "/api/v1/ops/growth/config/{id}/activate": {
       "post": {
         "operationId": "GrowthConfigAdminController_activate",
@@ -15428,6 +15470,275 @@
           }
         },
         "summary": "GRW-P3-F ingest the Lighthouse summary (body or file) and the CrUX field rows, then check budgets",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits": {
+      "get": {
+        "operationId": "LandingEditController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageKey",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 landing page edits (newest first)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      },
+      "post": {
+        "operationId": "LandingEditController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLandingEditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 draft an edit of a listing page title and description (maker)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits/{id}": {
+      "patch": {
+        "operationId": "LandingEditController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLandingEditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 change a draft (its author only)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits/{id}/submit": {
+      "post": {
+        "operationId": "LandingEditController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 submit a draft: the content quality gate runs and a blocking failure refuses it (422 LANDING_EDIT_QUALITY)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits/{id}/approve": {
+      "post": {
+        "operationId": "LandingEditController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 approve (checker, never the author); the gate runs again; supersedes the active edit of that page and locale",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits/{id}/reject": {
+      "post": {
+        "operationId": "LandingEditController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandingEditNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 reject a submitted edit (checker, never the author)",
+        "tags": [
+          "growth-seo-automation"
+        ]
+      }
+    },
+    "/api/v1/admin/growth/landing-edits/{id}/withdraw": {
+      "post": {
+        "operationId": "LandingEditController_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandingEditNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "G-18 withdraw an edit: an active edit stops applying at once and the generated text returns",
         "tags": [
           "growth-seo-automation"
         ]
@@ -29931,6 +30242,19 @@
           "reason"
         ]
       },
+      "WithdrawDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "RollbackDto": {
         "type": "object",
         "properties": {
@@ -30538,6 +30862,72 @@
           "reason": {
             "type": "string",
             "maxLength": 200
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "CreateLandingEditDto": {
+        "type": "object",
+        "properties": {
+          "pageKey": {
+            "type": "string",
+            "pattern": "^[a-z-]+:[a-z0-9-]{1,80}(?:\\/[a-z0-9-]{1,80}){0,2}$"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 320
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "pageKey",
+          "locale",
+          "title",
+          "description"
+        ]
+      },
+      "UpdateLandingEditDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 320
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      },
+      "LandingEditNoteDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 300
           }
         },
         "required": [

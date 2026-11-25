@@ -200,6 +200,7 @@
 | POST | `/api/v1/ops/growth/config/{id}/submit` | GRW-P1-K submit a DRAFT for approval (its author only) |
 | POST | `/api/v1/ops/growth/config/{id}/approve` | GRW-P1-K approve (checker; never the author). Activates at effectiveFrom |
 | POST | `/api/v1/ops/growth/config/{id}/reject` | GRW-P1-K reject a pending version (checker; never the author) |
+| POST | `/api/v1/ops/growth/config/{id}/withdraw` | G-21 withdraw an APPROVED version before its effective date (terminal WITHDRAWN, audited, reason required) |
 | POST | `/api/v1/ops/growth/config/{id}/activate` | GRW-P1-K activate an approved version at its effective date (refused earlier) |
 | POST | `/api/v1/ops/growth/config/rollback` | GRW-P1-K roll back = a NEW version copying an older payload, same approval path |
 | GET | `/api/v1/ops/growth/access` | GRW-P1-K what the signed-in ops user may do in the Growth module |
@@ -513,6 +514,13 @@
 | GET | `/api/v1/admin/growth/seo-automation/indexation` | GRW-P3-F submitted, excluded and indexed per template group |
 | POST | `/api/v1/admin/growth/seo-automation/run` | GRW-P3-F run the quality gate and the link builder now |
 | POST | `/api/v1/admin/growth/seo-automation/vitals/ingest` | GRW-P3-F ingest the Lighthouse summary (body or file) and the CrUX field rows, then check budgets |
+| GET | `/api/v1/admin/growth/landing-edits` | G-18 landing page edits (newest first) |
+| POST | `/api/v1/admin/growth/landing-edits` | G-18 draft an edit of a listing page title and description (maker) |
+| PATCH | `/api/v1/admin/growth/landing-edits/{id}` | G-18 change a draft (its author only) |
+| POST | `/api/v1/admin/growth/landing-edits/{id}/submit` | G-18 submit a draft: the content quality gate runs and a blocking failure refuses it (422 LANDING_EDIT_QUALITY) |
+| POST | `/api/v1/admin/growth/landing-edits/{id}/approve` | G-18 approve (checker, never the author); the gate runs again; supersedes the active edit of that page and locale |
+| POST | `/api/v1/admin/growth/landing-edits/{id}/reject` | G-18 reject a submitted edit (checker, never the author) |
+| POST | `/api/v1/admin/growth/landing-edits/{id}/withdraw` | G-18 withdraw an edit: an active edit stops applying at once and the generated text returns |
 
 ## growth-sponsored-promotions
 

@@ -3,7 +3,9 @@ import { SeoIndexationService } from './indexation.service';
 import { SeoAutomationController } from './seo-automation.controller';
 import { SeoGateTriggerService } from './seo-trigger.service';
 import { SeoAutomationJob } from './seo-automation.job';
-import { SEO_QUALITY, SEO_TRIGGER } from './seo-automation-public';
+import { SEO_EDITS, SEO_QUALITY, SEO_TRIGGER } from './seo-automation-public';
+import { LandingEditController } from './landing-edit.controller';
+import { LandingEditService } from './landing-edit.service';
 import { SeoAutomationService } from './seo-automation.service';
 import { SeoVitalsService } from './vitals.service';
 
@@ -13,8 +15,8 @@ import { SeoVitalsService } from './vitals.service';
  */
 @Global()
 @Module({
-  controllers: [SeoAutomationController],
-  providers: [SeoAutomationService, { provide: SEO_QUALITY, useExisting: SeoAutomationService }, SeoVitalsService, SeoIndexationService, SeoAutomationJob, SeoGateTriggerService, { provide: SEO_TRIGGER, useExisting: SeoGateTriggerService }],
-  exports: [SEO_QUALITY, SEO_TRIGGER, SeoGateTriggerService, SeoAutomationService, SeoVitalsService, SeoIndexationService, SeoAutomationJob],
+  controllers: [SeoAutomationController, LandingEditController],
+  providers: [LandingEditService, { provide: SEO_EDITS, useExisting: LandingEditService }, SeoAutomationService, { provide: SEO_QUALITY, useExisting: SeoAutomationService }, SeoVitalsService, SeoIndexationService, SeoAutomationJob, SeoGateTriggerService, { provide: SEO_TRIGGER, useExisting: SeoGateTriggerService }],
+  exports: [SEO_EDITS, LandingEditService, SEO_QUALITY, SEO_TRIGGER, SeoGateTriggerService, SeoAutomationService, SeoVitalsService, SeoIndexationService, SeoAutomationJob],
 })
 export class SeoAutomationModule {}

@@ -6,7 +6,7 @@ import { dirname, extname, join, normalize, sep } from 'node:path';
 import { FlagsService } from '../control-plane/control-plane-public';
 import { GROWTH_FLAG } from '../growth/growth-public';
 import { SsrVariantService, type SsrVariant } from '../growth/experiments/experiments-public';
-import { pageKeyOf, SEO_QUALITY, type ComputedLinkGroup, type SeoQualityPort } from '../growth/seo-automation/seo-automation-public';
+import { pageKeyOf, SEO_EDITS, SEO_QUALITY, type ComputedLinkGroup, type LandingEditPort, type SeoQualityPort } from '../growth/seo-automation/seo-automation-public';
 import { PublicSiteCache } from './cache-tags';
 import { composeDocument, escapeHtml } from './head';
 import { looseRedirectTarget } from './loose-path';
@@ -38,6 +38,7 @@ export class RenderController {
     private readonly data: SiteDataService, private readonly renderer: SiteRenderer, private readonly redirects: RedirectsService, private readonly seo: SeoConfigService,
     private readonly flags: FlagsService, private readonly index: SiteIndexService, private readonly cache: PublicSiteCache,
     @Optional() @Inject(SEO_QUALITY) private readonly quality?: SeoQualityPort,
+    @Optional() @Inject(SEO_EDITS) private readonly edits?: LandingEditPort,
     @Optional() private readonly variants?: SsrVariantService,
   ) {}
 
@@ -96,6 +97,8 @@ export class RenderController {
     const pageData = computed.length ? ({ ...loaded.data, computedLinks: computed } as typeof loaded.data) : loaded.data;
     const experiments = sv ? { [sv.surface]: { experiment: sv.experiment, variant: sv.variant } } : undefined;
     const out = await this.renderer.render({ locale: route.locale, cc: route.cc, type: route.type, path: this.pathOf(route), query: q, data: pageData, site: { canonicalHost: cfg.canonicalHost, reviewMarkup, templates, imageCdn: process.env.SITE_IMAGE_CDN?.startsWith('https://') ? process.env.SITE_IMAGE_CDN.replace(/\/+$/, '') : null }, ...(experiments ? { experiments } : {}) });
+    // G-18: an approved editorial title and description of a listing page replaces the generated meta text (never the body, the canonical, the indexing or the structured data)
+    const edit = (await this.edits?.activeFor(market, pageKey, route.locale).catch(() => null)) ?? null;
     const indexable = cfg.indexable && loaded.indexable && !blockedByGate;
     const path = this.pathOf(route);
     // an incomplete locale is not offered as an alternate, and x-default then points at the locale that is complete
@@ -104,7 +107,7 @@ export class RenderController {
     const alternates = omitted.length ? keep.map((a) => (a.hreflang === 'x-default' ? { ...a, href: keep.find((k) => k.hreflang !== 'x-default')?.href ?? a.href } : a)) : all;
     const assets = this.renderer.assets();
     const { html, styleHash } = composeDocument({
-      locale: route.locale, cc: route.cc, canonical: canonicalUrl(cfg.canonicalHost, path, q), alternates, indexable, title: out.meta.title, description: out.meta.description,
+      locale: route.locale, cc: route.cc, canonical: canonicalUrl(cfg.canonicalHost, path, q), alternates, indexable, title: edit?.title ?? out.meta.title, description: edit?.description ?? out.meta.description,
       ogImage: out.meta.ogImage ?? `${cfg.canonicalHost}/og-image.png`, siteName: 'Kiorex', jsonLd: out.jsonLd, bodyHtml: out.html,
       state: { locale: route.locale, cc: route.cc, type: route.type, path, query: q, data: pageData, ...(experiments ? { experiments } : {}) }, assets,
       ...(route.type === 'home' && cfg.indexable ? { verification: { google: verificationCfg().googleMeta, bing: verificationCfg().bingMeta } } : {}),

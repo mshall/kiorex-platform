@@ -1602,6 +1602,30 @@ model GrowthLandingPage {
   @@index([market, indexable])
 }
 
+/// G-18 editorial title and description of a generated listing page (maker-checker, quality gate on submit, one ACTIVE per page and locale). CHECKs and the partial unique index live in the migration.
+model GrowthLandingEdit {
+  id           String    @id
+  market       String    @default("EG")
+  pageKey      String
+  locale       String
+  version      Int
+  status       String    @default("DRAFT") // DRAFT PENDING_APPROVAL ACTIVE REJECTED SUPERSEDED WITHDRAWN
+  title        String
+  description  String
+  reason       String?
+  quality      Json?
+  createdBy    String
+  submittedAt  DateTime?
+  decidedBy    String?
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@unique([market, pageKey, locale, version])
+  @@index([market, status])
+}
+
 /// Widget origins verified from the Clinic profile projection (PROVIDER_PROFILE_UPDATED.widgetOrigins). Exact https origins only, at most 10 (constraint in the migration).
 model WidgetRegistration {
   id        String   @id @default(cuid())
