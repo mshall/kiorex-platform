@@ -28,6 +28,12 @@ describe('WAF rules cover every public growth path', () => {
     expect(rules.find((r) => r.id === 'rate-growth-referral')!.paths).toEqual(expect.arrayContaining(['/api/v1/growth/v1/referral/*']));
     expect(rules.find((r) => r.id === 'rate-invite-landing')!.paths).toEqual(['/invite/*']);
   });
+  it('G-27: loyalty, corporate and consent have their own tighter rules, windows are valid WAFv2 windows, and every path pattern is an absolute prefix', () => {
+    const general = rules.find((r) => r.id === 'rate-growth-public')!.rateLimit!.requests;
+    for (const id of ['rate-growth-loyalty', 'rate-growth-corporate', 'rate-growth-consent']) { const r = rules.find((x) => x.id === id)!; expect(r).toBeTruthy(); expect(r.rateLimit!.requests).toBeLessThanOrEqual(general); }
+    expect(rules.find((r) => r.id === 'rate-growth-loyalty')!.paths).toEqual(['/api/v1/growth/v1/loyalty/*']);
+    for (const r of rules) { if (r.rateLimit) { expect([60, 120, 300, 600]).toContain(r.rateLimit.windowSeconds); for (const p of r.paths ?? []) expect(p.startsWith('/')).toBe(true); } }
+  });
   it('rule ids are unique and every rule has an action and a statement; the earlier rules are untouched', () => {
     expect(new Set(rules.map((r) => r.id)).size).toBe(rules.length);
     for (const id of ['rate-public-auth', 'aws-managed-common', 'aws-managed-known-bad-inputs', 'geo-optional']) expect(rules.map((r) => r.id)).toContain(id);

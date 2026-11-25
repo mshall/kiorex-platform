@@ -2,7 +2,10 @@
 
 locals {
   action = { for r in var.waf_rules.rules : r.id => upper(r.action) }
-  has    = { for id in ["rate-public-auth", "aws-managed-common", "aws-managed-known-bad-inputs", "geo-optional"] : id => contains(keys(local.action), id) }
+  # G-27: every other rule that names paths and a rate limit becomes a rate-based rule scoped to those paths (priority 100 and up, in file order)
+  builtin      = ["rate-public-auth", "aws-managed-common", "aws-managed-known-bad-inputs", "geo-optional"]
+  growth_rules = [for r in var.waf_rules.rules : r if !contains(local.builtin, r.id) && r.paths != null && r.rateLimit != null]
+  has          = { for id in ["rate-public-auth", "aws-managed-common", "aws-managed-known-bad-inputs", "geo-optional"] : id => contains(keys(local.action), id) }
 }
 
 resource "aws_wafv2_web_acl" "this" {
@@ -141,6 +144,57 @@ resource "aws_wafv2_web_acl" "this" {
       visibility_config {
         cloudwatch_metrics_enabled = true
         metric_name                = "${var.name}-geo-optional"
+        sampled_requests_enabled   = true
+      }
+    }
+  }
+
+  # growth public-path rate rules (G-27), generated from platform/waf-rules.json. Window must be one of 60, 120, 300, 600 seconds (WAFv2).
+  dynamic "rule" {
+    for_each = { for i, r in local.growth_rules : r.id => merge(r, { index = i }) }
+    content {
+      name     = rule.value.id
+      priority = 100 + rule.value.index
+      action {
+        dynamic "block" {
+          for_each = upper(rule.value.action) == "BLOCK" ? [1] : []
+          content {}
+        }
+        dynamic "count" {
+          for_each = upper(rule.value.action) == "COUNT" ? [1] : []
+          content {}
+        }
+      }
+      statement {
+        rate_based_statement {
+          limit                 = rule.value.rateLimit.requests
+          aggregate_key_type    = "IP"
+          evaluation_window_sec = rule.value.rateLimit.windowSeconds
+          scope_down_statement {
+            or_statement {
+              dynamic "statement" {
+                for_each = [for p in rule.value.paths : trimsuffix(p, "*")]
+                content {
+                  byte_match_statement {
+                    search_string         = statement.value
+                    positional_constraint = "STARTS_WITH"
+                    field_to_match {
+                      uri_path {}
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "NONE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.name}-${rule.value.id}"
         sampled_requests_enabled   = true
       }
     }

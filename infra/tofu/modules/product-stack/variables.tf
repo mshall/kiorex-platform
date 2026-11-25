@@ -329,6 +329,16 @@ variable "safety_alerts" {
   default = {}
 }
 
+# G-27 growth alarms (ledger invariants, promotion reserve busy, revenue facts, CDN purge). Off by default; applying is a founder-approved human step.
+variable "growth_alarms" {
+  description = "CloudWatch metric filters and alarms on the API application logs for the growth engine (modules/aws/growth-alarms). Notifies the general alerts topic."
+  type = object({
+    enabled                  = optional(bool, false)
+    promotion_busy_threshold = optional(number, 20)
+  })
+  default = {}
+}
+
 # GRW-P1-E public SEO site (SSR role of the same API image). All OFF by default; turning them on is a founder-approved change (no deploy until then).
 variable "site_enabled" {
   description = "Route the public SSR namespaces to the site role at the CDN (see modules/aws/cdn-edge). Also set env_vars SITE_ROLE (all|site) and SITE_ENVIRONMENT (production only in prod)."

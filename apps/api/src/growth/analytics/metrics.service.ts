@@ -88,7 +88,7 @@ export class GrowthMetricsService {
   /** G-19: which part of the revenue is confirmed by a Clinic fact and which part still rests on the completion inference (a caveat, never hidden). */
   private async revenueBasis(f: GrowthFilters) {
     const from = new Date(`${f.from}T00:00:00Z`); const to = new Date(new Date(`${f.to}T00:00:00Z`).getTime() + 86_400_000);
-    return revenueBasisReport(this.prisma, f.market ?? 'EG', from, to);
+    return revenueBasisReport(this.prisma, f.market ?? GROWTH_DEFAULT_MARKET, from, to);
   }
 
   /** Executive overview: the tiles of KX-32 section 04 for the period and filters. */

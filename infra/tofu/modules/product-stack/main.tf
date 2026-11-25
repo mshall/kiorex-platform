@@ -334,6 +334,22 @@ module "observability" {
 }
 
 # ---------------------------------------------------------------------------------------------------------
+# G-27 growth alarms (off by default)
+# ---------------------------------------------------------------------------------------------------------
+module "growth_alarms" {
+  count  = var.growth_alarms.enabled ? 1 : 0
+  source = "../aws/growth-alarms"
+
+  name                       = local.name
+  application_log_group_name = "/aws/apprunner/${module.container_service.service_name}/${module.container_service.service_id}/application"
+  alerts_topic_arn           = module.observability.alerts_topic_arn
+  promotion_busy_threshold   = var.growth_alarms.promotion_busy_threshold
+  tags                       = local.tags
+
+  depends_on = [module.observability]
+}
+
+# ---------------------------------------------------------------------------------------------------------
 # safety-alert delivery alarms (KX-09 SAFETY_ALERT_RAISED <= 60 s, KX-23 stop-ship). Off by default.
 # producer = Kiorly Clinic / Nurse edition; consumer = Kiorex (only if it consumes SAFETY_ALERT_RAISED).
 # ---------------------------------------------------------------------------------------------------------

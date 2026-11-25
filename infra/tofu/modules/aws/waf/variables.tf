@@ -9,6 +9,9 @@ variable "waf_rules" {
     rules = list(object({
       id     = string
       action = string
+      # G-27: growth rate rules carry the paths they cover and their limit (platform/waf-rules.json); the four built-in rules above ignore both
+      paths     = optional(list(string))
+      rateLimit = optional(object({ requests = number, windowSeconds = number }))
     }))
   })
 }

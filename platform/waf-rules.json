@@ -104,6 +104,46 @@
         "requests": 60,
         "windowSeconds": 300
       }
+    },
+    {
+      "id": "rate-growth-loyalty",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 60 requests / 5 min per IP on loyalty points, exchange and partner-code redemption (the app also limits attempts per person)",
+      "paths": [
+        "/api/v1/growth/v1/loyalty/*"
+      ],
+      "rateLimit": {
+        "requests": 60,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-growth-corporate",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 30 requests / 5 min per IP on corporate code redemption and verification (guess resistance; the app also limits attempts per person)",
+      "paths": [
+        "/api/v1/growth/v1/corporate/*"
+      ],
+      "rateLimit": {
+        "requests": 30,
+        "windowSeconds": 300
+      }
+    },
+    {
+      "id": "rate-growth-consent",
+      "scope": "CloudFront",
+      "action": "BLOCK",
+      "statement": "Rate-based: 60 requests / 5 min per IP on the anonymous consent decision and the consent text versions (a banner needs two calls per page view)",
+      "paths": [
+        "/api/v1/growth/v1/consent",
+        "/api/v1/growth/v1/consent/*"
+      ],
+      "rateLimit": {
+        "requests": 60,
+        "windowSeconds": 300
+      }
     }
   ]
 }
