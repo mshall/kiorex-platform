@@ -1,3 +1,4 @@
+import { VISIT_TIMES_KIND, visitTimesDetail } from '../growth/fraud/visit-facts';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { BookingIntent, Prisma, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
@@ -469,6 +470,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     if (!b && apptId) b = await this.prisma.bookingIntent.findFirst({ where: { kiorlyAppointmentId: apptId } });
     if (!b) return 'UNKNOWN_BOOKING';
     const meta = { ...(ev.data.metadata ?? {}), ...ev.data };
+    if (ev.type === 'CHECKED_IN' || ev.type === 'COMPLETED') { const t = visitTimesDetail(ev.type, meta); if (t) await this.ev(b.id, VISIT_TIMES_KIND, t).catch(() => undefined); } // fraud signal input only (short visit); never blocks the transition
     if (isHomeEvent(ev.type)) return this.applyHomeEvent(b, ev.type, meta);
     const beforeTele = b; b = await this.applyTelehealthPayload(b, meta); const teleApplied = b !== beforeTele;
     if (ev.type === 'RESCHEDULED' || ev.type === 'APPOINTMENT_RESCHEDULED') {

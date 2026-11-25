@@ -1,3 +1,4 @@
+import { quarantinedTouchIds } from '../fraud/quarantine';
 import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { Inject, Injectable } from '@nestjs/common';
 import { GROWTH_CONFIG_SCHEMAS, type GrowthConfigKind } from '@kiorex/contracts';
@@ -76,9 +77,11 @@ export class GrowthAdminService {
   async channels(q: { days?: unknown; market?: string }) {
     const market = marketOf(q.market); const days = clampDays(q.days);
     const since = new Date(Date.now() - days * 86_400_000);
+    const quarantined = await quarantinedTouchIds(this.prisma);
+    const notQuarantined = quarantined.length ? { id: { notIn: quarantined } } : {};
     const [sources, touches] = await Promise.all([
       this.prisma.growthAcquisitionSource.findMany({ where: { market }, orderBy: [{ sourceKind: 'asc' }, { createdAt: 'desc' }], take: 500 }),
-      this.prisma.growthTouchpoint.groupBy({ by: ['sourceId'], where: { market, occurredAt: { gte: since } }, _count: { _all: true }, _max: { occurredAt: true } }),
+      this.prisma.growthTouchpoint.groupBy({ by: ['sourceId'], where: { market, occurredAt: { gte: since }, ...notQuarantined }, _count: { _all: true }, _max: { occurredAt: true } }),
     ]);
     const byId = new Map(touches.map((t) => [t.sourceId, t]));
     const rows = sources.map((s) => ({ id: s.id, sourceKind: s.sourceKind, sourceRef: s.sourceRef, label: s.label, ownerOrgRef: s.ownerOrgRef, active: s.active, touches: byId.get(s.id)?._count._all ?? 0, lastTouchAt: byId.get(s.id)?._max.occurredAt?.toISOString() ?? null }));
@@ -98,8 +101,9 @@ export class GrowthAdminService {
   async providerAcquisition(q: { days?: unknown; market?: string }) {
     const market = marketOf(q.market); const days = clampDays(q.days);
     const since = new Date(Date.now() - days * 86_400_000);
+    const quarantined = await quarantinedTouchIds(this.prisma);
     const [touches, byKind, owned] = await Promise.all([
-      this.prisma.growthTouchpoint.groupBy({ by: ['providerOrgRef'], where: { market, occurredAt: { gte: since }, providerOrgRef: { not: null } }, _count: { _all: true }, orderBy: { _count: { providerOrgRef: 'desc' } }, take: 25 }),
+      this.prisma.growthTouchpoint.groupBy({ by: ['providerOrgRef'], where: { market, occurredAt: { gte: since }, providerOrgRef: { not: null }, ...(quarantined.length ? { id: { notIn: quarantined } } : {}) }, _count: { _all: true }, orderBy: { _count: { providerOrgRef: 'desc' } }, take: 25 }),
       this.prisma.growthAcquisitionSource.groupBy({ by: ['sourceKind'], where: { market, ownerOrgRef: { not: null } }, _count: { _all: true } }),
       this.prisma.growthAcquisitionSource.count({ where: { market, ownerOrgRef: { not: null }, active: true } }),
     ]);

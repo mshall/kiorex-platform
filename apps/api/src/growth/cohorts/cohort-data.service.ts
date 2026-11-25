@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { quarantinedTouchIds } from '../fraud/quarantine';
 import { PrismaService } from '../../prisma/prisma.service';
 import { marketTimezone } from '../../market/market-core-public';
 import { startOfLocalDay } from '../campaigns/market-day';
@@ -50,12 +51,13 @@ export class CohortDataService {
   private async sourceOf(market: string, bookingIds: readonly string[]): Promise<Map<string, { sourceKind: string; campaignId: string; platform: string }>> {
     const out = new Map<string, { sourceKind: string; campaignId: string; platform: string }>();
     const campaigns = new Map((await this.prisma.growthCampaign.findMany({ where: { market }, select: { id: true, utmCampaign: true }, take: 5000 })).map((c) => [c.utmCampaign, c.id] as const));
+    const quarantined = new Set(await quarantinedTouchIds(this.prisma)); // QUARANTINE_TOUCH: a quarantined winning touch gives no source or campaign
     for (const c of chunks(bookingIds)) {
       const decisions = await this.prisma.growthAttributionDecision.findMany({ where: { market, bookingId: { in: c } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], select: { bookingId: true, origin: true, winningTouchId: true } });
       const first = new Map<string, { origin: string; winningTouchId: string | null }>(); for (const d of decisions) if (!first.has(d.bookingId)) first.set(d.bookingId, d);
       const touchIds = [...first.values()].map((d) => d.winningTouchId).filter((x): x is string => !!x);
       const touches = new Map<string, { kind: string; utmCampaign: string | null; utmSource: string | null }>();
-      for (const t of chunks(touchIds)) for (const r of await this.prisma.growthTouchpoint.findMany({ where: { id: { in: t } }, select: { id: true, kind: true, utmCampaign: true, utmSource: true } })) touches.set(r.id, r);
+      for (const t of chunks(touchIds)) for (const r of await this.prisma.growthTouchpoint.findMany({ where: { id: { in: t.filter((x) => !quarantined.has(x)) } }, select: { id: true, kind: true, utmCampaign: true, utmSource: true } })) touches.set(r.id, r);
       for (const [bookingId, d] of first) {
         const t = d.winningTouchId ? touches.get(d.winningTouchId) : undefined;
         const ref = t?.utmCampaign ?? ''; const src = (t?.utmSource ?? '').toLowerCase();

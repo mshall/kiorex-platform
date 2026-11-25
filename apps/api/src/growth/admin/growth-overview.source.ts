@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GROWTH_EVENT_NAMES } from '@kiorex/contracts';
+import { quarantinedTouchIds } from '../fraud/quarantine';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GrowthMetricsService, parseFilters } from '../analytics/metrics.service';
 
@@ -27,12 +28,13 @@ export class InternalOverviewSource implements GrowthOverviewSource {
   constructor(private readonly prisma: PrismaService) {}
   async overview({ market, days }: OverviewQuery): Promise<OverviewData> {
     const since = new Date(Date.now() - days * 86_400_000);
+    const quarantined = await quarantinedTouchIds(this.prisma); // QUARANTINE_TOUCH: reports do not count a quarantined touch
     const [events, origins, reasons, touches] = await Promise.all([
       this.prisma.growthEvent.groupBy({ by: ['name'], where: { market, occurredAt: { gte: since } }, _count: { _all: true } }),
       // originals only: a correction supersedes a decision and must not be counted twice
       this.prisma.growthAttributionDecision.groupBy({ by: ['origin'], where: { market, createdAt: { gte: since }, supersedesId: null }, _count: { _all: true } }),
       this.prisma.growthAttributionDecision.groupBy({ by: ['reasonCode'], where: { market, createdAt: { gte: since }, supersedesId: null }, _count: { _all: true } }),
-      this.prisma.growthTouchpoint.groupBy({ by: ['kind'], where: { market, occurredAt: { gte: since } }, _count: { _all: true } }),
+      this.prisma.growthTouchpoint.groupBy({ by: ['kind'], where: { market, occurredAt: { gte: since }, ...(quarantined.length ? { id: { notIn: quarantined } } : {}) }, _count: { _all: true } }),
     ]);
     const led = origins.find((o) => o.origin === 'PROVIDER_LED')?._count._all ?? 0;
     const mp = origins.find((o) => o.origin === 'MARKETPLACE')?._count._all ?? 0;

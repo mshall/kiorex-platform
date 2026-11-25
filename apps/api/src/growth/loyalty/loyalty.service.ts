@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { FlagsService } from '../../control-plane/control-plane-public';
 import { ApiError, unprocessable } from '../../common/errors';
 import { newId } from '../../common/ids';
 import { Prisma } from '../../prisma/generated/client';
 import { PrismaService, type Tx } from '../../prisma/prisma.service';
+import { FRAUD_SCORER, type FraudScorer } from '../fraud/fraud-public';
+import { hadCheckIn, visitMinutesOf } from '../fraud/visit-facts';
 import { GrowthConfigService } from '../config/growth-config.service';
 import { GROWTH_DEFAULT_MARKET, LOYALTY_FLAG } from '../growth-flags';
 import type { LoyaltyPort } from '../growth-ports-public';
@@ -16,7 +18,7 @@ import { TIER_RANK, bonusFor, nextTier, tierFor, windowStart } from './tiers';
 export type AccrualOutcome =
   | { status: 'ACCRUED'; accountId: string; points: number; tier: Tier; tierBonus: number }
   | { status: 'EXISTING'; accountId: string }
-  | { status: 'SKIPPED'; reason: 'FLAG_OFF' | 'RULES_OFF' | 'NOT_COMPLETED' | 'DEPENDANT' | 'UNKNOWN_BOOKING' | 'ZERO_POINTS' | 'ANNUAL_CAP'; tier?: Tier };
+  | { status: 'SKIPPED'; reason: 'FLAG_OFF' | 'RULES_OFF' | 'NOT_COMPLETED' | 'DEPENDANT' | 'UNKNOWN_BOOKING' | 'ZERO_POINTS' | 'ANNUAL_CAP' | 'FRAUD_HOLD'; tier?: Tier };
 export interface ConvertResult { lotId: string; mode: string; points: number; amountMinor: number; currency: string; balanceAfter: number }
 type Locked = { id: string; sub: string; tier: string; pointsBalanceCache: number; market: string };
 
@@ -34,7 +36,7 @@ const yearAgo = (now: Date) => new Date(now.getTime() - 365 * dayMs);
 @Injectable()
 export class LoyaltyService implements LoyaltyPort {
   private readonly log = new Logger('loyalty');
-  constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService, private readonly flags: FlagsService, private readonly adapter: LoyaltyRedemptionAdapter, private readonly events: LoyaltyEventsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService, private readonly flags: FlagsService, private readonly adapter: LoyaltyRedemptionAdapter, private readonly events: LoyaltyEventsService, @Optional() @Inject(FRAUD_SCORER) private readonly scorer?: FraudScorer) {}
 
   isOn(market = GROWTH_DEFAULT_MARKET): Promise<boolean> { return this.flags.isEnabled(LOYALTY_FLAG, { market }).catch(() => false); }
   async rules(market = GROWTH_DEFAULT_MARKET, at?: Date): Promise<{ rules: LoyaltyRules; versionId: string; source: string }> {
@@ -79,6 +81,7 @@ export class LoyaltyService implements LoyaltyPort {
     if (!(await this.isOn(market))) return { status: 'SKIPPED', reason: 'FLAG_OFF' };
     const { rules } = await this.rules(market, undefined);
     if (!rules.enabled) return { status: 'SKIPPED', reason: 'RULES_OFF' };
+    if (await this.heldByFraud(b, now, market)) return { status: 'SKIPPED', reason: 'FRAUD_HOLD' };
     return this.prisma.$transaction(async (tx) => {
       const acc = (await this.lockAccount(tx, b.sub, market, true))!;
       const key = `loyalty:accrue:${bookingId}`;
@@ -111,6 +114,25 @@ export class LoyaltyService implements LoyaltyPort {
       await this.events.emit(tx, 'LoyaltyPointsAccrued', 'LoyaltyAccount', acc.id, { accountRef: acc.id, market, entryType: 'ACCRUE', points, tier, at: now.toISOString() }, `accrue:${bookingId}`);
       return { status: 'ACCRUED' as const, accountId: acc.id, points, tier, tierBonus };
     }, { timeout: 20_000 });
+  }
+
+  /**
+   * Loyalty is scored by the same fraud rules as a referral reward (surface REWARD): a completion without a check-in, a very short visit (check-in and completion times from the Clinic), a repeated cancel and rebook of one slot.
+   * Scoring runs once per booking (a duplicate accrual is not scored again). With the rules in SHADOW (the default) only a case is recorded and the points are earned as usual; a rule switched to enforce that reaches HOLD withholds
+   * the points of THAT booking (no ledger row; `accrue(bookingId)` is idempotent, so ops can replay it after a dismissal). Best effort: a scoring failure never blocks an accrual.
+   */
+  private async heldByFraud(b: { id: string; sub: string; status: string }, now: Date, market: string): Promise<boolean> {
+    if (!this.scorer) return false;
+    try {
+      if (await this.prisma.loyaltyAccrualEntry.findUnique({ where: { idempotencyKey: `loyalty:accrue:${b.id}` }, select: { id: true } })) return false;
+      const bk = await this.prisma.bookingIntent.findUnique({ where: { id: b.id }, select: { providerId: true, startsAt: true } });
+      const checkedIn = await hadCheckIn(this.prisma, b.id);
+      const visitMinutes = await visitMinutesOf(this.prisma, b.id);
+      const rebooks = bk ? await this.prisma.bookingIntent.count({ where: { sub: b.sub, providerId: bk.providerId, startsAt: bk.startsAt, status: 'CANCELLED' } }) : 0;
+      const a = await this.scorer.assess('REWARD', { completionWithoutCheckIn: !checkedIn, ...(visitMinutes !== undefined ? { visitMinutes } : {}), repeatedSlotCancelRebook: rebooks >= 2 }, { market, subject: b.sub, evidenceRef: `loyalty:${b.id}` });
+      if (a.action === 'HOLD_REWARD') { await this.prisma.auditLog.create({ data: { actor: 'system:loyalty', action: 'growth.loyalty.accrual_withheld', resource: 'BookingIntent', resourceId: b.id, metadata: { band: a.band, caseId: a.caseId, at: now.toISOString() } } }); return true; }
+    } catch (e) { this.log.warn(`loyalty fraud scoring failed for ${b.id} (accrual continues): ${(e as Error).message}`); }
+    return false;
   }
 
   // ───────────────────────── refund reversal ─────────────────────────

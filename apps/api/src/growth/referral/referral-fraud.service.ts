@@ -1,3 +1,4 @@
+import { hadCheckIn, visitMinutesOf } from '../fraud/visit-facts';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { subRefOf } from '../../common/privacy-hash';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -69,7 +70,8 @@ export class ReferralFraudService {
     const reefPhones = await this.identity.hashesOf(rel.refereeSub, 'STAFF_MATCH');
     const refPhones = await this.identity.hashesOf(rel.referrerSub, 'STAFF_MATCH');
     const staffMatch = booking ? await this.staff.matches(booking.clinicId, [...reefPhones, ...refPhones]) : false;
-    const checkedIn = booking ? !!(await this.prisma.bookingEvent.findFirst({ where: { bookingId: booking.id, kind: 'STATE', toStatus: { in: ['CHECKED_IN', 'COMPLETED'] } }, select: { id: true } })) : true;
+    const checkedIn = booking ? await hadCheckIn(this.prisma, booking.id) : true;
+    const visitMinutes = booking?.status === 'COMPLETED' ? await visitMinutesOf(this.prisma, booking.id) : undefined;
     const slotRebooks = booking ? await this.prisma.bookingIntent.count({ where: { sub: rel.refereeSub, providerId: booking.providerId, startsAt: booking.startsAt, status: 'CANCELLED' } }) : 0;
     const refRefunded = booking?.depositStatus === 'REFUNDED';
     return {
@@ -79,7 +81,7 @@ export class ReferralFraudService {
       refereesSharingPaymentFingerprint: refPay.length && (await this.identity.shared('PAY_FINGERPRINT', rel.referrerSub, rel.refereeSub)) ? 2 : 0,
       staffPhoneMatch: staffMatch, topProviderShare: sibBookings.length >= 4 ? top / sibBookings.length : 0,
       completionWithoutCheckIn: booking?.status === 'COMPLETED' ? !checkedIn : false,
-      // visitMinutes is not fed: the Clinic sends no check-in and check-out times yet (gap in GROWTH.md), so the RF_FAKE_BOOKING short-visit rule is covered by unit tests only
+      ...(visitMinutes !== undefined ? { visitMinutes } : {}), // from the Clinic's optional checkedInAt and completedAt (contracts 1.13.0); absent until the Clinic sends both
      
       depositRefundedAfterReward: !!rel.qualifiedAt && refRefunded, repeatedSlotCancelRebook: slotRebooks >= 2,
       refereeCancelledInHold: booking ? ['CANCELLED', 'EXPIRED'].includes(booking.status) || refRefunded : false,
