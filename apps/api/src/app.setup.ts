@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { StrictOpsValidationPipe, strictDtoMiddleware } from './common/strict-dto';
 import { RejectNulBytesPipe } from './common/reject-nul-bytes.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
@@ -33,7 +34,8 @@ export function setupApp(app: INestApplication) {
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
   // org-onboarding quarantine uploads: raw bytes (SQL dumps up to 50 MB, scanned and size-checked per kind in the service)
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('raw', { type: 'application/octet-stream', limit: '52mb' });
-  app.useGlobalPipes(new RejectNulBytesPipe(), new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
+  app.use(strictDtoMiddleware);
+  app.useGlobalPipes(new RejectNulBytesPipe(), new StrictOpsValidationPipe());
   app.useGlobalFilters(new AllExceptionsFilter());
   return app;
 }
