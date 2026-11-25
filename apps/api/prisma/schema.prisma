@@ -1533,7 +1533,7 @@ model GrowthConfigVersion {
   scope         String    @default("GLOBAL") // GLOBAL | MARKET
   scopeId       String    @default("") // market code for MARKET scope
   version       Int
-  status        String    @default("DRAFT") // DRAFT PENDING_APPROVAL APPROVED ACTIVE SUPERSEDED REJECTED ROLLED_BACK
+  status        String    @default("DRAFT") // DRAFT PENDING_APPROVAL APPROVED ACTIVE SUPERSEDED REJECTED ROLLED_BACK WITHDRAWN
   payload       Json
   schemaVersion Int       @default(1)
   effectiveFrom DateTime?

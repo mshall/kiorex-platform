@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GROWTH_CONFIG_SCHEMAS, GROWTH_CONFIG_STATES, type GrowthConfigKind } from '@kiorex/contracts';
-import { IsBoolean, IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from 'class-validator';
 import { AuthUser, CurrentUser, Roles } from '../../common/auth';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_PAYLOADS } from '../config/growth-defaults';
@@ -53,6 +53,7 @@ export class UpdateConfigDto {
   @IsOptional() @IsString() @MaxLength(1000) announcement?: string;
 }
 export class RejectDto { @IsString() @MaxLength(300) reason!: string }
+export class WithdrawDto { @IsString() @MinLength(10) @MaxLength(300) reason!: string }
 export class RollbackDto extends ConfigKeyDto {
   @IsInt() @Min(1) toVersion!: number;
   @IsString() @MaxLength(300) reason!: string;
@@ -132,6 +133,8 @@ export class GrowthConfigAdminController {
   approve(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.approve(actor(u), id); }
   @Roles(...rolesFor('approveConfig')) @Post(':id/reject') @HttpCode(200) @ApiOperation({ summary: 'GRW-P1-K reject a pending version (checker; never the author)' }) @ApiOkResponse(OBJ)
   reject(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: RejectDto) { return this.svc.reject(actor(u), id, b.reason); }
+  @Roles(...rolesFor('approveConfig')) @Post(':id/withdraw') @HttpCode(200) @ApiOperation({ summary: 'G-21 withdraw an APPROVED version before its effective date (terminal WITHDRAWN, audited, reason required)' }) @ApiOkResponse(OBJ)
+  withdraw(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: WithdrawDto) { return this.svc.withdraw(actor(u), id, b.reason); }
   @Roles(...rolesFor('approveConfig')) @Post(':id/activate') @HttpCode(200) @ApiOperation({ summary: 'GRW-P1-K activate an approved version at its effective date (refused earlier)' }) @ApiOkResponse(OBJ)
   activate(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.activate(actor(u), id); }
   @Roles(...rolesFor('writeConfig')) @Post('rollback') @HttpCode(200) @ApiOperation({ summary: 'GRW-P1-K roll back = a NEW version copying an older payload, same approval path' }) @ApiOkResponse(OBJ)

@@ -73,7 +73,7 @@ const isSuper = (a: ConfigActor) => a.roles.includes('super_admin');
  * Versioned growth configuration (ARCH section 16). Rows are immutable once they leave DRAFT; every transition writes an AuditLog row
  * (`growth.config.<transition>`, checksums only, never payload secrets: there are none, only secretRef names).
  *
- *   DRAFT -> PENDING_APPROVAL -> APPROVED -> ACTIVE -> SUPERSEDED | ROLLED_BACK       (REJECTED from PENDING_APPROVAL)
+ *   DRAFT -> PENDING_APPROVAL -> APPROVED -> ACTIVE -> SUPERSEDED | ROLLED_BACK       (REJECTED from PENDING_APPROVAL; WITHDRAWN from APPROVED before its effectiveFrom, G-21)
  *
  * Maker-checker: approver is a super admin and is not the creator (also a CHECK in the database). Money-policy kinds additionally need
  * effectiveFrom >= approval + 7 days and an announcement. Rollback never edits history: it creates a NEW version that copies an older payload and goes
@@ -257,6 +257,21 @@ export class GrowthConfigService {
     const row = await this.must(id);
     if (row.createdBy === actor.sub) throw growthError('GROWTH_CONFIG_SELF_APPROVAL', 'Reject is a checker action: use a different super admin (the author can leave the draft)');
     return this.move(actor.sub, 'reject', row, { status: 'REJECTED', reason: `${row.reason ?? ''}${row.reason ? ' | ' : ''}rejected: ${reason}`.slice(0, 500) }, ['PENDING_APPROVAL']);
+  }
+
+  /**
+   * G-21: withdraw an APPROVED version that has not taken effect yet (terminal WITHDRAWN). A checker action (super admin, reason of at least 10 characters), audited.
+   * It only ever removes a promise that was not yet in force: nothing ACTIVE changes, history is never edited, and a version whose effectiveFrom has arrived
+   * (or that is already ACTIVE) cannot be withdrawn: that is a rollback (a new version through the same approval).
+   */
+  async withdraw(actor: ConfigActor, id: string, reason: string, now = new Date()) {
+    if (!isSuper(actor)) throw forbidden('FORBIDDEN_ROLE', 'Insufficient role', { required: ['super_admin'] });
+    const why = (reason ?? '').trim();
+    if (why.length < 10) throw growthError('GROWTH_INVALID_REQUEST', 'A reason of at least 10 characters is required to withdraw an approved version');
+    const row = await this.must(id);
+    if (row.status !== 'APPROVED') throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'Only an approved version that has not taken effect can be withdrawn', { status: row.status });
+    if (!row.effectiveFrom || row.effectiveFrom.getTime() <= now.getTime()) throw growthError('GROWTH_CONFIG_TRANSITION_FORBIDDEN', 'The effective date has arrived: use a rollback instead', { effectiveFrom: row.effectiveFrom });
+    return this.move(actor.sub, 'withdraw', row, { status: 'WITHDRAWN', reason: `${row.reason ?? ''}${row.reason ? ' | ' : ''}withdrawn: ${why}`.slice(0, 500) }, ['APPROVED']);
   }
 
   /**

@@ -82,6 +82,29 @@ describe('GrowthConfigService', () => {
       expect((await svc.reject(SUPER_B, d.id, 'not now')).status).toBe('REJECTED');
       expect(await code(svc.approve(SUPER_B, d.id))).toBe('GROWTH_CONFIG_TRANSITION_FORBIDDEN');
     });
+    it('G-21: an approved future version can be withdrawn (terminal, audited, reason required); one in force or not yet approved cannot, and a new version can follow', async () => {
+      const future = new Date(Date.now() + 3 * DAY);
+      const d = await draft({ effectiveFrom: future }); await svc.submit(SUPER_A, d.id);
+      const a = await svc.approve(SUPER_B, d.id);
+      expect(a.status).toBe('APPROVED');
+      expect(await code(svc.withdraw({ ...SUPER_B, roles: ['ops_admin'] } as never, d.id, 'changed our mind about this'))).toBe('FORBIDDEN_ROLE');
+      expect(await code(svc.withdraw(SUPER_B, d.id, 'short'))).toBe('GROWTH_INVALID_REQUEST');
+      const w = await svc.withdraw(SUPER_B, d.id, 'founder asked to hold the change');
+      expect(w.status).toBe('WITHDRAWN');
+      expect(w.reason).toContain('withdrawn: founder asked to hold the change');
+      expect(await code(svc.withdraw(SUPER_B, d.id, 'second withdrawal attempt'))).toBe('GROWTH_CONFIG_TRANSITION_FORBIDDEN');
+      expect(await code(svc.approve(SUPER_B, d.id))).toBe('GROWTH_CONFIG_TRANSITION_FORBIDDEN');
+      expect(await svc.activateDue(new Date(Date.now() + 5 * DAY))).toBe(0); // a withdrawn version never activates
+      expect((await c.prisma.growthConfigVersion.findUniqueOrThrow({ where: { id: d.id } })).status).toBe('WITHDRAWN');
+      const audits = await c.prisma.auditLog.findMany({ where: { resourceId: d.id, action: 'growth.config.withdraw' } });
+      expect(audits).toHaveLength(1);
+      // the slot is free again: a replacement can be drafted and approved
+      const d2 = await draft({ effectiveFrom: future }); await svc.submit(SUPER_A, d2.id);
+      expect((await svc.approve(SUPER_B, d2.id)).status).toBe('APPROVED');
+      // in force: cannot withdraw (rollback is the path)
+      const live = await approved();
+      expect(await code(svc.withdraw(SUPER_B, live.id, 'trying to undo a live version'))).toBe('GROWTH_CONFIG_TRANSITION_FORBIDDEN');
+    });
     it('only the author edits or submits a draft', async () => {
       const d = await draft();
       expect(await code(svc.updateDraft(SUPER_B, d.id, { reason: 'x' }))).toBe('FORBIDDEN_NOT_AUTHOR');
