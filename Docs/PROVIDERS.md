@@ -130,3 +130,8 @@ Founder decision 23 Nov 2026: video-call cost must be the minimum, so Kiorex use
 - Events: Kiorex applies `telehealth.session.created|link_regenerated|rescheduled|started|ended|missed|cancelled|converted` and ignores any other `telehealth.*` type; the join URL is a bearer token and is redacted from the webhook receipt store. The contract schemas are not yet published in `kiorex-contracts`; the code follows `_docs/telehealth/TELEHEALTH_PLAN.md` and is written to tolerate extra or missing fields.
 
 Environment checks live in `common/providers/env.ts` (messaging) and `common/providers/problems.ts` (payment, video, maps, AI); `verifyProviderStartup()` runs both before the server listens and `providerStatus()` feeds `/health/ready` + `/health/providers`. The full variable / secret / console checklist is "Provider go-live checklist" in [NEEDS_HUMAN.md](NEEDS_HUMAN.md).
+
+## 9. Real messaging channels (MSG-REAL)
+
+Meta interactive messages and the 24 h window, the template registry, SES unsubscribe and bounce suppression, the config-described Egyptian SMS aggregator, APNs, per-market configuration (`MESSAGING_CHANNELS`), the real-mode approval gate (`INTEGRATION_MODES`) and the ops Test send and Connection check are described in [INTEGRATION_RUNBOOK_MESSAGING.md](INTEGRATION_RUNBOOK_MESSAGING.md). New variables: `SMS_PROVIDER=aggregator`, `SMS_AGGREGATOR_CONFIG`, `PUSH_APNS_KEY_P8` / `_KEY_ID` / `_TEAM_ID` / `_BUNDLE_ID` / `_PRODUCTION`, `EMAIL_SNS_VERIFY_SIGNATURE`, `EMAIL_SNS_TOPIC_ARNS`, `MESSAGING_TEST_ALLOWLIST`, `MESSAGING_TEST_ALLOWLIST_SUBS`, `INTEGRATION_MODE_GATE_BYPASS` (dev and test only).
+

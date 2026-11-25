@@ -78,7 +78,7 @@ Flags: `kiorex.whatsapp_ai_assistant` (launch-locked until the safety review) an
 
 ## 9. Not built, not decided (NEEDS_HUMAN or later work)
 
-* Live WhatsApp interactive reply buttons: the platform adapter (`messaging/*`, not in this package) sends text; `data.buttons` is passed and the mock inbox lists the buttons as text. Meta interactive message and template approval are open.
+* Live WhatsApp interactive reply buttons: built in the Meta adapter (`messaging/whatsapp/meta.adapter.ts`, MSG-REAL): `data.buttons` becomes an interactive reply-button message inside the 24 h window, the button id round-trips verbatim, outside the window it is refused (`WA_WINDOW_CLOSED`). Never run against Meta; the first live test is in `INTEGRATION_RUNBOOK_MESSAGING.md#whatsapp`.
 * Consent invitation for `AI_PROCESSING`, emergency wording, disclosure wording, refund wording, Arabic review by a native speaker, CMO sign-off: all `TODO_NEEDS_HUMAN` / `NEEDS_HUMAN_APPROVAL`.
 * Real model: vendor, DPA, EU endpoint, key; recorded fixtures from staging (`ASSISTANT_RECORD=1`, dev only).
 * Patient web route that consumes `continuePath` (`/book`, `/signin?next=`, `/bookings/:id/pay`).
