@@ -1,3 +1,4 @@
+import { livePolicy } from '../policy/policy-registry';
 /**
  * Recommendations (GRW-P3-E): advisory only, built from AGGREGATES, approved by a human. The action vocabulary is CLOSED: a recommendation is one of these kinds and nothing else; there is no
  * "send", "spend", "activate", "target" or "audience" kind, and the database repeats the list as a CHECK.
@@ -7,18 +8,15 @@ export type RecommendationKind = (typeof RECOMMENDATION_KINDS)[number];
 export const RECOMMENDATION_STATUSES = ['PROPOSED', 'APPROVED', 'REJECTED', 'EXPIRED', 'CONVERTED'] as const;
 export type RecommendationStatus = (typeof RECOMMENDATION_STATUSES)[number];
 
-export const RECOMMENDATION_POLICY = {
-  /** k-anonymity floor of every number a recommendation rests on (ADR-007). */
-  k: 10,
-  /** EGP 500 in minor units: below this a CAC says nothing (same floor as the channel performance report). */
-  spendFloorMinor: 50_000,
-  expiryDays: 14,
-  maxPerRun: 10,
-  /** The most a reallocation may suggest moving (basis points of the weaker channel's spend). */
-  maxShiftBp: 2000,
-  minRatioBp: 15_000,
-  maxAiSummariesPerDay: 20,
-} as const;
+export interface RecommendationPolicy {
+  /** k-anonymity floor of every number a recommendation rests on (ADR-007); never below 10. */ k: number;
+  /** minor units: below this a CAC says nothing (same floor as the channel performance report). */ spendFloorMinor: number;
+  expiryDays: number; maxPerRun: number;
+  /** The most a reallocation may suggest moving (basis points of the weaker channel's spend). */ maxShiftBp: number;
+  minRatioBp: number; maxAiSummariesPerDay: number;
+}
+/** Live: the ACTIVE `RECOMMENDATION_POLICY` maker-checker version over the shipped defaults (k 10, EGP 500 floor, 14 days, 10 per run, 2000 bp, 1.5 times, 20 summaries). */
+export const RECOMMENDATION_POLICY = livePolicy<RecommendationPolicy & Record<string, unknown>>('RECOMMENDATION_POLICY');
 
 export interface BilingualText { en: string; ar: string }
 export interface RuleProposal {

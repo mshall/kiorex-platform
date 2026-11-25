@@ -1,3 +1,5 @@
+import { EXPERIMENT_POLICY_DEFAULTS } from '../policy/policy-defaults';
+import { livePolicy } from '../policy/policy-registry';
 /** GRW-P3-A shared types and the pure policy defaults. No I/O. */
 
 export const EXPERIMENT_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'RUNNING', 'STOPPED', 'CONCLUDED', 'ARCHIVED'] as const;
@@ -12,21 +14,7 @@ export interface GuardrailSpec { metric: string; /** absolute non-inferiority ma
  * EXPERIMENT_POLICY. Proposed defaults in code until contracts gains the config kind (listed in the W7 as-built "next contracts version" needs); every value is a default, not a decision.
  * `minRunDays` covers weekday cycles; `srmAlpha` is the p-value under which results are hidden.
  */
-export const EXPERIMENT_POLICY = {
-  minRunDays: 7,
-  srmAlpha: 0.001,
-  maxConcurrentPerSurface: 1,
-  maxVariants: 5,
-  kAnonymity: 10,
-  assignmentTtlSeconds: 600,
-  /** an experiment still short of its sample at 2 x plannedDays is stopped (INSUFFICIENT_SAMPLE) */
-  maxRunFactor: 2,
-  /** guardrails need this many events in the treatment arm before a breach can be declared */
-  guardrailMinEvents: 20,
-  /** conversions are attributed within this many days after the exposure */
-  conversionWindowDays: 7,
-  maxCookieExperiments: 3,
-} as const;
+export const EXPERIMENT_POLICY = livePolicy('EXPERIMENT_POLICY', EXPERIMENT_POLICY_DEFAULTS); // live: the ACTIVE maker-checker EXPERIMENT_POLICY version over these defaults
 
 /** The metric registry: primary metrics and guardrails are first-party funnel facts only (GrowthEvent names). `harmful` = a higher rate is worse. */
 export interface MetricSpec { key: string; event: string; harmful: boolean; kind: 'PRIMARY' | 'GUARDRAIL' | 'BOTH'; /** facts keyed by booking resolve to a SUB unit through BookingIntent */ unit: 'VISITOR' | 'BOOKING' }

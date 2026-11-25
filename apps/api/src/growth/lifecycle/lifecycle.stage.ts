@@ -2,12 +2,14 @@
  * Patient lifecycle stages (GRW-P2-E). NON-CLINICAL by construction: derived only from registration, booking and attendance timestamps and counts, never from
  * what the visit was for. PURE (no clock, no database): the caller passes `now`.
  */
+import { livePolicy } from '../policy/policy-registry';
 export const LIFECYCLE_STAGES = ['REGISTERED', 'ACTIVATED', 'BOOKED', 'ATTENDED', 'RETAINED', 'DORMANT', 'CHURNED'] as const;
 export type LifecycleStage = (typeof LIFECYCLE_STAGES)[number];
 
 export interface StageThresholds { dormantDays: number; churnedDays: number; retainedAttendedMin: number; retainedWindowDays: number }
 /** PROPOSED_DEFAULT (KX-27): dormant at 180 days without a booking, churned at 365, retained = 2 or more attended visits in 12 months. Policy may override. */
-export const DEFAULT_STAGE_THRESHOLDS: StageThresholds = { dormantDays: 180, churnedDays: 365, retainedAttendedMin: 2, retainedWindowDays: 365 };
+/** Live: the ACTIVE `LIFECYCLE_STAGES` maker-checker version over these shipped defaults (180, 365, 2, 365). */
+export const DEFAULT_STAGE_THRESHOLDS: StageThresholds = livePolicy<StageThresholds & Record<string, unknown>>('LIFECYCLE_STAGES');
 
 export interface StageFacts {
   registeredAt: Date;

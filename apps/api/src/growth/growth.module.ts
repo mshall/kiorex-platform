@@ -7,6 +7,7 @@ import { AttributionPolicyResolver } from './attribution/policy';
 import { AttributionService } from './attribution/attribution.service';
 import { GrowthConfigController } from './config/growth-config.controller';
 import { GrowthConfigService } from './config/growth-config.service';
+import { PolicyService } from './policy/policy.service';
 import { ConsentWiring } from './consent/consent-wiring';
 import { VisitorConsentController } from './consent/visitor-consent.controller';
 import { VisitorConsentService } from './consent/visitor-consent.service';
@@ -49,11 +50,11 @@ import { TouchService } from './touch/touch.service';
 @Module({
   controllers: [TouchController, GrowthEventsController, VisitorConsentController, EvidenceController, GrowthConfigController, GrowthConfigAdminController, GrowthAdminController, ProductDecisionAdminController, CrossProductController, CrossProductAdminController, GrowthAnalyticsOpsController, GrowthAnalyticsProviderController],
   providers: [
-    GrowthMaintenanceService, GrowthConfigService, AttributionPolicyResolver, GrowthLimiter, FraudSignalService, TouchService, GrowthEventsService, VisitorConsentService,
+    GrowthMaintenanceService, GrowthConfigService, PolicyService, AttributionPolicyResolver, GrowthLimiter, FraudSignalService, TouchService, GrowthEventsService, VisitorConsentService,
     GrowthAdminService, InternalOverviewSource, AnalyticsOverviewSource, { provide: GROWTH_OVERVIEW_SOURCE, useExisting: AnalyticsOverviewSource },
     AttributionService, EvidenceService, LinkRegistryService, CrossProductService, CrossProductFunnelService, CrossProductConsumer, CrossProductJob, CrossProductErasure, { provide: CROSS_PRODUCT_EVENTS, useExisting: CrossProductConsumer }, GrowthProductBookingService, ProductDecisionRepairJob, { provide: PRODUCT_GROWTH, useExisting: GrowthProductBookingService }, LinkRegistryJob, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthRollupJob, GrowthMetricsService, GrowthExportService, GrowthSpendService, SlugService,
     { provide: BOOKING_GROWTH, useExisting: BookingGrowthService }, { provide: GROWTH_REVENUE, useExisting: GrowthRevenueService }, { provide: LINK_REGISTRY, useExisting: LinkRegistryService }, { provide: GROWTH_FACTS, useExisting: GrowthEventsService }, RetentionJob, SubjectDeletedConsumer, ConsentWiring,
   ],
-  exports: [GrowthLimiter, PRODUCT_GROWTH, CROSS_PRODUCT_EVENTS, CrossProductService, GrowthProductBookingService, GROWTH_FACTS, BOOKING_GROWTH, GROWTH_REVENUE, LINK_REGISTRY, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthMetricsService, GrowthSpendService, GrowthMaintenanceService, GrowthConfigService, AttributionService, GrowthEventsService, SlugService, FraudSignalService, AttributionPolicyResolver],
+  exports: [GrowthLimiter, PRODUCT_GROWTH, CROSS_PRODUCT_EVENTS, CrossProductService, GrowthProductBookingService, GROWTH_FACTS, BOOKING_GROWTH, GROWTH_REVENUE, LINK_REGISTRY, LinkRegistryService, BookingGrowthService, GrowthRevenueService, GrowthRollupService, GrowthMetricsService, GrowthSpendService, GrowthMaintenanceService, GrowthConfigService, PolicyService, AttributionService, GrowthEventsService, SlugService, FraudSignalService, AttributionPolicyResolver],
 })
 export class GrowthModule {}

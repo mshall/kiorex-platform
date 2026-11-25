@@ -1,3 +1,4 @@
+import { policyNow } from '../policy/policy-registry';
 import { ApiError } from '../../common/errors';
 
 /**
@@ -41,7 +42,8 @@ export const forbidden = (surface: string, why: string) => new ApiError(422, 'EX
 export function assertSurfaceAllowed(surface: string, tags: readonly string[] = [], extraTokens: readonly string[] = []): SurfaceDef {
   const hit = nameHitsDenylist(surface, extraTokens);
   if (hit) throw forbidden(surface, `its name matches the never-experiment list (${hit})`);
-  const bad = [...tags].find((t) => DENY_TAGS.includes(t.toLowerCase()));
+  const deny = [...DENY_TAGS, ...(policyNow<{ deniedTags?: string[] }>('EXPERIMENT_POLICY').deniedTags ?? [])]; // the stored list can only ADD tags, the code list is never reduced
+  const bad = [...tags].find((t) => deny.includes(t.toLowerCase()));
   if (bad) throw forbidden(surface, `tag "${bad}" is on the never-experiment list`);
   const def = surfaceByKey(surface);
   if (!def) throw forbidden(surface, 'it is not on the allowlist of experiment surfaces');

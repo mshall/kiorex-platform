@@ -1,3 +1,4 @@
+import { policyNow } from '../policy/policy-registry';
 /**
  * Pure rules of the cross-product journeys (GRW-P4-A, ADR-056 proposed). Nothing here reads a database, a clock or a secret.
  *
@@ -17,10 +18,13 @@ export type ContinuityFactKind = 'ORDER' | 'LAB_BOOKING' | 'CARE_PLAN_BOOKING';
 export const FLAG_CROSS_PRODUCT = 'growth.cross_product';
 
 export interface EntryMeta { toProduct: ContinuityProduct; factKind: ContinuityFactKind; /** product flags that must be effective for the card to show (gates open) */ gateFlags: readonly string[]; ttlDays: number; lookbackDays: number; cta: string }
+type XpEntry = 'rxToPharmacy' | 'labOrderToLab' | 'carePlanToHomeVisit';
+/** Live days from the ACTIVE `CROSS_PRODUCT_POLICY` version over the shipped 30/7, 30/7, 30/30. */
+const xp = (e: XpEntry, k: 'ttlDays' | 'lookbackDays'): number => policyNow<Record<XpEntry, { ttlDays: number; lookbackDays: number }>>('CROSS_PRODUCT_POLICY')[e][k];
 export const ENTRY_META: Readonly<Record<ContinuityEntryKind, EntryMeta>> = {
-  RX_TO_PHARMACY: { toProduct: 'PHARMACY', factKind: 'ORDER', gateFlags: ['kiorex.pharmacy_orders'], ttlDays: 30, lookbackDays: 7, cta: '/pharmacy' },
-  LAB_ORDER_TO_LAB: { toProduct: 'LAB', factKind: 'LAB_BOOKING', gateFlags: ['kiorex.lab_bookings'], ttlDays: 30, lookbackDays: 7, cta: '/lab' },
-  CARE_PLAN_TO_HOME_VISIT: { toProduct: 'NURSE', factKind: 'CARE_PLAN_BOOKING', gateFlags: ['kiorex.home_visits', 'nurse.care_plans'], ttlDays: 30, lookbackDays: 30, cta: '/care-plans' },
+  RX_TO_PHARMACY: { toProduct: 'PHARMACY', factKind: 'ORDER', gateFlags: ['kiorex.pharmacy_orders'], get ttlDays() { return xp('rxToPharmacy', 'ttlDays'); }, get lookbackDays() { return xp('rxToPharmacy', 'lookbackDays'); }, cta: '/pharmacy' },
+  LAB_ORDER_TO_LAB: { toProduct: 'LAB', factKind: 'LAB_BOOKING', gateFlags: ['kiorex.lab_bookings'], get ttlDays() { return xp('labOrderToLab', 'ttlDays'); }, get lookbackDays() { return xp('labOrderToLab', 'lookbackDays'); }, cta: '/lab' },
+  CARE_PLAN_TO_HOME_VISIT: { toProduct: 'NURSE', factKind: 'CARE_PLAN_BOOKING', gateFlags: ['kiorex.home_visits', 'nurse.care_plans'], get ttlDays() { return xp('carePlanToHomeVisit', 'ttlDays'); }, get lookbackDays() { return xp('carePlanToHomeVisit', 'lookbackDays'); }, cta: '/care-plans' },
 };
 export const entryKindOfProduct = (p: ContinuityProduct): ContinuityEntryKind => (Object.keys(ENTRY_META) as ContinuityEntryKind[]).find((k) => ENTRY_META[k].toProduct === p)!;
 export const isEntryKind = (v: unknown): v is ContinuityEntryKind => typeof v === 'string' && (CONTINUITY_ENTRY_KINDS as readonly string[]).includes(v);

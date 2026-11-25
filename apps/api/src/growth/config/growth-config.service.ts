@@ -9,6 +9,7 @@ import { validateMarketProfile } from '../../market/market-core-public';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { growthError } from '../growth-errors';
+import { POLICY_ANNOUNCEMENT_KINDS, POLICY_GLOBAL_ONLY, POLICY_KINDS, isPolicyKind, validatePolicy } from '../policy/policy-registry';
 import { sha256Hex } from '../growth-secrets';
 import { GROWTH_DEFAULT_PAYLOADS, PROPOSED_DEFAULT_MARKER } from './growth-defaults';
 import { ConfigReaders } from './config-readers';
@@ -21,7 +22,7 @@ export interface ConfigActor { sub: string; roles: string[] }
 export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY']; // the last: a clinic's sponsored discount changes what a provider funds, so it needs notice
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
 /** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
-export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES']; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
+export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES', ...POLICY_ANNOUNCEMENT_KINDS]; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
 export const DEFAULT_ACTOR = 'system:proposed-default';
 
 export interface ResolvedConfig<T = Record<string, unknown>> {
@@ -44,8 +45,9 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
 /** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
-export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES'];
+export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
+  if (isPolicyKind(kind)) { const errors = validatePolicy(kind, payload); return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> }; }
   if (kind === 'LTV_POLICY' || kind === 'MARKET_PROFILE' || kind === 'LOYALTY_RULES') {
     const errors = kind === 'LTV_POLICY' ? validateLtvPolicy(payload).errors : kind === 'LOYALTY_RULES' ? validateLoyaltyRules(payload).errors : validateMarketProfile(payload);
     return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
@@ -97,7 +99,9 @@ export class GrowthConfigService {
     const n = raw === undefined || raw === '' ? NaN : Number(raw);
     return Number.isFinite(n) && n >= 0 ? n : process.env.NODE_ENV === 'test' ? 0 : 5000;
   }
-  invalidate(): void { this.cache.clear(); }
+  /** Listeners (the policy registry) told after every transition, so a change reaches the in-process snapshot at once. */
+  static readonly onChange: Array<() => void> = [];
+  invalidate(): void { this.cache.clear(); for (const f of GrowthConfigService.onChange) { try { f(); } catch { /* a listener never breaks a transition */ } } }
 
   // ───────────────────────── resolution ─────────────────────────
 
@@ -376,7 +380,8 @@ export class GrowthConfigService {
   // ───────────────────────── internals ─────────────────────────
 
   private assertKind(kind: string) { if (!(GROWTH_CONFIG_KINDS as readonly string[]).includes(kind) && !LOCAL_CONFIG_KINDS.includes(kind)) throw growthError('GROWTH_INVALID_REQUEST', `Unknown config kind ${kind}`); }
-  private assertScope(s: ConfigScope) {
+  private assertScope(s: ConfigScope & { kind?: string }) {
+    if (s.kind && POLICY_GLOBAL_ONLY.includes(s.kind) && s.scope !== 'GLOBAL') throw growthError('GROWTH_INVALID_REQUEST', `${s.kind} exists at GLOBAL scope only (it is read by process-wide code; a market row would be ignored)`);
     if (s.scope === 'GLOBAL' && (s.scopeId ?? '') !== '') throw growthError('GROWTH_INVALID_REQUEST', 'GLOBAL scope has no scopeId');
     if (s.scope === 'MARKET' && !/^[A-Z]{2}$/.test(s.scopeId)) throw growthError('GROWTH_INVALID_REQUEST', 'MARKET scope needs an ISO country code as scopeId');
   }

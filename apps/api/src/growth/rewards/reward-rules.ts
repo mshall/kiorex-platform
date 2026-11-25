@@ -1,4 +1,5 @@
 import { GROWTH_DEFAULT_PAYLOADS } from '../config/growth-defaults';
+import { policyNow } from '../policy/policy-registry';
 
 /** Typed view of the REWARD_RULES payload (contracts 1.12.0 schema, validated on every write). Missing keys fall back to the PROPOSED_DEFAULT payload, never to "more permissive". */
 export interface RewardRules {
@@ -27,9 +28,11 @@ export interface RewardRules {
 }
 
 /** Days a subject is blocked from new issuance after a recoverable loss (REWARD_RULES has no key for it in contracts 1.12.0; code constant, a 1.12.1 request would make it config). */
-export const RECOVERABLE_LOSS_BLOCK_DAYS = 90;
+export const RECOVERABLE_LOSS_BLOCK_DAYS = 90; // default; the live value is `recoverableLossBlockDays()` (REWARD_GUARDS, never below 30)
+export const recoverableLossBlockDays = (): number => policyNow<{ recoverableLossBlockDays: number }>('REWARD_GUARDS').recoverableLossBlockDays;
 /** Largest number of active (unexpired, unspent) lots one patient may hold: keeps the wallet readable and the ledger scans bounded. */
-export const MAX_ACTIVE_LOTS = 50;
+export const MAX_ACTIVE_LOTS = 50; // default; the live value is `maxActiveLots()` (REWARD_GUARDS)
+export const maxActiveLots = (): number => policyNow<{ maxActiveLots: number }>('REWARD_GUARDS').maxActiveLots;
 
 export function toRewardRules(payload: Record<string, unknown> | undefined): RewardRules {
   const d = GROWTH_DEFAULT_PAYLOADS.REWARD_RULES as unknown as RewardRules;

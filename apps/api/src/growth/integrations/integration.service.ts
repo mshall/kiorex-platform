@@ -9,7 +9,7 @@ import { GrowthSpendService } from '../analytics/spend.service';
 import { GrowthConfigService } from '../config/growth-config.service';
 import { growthError } from '../growth-errors';
 import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
-import { afterRun, allowRun, backoffMs, type BreakerState, type Circuit } from './circuit';
+import { afterRun, allowRun, backoffMs, maxRunAttempts, type BreakerState, type Circuit } from './circuit';
 import { mockFor } from './mock/mock.adapter';
 import { GROWTH_INTEGRATION_KINDS, INTEGRATION_META, PAID_KINDS, PULLS, type GrowthAdapter, type GrowthIntegrationKind, type MetricRow, type PullRange } from './port';
 
@@ -105,7 +105,7 @@ export class IntegrationService {
     return { runId: run.id, kind, mode: s.mode, status, rows: saved, ...(failures ? { reason: lastCode } : {}), spendLines };
   }
 
-  private async withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  private async withRetry<T>(fn: () => Promise<T>, attempts = maxRunAttempts()): Promise<T> {
     for (let i = 0; ; i++) {
       try { return await fn(); }
       catch (e) {

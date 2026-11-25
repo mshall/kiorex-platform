@@ -9,7 +9,7 @@ import { RewardEventsService } from './reward-events.service';
 import { RewardLedgerService } from './reward-ledger.service';
 import { addMonths, entryKey, yearStart } from './reward-math';
 import { RewardPolicyService } from './reward-policy.service';
-import { MAX_ACTIVE_LOTS, RECOVERABLE_LOSS_BLOCK_DAYS, type RewardRules } from './reward-rules';
+import { maxActiveLots, recoverableLossBlockDays, type RewardRules } from './reward-rules';
 
 export type LotKind = 'REFERRER' | 'REFEREE' | 'REPEAT' | 'WELCOME' | 'GOODWILL' | 'CAMPAIGN' | 'PROMO' | 'REFUND_CREDIT' | 'RESTORED' | 'LOYALTY';
 export type Funding = 'PLATFORM_MARKETING' | 'PLATFORM_SERVICE_RECOVERY' | 'PATIENT_REFUND';
@@ -66,7 +66,7 @@ export class RewardIssuanceService {
       if (again) return { status: 'EXISTING' as const, lotId: again.lotId, mode: again.lot.mode, amountMinor: again.amountMinor };
 
       if (!EXEMPT.has(i.kind)) {
-        const blocked = await tx.rewardRecoverableLoss.findFirst({ where: { sub: owner, createdAt: { gt: new Date(now.getTime() - RECOVERABLE_LOSS_BLOCK_DAYS * 86_400_000) } } });
+        const blocked = await tx.rewardRecoverableLoss.findFirst({ where: { sub: owner, createdAt: { gt: new Date(now.getTime() - recoverableLossBlockDays() * 86_400_000) } } });
         if (blocked) return { status: 'SKIPPED' as const, reason: 'RECOVERABLE_LOSS_BLOCK' as const };
         const skip = await this.capSkip(tx, rules, i, owner, now);
         if (skip) return { status: 'SKIPPED' as const, reason: skip };
@@ -109,7 +109,7 @@ export class RewardIssuanceService {
     // S3: maximum open balance per patient and household (promotional and goodwill lots; the patient's own refunded money is tracked apart)
     const open = await tx.$queryRaw<{ s: bigint; n: bigint }[]>(Prisma.sql`SELECT COALESCE(SUM(b."available" + b."reserved"),0)::bigint AS s, COUNT(*)::bigint AS n FROM "RewardLot" l CROSS JOIN LATERAL reward_lot_balance(l."id") b WHERE COALESCE(l."ownerSub", l."sub") = ${owner} AND l."expiresAt" > ${now} AND l."status" IN ('ACTIVE','HELD') AND (b."available" + b."reserved" + b."held") > 0 AND l."funding" <> 'PATIENT_REFUND'`);
     if (Number(open[0]?.s ?? 0) + i.amountMinor > rules.credit.maxOpenBalanceMinor) return 'MAX_OPEN_BALANCE';
-    if (Number(open[0]?.n ?? 0) >= MAX_ACTIVE_LOTS) return 'MAX_ACTIVE_LOTS';
+    if (Number(open[0]?.n ?? 0) >= maxActiveLots()) return 'MAX_ACTIVE_LOTS';
     return null;
   }
 }
