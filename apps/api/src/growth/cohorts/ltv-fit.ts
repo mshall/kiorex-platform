@@ -31,5 +31,7 @@ export function fitLtv(patients: readonly LtvPatient[], policy: LtvPolicy, key: 
   const tail = (1 - policy.intervalPercent / 100) / 2;
   const est = point.cumulative[H - 1] ?? 0;
   const low = Math.min(percentile(estimates, tail), est); const high = Math.max(percentile(estimates, 1 - tail), est);
-  return { n, horizonMonths: H, estimateMinor: Math.round(est), lowMinor: Math.round(Math.max(0, low)), highMinor: Math.round(high), observedMonths: point.observedMonths, projectedMonths: point.projectedMonths, decay: point.decay, note: point.note, cumulative: point.cumulative.map(Math.round), resamples: policy.bootstrapResamples, subsampled: patients.length > policy.maxBootstrapPatients, seed };
+  // the stored interval must satisfy low <= estimate <= high (database CHECK): a negative net curve (reversals) is floored at 0 like the low bound, and rounding never inverts the order
+  const lowR = Math.round(Math.max(0, low)); const highR = Math.max(lowR, Math.round(high)); const estR = Math.min(highR, Math.max(lowR, Math.round(est)));
+  return { n, horizonMonths: H, estimateMinor: estR, lowMinor: lowR, highMinor: highR, observedMonths: point.observedMonths, projectedMonths: point.projectedMonths, decay: point.decay, note: point.note, cumulative: point.cumulative.map(Math.round), resamples: policy.bootstrapResamples, subsampled: patients.length > policy.maxBootstrapPatients, seed };
 }

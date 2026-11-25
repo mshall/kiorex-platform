@@ -30,7 +30,7 @@ export function projectCurve(mm: MonthMeans, policy: Pick<LtvPolicy, 'horizonMon
   const perMonth: number[] = []; let decay: number | null = null; let note: LtvCurve['note'] = L >= H - 1 ? 'OBSERVED' : 'PROJECTED';
   if (L < H - 1) {
     const w = Math.min(policy.tailFitWindowMonths, L);
-    if (w >= 1 && mm.means[L - w]! > 0) decay = Math.min(1, Math.max(0, (mm.means[L]! / mm.means[L - w]!) ** (1 / w)));
+    if (w >= 1 && mm.means[L - w]! > 0) { const ratio = mm.means[L]! / mm.means[L - w]!; decay = ratio > 0 ? Math.min(1, ratio ** (1 / w)) : 0; } // a negative net month (reversals) has no real root: decay 0, never NaN
     else { decay = 0; note = 'NO_DECAY_INFO'; }
   }
   const d = policy.discountRateBp / 10_000;

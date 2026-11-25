@@ -204,6 +204,7 @@ export class AssistantOrchestrator {
         case 'NOT_BUTTON': return R.useButtons(d);
         case 'ALREADY_DONE': return R.alreadyDone(d, ({ BOOK: { en: 'booking', ar: 'الحجز' }, CANCEL: { en: 'cancellation', ar: 'الإلغاء' }, RESCHEDULE: { en: 'reschedule', ar: 'تغيير الموعد' } } as any)[x.kind]?.[d === 'en' ? 'en' : 'ar'] ?? '');
         case 'CONFIRM_INVALID': case 'CONFIRM_EXPIRED': return R.invalidConfirm(d);
+        case 'CANCELLATION_WINDOW_CLOSED': return R.cancelWindowClosed(d);
         case 'WAITLIST_UNAVAILABLE': return R.waitlistUnavailable(d);
         case 'SPECIALTY_NOT_NAMED': case 'SPECIALTY_REQUIRED': this.askSpecialtyCtx(ctx); return R.askSpecialty(d, SHOWN_SPECIALTY_CODES);
         case 'NOT_CHANGEABLE': return R.noBookings(d);
