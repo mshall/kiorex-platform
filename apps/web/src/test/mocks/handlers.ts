@@ -149,6 +149,7 @@ export const handlers = [
     return HttpResponse.json(m, { status: 201 });
   }),
   http.delete("/api/v1/me/dependants/:id", ({ params }) => { state.family = state.family.filter((m) => m.id !== params.id); return HttpResponse.json({ ok: true }); }),
+  http.get("/api/v1/growth/v1/consent/versions", () => HttpResponse.json({ analytics: "TODO_NEEDS_HUMAN_v0", marketing: "TODO_NEEDS_HUMAN_v0", available: false })),
   http.get("/api/v1/me/consents", () => HttpResponse.json(state.consents)),
   http.put("/api/v1/me/consents/:purpose", async ({ params, request }) => {
     const b = (await request.json()) as { granted: boolean };

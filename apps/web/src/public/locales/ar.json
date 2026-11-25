@@ -166,5 +166,12 @@
   "links.kind.NEIGHBOUR": "مناطق مجاورة",
   "links.kind.RELATED": "تخصصات ذات صلة",
   "links.kind.CHILD": "تصفّح حسب المنطقة",
-  "links.kind.ORPHAN_FIX": "أيضا على كيوركس"
+  "links.kind.ORPHAN_FIX": "أيضا على كيوركس",
+  "consent.region": "خيارات ملفات تعريف الارتباط",
+  "consent.title": "خيارات ملفات تعريف الارتباط",
+  "consent.draft": "صياغة مبدئية",
+  "consent.body": "نستخدم ملف تعريف ارتباط اختياريا واحدا لنفهم أي الصفحات تساعد الناس على إيجاد طبيب. وهو متوقف حتى توافق. ويمكنك تغيير رأيك في أي وقت.",
+  "consent.more": "اختر ما تسمح به",
+  "consent.accept": "موافق",
+  "consent.reject": "رفض"
 }

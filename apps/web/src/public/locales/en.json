@@ -166,5 +166,12 @@
   "links.kind.NEIGHBOUR": "Nearby districts",
   "links.kind.RELATED": "Related specialties",
   "links.kind.CHILD": "Browse by area",
-  "links.kind.ORPHAN_FIX": "Also on Kiorex"
+  "links.kind.ORPHAN_FIX": "Also on Kiorex",
+  "consent.region": "Cookie choices",
+  "consent.title": "Your cookie choices",
+  "consent.draft": "Draft wording",
+  "consent.body": "We use one optional cookie to understand which pages help people find a doctor. It is off until you accept. You can change your mind at any time.",
+  "consent.more": "Choose what to allow",
+  "consent.accept": "Accept",
+  "consent.reject": "Reject"
 }

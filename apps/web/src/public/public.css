@@ -79,3 +79,14 @@ h3 { font-size: 1.05rem; margin: 0 0 .25rem; }
 /* GRW-P3-F: computed internal links (SEO automation), the same chips as the page's own link blocks */
 .kxp-computed { margin-block-start: 2rem; }
 .kxp-computed h3 { margin: 1rem 0 .4rem; font-size: 1rem; font-weight: 600; }
+
+/* G-20 consent island: fixed bottom bar, tokens only, logical properties for RTL */
+.kxp-consent { position: fixed; inset-inline: 0; bottom: 0; z-index: 40; background: #fff; border-top: 1px solid var(--kxp-border); box-shadow: 0 -4px 16px rgba(15, 23, 42, .08); padding-block: .75rem; padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
+.kxp-consent-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; }
+.kxp-consent-text { flex: 1 1 22rem; min-width: 0; }
+.kxp-consent-text p { margin: .25rem 0 0; }
+.kxp-consent-title { font-size: 1rem; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.kxp-consent-actions { display: flex; gap: .5rem; flex: 0 0 auto; }
+.kxp-consent .kxp-btn { min-height: 2.75rem; min-width: 7rem; padding-inline: 1rem; border: 1px solid var(--kxp-border); border-radius: .75rem; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+.kxp-consent .kxp-btn:focus-visible { outline: 3px solid var(--kxp-focus, #3730a3); outline-offset: 2px; }
+.kxp-chip { font-size: .75rem; font-weight: 500; padding: .1rem .5rem; border-radius: 999px; background: #fef3c7; color: #78350f; }

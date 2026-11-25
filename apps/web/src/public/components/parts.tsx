@@ -3,6 +3,7 @@ import { KiorexLogo } from "@/brand/kiorex-logo/KiorexLogo.web";
 import type { ComputedLinkGroup, Crumb, FacetLink, PaginationData, ProviderCard, RatingBucket, TemplateCtx } from "../types";
 import type { ImageModel } from "../seo/image";
 import { day, money } from "../format";
+import { ConsentIsland } from "./ConsentIsland";
 
 const homePath = (c: TemplateCtx) => `/${c.locale}/${c.cc}`;
 
@@ -28,6 +29,7 @@ export function PublicLayout({ ctx, children }: { ctx: TemplateCtx; children: Re
           <p className="kxp-muted">{ctx.t("footer.emergency")}</p>
         </div>
       </footer>
+      <ConsentIsland ctx={ctx} />
     </>
   );
 }

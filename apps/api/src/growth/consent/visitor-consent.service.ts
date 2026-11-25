@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { randomToken } from '../growth-secrets';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ipHashOf } from '../../common/privacy-hash';
-import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
+import { GROWTH_DEFAULT_MARKET, GROWTH_FLAG } from '../growth-flags';
+import { FlagsService } from '../../control-plane/control-plane-public';
 import { GrowthConfigService } from '../config/growth-config.service';
 import { GrowthEventsService } from '../events/growth-events.service';
 import { GrowthLimiter, growthLimits } from '../growth-limiter';
@@ -18,11 +19,13 @@ export interface VisitorConsentInput { analytics: boolean; marketing?: boolean; 
  */
 @Injectable()
 export class VisitorConsentService {
-  constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService, private readonly limiter: GrowthLimiter, private readonly events: GrowthEventsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService, private readonly limiter: GrowthLimiter, private readonly events: GrowthEventsService, private readonly flags: FlagsService) {}
 
   async textVersions(market = GROWTH_DEFAULT_MARKET) {
     const d = await this.config.resolve<{ textVersionIds: { analytics: string; marketing: string } }>('CONSENT_DEFAULTS', { market });
-    return { ...d.payload.textVersionIds, regime: (d.payload as unknown as { regimeId: string }).regimeId, configVersion: d.versionId };
+    // G-20: `available` is true only while `growth.analytics_visitor` is effective in the market (launch-locked: false until a human records the gate). The public pages show the banner island only then.
+    const available = await this.flags.isEnabled(GROWTH_FLAG.ANALYTICS_VISITOR, { market }).catch(() => false);
+    return { ...d.payload.textVersionIds, regime: (d.payload as unknown as { regimeId: string }).regimeId, configVersion: d.versionId, available };
   }
 
   async record(i: VisitorConsentInput, ctx: { ip?: string; market?: string }) {
