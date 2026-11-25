@@ -68,6 +68,24 @@ describe('growth analytics v1', () => {
       expect(rows.find((r) => r.metric === 'PageViewed' && r.campaign === 'ramadan')).toBeTruthy(); // consented visitor key joins the latest touch: source and campaign only
     });
 
+    it('G-19: a completion-inferred confirmation is marked INFERRED_AT_COMPLETION, a Clinic CONFIRMED or BILLED fact upgrades it without double counting, and the overview states the basis', async () => {
+      const [b1, b2] = await bookings({ n: 2, providerId: 'prov_g19', org: 'org_g19' }) as [string, string];
+      await charge(b1, 'g19a'); await charge(b2, 'g19b');
+      await revenue.onBookingCompleted(b1); await revenue.onBookingCompleted(b2);
+      const rows = () => c.prisma.growthRevenueFact.findMany({ where: { chargeId: { in: ['g19a', 'g19b'] } }, orderBy: [{ chargeId: 'asc' }, { status: 'asc' }] });
+      expect((await rows()).filter((r) => r.status === 'CONFIRMED').map((r) => r.basis)).toEqual(['INFERRED_AT_COMPLETION', 'INFERRED_AT_COMPLETION']);
+      const day0 = new Date(Date.now() - 86_400_000); const day1 = new Date(Date.now() + 86_400_000);
+      expect(await revenue.basisReport('EG', day0, day1)).toMatchObject({ inferredCharges: 2, factCharges: 0, basis: 'INFERRED_AT_COMPLETION', inferredShare: 1 });
+      // the Clinic later reports charge g19a BILLED (settlement path) and charge g19b CONFIRMED itself
+      await revenue.recordFromEvent('COMMISSION_CHARGE_CREATED', { chargeId: 'g19a', appointmentId: 'apt_g19a', amount: '40.00', status: 'BILLED' });
+      await revenue.recordFromEvent('COMMISSION_CHARGE_CREATED', { chargeId: 'g19b', appointmentId: 'apt_g19b', amount: '40.00', status: 'CONFIRMED' });
+      expect(await revenue.reconcileBasis()).toBeGreaterThanOrEqual(0);
+      const after = await rows();
+      expect(after.filter((r) => r.status === 'CONFIRMED').every((r) => r.basis === 'CLINIC_FACT')).toBe(true);
+      expect(after.filter((r) => r.chargeId === 'g19b')).toHaveLength(2); // PENDING + CONFIRMED: the Clinic fact reused the inferred row, no duplicate
+      expect(await revenue.basisReport('EG', day0, day1)).toMatchObject({ inferredCharges: 0, basis: 'CLINIC_FACT' });
+      expect(await revenue.reconcileBasis()).toBe(0); // idempotent
+    });
     it('dependants never enter growth tables; another market stays in its market', async () => {
       await seedProvider(c, { id: 'lst_a', tenantId: 'org_A' });
       const [id] = await bookings({ n: 1, providerId: 'lst_a', org: 'org_A' });

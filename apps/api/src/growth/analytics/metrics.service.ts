@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../prisma/generated/client';
+import { revenueBasisReport } from './revenue.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GROWTH_DEFAULT_MARKET } from '../growth-flags';
 import { growthError } from '../growth-errors';
@@ -84,6 +85,12 @@ export class GrowthMetricsService {
     return { rolledUpAt: m._max.updatedAt?.toISOString() ?? null, lastEventAt: e._max.occurredAt?.toISOString() ?? null };
   }
 
+  /** G-19: which part of the revenue is confirmed by a Clinic fact and which part still rests on the completion inference (a caveat, never hidden). */
+  private async revenueBasis(f: GrowthFilters) {
+    const from = new Date(`${f.from}T00:00:00Z`); const to = new Date(new Date(`${f.to}T00:00:00Z`).getTime() + 86_400_000);
+    return revenueBasisReport(this.prisma, f.market ?? 'EG', from, to);
+  }
+
   /** Executive overview: the tiles of KX-32 section 04 for the period and filters. */
   async overview(f: GrowthFilters, a: Audience) {
     const s = await this.total(f, a, ['BookingConfirmed', 'BookingAttended', 'AttendedNewPatient', 'SearchStarted', 'GbvMinor', 'RevenueMinor', 'RevenueReversedMinor', 'CommissionPendingMinor']);
@@ -113,6 +120,7 @@ export class GrowthMetricsService {
         // GBV is the sum of visit fees of confirmed bookings: a volume indicator. It is never revenue and carries isRevenue:false so no consumer can mistake it.
         grossBookingValueMinor: m(confirmed, get('GbvMinor')), grossBookingValue: { isRevenue: false, note: 'Visit fees of confirmed bookings: a volume indicator, never Kiorex revenue' },
         kiorexRevenueMinor: m(anp, revenue), commissionPendingMinor: m(anp, get('CommissionPendingMinor')), revenueNote: 'Commission charges (CONFIRMED or BILLED) net of reversals. Excludes deposits, promotional credits, taxes and provider settlements.',
+        revenueBasis: await this.revenueBasis(f),
         spendMinor: spend, blendedCacMinor: m(anp, blendedCac(spend, anp)), merRatio: m(anp, mer(revenue, spend)), ltvMinor: ltvMinor(4000, 0.04),
       } : {}),
       coverage: { visitorStageAvailable: !hideVisitor, note: hideVisitor ? 'Place, specialty, provider and origin filters apply to booking stages only: the anonymous visitor stream has none of them.' : undefined },

@@ -1492,6 +1492,8 @@ model GrowthRevenueFact {
   amountMinor   Int
   currency      String   @default("EGP")
   origin        String   @default("")
+  /// G-19: CLINIC_FACT = the Clinic reported this charge status (event or settlement); INFERRED_AT_COMPLETION = Kiorex saw the booking COMPLETED and no charge status event followed yet
+  basis         String   @default("CLINIC_FACT")
   occurredAt    DateTime
   createdAt     DateTime @default(now())
 
