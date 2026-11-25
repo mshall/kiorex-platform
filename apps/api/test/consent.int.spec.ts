@@ -35,6 +35,14 @@ describe('consent and preference centre', () => {
   const status = async (channel: string, key = `promo${k}`) => (await c.prisma.message.findUniqueOrThrow({ where: { dedupeKey: `${key}:${channel}` } }));
   const allowMarketing = async () => { await unlockFlag(c, 'growth.marketing_messaging'); await put('MARKETING_WHATSAPP', true).expect(200); await noQuiet(); };
 
+  describe('G-20 banner availability', () => {
+    it('GET /growth/v1/consent/versions says available=false while growth.analytics_visitor is locked and true once a gate is recorded', async () => {
+      expect((await c.http().get('/api/v1/growth/v1/consent/versions').expect(200)).body).toMatchObject({ available: false });
+      await unlockFlag(c, 'growth.analytics_visitor');
+      expect((await c.http().get('/api/v1/growth/v1/consent/versions').set('X-Kiorex-Market', 'EG').expect(200)).body).toMatchObject({ available: true });
+    });
+  });
+
   describe('consent records (audit trail)', () => {
     it('accepts the growth purposes; every record carries textVersion, source, at, ipHash and button evidence; channel only for marketing', async () => {
       await put('ANALYTICS_MEASUREMENT', true, { source: 'web', evidence: 'accept_all', textVersion: 'v7_ar_en' }).expect(200);
