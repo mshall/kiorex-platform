@@ -7,6 +7,7 @@ import { paymentMapping } from '../common/providers/payment.mapping';
 import { breakerFor } from './psp-breaker';
 import { PSP_NAMES, resolveSettings, type PspName, type PspSettings } from './psp-config';
 import { HttpPspAdapter } from './psp-http';
+import { assertRealModeApproved, realModeDecision, RealModeNotApprovedError } from '../common/providers/mode-guard';
 import type { PspAdapter, PspCapabilities, PspCheckoutInput, PspWebhookEvent } from './psp-types';
 import { CardGatewayPspAdapter, enabledPsps, FawryPspAdapter, instapayEnv, PaymobPspAdapter, PSP_VENDOR_MODE, vendorPspProblems } from './psp.vendors';
 
@@ -32,6 +33,21 @@ export class FakePspAdapter implements PspAdapter {
   async capture(i: { paymentId: string }) { return { pspCaptureRef: `fake_cap_${i.paymentId}` }; }
   async void(i: { paymentId: string }) { return { pspVoidRef: `fake_void_${i.paymentId}` }; }
 }
+
+/** Real mode that the approved INTEGRATION_MODES record does not allow: every outbound call fails CLOSED with NEEDS_HUMAN, and no webhook is accepted (the PSP is not live for us yet). */
+export class RealModeBlockedPspAdapter implements PspAdapter {
+  capabilities = undefined;
+  constructor(public name: PspName, private readonly key: string) {}
+  private fail(): never { assertRealModeApproved(this.key); throw new RealModeNotApprovedError(this.key, 'blocked'); }
+  async createCheckout(): Promise<never> { return this.fail(); }
+  verifyWebhook(): PspWebhookEvent | null { return null; }
+  async refund(): Promise<never> { return this.fail(); }
+  async capture(): Promise<never> { return this.fail(); }
+  async void(): Promise<never> { return this.fail(); }
+  async status(): Promise<never> { return this.fail(); }
+}
+/** The Integrations Control Center key of each PSP. */
+export const PSP_INTEGRATION_KEY: Record<PspName, string> = { paymob: 'PAYMOB', fawry: 'FAWRY', instapay: 'INSTAPAY', card: 'CARD_GATEWAY' };
 
 /** Real mode without usable config (startup check normally prevents this): fails closed. */
 export class UnconfiguredPspAdapter implements PspAdapter {
@@ -68,9 +84,11 @@ export function pspAdapter(name: string, settings?: PspSettings): PspAdapter {
   if (PSP_VENDOR_MODE()) { // PAYMENT_PROVIDER=vendor: native Paymob / Fawry clients, InstaPay and the card gateway on the neutral contract, credentials per PSP
     if (vendorPspProblems().length) return new UnconfiguredPspAdapter(n);
     const on = enabledPsps(); const use = on.includes(n) ? n : on[0];
+    if (!realModeDecision(PSP_INTEGRATION_KEY[use]).allowed) return new RealModeBlockedPspAdapter(use, PSP_INTEGRATION_KEY[use]);
     const s2 = use === n ? s : resolveSettings(use, '*');
     const inner: PspAdapter = use === 'paymob' ? new PaymobPspAdapter(process.env, outboundFetch, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, outboundFetch, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, outboundFetch, s2) : new HttpPspAdapter('instapay', paymentMapping, outboundFetch, () => instapayEnv(), s2);
     return new GuardedPspAdapter(inner, s2);
   }
+  if (!providerProblems('PAYMENT').length && !realModeDecision(PSP_INTEGRATION_KEY[n]).allowed) return new RealModeBlockedPspAdapter(n, PSP_INTEGRATION_KEY[n]);
   return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new GuardedPspAdapter(new HttpPspAdapter(n, paymentMapping, outboundFetch, undefined, s), s);
 }

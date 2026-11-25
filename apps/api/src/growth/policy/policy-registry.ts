@@ -1,5 +1,6 @@
 import { POLICY_SCHEMAS } from './policy-schemas.generated';
 import { POLICY_DEFAULTS } from './policy-defaults';
+import { setApprovedModesSource } from '../../common/providers/mode-guard';
 import { deepMerge, schemaDefaults, validateAgainst, type SchemaNode } from './schema-validate';
 
 /**
@@ -72,3 +73,6 @@ export function livePolicy<T extends Record<string, unknown>>(kind: PolicyKind, 
   for (const key of Object.keys(defaults)) Object.defineProperty(out, key, { enumerable: true, get: () => (policyNow(kind) as Record<string, unknown>)[key] ?? defaults[key] });
   return Object.freeze(out) as Readonly<T>;
 }
+
+/** The real-mode guard of every provider adapter reads the approved INTEGRATION_MODES record through this registry (shared helper: common/providers/mode-guard.ts). */
+setApprovedModesSource(() => policyNow<{ modes?: Record<string, 'mock' | 'real'> }>('INTEGRATION_MODES').modes ?? {});

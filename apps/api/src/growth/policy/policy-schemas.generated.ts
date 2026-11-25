@@ -588,6 +588,13 @@ export const POLICY_SCHEMAS: Record<string, any> = {
        "real"
       ]
      },
+     "CARD_GATEWAY": {
+      "type": "string",
+      "enum": [
+       "mock",
+       "real"
+      ]
+     },
      "SMS": {
       "type": "string",
       "enum": [

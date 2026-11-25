@@ -1,6 +1,7 @@
 import { createServer, Server, ServerResponse } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { createCtx, futureSlot, seedProvider, TestCtx } from './harness';
+import { clearPolicyOverrides, setPolicyOverride } from '../src/growth/policy/policy-registry';
 import { OutboxService } from '../src/outbox/outbox-public';
 import { PayService } from '../src/pay/pay-public';
 import { MessagingHub } from '../src/messaging/messaging-public';
@@ -32,7 +33,7 @@ describe('provider go-live wiring (SMS / WHATSAPP / EMAIL / PAYMENT)', () => {
     base = `http://127.0.0.1:${(vendor.address() as AddressInfo).port}`;
     c = await createCtx();
   });
-  afterAll(async () => { await c.close(); await new Promise<void>((r) => vendor.close(() => r())); });
+  afterAll(async () => { clearPolicyOverrides(); await c.close(); await new Promise<void>((r) => vendor.close(() => r())); });
   beforeEach(async () => {
     hits = []; script = [];
     await c.reset();
@@ -131,6 +132,7 @@ describe('provider go-live wiring (SMS / WHATSAPP / EMAIL / PAYMENT)', () => {
     });
 
     it('real mode: checkout + refund hit the vendor with idempotency keys, signed webhooks capture once, bad signatures are refused', async () => {
+      setPolicyOverride('INTEGRATION_MODES', { modes: { PAYMOB: 'real' } }, 1); // real mode needs the approved record (maker-checker); the guard itself is tested in mode-guard.unit.spec.ts
       const vars = realVars('PAYMENT'); setEnv(vars);
       try {
         script = [reply(200, { id: 'psp_ref_77', checkoutUrl: 'https://pay.vendor.example/c/77' })];

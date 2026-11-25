@@ -31,9 +31,10 @@ export const aiProblems = (env: Record<string, string | undefined> = process.env
   return out;
 };
 
+import { modeGuardProblems } from './mode-guard';
 /** Names of missing/invalid variables per enabled PSP (vendor mode). Never values. */
 export function vendorPspProblems(env: Env = process.env): string[] {
-  const out: string[] = [];
+  const out: string[] = [...modeGuardProblems(env)];
   const list = enabledPsps(env);
   if (!list.length) out.push('PAYMENT_ENABLED_PSPS must list at least one of paymob,fawry,instapay,card');
   const need = (v: string[]) => v.filter((k) => !(env[k] ?? '').trim()).forEach((k) => out.push(`${k} is required when PAYMENT_MODE=real and PAYMENT_PROVIDER=vendor (${k.split('_')[0].toLowerCase()} enabled)`));

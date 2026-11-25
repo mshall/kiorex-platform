@@ -12,8 +12,8 @@ import { paymobHmac } from '../src/common/providers/vendors/paymob';
  */
 export const FIXTURE_DIR = join(__dirname, 'fixtures', 'pay');
 export const fixtureText = (name: string) => readFileSync(join(FIXTURE_DIR, name), 'utf8');
-export const fixture = <T = any>(name: string, vars: Record<string, string> = {}): T => {
-  let t = fixtureText(name); for (const [k, v] of Object.entries(vars)) t = t.split(`__${k}__`).join(v); return JSON.parse(t) as T;
+export const fixture = (name: string, vars: Record<string, string> = {}): any => {
+  let t = fixtureText(name); for (const [k, v] of Object.entries(vars)) t = t.split(`__${k}__`).join(v); return JSON.parse(t);
 };
 
 /** Dummy credentials. None is a real secret. */

@@ -44,7 +44,7 @@ export class HttpPspAdapter implements PspAdapter {
     const r = await this.call(w.path, w.body, `void:${i.paymentId}`);
     return { pspVoidRef: String(r.json?.id ?? r.json?.data?.id ?? i.pspRef) };
   }
-  async status(i: { pspRef: string }) {
+  async status(i: { pspRef: string; paymentId?: string }) {
     const w = this.mapping.buildStatus(i);
     const r = await this.call(w.path, undefined, `status:${i.pspRef}`, 'GET');
     return this.mapping.parseStatus(r.json, { psp: this.name, pepper: this.pepper });
