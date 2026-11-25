@@ -8,7 +8,7 @@ import { MessagingOpsService } from '../src/messaging/messaging-ops.service';
 import { MetaWhatsappAdapter } from '../src/messaging/whatsapp/meta.adapter';
 import { signUnsubscribeToken } from '../src/messaging/unsubscribe';
 import { GrowthConfigService } from '../src/growth/growth-public';
-import { setApprovedModesSource } from '../src/common/providers/real-mode-gate';
+import { setApprovedModesSource } from '../src/common/providers/mode-guard';
 import { MessagingConfigBinder } from '../src/growth/config/messaging-config.binder';
 import type { MessagingAdapter, OutboundMessage } from '../src/messaging/messaging.types';
 
@@ -310,8 +310,8 @@ describe('real-mode approval gate through the real stack', () => {
   let c: TestCtx; let hub: MessagingHub;
   beforeAll(async () => { c = await createCtx(); hub = c.get(MessagingHub); });
   afterAll(async () => { await c.close(); });
-  beforeEach(async () => { await c.reset(); hub.clearAdapters(); delete process.env.INTEGRATION_MODE_GATE_BYPASS; });
-  afterEach(() => { process.env.INTEGRATION_MODE_GATE_BYPASS = 'true'; Object.keys(AGG).forEach((k) => delete process.env[k]); });
+  beforeEach(async () => { await c.reset(); hub.clearAdapters(); delete process.env.INTEGRATION_MODES_EXEMPT; });
+  afterEach(() => { process.env.INTEGRATION_MODES_EXEMPT = 'true'; Object.keys(AGG).forEach((k) => delete process.env[k]); });
   it('SMS_MODE=real without an INTEGRATION_MODES approval fails closed with NEEDS_HUMAN and calls no vendor; a second super admin approving real opens it', async () => {
     Object.assign(process.env, AGG);
     const urls: string[] = []; const { HttpMessagingAdapter } = await import('../src/messaging/adapters'); void HttpMessagingAdapter;
@@ -332,7 +332,7 @@ describe('real-mode approval gate through the real stack', () => {
     Object.assign(process.env, AGG); const nodeEnv = process.env.NODE_ENV;
     try {
       setApprovedModesSource(() => ({})); // nothing approved (the previous test's approval is process-wide policy state)
-      process.env.INTEGRATION_MODE_GATE_BYPASS = 'true'; process.env.NODE_ENV = 'production';
+      process.env.INTEGRATION_MODES_EXEMPT = 'true'; process.env.NODE_ENV = 'production';
       const A = await c.as('adm_a', { roles: ['ops_admin', 'super_admin'] });
       const r = await hub.send({ channel: 'SMS', to: '+201001234567', templateId: 'T', locale: 'en', body: 'x' });
       expect(r.error).toBe('NEEDS_HUMAN_REAL_MODE_NOT_APPROVED:SMS');

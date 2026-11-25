@@ -587,6 +587,16 @@
 
 | Method | Path | Summary |
 |---|---|---|
+| GET | `/api/v1/admin/messaging/channels` | MSG-REAL channel status: mode, providers, config problems (names only), secretRef presence, webhook URLs, WhatsApp quality and tier, failover order, quiet hours |
+| GET | `/api/v1/admin/messaging/channels/whatsapp/templates` | MSG-REAL WhatsApp template registry with Meta name, language, category and review status (format=csv for the approval checklist) |
+| GET | `/api/v1/admin/messaging/channels/whatsapp/templates/export` | MSG-REAL submit-for-approval export: one Graph message_templates payload per template and language |
+| GET | `/api/v1/admin/messaging/channels/{channel}/webhook` | MSG-REAL the callback URL and verify token to register in the Meta / SES / SMS console (the secret part is masked) |
+| POST | `/api/v1/admin/messaging/channels/{channel}/webhook/reveal` | MSG-REAL reveal the verify token / SNS subscription URL for registration (super admin, audited) |
+| POST | `/api/v1/admin/messaging/channels/{channel}/test-send` | MSG-REAL test send to an ALLOW-LISTED internal number / e-mail / device (mock mode: dev inbox only). 5 per hour |
+| POST | `/api/v1/admin/messaging/channels/{channel}/connection-check` | MSG-REAL connection check: read-only vendor calls (account, profile, identity, token); mock mode makes no call |
+| POST | `/api/v1/admin/messaging/channels/email/domain-check` | MSG-REAL SPF / DKIM / DMARC check of the sending domain against DNS |
+| POST | `/api/v1/admin/messaging/channels/whatsapp/templates/sync` | MSG-REAL pull template statuses and ids from Meta (read only) |
+| POST | `/api/v1/admin/messaging/channels/whatsapp/templates/submit` | MSG-REAL submit templates to Meta for approval (dry run unless confirm=true) |
 | GET | `/api/v1/admin/payments/connection-check` | Payments connection check: PSP readiness, secret references (never values), webhook URLs, signature self-test; `live=true` adds one read-only authenticated probe per enabled PSP (real mode only) |
 | GET | `/api/v1/admin/payments/settings` | Resolved payment settings per PSP and market (env < console), with problems |
 | PUT | `/api/v1/admin/payments/settings/{psp}` | Change settings of one PSP (enabled, order, fees, 3DS, capture mode, refund window, timeouts, retries, tolerance, sandbox/live, settlement format); audited; secrets are refused |
@@ -824,6 +834,9 @@
 |---|---|---|
 | GET | `/api/v1/messaging/webhooks/{channel}` | Provider webhook verification handshake (Meta WhatsApp hub.challenge) |
 | POST | `/api/v1/messaging/webhooks/{channel}` | Provider delivery-status webhook (HMAC verified, idempotent, forward-only status) |
+| POST | `/api/v1/messaging/webhooks/{channel}/{provider}` | Delivery-status webhook of a SECONDARY provider of the channel (failover chain), verified with that provider's own secret |
+| GET | `/api/v1/messaging/unsubscribe/{token}` | Check an unsubscribe link (does not unsubscribe; POST does) |
+| POST | `/api/v1/messaging/unsubscribe/{token}` | One-click unsubscribe from marketing e-mail (RFC 8058): adds the address to the suppression list |
 | POST | `/api/v1/webhooks/kiorly` | Kiorly outbox webhook: X-Kiorly-Signature sha256=HMAC(ts.rawBody), de-duplicated on eventId |
 | POST | `/api/v1/webhooks/pharmacy` | Kiorly Pharmacy outbox webhook (OrderReady / OrderOutForDelivery / DispenseCompleted / OrderRejected): same signature scheme, KIORLY_PHARMACY_WEBHOOK_SECRET |
 | POST | `/api/v1/webhooks/lab` | Kiorly Lab outbox webhook (LabResultReleased): same signature scheme, KIORLY_LAB_WEBHOOK_SECRET |

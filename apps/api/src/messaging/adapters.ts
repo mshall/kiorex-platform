@@ -3,7 +3,7 @@ import { outboundFetch } from '../common/outbound-http';
 import { providerEnv } from '../common/providers/env';
 import { HttpMessagingTransport, messagingKindOf, type MessagingKind } from '../common/providers/real-adapters';
 import type { HttpDeps } from '../common/providers/http';
-import { gateErrorCode, realModeGate } from '../common/providers/real-mode-gate';
+import { realModeDecision } from '../common/providers/mode-guard';
 import { buildDeepLink, isExpoToken, PushSender, pushConfigFromEnv, pushProblems, type PushConfig } from '../common/providers/vendors/push';
 import { effectiveMessagingConfig } from './messaging-config';
 import { providerEnvFor, providerOrder, providerProblemsFor } from './provider-select';
@@ -181,6 +181,9 @@ export function integrationKeyFor(channel: MsgChannel, to?: string): string {
  * Real-mode gate (launch guide 13.4): a REAL adapter sends only while INTEGRATION_MODES approves real for its integration in this environment; otherwise it fails closed with
  * NEEDS_HUMAN and calls no vendor. Checked on every send (an approval can be withdrawn at runtime). Mock adapters are never wrapped.
  */
+/** Short stable code stored on the message row. */
+export const gateErrorCode = (key: string) => `NEEDS_HUMAN_REAL_MODE_NOT_APPROVED:${key}`;
+
 export class ApprovalGatedAdapter implements MessagingAdapter {
   readonly mode = 'real' as const;
   constructor(private readonly inner: MessagingAdapter) {}
@@ -188,7 +191,7 @@ export class ApprovalGatedAdapter implements MessagingAdapter {
   get unwrapped(): MessagingAdapter { return this.inner; }
   async send(m: OutboundMessage, ctx?: SendContext): Promise<SendResult> {
     const key = integrationKeyFor(this.channel, m.to);
-    if (!realModeGate(key).allowed) return { ok: false, providerRef: '', error: gateErrorCode(key), retryable: false };
+    if (!realModeDecision(key).allowed) return { ok: false, providerRef: '', error: gateErrorCode(key), retryable: false };
     return this.inner.send(m, ctx);
   }
 }

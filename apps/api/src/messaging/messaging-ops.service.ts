@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { cfg } from '../common/config';
-import { bypassProblem, realModeGate } from '../common/providers/real-mode-gate';
+import { modeGuardProblems, realModeDecision } from '../common/providers/mode-guard';
 import { integrationKeyFor } from './adapters';
 import { ApiError, badRequest } from '../common/errors';
 import { outboundFetch } from '../common/outbound-http';
@@ -61,7 +61,7 @@ export class MessagingOpsService {
       let providers: Array<{ provider: string; problems: string[]; secretRef: string | null; secretRefPresent: boolean | null }> = [];
       if (kind) providers = providerOrder(kind, conf).map((p) => { const ref = settings.secretRefs?.[p] ?? settings.secretRefs?.default ?? null; return { provider: p, problems: mode === 'real' ? providerProblemsFor(kind, p, conf) : [], secretRef: ref, secretRefPresent: ref ? resolveSecretRef(ref) !== null : null }; });
       else { const pp = mode === 'real' ? pushProblems(process.env) : []; providers = [{ provider: 'fcm|apns|expo', problems: pp, secretRef: settings.secretRefs?.default ?? null, secretRefPresent: settings.secretRefs?.default ? resolveSecretRef(settings.secretRefs.default) !== null : null }]; }
-      if (mode === 'real') { const keys = channel === 'PUSH' ? ['PUSH_FCM', 'PUSH_APNS', 'PUSH_EXPO'] : [integrationKeyFor(channel)]; for (const k of keys) { const g = realModeGate(k); if (!g.allowed && providers[0]) providers[0].problems.push(`${k}: real mode not approved (INTEGRATION_MODES)`); } const bp = bypassProblem(); if (bp && providers[0]) providers[0].problems.push(bp); }
+      if (mode === 'real') { const keys = channel === 'PUSH' ? ['PUSH_FCM', 'PUSH_APNS', 'PUSH_EXPO'] : [integrationKeyFor(channel)]; for (const k of keys) { const g = realModeDecision(k); if (!g.allowed && providers[0]) providers[0].problems.push(`${k}: real mode not approved (INTEGRATION_MODES): ${g.reason}`); } for (const bp of modeGuardProblems()) providers[0]?.problems.push(bp); }
       const state = channel === 'WHATSAPP' ? { quality: await this.hub.getState('WHATSAPP', 'quality'), throttle: await this.hub.getState('WHATSAPP', 'throttle'), auth: await this.hub.getState('WHATSAPP', 'auth') } : undefined;
       out.push({
         channel, mode, enabled: settings.enabled !== false, senderId: settings.senderId || (kind ? providerEnv(kind).senderId : '') || null, retry: settings.retry ?? null, rateBudget: settings.rateBudget ?? null,
@@ -130,8 +130,8 @@ export class MessagingOpsService {
       add('mode', true, `${ch}_MODE=mock: nothing leaves the platform. Set ${ch === 'PUSH' ? 'PUSH_MODE' : `${ch}_MODE`}=real (env, deploy-time) to check the vendor.`, true);
       return { channel: ch, mode, ok: true, checks };
     }
-    const gateKey = integrationKeyFor(ch); const gate = realModeGate(gateKey);
-    add('approval (INTEGRATION_MODES)', gate.allowed || ch === 'PUSH', gate.allowed ? 'real mode approved (or exempt in dev/test)' : ch === 'PUSH' ? 'checked per token type at send time' : gate.reason!);
+    const gateKey = integrationKeyFor(ch); const gate = realModeDecision(gateKey);
+    add('approval (INTEGRATION_MODES)', gate.allowed || ch === 'PUSH', gate.allowed ? 'real mode approved (or exempt in dev/test)' : ch === 'PUSH' ? 'checked per token type at send time' : `NEEDS_HUMAN: ${gateKey} real mode is not approved (INTEGRATION_MODES): ${gate.reason}`);
     const kind = messagingKindOf(ch) as MessagingKind | undefined;
     const call = async <T>(f: () => Promise<T>): Promise<T | null> => { try { return await f(); } catch (e) { add('vendor call', false, e instanceof ProviderError ? `${e.message}${e.vendorCode ? ` (vendor code ${e.vendorCode})` : ''}` : 'call failed'); return null; } };
     if (kind) {

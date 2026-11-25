@@ -1,7 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { MessagingHub, type MessagingChannelsConfig } from '../../messaging/messaging-public';
-import { setApprovedModesSource } from '../../common/providers/real-mode-gate';
-import { policyNow } from '../policy/policy-registry';
 import { GrowthConfigService } from './growth-config.service';
 
 /**
@@ -12,8 +10,6 @@ import { GrowthConfigService } from './growth-config.service';
 export class MessagingConfigBinder implements OnModuleInit {
   constructor(private readonly hub: MessagingHub, private readonly config: GrowthConfigService) {}
   onModuleInit() {
-    // launch guide 13.4: the real-mode approval gate reads the ACTIVE INTEGRATION_MODES record (maker-checker) synchronously
-    setApprovedModesSource(() => policyNow<{ modes?: Record<string, 'mock' | 'real'> }>('INTEGRATION_MODES').modes);
     this.hub.setConfigSource(async (market) => {
       const r = await this.config.resolve('MESSAGING_CHANNELS', { market });
       return r.source === 'ACTIVE' ? (r.payload as unknown as MessagingChannelsConfig) : null;

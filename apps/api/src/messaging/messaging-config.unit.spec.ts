@@ -3,7 +3,7 @@ import { providerEnvFor, providerOrder, providerProblemsFor } from './provider-s
 import { ApprovalGatedAdapter, createMessagingAdapter, FailoverAdapter, HttpMessagingAdapter, MockAdapter, UnconfiguredAdapter } from './adapters';
 import type { MessagingAdapter, OutboundMessage } from './messaging.types';
 
-process.env.INTEGRATION_MODE_GATE_BYPASS = 'true';
+process.env.INTEGRATION_MODES_EXEMPT = 'true';
 const ok = (p: unknown) => expect(validateMessagingChannels(p).errors).toEqual([]);
 const bad = (p: unknown, frag: string) => expect(validateMessagingChannels(p).errors.join('\n')).toContain(frag);
 
