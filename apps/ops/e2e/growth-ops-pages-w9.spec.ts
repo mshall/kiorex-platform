@@ -4,18 +4,18 @@ import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Wave 9 (GC-5): the ops pages that had component tests and axe in jsdom but no real-browser run: Lifecycle (journeys, send gate, suppression), Fraud, SEO and Corporate. Real browser, a private
- * API and database (e2e/scripts/w9a3-stack.sh), the dev Passport session injected as PW_SESSION_JSON. For each page, in Arabic RTL and English, at 320 and 1440 px: the main landmark renders, no horizontal
+ * API and database (e2e/scripts/w9a3-stack.sh), the dev Passport session injected as PW_SESSION_JSON. For each page, in Arabic RTL and English, at 320, 640x450, 1440 and 2560 px: the main landmark renders, no horizontal
  * overflow, axe serious and critical violations are zero (including contrast), no uncaught page error, and the 44 px touch-target rule for interactive controls inside main. Screenshots: _docs/test-flow/growth-w9/.
  */
 const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-w9");
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
-const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
+const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 const PAGES = [
   { key: "lifecycle", path: "/growth/lifecycle" }, { key: "lifecycle-send-gate", path: "/growth/lifecycle/send-gate" }, { key: "lifecycle-suppression", path: "/growth/lifecycle/suppression" },
   { key: "fraud", path: "/growth/fraud" }, { key: "seo", path: "/growth/seo" }, { key: "corporate", path: "/growth/corporate" },
 ] as const;
-const VIEWPORTS = [{ w: 320, h: 800 }, { w: 1440, h: 900 }] as const;
+const VIEWPORTS = [{ w: 320, h: 800 }, { w: 640, h: 450 }, { w: 1440, h: 900 }, { w: 2560, h: 1440 }] as const;
 
 test.use({ actionTimeout: 25_000, navigationTimeout: 45_000 });
 

@@ -15,7 +15,7 @@ const API = process.env.KIOREX_API_URL ?? "http://localhost:4000";
 const DB = process.env.PW_DB ?? "kiorex_platform";
 const RUN = Date.now().toString(36); const KEY = `pw-auto-${RUN}`;
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
-const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
+const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const psql = (sql: string) => execFileSync(process.env.PSQL ?? "/Users/postgres/bin/psql", ["-h", "127.0.0.1", "-p", "5433", "-U", "postgres", "-d", DB, "-t", "-A", "-c", sql], { env: { ...process.env, PGPASSWORD: "postgres" } }).toString();
 const token = (): string => (JSON.parse(process.env.PW_SESSION_JSON ?? "{}") as { access_token?: string }).access_token ?? "";
 
@@ -34,7 +34,7 @@ async function axeSerious(page: Page) {
 }
 const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 const smallTargets = (page: Page) => page.evaluate(() => [...document.querySelectorAll<HTMLElement>("main button, main a, main select, main input:not([type=checkbox]):not([type=radio])")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 43.5 && !e.closest("[aria-hidden=true]") && getComputedStyle(e).visibility !== "hidden"; }).map((e) => `${e.tagName}.${(e.getAttribute("data-testid") ?? e.textContent ?? "").slice(0, 30)}:${Math.round(e.getBoundingClientRect().height)}`));
-const VIEWPORTS = [{ w: 320, h: 800 }, { w: 768, h: 900 }, { w: 1440, h: 900 }] as const;
+const VIEWPORTS = [{ w: 320, h: 800 }, { w: 640, h: 450 }, { w: 768, h: 900 }, { w: 1440, h: 900 }, { w: 2560, h: 1440 }] as const;
 const GRAPH = { schema: 1, nodes: [{ id: "start", type: "TRIGGER", event: "STAGE_DORMANT" }, { id: "n1", type: "SEND", template: "REENGAGE_DORMANT", channels: ["PUSH"] }, { id: "n2", type: "WAIT", minutes: 10080 }, { id: "n3", type: "SEND", template: "REENGAGE_DORMANT" }, { id: "end", type: "END" }], edges: [{ from: "start", to: "n1" }, { from: "n1", to: "n2" }, { from: "n2", to: "n3" }, { from: "n3", to: "end" }] };
 
 test.use({ actionTimeout: 25_000, navigationTimeout: 45_000 });

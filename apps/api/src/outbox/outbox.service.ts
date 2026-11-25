@@ -19,7 +19,7 @@ export const backoffMs = (attempts: number) => Math.min(300_000, 1_000 * 2 ** Ma
 
 /**
  * Transactional outbox (KX-09 §01): rows are written in the same DB transaction as the state change
- * (pass the `tx`), dispatched by a 5 s loop with exponential backoff, DEAD after 8 attempts.
+ * (pass the `tx`), dispatched by a 5 s loop (`OUTBOX_POLL_INTERVAL_MS`) with exponential backoff, DEAD after 8 attempts.
  */
 @Injectable()
 export class OutboxService implements OnModuleInit, OnModuleDestroy {
@@ -106,7 +106,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (!cfg().jobsEnabled) return;
-    this.timer = setInterval(() => void this.processBatch().catch((e) => this.log.error(e)), 5_000);
+    this.timer = setInterval(() => void this.processBatch().catch((e) => this.log.error(e)), Math.max(250, Number(process.env.OUTBOX_POLL_INTERVAL_MS ?? 5_000) || 5_000)); // 5 s by default; a private test stack sets OUTBOX_POLL_INTERVAL_MS
     this.timer.unref();
   }
   onModuleDestroy() {

@@ -1,5 +1,5 @@
 import { DEFAULT_MARKET } from '../../market/market-core-public';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { OutboxService } from '../../outbox/outbox-public';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -30,7 +30,7 @@ export interface RunResult { market: string; measured: boolean; pages: number; r
  * it from the sitemap. Without the SSR bundle nothing can be measured: the run says so (`measured: false`) and stores nothing, so a missing bundle never looks like a pass.
  */
 @Injectable()
-export class SeoAutomationService implements SeoQualityPort {
+export class SeoAutomationService implements SeoQualityPort, OnModuleInit {
   private readonly log = new Logger('seo-automation');
   private cfgCache = new Map<string, { at: number; cfg: SeoAutomationConfig; version: number | null }>();
   private qCache = new Map<string, { at: number; auto: boolean; noindex: Set<string>; byLocale: Record<PageLocale, Set<string>>; omit: Map<string, PageLocale[]> }>();
@@ -38,6 +38,9 @@ export class SeoAutomationService implements SeoQualityPort {
   private labelCache = new Map<string, { at: number; labels: Map<string, { en: string; ar: string }> }>();
 
   constructor(private readonly prisma: PrismaService, @Inject(SEO_SITE) private readonly site: SeoSitePort, private readonly flags: FlagsService, private readonly outbox: OutboxService) {}
+
+  /** `SeoQualityGateFailed` is an INTERNAL announcement (the ops item is raised synchronously; consumers are analytics and audit): without a registered handler the outbox retried every one of them with backoff and finally marked it DEAD, which both raised a false "dead letters" alarm and kept dozens of due rows in front of real work. */
+  onModuleInit() { this.outbox.register('SeoQualityGateFailed', async () => undefined); }
 
   invalidate(): void { this.cfgCache.clear(); this.qCache.clear(); this.lCache.clear(); this.labelCache.clear(); }
 

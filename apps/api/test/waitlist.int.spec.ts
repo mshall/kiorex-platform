@@ -28,6 +28,16 @@ describe('waitlist autofill (KXM-BK-12)', () => {
     expect((await c.http().get('/api/v1/waitlist').set(a)).body).toEqual([]);
   });
 
+  it('a slot freed AFTER the join is offered by the very next scan: the autofill never reads the 60 s slot cache that the join itself just filled with an empty list', async () => {
+    const e = await join(a).expect(201); // the join fetched the (empty) slot list fresh and cached it
+    c.kiorly.slots = [futureSlot(72)]; // a cancellation frees a slot at the Clinic
+    const r = await c.get(WaitlistService).scan();
+    expect(r.offersCreated).toBe(1);
+    const mine = (await c.http().get('/api/v1/waitlist').set(a)).body.find((x: any) => x.id === e.body.id);
+    expect(mine.status).toBe('OFFERED');
+    expect(mine.offers).toHaveLength(1);
+  });
+
   it('KIORLY_WAITLIST_MIRROR=true tells the Clinic about a join and a leave (externalRef = the entry id); a failing Clinic never fails the patient; default is off', async () => {
     const off = await join(a).expect(201); expect(c.kiorly.callsTo('POST', '/waitlist')).toHaveLength(0);
     await c.http().delete(`/api/v1/waitlist/${off.body.id}`).set(a).expect(200); expect(c.kiorly.callsTo('DELETE', '/waitlist/')).toHaveLength(0);

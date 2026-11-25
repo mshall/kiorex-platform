@@ -130,7 +130,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
       if (!provider || provider.status !== 'LIVE') continue;
       if (!(await this.autofillOn(provider))) continue; // clinic.waitlist_autofill OFF: waitlist kept, no automatic offers
       let slots: { startsAt: string; endsAt: string }[];
-      try { slots = await this.catalog.slots(provider, list[0].typeId, now, new Date(now.getTime() + cfg().waitlistHorizonDays * 86400_000)); } catch { continue; }
+      try { slots = await this.catalog.slots(provider, list[0].typeId, now, new Date(now.getTime() + cfg().waitlistHorizonDays * 86400_000), { fresh: true }); } catch { continue; } // never the 60 s read cache: a slot freed a moment ago (a cancellation) must be offered at once, and this is a background job, not the patient hot path
       for (const s of slots) {
         const startsAt = new Date(s.startsAt);
         if (startsAt <= now) continue;

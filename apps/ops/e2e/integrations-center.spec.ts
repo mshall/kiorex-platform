@@ -7,11 +7,11 @@ import { expect, test, type Page } from "@playwright/test";
  * In Arabic RTL and English, at 320 and 1440 px: the main landmark and every integration card render, no horizontal overflow, axe serious and critical violations are zero (contrast included),
  * no uncaught page error, controls inside main are at least 44 px tall, and no secret-looking value is on the page. Then a real flow: check, and a mode proposal that waits for a second person.
  */
-const SHOTS = process.env.SHOTS_DIR ?? path.resolve(process.cwd(), "../../../parent/_docs/test-flow/integrations-center");
+const SHOTS = process.env.SHOTS_DIR ?? path.resolve(process.cwd(), "../../../_docs/test-flow/integrations-center");
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
-const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
+const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
-const VIEWPORTS = [{ w: 320, h: 800 }, { w: 1440, h: 900 }] as const;
+const VIEWPORTS = [{ w: 320, h: 800 }, { w: 640, h: 450 }, { w: 1440, h: 900 }, { w: 2560, h: 1440 }] as const;
 const KEYS = ["PAYMOB", "FAWRY", "INSTAPAY", "SMS", "EMAIL", "WHATSAPP_CLOUD", "PUSH_FCM", "PUSH_APNS", "PUSH_EXPO", "GOOGLE_ADS", "GA4", "SEARCH_CONSOLE", "META_ADS", "TIKTOK", "PLAY_CONSOLE", "APP_STORE_CONNECT", "CRUX", "LLM_ASSISTANT", "LLM_RECOMMENDATIONS", "LLM_AI_GATEWAY", "TURN_VIDEO", "PASSPORT_IDP", "MAPS_GEOCODING", "OBJECT_STORAGE", "ERROR_MONITORING"];
 
 test.use({ actionTimeout: 25_000, navigationTimeout: 45_000 });
