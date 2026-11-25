@@ -547,6 +547,15 @@
 | GET | `/api/v1/care-plans` |  |
 | GET | `/api/v1/care-plans/{id}` |  |
 
+## integrations-center
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/integrations-center` | Every external integration: mode, approved mode and drift, secret presence (boolean), last check, circuit, webhook, required variable names, runbook |
+| POST | `/api/v1/admin/integrations-center/{key}/check` | Mock-safe connection check (configuration only; no vendor call) |
+| POST | `/api/v1/admin/integrations-center/{key}/test-send` | Adapter-level test send (mock mode only; real mode is refused) |
+| POST | `/api/v1/admin/integrations-center/{key}/propose-mode` | Ask for a mock or real mode: creates and submits an INTEGRATION_MODES maker-checker version; a different super admin approves it |
+
 ## lab
 
 | Method | Path | Summary |
