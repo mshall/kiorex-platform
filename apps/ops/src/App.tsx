@@ -21,6 +21,7 @@ const OperationsPage = lazy(() => import("@/pages/OperationsPage"));
 const SafetyPage = lazy(() => import("@/pages/SafetyPage"));
 const HeldDepositsPage = lazy(() => import("@/pages/HeldDepositsPage"));
 const PaymentsConnectionPage = lazy(() => import("@/pages/PaymentsConnectionPage")); // PAY-READY
+const PayOpsPage = lazy(() => import("@/pages/PayOpsPage")); // Kiorly Pay unified layer
 const ReconciliationPage = lazy(() => import("@/pages/ReconciliationPage")); // PAY-READY
 const CommissionsPage = lazy(() => import("@/pages/CommissionsPage")); // COM-1
 const HomeGatePage = lazy(() => import("@/pages/HomeGatePage"));
@@ -109,6 +110,7 @@ export function AppRoutes() {
           <Route path="payments-connection" element={<PaymentsConnectionPage />} />
           <Route path="reconciliation" element={<ReconciliationPage />} />
           <Route path="commissions" element={<CommissionsPage />} />
+          <Route path="pay-ops" element={<PayOpsPage />} />
           <Route path="home-gate" element={<HomeGatePage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="onboarding" element={<OnboardingPage />} />

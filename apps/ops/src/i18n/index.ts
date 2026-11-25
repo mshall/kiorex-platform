@@ -25,6 +25,7 @@ import growthLoyalty from "./growth.loyalty.json";
 import integrationsCenter from "./integrationsCenter.json";
 import payReady from "./pay.ready.json";
 import commissions from "./commissions.json";
+import payUnified from "./pay.unified.json";
 import messagingChannels from "./messaging.channels.json";
 
 /** Deep merge: the namespaced per-package files (GRW-P2-X1: `growth.<pkg>.json`, shape {en,ar}) add keys and never reorder or overwrite the main catalogue. */
@@ -55,7 +56,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar, growthSponsored.ar, growthExperiments.ar, growthFraudV2.ar, growthSeoAutomation.ar, growthAutomation.ar, growthRecommendations.ar, growthCohorts.ar, growthMarketWizard.ar, growthCrossProduct.ar, growthCorporate.ar, growthLoyalty.ar, integrationsCenter.ar, payReady.ar, commissions.ar, messagingChannels.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en, growthSponsored.en, growthExperiments.en, growthFraudV2.en, growthSeoAutomation.en, growthAutomation.en, growthRecommendations.en, growthCohorts.en, growthMarketWizard.en, growthCrossProduct.en, growthCorporate.en, growthLoyalty.en, integrationsCenter.en, payReady.en, commissions.en, messagingChannels.en) } },
+    resources: { ar: { translation: merge(ar, growthStubs.ar, growthCampaigns.ar, growthIntegrations.ar, growthReferrals.ar, growthLifecycle.ar, growthWhatsapp.ar, growthAttributionModels.ar, growthSponsored.ar, growthExperiments.ar, growthFraudV2.ar, growthSeoAutomation.ar, growthAutomation.ar, growthRecommendations.ar, growthCohorts.ar, growthMarketWizard.ar, growthCrossProduct.ar, growthCorporate.ar, growthLoyalty.ar, integrationsCenter.ar, payReady.ar, payUnified.ar, commissions.ar, messagingChannels.ar) }, en: { translation: merge(en, growthStubs.en, growthCampaigns.en, growthIntegrations.en, growthReferrals.en, growthLifecycle.en, growthWhatsapp.en, growthAttributionModels.en, growthSponsored.en, growthExperiments.en, growthFraudV2.en, growthSeoAutomation.en, growthAutomation.en, growthRecommendations.en, growthCohorts.en, growthMarketWizard.en, growthCrossProduct.en, growthCorporate.en, growthLoyalty.en, integrationsCenter.en, payReady.en, payUnified.en, commissions.en, messagingChannels.en) } },
     fallbackLng: "en",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },

@@ -1,0 +1,24 @@
+{
+  "en": {
+    "nav": { "payOps": "Pay matching and risk" },
+    "payOps": {
+      "title": "Payments: matching, risk and reports",
+      "hint": "Kiorly provides the software; licensed payment partners process and settle the money. Nothing here moves funds.",
+      "tabs": { "match": "Invoice matching", "fraud": "Fraud (shadow)", "report": "Reports" },
+      "match": { "upload": "Upload a bank IPN file", "file": "IPN file (CSV or JSON)", "send": "Match", "pick": "Choose a file first", "result": "Received {{received}}, applied {{applied}}, waiting for review {{queued}}, already seen {{duplicates}}", "queue": "Needs review", "empty": "Nothing waits for review", "ref": "Reference", "amount": "Amount", "confidence": "Confidence", "reasons": "Why", "decision": "Matcher said", "target": "Payment id", "confirm": "Confirm match", "reject": "Reject", "financeOnly": "Finance role required", "decisions": { "AUTO": "Matched automatically", "REVIEW": "Needs review", "UNMATCHED": "No match" } },
+      "fraud": { "shadow": "Shadow mode: scores are recorded only. A score never blocks a payment or bans an account; a person decides.", "empty": "No scored payments waiting", "score": "Score", "band": "Level", "signals": "Signals", "payment": "Payment", "review": "Review", "fp": "False alarm", "ok": "Confirmed concern", "dismiss": "Dismiss", "bands": { "LOW": "Low", "MEDIUM": "Medium", "HIGH": "High" } },
+      "report": { "level": "Group by", "levels": { "platform": "Platform", "organisation": "Organisation", "psp": "Provider", "day": "Day" }, "lang": "Report language", "download": "Download", "csv": "CSV", "pdf": "PDF", "branchNote": "Branch rollups are in each organisation's Clinic." }
+    }
+  },
+  "ar": {
+    "nav": { "payOps": "مطابقة المدفوعات والمخاطر" },
+    "payOps": {
+      "title": "المدفوعات: المطابقة والمخاطر والتقارير",
+      "hint": "كيورلي تقدّم البرنامج، وشركاء الدفع المرخّصون يعالجون الأموال ويسوّونها. لا شيء هنا ينقل أموالًا.",
+      "tabs": { "match": "مطابقة الفواتير", "fraud": "الاحتيال (تجريبي)", "report": "التقارير" },
+      "match": { "upload": "رفع ملف إشعارات البنك (IPN)", "file": "ملف IPN (CSV أو JSON)", "send": "مطابقة", "pick": "اختر ملفًا أولًا", "result": "وصل {{received}}، طُبّق {{applied}}، بانتظار المراجعة {{queued}}، سبق رؤيته {{duplicates}}", "queue": "تحتاج مراجعة", "empty": "لا شيء بانتظار المراجعة", "ref": "المرجع", "amount": "المبلغ", "confidence": "درجة الثقة", "reasons": "السبب", "decision": "قرار المطابِق", "target": "رقم الدفعة", "confirm": "تأكيد المطابقة", "reject": "رفض", "financeOnly": "يتطلب دور المالية", "decisions": { "AUTO": "مطابقة تلقائية", "REVIEW": "تحتاج مراجعة", "UNMATCHED": "لا توجد مطابقة" } },
+      "fraud": { "shadow": "وضع تجريبي: تُسجَّل الدرجات فقط. الدرجة لا تمنع دفعة ولا تحظر حسابًا؛ القرار لشخص.", "empty": "لا دفعات مُقيَّمة بانتظار المراجعة", "score": "الدرجة", "band": "المستوى", "signals": "الإشارات", "payment": "الدفعة", "review": "مراجعة", "fp": "إنذار خاطئ", "ok": "قلق مؤكد", "dismiss": "تجاهل", "bands": { "LOW": "منخفض", "MEDIUM": "متوسط", "HIGH": "مرتفع" } },
+      "report": { "level": "التجميع حسب", "levels": { "platform": "المنصة", "organisation": "المنشأة", "psp": "مزود الدفع", "day": "اليوم" }, "lang": "لغة التقرير", "download": "تنزيل", "csv": "CSV", "pdf": "PDF", "branchNote": "تقارير الفروع موجودة في كيورلي كلينك لكل منشأة." }
+    }
+  }
+}
