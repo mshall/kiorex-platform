@@ -7,6 +7,7 @@ import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { forbidden, notFound } from '../common/errors';
 import { ProductKeyGuard, RequiresFlag } from '../control-plane/control-plane-public';
 import { PayService } from './pay.service';
+import { BankIpnPspAdapter } from './psp-bank-ipn';
 import { PayIntentDto, PayLinkCheckoutDto, PayLinkDto, PspWebhookAckDto } from './pay.dto';
 
 class PayLinkBody {
@@ -29,6 +30,14 @@ export class PayController {
     const p = await this.svc.getIntent(id);
     if (p.sub !== u.sub) throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
     return { id: p.id, bookingId: p.bookingId, amountMinor: p.amountMinor, currency: p.currency, status: p.status, checkoutUrl: p.checkoutUrl, refundedMinor: p.refundedMinor };
+  }
+
+  @ApiOkResponse({ description: 'Transfer instructions of a bank / IPN payment (reference, beneficiary label, masked account), AR and EN', schema: { type: 'object', additionalProperties: true } })
+  @Get('intents/:id/instructions') @ApiOperation({ summary: 'Own bank-transfer instructions (the payment id is the transfer reference)' })
+  async instructions(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    const p = await this.svc.getIntent(id);
+    if (p.sub !== u.sub || p.psp !== 'bank_ipn') throw notFound('PAYMENT_NOT_FOUND', 'Payment not found');
+    return new BankIpnPspAdapter(process.env).instructions({ paymentId: p.id, amountMinor: p.amountMinor, currency: p.currency });
   }
 
   /** Hosted PSP webhook (HMAC verified by adapter). */

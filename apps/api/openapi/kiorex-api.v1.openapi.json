@@ -2891,6 +2891,38 @@
         ]
       }
     },
+    "/api/v1/pay/intents/{id}/instructions": {
+      "get": {
+        "operationId": "PayController_instructions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transfer instructions of a bank / IPN payment (reference, beneficiary label, masked account), AR and EN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Own bank-transfer instructions (the payment id is the transfer reference)",
+        "tags": [
+          "pay"
+        ]
+      }
+    },
     "/api/v1/pay/webhooks/{psp}": {
       "post": {
         "operationId": "PayController_webhook",
@@ -3614,6 +3646,505 @@
         "summary": "The sandbox test scenario matrix (what to run and what Kiorex must show)",
         "tags": [
           "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/matching/ipn": {
+      "post": {
+        "operationId": "PayFinanceController_ipn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayIpnFileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Upload a bank IPN file (CSV / JSON): rows are matched to payments; exact matches apply, the rest wait for finance",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/matching/queue": {
+      "get": {
+        "operationId": "PayFinanceController_queue",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/matching/{id}/confirm": {
+      "post": {
+        "operationId": "PayFinanceController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayMatchConfirmBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/matching/{id}/reject": {
+      "post": {
+        "operationId": "PayFinanceController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayMatchNoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/links": {
+      "post": {
+        "operationId": "PayFinanceController_link",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayLinkIssueBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a signed, expiring, single-use, amount-locked payment link with a QR plan",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/links/{id}/cancel": {
+      "post": {
+        "operationId": "PayFinanceController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/organisations/{id}/provider-preference": {
+      "put": {
+        "operationId": "PayFinanceController_pref",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayOrgPrefBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Per-organisation provider preference (ordered list, blocked list); audited",
+        "tags": [
+          "ops"
+        ]
+      },
+      "get": {
+        "operationId": "PayFinanceController_getPref",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/fraud/queue": {
+      "get": {
+        "operationId": "PayFinanceController_fraud",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "band",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/fraud/config": {
+      "get": {
+        "operationId": "PayFinanceController_fraudConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/fraud/{id}/review": {
+      "post": {
+        "operationId": "PayFinanceController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayFraudReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/reports/rollup": {
+      "get": {
+        "operationId": "PayFinanceController_rollup",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organisationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rollup (json | csv | pdf)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Payments rollup by organisation / psp / day / platform; json, CSV or PDF; AR or EN",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/pay/l/{token}": {
+      "get": {
+        "operationId": "PayLinkPublicController_status",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pay"
+        ]
+      }
+    },
+    "/api/v1/pay/l/{token}/checkout": {
+      "post": {
+        "operationId": "PayLinkPublicController_checkout",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pay"
         ]
       }
     },
@@ -24017,7 +24548,8 @@
               "paymob",
               "fawry",
               "instapay",
-              "card"
+              "card",
+              "bank_ipn"
             ]
           },
           "filename": {
@@ -24087,6 +24619,157 @@
             "maxLength": 300
           }
         }
+      },
+      "PayIpnFileBody": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000000
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "csv",
+              "json"
+            ]
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "PayMatchConfirmBody": {
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "targetId"
+        ]
+      },
+      "PayMatchNoteBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      },
+      "PayLinkIssueBody": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "enum": [
+              "CLINIC_INVOICE",
+              "HOME_VISIT",
+              "FRONT_DESK",
+              "SAAS_INVOICE",
+              "ORDER",
+              "OTHER"
+            ]
+          },
+          "subjectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "organisationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "branchId": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$"
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          },
+          "ttlSec": {
+            "type": "number",
+            "minimum": 60,
+            "maximum": 604800
+          }
+        },
+        "required": [
+          "context",
+          "subjectId",
+          "organisationId",
+          "amountMinor"
+        ]
+      },
+      "PayOrgPrefBody": {
+        "type": "object",
+        "properties": {
+          "preference": {
+            "type": "object",
+            "properties": {
+              "order": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "blocked": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "order"
+            ]
+          }
+        },
+        "required": [
+          "preference"
+        ]
+      },
+      "PayFraudReviewBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "FALSE_POSITIVE",
+              "DISMISSED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "outcome"
+        ]
       },
       "CreateBody": {
         "type": "object",
@@ -31402,7 +32085,10 @@
               "CROSS_PRODUCT_POLICY",
               "REFERRAL_FRAUD_THRESHOLDS",
               "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES"
+              "INTEGRATION_MODES",
+              "PAY_FRAUD_THRESHOLDS",
+              "PAY_MATCHING_POLICY",
+              "PAY_ROUTING_POLICY"
             ]
           },
           "scope": {
@@ -31524,7 +32210,10 @@
               "CROSS_PRODUCT_POLICY",
               "REFERRAL_FRAUD_THRESHOLDS",
               "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES"
+              "INTEGRATION_MODES",
+              "PAY_FRAUD_THRESHOLDS",
+              "PAY_MATCHING_POLICY",
+              "PAY_ROUTING_POLICY"
             ]
           },
           "scope": {

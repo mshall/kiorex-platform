@@ -228,7 +228,7 @@ describe('Kiorex Pay with real PSP adapters (PAY-READY)', () => {
     it('the check lists secret REFERENCES (never values), webhook URLs and a signature self-test; settings changes are audited and refuse secrets', async () => {
       const ops = await c.as('sub_ops', { roles: ['ops_admin'] });
       const chk = (await c.http().get(`${BASE}/admin/payments/connection-check`).set(ops).expect(200)).body;
-      expect(chk.mode).toBe('mock'); expect(chk.psps.map((x: any) => x.psp)).toEqual(['paymob', 'fawry', 'instapay', 'card']);
+      expect(chk.mode).toBe('mock'); expect(chk.psps.map((x: any) => x.psp)).toEqual(['paymob', 'fawry', 'instapay', 'card', 'bank_ipn']);
       expect(chk.psps[0].webhook.url).toContain('/api/v1/pay/webhooks/paymob'); expect(chk.psps[0].secrets.some((s: any) => s.ref === '/kiorex/staging/paymob-hmac-secret')).toBe(true);
       expect(JSON.stringify(chk)).not.toContain(PAYMOB_ENV.PAYMOB_HMAC_SECRET);
       const saved = await c.http().put(`${BASE}/admin/payments/settings/paymob`).set(ops).send({ settings: { fee: { percentBps: 250 }, refundWindowDays: 14, threeDsMode: 'PREFERRED' } }).expect(200);

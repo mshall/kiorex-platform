@@ -611,6 +611,18 @@
 | POST | `/api/v1/admin/payments/{paymentId}/void` | Void an authorised payment |
 | POST | `/api/v1/admin/payments/refunds/{refundId}/retry` | Retry a FAILED refund |
 | GET | `/api/v1/admin/payments/test-scenarios` | The sandbox test scenario matrix (what to run and what Kiorex must show) |
+| POST | `/api/v1/admin/payments/matching/ipn` | Upload a bank IPN file (CSV / JSON): rows are matched to payments; exact matches apply, the rest wait for finance |
+| GET | `/api/v1/admin/payments/matching/queue` |  |
+| POST | `/api/v1/admin/payments/matching/{id}/confirm` |  |
+| POST | `/api/v1/admin/payments/matching/{id}/reject` |  |
+| POST | `/api/v1/admin/payments/links` | Create a signed, expiring, single-use, amount-locked payment link with a QR plan |
+| POST | `/api/v1/admin/payments/links/{id}/cancel` |  |
+| PUT | `/api/v1/admin/payments/organisations/{id}/provider-preference` | Per-organisation provider preference (ordered list, blocked list); audited |
+| GET | `/api/v1/admin/payments/organisations/{id}/provider-preference` |  |
+| GET | `/api/v1/admin/payments/fraud/queue` |  |
+| GET | `/api/v1/admin/payments/fraud/config` |  |
+| POST | `/api/v1/admin/payments/fraud/{id}/review` |  |
+| GET | `/api/v1/admin/payments/reports/rollup` | Payments rollup by organisation / psp / day / platform; json, CSV or PDF; AR or EN |
 | GET | `/api/v1/admin/providers` | KXM-OP-01 provider directory |
 | POST | `/api/v1/admin/providers/sync` |  |
 | GET | `/api/v1/admin/bookings` | KXM-OP-02 bookings |
@@ -744,12 +756,15 @@
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/v1/pay/intents/{id}` | Own payment status |
+| GET | `/api/v1/pay/intents/{id}/instructions` | Own bank-transfer instructions (the payment id is the transfer reference) |
 | POST | `/api/v1/pay/webhooks/{psp}` |  |
 | POST | `/api/v1/pay/links` | Kiorly registers a deposit pay link (product-key HMAC) |
 | GET | `/api/v1/pay/links/{token}` | Hosted pay link info |
 | POST | `/api/v1/pay/links/{token}/checkout` | Start hosted checkout for a pay link |
 | GET | `/api/v1/pay/fake-checkout/{id}` |  |
 | POST | `/api/v1/pay/fake-checkout/{id}/complete` |  |
+| GET | `/api/v1/pay/l/{token}` |  |
+| POST | `/api/v1/pay/l/{token}/checkout` |  |
 
 ## pharmacy
 

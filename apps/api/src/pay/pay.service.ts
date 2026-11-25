@@ -45,6 +45,8 @@ export function assertPayableCurrency(currency: unknown): asserts currency is st
 export class PayService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private pollTimer?: NodeJS.Timeout;
+  /** Set by the unified layer: called (fire and forget) when a payment reaches CAPTURED or FAILED. */
+  afterFinal?: (paymentId: string) => void;
   private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
   constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort, @Optional() @Inject(CORPORATE_BENEFIT_PORT) private readonly corporate?: CorporateBenefitPort, @Optional() @Inject(PAYMENT_SIGNALS_PORT) private readonly signals?: PaymentSignalsPort, @Optional() private readonly pspConfig?: PspConfigService, @Optional() private readonly recon?: PayReconcileService, @Optional() @Inject(COMMISSION_NETTING_PORT) private readonly netting?: CommissionNettingPort) {}
 
@@ -179,7 +181,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Vertical modules subscribe to captured payments of their purpose (delivered through the outbox: retried with backoff). */
-  onOrderCaptured(purpose: 'PHARMACY' | 'LAB', fn: (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>) { this.orderHandlers.set(purpose, fn); }
+  onOrderCaptured(purpose: 'PHARMACY' | 'LAB' | 'LINK', fn: (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>) { this.orderHandlers.set(purpose, fn); }
 
   /** Vertical order payment (pharmacy / lab). `partnerId` is the ledger sub-account owner (e.g. ph:<pharmacyId>). Idempotent per order. */
   async createOrderIntent(i: { orderRef: string; purpose: 'PHARMACY' | 'LAB'; sub: string; partnerId: string; amountMinor: number; currency: string; psp?: string }): Promise<PaymentIntent> {
@@ -260,6 +262,16 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** A neutral event that did not arrive as a signed webhook (a bank IPN file row, a human-confirmed match): the same de-duplication (WebhookReceipt) and the same idempotent state machine as a webhook. */
+  async ingestVerifiedEvent(psp: string, ev: PspWebhookEvent, source: string): Promise<{ status: string }> {
+    const settings = await this.settingsOf(psp);
+    const eventId = `psp:${ev.eventId}`;
+    try { await this.prisma.webhookReceipt.create({ data: { eventId, source: `${source}:${psp}`, type: ev.type, aggregateId: ev.paymentId ?? ev.pspRef, payload: JSON.parse(JSON.stringify(ev)), status: 'PROCESSED', processedAt: new Date() } }); }
+    catch (e) { if ((e as { code?: string }).code === 'P2002') return { status: 'DUPLICATE' }; throw e; }
+    try { return { status: await this.applyPspEvent(psp, ev, settings) }; }
+    catch (e) { await this.prisma.webhookReceipt.delete({ where: { eventId } }).catch(() => undefined); throw e; }
+  }
+
   private async settingsOf(psp: string): Promise<PspSettings> {
     const name = (['paymob', 'fawry', 'instapay', 'card', 'bank_ipn'].includes(psp) ? psp : 'paymob') as 'paymob';
     return this.pspConfig ? this.pspConfig.settingsFor(name) : (await import('./psp-config')).resolveSettings(name, '*');
@@ -275,6 +287,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
         const where = { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'CREATED' };
         const failed = await this.prisma.paymentIntent.findMany({ where, select: { bookingId: true, corporateMinor: true } });
         await this.prisma.paymentIntent.updateMany({ where, data: { status: 'FAILED' } });
+        for (const f of await this.prisma.paymentIntent.findMany({ where: { OR: [{ id: ev.paymentId ?? '-' }, { pspRef: ev.pspRef }], status: 'FAILED' }, select: { id: true } })) this.afterFinal?.(f.id);
         for (const f of failed) if (f.bookingId) { if (this.rewards) await this.rewards.releaseForBooking(f.bookingId, 'PAYMENT_FAILED'); if (f.corporateMinor > 0) await this.corporate?.release(f.bookingId, 'PAYMENT_FAILED').catch(() => undefined); } // GRW-P2-B2 / GRW-P4-C: the reserved credit and benefit are free again
         return 'FAILED_RECORDED';
       }
@@ -363,6 +376,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       await this.outbox.enqueue(tx, { type: 'kiorly.deposit_paid', target: 'KIORLY', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id }, dedupeKey: `kiorly.deposit_paid:${p.id}` });
       await this.outbox.enqueue(tx, { type: 'pay.deposit_captured', aggregateType: 'PaymentIntent', aggregateId: p.id, payload: { paymentId: p.id, bookingId: p.bookingId, amountMinor: p.amountMinor }, dedupeKey: `pay.deposit_captured:${p.id}` });
     });
+    if (claimedNow) this.afterFinal?.(p.id);
     if (claimedNow && fpOk && p.sub && this.signals) await this.signals.recordCardFingerprint(p.sub, card!.fingerprint!).catch(() => undefined); // the fraud signals (RF_SELF, RF_FARM): hashed, never blocking the payment
     return 'CAPTURED';
   }
@@ -871,6 +885,15 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
       await tx.payLink.update({ where: { token }, data: { paymentIntentId: id } });
       return intent;
     }, { timeout: 20_000 });
+  }
+
+  /** A payment started from a single-use payment link (purpose LINK: no booking, no clinic payout). The link store has already consumed the link. */
+  async createLinkIntent(i: { linkId: string; sub?: string; clinicId: string; amountMinor: number; currency: string; psp: string; orderRef: string; rail?: 'card' | 'wallet' }): Promise<PaymentIntent> {
+    assertPayableAmount(i.amountMinor); assertPayableCurrency(i.currency);
+    const c = await this.pspConfig!.candidates({ currency: i.currency, requested: i.psp }).then((l) => l.find((x) => x.psp === i.psp) ?? l[0]);
+    const id = newId('pay'); const adapter = pspAdapter(c.psp, c.settings);
+    const co = await this.checkoutCall(adapter, { paymentId: id, amountMinor: i.amountMinor, currency: i.currency, captureMode: c.settings.captureMode, threeDsMode: c.settings.threeDsMode, decimals: minorDigits(c.settings, i.currency), rail: i.rail });
+    return this.prisma.paymentIntent.create({ data: { id, sub: i.sub, clinicId: i.clinicId, amountMinor: i.amountMinor, currency: i.currency, psp: adapter.name, pspRef: co.pspRef, checkoutUrl: co.checkoutUrl, purpose: 'LINK', orderRef: i.orderRef, pspMode: cfg().pspMode === 'real' ? c.settings.mode : null } });
   }
 
   // ───────────── fake hosted checkout (sandbox only) ─────────────
