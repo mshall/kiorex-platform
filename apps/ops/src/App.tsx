@@ -13,6 +13,7 @@ import { BookingTimelinePage, FinancePage, LiquidityPage, ModerationPage, Outbox
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
 
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
+const IntegrationsCenterPage = lazy(() => import("@/pages/IntegrationsCenterPage"));
 const FeesPage = lazy(() => import("@/pages/FeesPage"));
 const PolicyPage = lazy(() => import("@/pages/PolicyPage"));
 const OrdersPage = lazy(() => import("@/pages/OrdersPage"));
@@ -95,6 +96,7 @@ export function AppRoutes() {
           <Route path="moderation" element={<ModerationPage />} />
           <Route path="liquidity" element={<LiquidityPage />} />
           <Route path="messaging" element={<MessagingPage />} />
+          <Route path="integrations" element={<IntegrationsCenterPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="fees" element={<FeesPage />} />
           <Route path="policy" element={<PolicyPage />} />
