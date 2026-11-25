@@ -39,6 +39,7 @@ export default function MoreLayout() {
       <Stack.Screen name="waitlist" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("waitlist.title") }} />
       <Stack.Screen name="referral/index" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("referral.title") }} />
       <Stack.Screen name="corporate/index" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("corporate.title") }} />
+      <Stack.Screen name="loyalty/index" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("loyalty.title") }} />
       <Stack.Screen name="referral/rewards" options={{ title: t("referral.rewardsTitle") }} />
       <Stack.Screen name="records/[id]" options={{ title: t("records.title") }} />
       <Stack.Screen name="records/sharing" options={{ headerLargeTitle: true, headerLargeStyle: { backgroundColor: colors.ground }, title: t("records.sharing") }} />

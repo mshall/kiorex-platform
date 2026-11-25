@@ -141,11 +141,11 @@
         "loyalty": {
           "nav": "Loyalty",
           "title": "Loyalty",
-          "hint": "Tiers and partnership offers on the same ledger.",
+          "hint": "Points, tiers and partner offers on a separate points ledger. Points are not money.",
           "scope": [
-            "Tiers, accrual events, caps, expiry and partner offers",
-            "Counsel-gated",
-            "Every string in Arabic and English, RTL verified"
+            "Points on completed bookings, tiers, FIFO expiry, annual cap and conversion into normal reward vouchers",
+            "Partner programs on a PARTNER campaign with a database budget cap",
+            "Counsel-gated: every amount starts at 0"
           ],
           "deps": [
             "GRW-P4-D loyalty and partnerships",
@@ -301,11 +301,11 @@
         "loyalty": {
           "nav": "الولاء",
           "title": "الولاء",
-          "hint": "مستويات وعروض شراكة على الدفتر نفسه.",
+          "hint": "النقاط والمستويات وعروض الشركاء على دفتر نقاط مستقل. النقاط ليست مالاً.",
           "scope": [
-            "المستويات وأحداث الاكتساب والحدود والانتهاء وعروض الشركاء",
-            "يحتاج موافقة قانونية",
-            "كل النصوص بالعربية والإنجليزية مع التحقق من اتجاه RTL"
+            "نقاط على الحجوزات المكتملة والمستويات وانتهاء الأقدم أولاً والحد السنوي والاستبدال بقسائم المكافآت المعتادة",
+            "برامج شراكة على حملة PARTNER بحد ميزانية في قاعدة البيانات",
+            "يحتاج موافقة قانونية: كل مبلغ يبدأ من صفر"
           ],
           "deps": [
             "حزمة GRW-P4-D",
