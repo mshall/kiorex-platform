@@ -47,6 +47,15 @@ export async function rawText(path: string): Promise<string> {
   return text;
 }
 
+/** Authenticated GET that returns the body as a Blob (PDF statements). The token travels in a header, never in a URL. */
+export async function rawBlob(path: string): Promise<Blob> {
+  const token = await getToken();
+  const res = await globalThis.fetch(`/api/v1${path}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), accept: "application/pdf" } });
+  if (res.status === 401) onUnauthorized();
+  if (!res.ok) { let data: unknown; try { data = JSON.parse(await res.text()); } catch { /* not json */ } throw toApiError(res.status, data); }
+  return res.blob();
+}
+
 export const api = createClient<paths>({ baseUrl: typeof window !== "undefined" ? window.location.origin : "", fetch: (r) => globalThis.fetch(r) });
 api.use(auth);
 

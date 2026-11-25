@@ -162,6 +162,14 @@ describe('commission collection', () => {
     await c.http().get('/api/v1/admin/commissions/export/nonsense').set(fin).expect(400);
   });
 
+  it('the bilingual PDF statement is role-checked and audited', async () => {
+    await confirmed(ORG, '100.00');
+    await c.http().get('/api/v1/admin/commissions/statement.pdf').set(ops).expect(403);
+    const r = await c.http().get('/api/v1/admin/commissions/statement.pdf?org=org_alpha').set(fin).buffer(true).parse((res, cb) => { const ch: Buffer[] = []; res.on('data', (d: Buffer) => ch.push(d)); res.on('end', () => cb(null, Buffer.concat(ch))); }).expect(200);
+    expect(r.headers['content-type']).toContain('application/pdf'); expect((r.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
+    expect(await c.prisma.commissionExportAudit.count({ where: { view: 'statement', format: 'PDF', actor: 'fin1' } })).toBe(1);
+  });
+
   it('the timeline is append-only at the database', async () => {
     await confirmed(ORG, '10.00');
     await expect(c.prisma.$executeRawUnsafe(`UPDATE "CommissionTimeline" SET event='X'`)).rejects.toThrow(/append-only/);

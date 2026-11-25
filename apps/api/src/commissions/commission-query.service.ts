@@ -3,6 +3,7 @@ import { badRequest, notFound } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
 import { AGING_BUCKETS, type Finding, agingBucket, major, reconcilePayout, reconcileRun, toCsv } from './commission-collect';
 import { CommissionConfigService } from './commission-config.service';
+import { buildBilingualPdf, type PdfRow } from './bilingual-pdf';
 
 export interface Page { page?: number; pageSize?: number }
 const pg = (p: Page) => { const pageSize = Math.min(Math.max(Math.floor(p.pageSize ?? 50), 1), 200); const page = Math.max(Math.floor(p.page ?? 1), 1); return { skip: (page - 1) * pageSize, take: pageSize, page, pageSize }; };
@@ -174,6 +175,36 @@ export class CommissionQueryService {
     else { const r = await this.reconciliation(f); header = ['code', 'org', 'period', 'ref', 'expected', 'actual', 'message']; rows = r.findings.map((x) => [x.code, x.orgRef, x.periodKey, x.ref, m(x.expectedMinor), m(x.actualMinor), x.message]); }
     await this.auditExport(actor, view, 'CSV', f, rows.length);
     return { filename: `commission-${view}-${new Date().toISOString().slice(0, 10)}.csv`, csv: toCsv(header, rows), rows: rows.length };
+  }
+
+  /** Bilingual (EN, then AR right-to-left) finance statement: totals, runs and payout deductions of one organisation or of all (platform), with the reconciliation result. Audited like a CSV export. */
+  async statementPdf(f: Filter, actor: string): Promise<{ filename: string; pdf: Buffer }> {
+    const [sum, runs, ded, rec, aging] = await Promise.all([this.summary(f), this.runs(f, { pageSize: 200 }), this.deductions(f, { pageSize: 200 }), this.reconciliation(f), this.aging(f)]);
+    const m = major;
+    const T = {
+      en: { title: 'Kiorex commissions statement', org: 'Organisation', all: 'All organisations', collected: 'Charged to saved method', deducted: 'Kept from payouts', invoiceOpen: 'Invoices open', overdue: 'Overdue', disputed: 'Under dispute', creditDue: 'Credit due to providers', runs: 'Collection runs', period: 'Period', status: 'Status', amount: 'Amount', payouts: 'Payout deductions', recon: 'Reconciliation', clean: 'No findings: charged equals decisions and every run equals its claims and attempts.', findings: 'findings', none: 'Nothing to show.', aging: 'Open by age' },
+      ar: { title: 'كشف عمولات كيوركس', org: 'الجهة', all: 'كل الجهات', collected: 'محصّل من الوسيلة المحفوظة', deducted: 'مخصوم من التحويلات', invoiceOpen: 'فواتير مفتوحة', overdue: 'متأخر', disputed: 'قيد النزاع', creditDue: 'رصيد مستحق للجهات', runs: 'تشغيلات التحصيل', period: 'الفترة', status: 'الحالة', amount: 'المبلغ', payouts: 'الخصم من التحويلات', recon: 'المطابقة', clean: 'لا ملاحظات: المحصّل يساوي القرارات وكل تشغيل يساوي مطالباته ومحاولاته.', findings: 'ملاحظات', none: 'لا شيء للعرض.', aging: 'المفتوح حسب العمر' },
+    } as const;
+    const section = (lang: 'en' | 'ar') => {
+      const L = T[lang]; const w = [3, 3, 3];
+      const rows: PdfRow[] = [
+        { kind: 'text', text: L.title, size: 16, bold: true }, { kind: 'pair', label: L.org, value: f.orgRef ?? L.all }, { kind: 'pair', label: 'Date', value: new Date().toISOString().slice(0, 10) }, { kind: 'rule' },
+        { kind: 'pair', label: L.collected, value: m(sum.figures.collectedMinor!) }, { kind: 'pair', label: L.deducted, value: m(sum.figures.deductedMinor!) }, { kind: 'pair', label: L.invoiceOpen, value: m(sum.figures.invoiceOpenMinor!) },
+        { kind: 'pair', label: L.overdue, value: m(sum.figures.overdueMinor!) }, { kind: 'pair', label: L.disputed, value: m(sum.figures.disputedOpenMinor!) }, { kind: 'pair', label: L.creditDue, value: m(sum.figures.creditDueMinor!) },
+        { kind: 'gap' }, { kind: 'text', text: L.aging, size: 11, bold: true },
+        ...Object.entries(aging.buckets).map(([k, v]) => ({ kind: 'pair', label: k, value: m(v as number), size: 9 }) as PdfRow),
+        { kind: 'gap' }, { kind: 'text', text: L.runs, size: 11, bold: true },
+      ];
+      if (!runs.items.length) rows.push({ kind: 'text', text: L.none, size: 9 });
+      else { rows.push({ kind: 'columns', cells: [L.period, L.status, L.amount], widths: w, size: 9, bold: true }); for (const r of runs.items.slice(0, 120)) rows.push({ kind: 'columns', cells: [`${f.orgRef ? '' : `${r.orgRef.slice(-6)} `}${r.periodKey}`, r.status, `${m(r.claimsMinor)} ${r.currency}`], widths: w, size: 9 }); }
+      rows.push({ kind: 'gap' }, { kind: 'text', text: L.payouts, size: 11, bold: true });
+      if (!ded.items.length) rows.push({ kind: 'text', text: L.none, size: 9 }); else for (const p of ded.items.slice(0, 60)) rows.push({ kind: 'pair', label: p.payoutRef, value: `-${m(p.commissionDeductedMinor)} ${p.currency}`, size: 9 });
+      rows.push({ kind: 'gap' }, { kind: 'text', text: L.recon, size: 11, bold: true }, { kind: 'text', text: rec.findings.length ? `${rec.findings.length} ${L.findings}` : L.clean, size: 9 });
+      return { direction: (lang === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr', rows };
+    };
+    const pdf = buildBilingualPdf([section('en'), section('ar')]);
+    await this.auditExport(actor, 'statement', 'PDF', f, runs.items.length);
+    return { filename: `commission-statement-${f.orgRef ?? 'all'}-${new Date().toISOString().slice(0, 10)}.pdf`, pdf };
   }
 
   async auditExport(actor: string, view: string, format: 'CSV' | 'PDF', f: Filter, rowCount: number) {

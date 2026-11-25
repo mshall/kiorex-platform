@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Header, HttpCode, Param, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
 import { AuthUser, CurrentUser, Roles } from '../common/auth';
@@ -64,6 +64,14 @@ export class CommissionOpsController {
     const r = await this.q.exportCsv(view as ExportView, this.filter(q), u.sub);
     res.setHeader('content-disposition', `attachment; filename="${r.filename}"`);
     return r.csv;
+  }
+
+  @ApiOperation({ summary: 'Bilingual (EN + AR) PDF statement of one organisation or of all (audited)' }) @Roles(...commissionRolesFor('export')) @Get('statement.pdf')
+  @Header('content-type', 'application/pdf')
+  async statementPdf(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>, @Res({ passthrough: true }) res: { setHeader(k: string, v: string): void }) {
+    const r = await this.q.statementPdf(this.filter(q), u.sub);
+    res.setHeader('content-disposition', `attachment; filename="${r.filename}"`);
+    return new StreamableFile(r.pdf);
   }
 
   @ApiOkResponse(OBJ) @Roles(...commissionRolesFor('proposeConfig')) @Post('config') @HttpCode(200)

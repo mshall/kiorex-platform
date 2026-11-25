@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Download, Play, RefreshCw } from "lucide-react";
-import { rawApi, rawText } from "@/api/client";
+import { rawApi, rawBlob, rawText } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardSkeleton, ErrorState } from "@/components/states";
@@ -37,6 +37,7 @@ export default function CommissionsPage() {
   const st = (s: string) => <Badge variant={["COLLECTED", "SETTLED", "PAID", "ACTIVE", "CONFIRMED"].includes(s) ? "success" : ["RETRYING", "INVOICE_OPEN", "DISPUTED", "OPEN", "PENDING"].includes(s) ? "warning" : "secondary"}>{t(`commissions.status.${s}`, { defaultValue: s })}</Badge>;
   const qs = org ? `?org=${encodeURIComponent(org)}` : "";
   const exp = async (view: string) => { const csv = await rawText(`${B}/export/${view}${qs}`); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `commission-${view}.csv`; a.click(); };
+  const pdf = async () => { try { const b = await rawBlob(`${B}/statement.pdf${qs}`); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "commission-statement.pdf"; a.click(); } catch { toast.error(t("commissions.toast.error")); } };
   const trigger = useMutation({ mutationFn: () => rawApi("POST", `${B}/runs/trigger`, org ? { orgRef: org } : {}), onSuccess: () => { toast.success(t("commissions.toast.ran")); void qc.invalidateQueries({ queryKey: ["com"] }); }, onError: () => toast.error(t("commissions.toast.error")) });
   const retry = useMutation({ mutationFn: (id: string) => rawApi("POST", `${B}/runs/${id}/retry`), onSuccess: () => void qc.invalidateQueries({ queryKey: ["com"] }), onError: () => toast.error(t("commissions.toast.error")) });
 
@@ -62,6 +63,7 @@ export default function CommissionsPage() {
     <div>
       <PageHeader title={t("commissions.title")} hint={t("commissions.hint")} actions={<>
         {org && <Button variant="outline" onClick={() => setOrg(null)} data-testid="com-clear-org">{org} ×</Button>}
+        {caps.data.export && <Button variant="outline" onClick={() => void pdf()} data-testid="com-pdf"><Download aria-hidden="true" className="me-1.5 h-4 w-4" />{t("commissions.actions.pdf")}</Button>}
         {caps.data.operate && <Button onClick={() => trigger.mutate()} disabled={trigger.isPending} data-testid="com-run"><Play aria-hidden="true" className="me-1.5 h-4 w-4" />{t("commissions.actions.runDue")}</Button>}
       </>} />
       <div role="tablist" aria-label={t("commissions.title")} className="mb-4 flex flex-wrap gap-1.5">
