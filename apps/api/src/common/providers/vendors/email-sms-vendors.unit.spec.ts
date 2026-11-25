@@ -39,7 +39,7 @@ describe('SNS message signature (SignatureVersion 1 and 2)', () => {
   const keyFor = async () => publicKey;
   it('verifies a correctly signed notification (v1 and v2), rejects tampering, a foreign topic, a foreign cert host and an unknown version', async () => {
     for (const v of ['1', '2'] as const) {
-      const m = { ...base(), SignatureVersion: v }; m.Signature = sign(m, v);
+      const m: Record<string, any> = { ...base(), SignatureVersion: v }; m.Signature = sign(m, v);
       expect(await verifySnsSignature(JSON.stringify(m), keyFor)).toBe(true);
       expect(await verifySnsSignature(JSON.stringify({ ...m, Message: m.Message + ' ' }), keyFor)).toBe(false);
       expect(await verifySnsSignature(JSON.stringify(m), keyFor, ['arn:aws:sns:eu-central-1:111122223333:other'])).toBe(false);

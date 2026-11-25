@@ -3,11 +3,13 @@ import { outboundFetch } from '../common/outbound-http';
 import { providerEnv } from '../common/providers/env';
 import { HttpMessagingTransport, messagingKindOf, type MessagingKind } from '../common/providers/real-adapters';
 import type { HttpDeps } from '../common/providers/http';
+import { gateErrorCode, realModeGate } from '../common/providers/real-mode-gate';
 import { buildDeepLink, isExpoToken, PushSender, pushConfigFromEnv, pushProblems, type PushConfig } from '../common/providers/vendors/push';
 import { effectiveMessagingConfig } from './messaging-config';
 import { providerEnvFor, providerOrder, providerProblemsFor } from './provider-select';
 import { BackoffGate, RateBudget, type Clock } from './throttle';
 import { MessagingAdapter, MsgChannel, OutboundMessage, SendContext, SendResult } from './messaging.types';
+import { isApnsToken } from '../common/providers/vendors/apns';
 import { MetaWhatsappAdapter, type MetaAdapterDeps } from './whatsapp/meta.adapter';
 
 /**
@@ -168,6 +170,29 @@ export function channelMode(channel: MsgChannel): 'mock' | 'real' {
   return process.env.MESSAGING_MODE === 'real' ? 'real' : 'mock';
 }
 
+/** Control Center key of what a message will use (push depends on the token shape). */
+export function integrationKeyFor(channel: MsgChannel, to?: string): string {
+  if (channel === 'WHATSAPP') return 'WHATSAPP_CLOUD';
+  if (channel === 'SMS' || channel === 'EMAIL') return channel;
+  return to && isExpoToken(to) ? 'PUSH_EXPO' : to && isApnsToken(to) ? 'PUSH_APNS' : 'PUSH_FCM';
+}
+
+/**
+ * Real-mode gate (launch guide 13.4): a REAL adapter sends only while INTEGRATION_MODES approves real for its integration in this environment; otherwise it fails closed with
+ * NEEDS_HUMAN and calls no vendor. Checked on every send (an approval can be withdrawn at runtime). Mock adapters are never wrapped.
+ */
+export class ApprovalGatedAdapter implements MessagingAdapter {
+  readonly mode = 'real' as const;
+  constructor(private readonly inner: MessagingAdapter) {}
+  get channel(): MsgChannel { return this.inner.channel; }
+  get unwrapped(): MessagingAdapter { return this.inner; }
+  async send(m: OutboundMessage, ctx?: SendContext): Promise<SendResult> {
+    const key = integrationKeyFor(this.channel, m.to);
+    if (!realModeGate(key).allowed) return { ok: false, providerRef: '', error: gateErrorCode(key), retryable: false };
+    return this.inner.send(m, ctx);
+  }
+}
+
 export interface AdapterDeps {
   meta?: MetaAdapterDeps;
   http?: HttpDeps;
@@ -177,6 +202,11 @@ export interface AdapterDeps {
 
 export function createMessagingAdapter(channel: MsgChannel, deps: AdapterDeps = {}): MessagingAdapter {
   if (channelMode(channel) === 'mock') return new MockAdapter(channel);
+  const inner = createRealAdapter(channel, deps);
+  return inner instanceof UnconfiguredAdapter ? inner : new ApprovalGatedAdapter(inner);
+}
+
+function createRealAdapter(channel: MsgChannel, deps: AdapterDeps): MessagingAdapter {
   if (channel === 'PUSH') return pushProblems(process.env).length ? new UnconfiguredAdapter(channel) : new PushAdapter(new PushSender({ ...pushConfigFromEnv(process.env), ...(deps.push ?? {}) }, outboundFetch));
   const k = messagingKindOf(channel) as MessagingKind | undefined;
   if (!k) return new UnconfiguredAdapter(channel);

@@ -5,7 +5,7 @@ import { outboundFetch } from '../common/outbound-http';
 import { ApiError, notFound } from '../common/errors';
 import { addressHash } from '../common/privacy-hash';
 import { PrismaService } from '../prisma/prisma.service';
-import { channelMode, classifyTransportError, createMessagingAdapter, PushAdapter } from './adapters';
+import { ApprovalGatedAdapter, FailoverAdapter, channelMode, classifyTransportError, createMessagingAdapter, PushAdapter } from './adapters';
 import { providerEnv } from '../common/providers/env';
 import { messagingKindOf, messagingMapping } from '../common/providers/real-adapters';
 import { providerEnvFor } from './provider-select';
@@ -102,7 +102,8 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
       meta: { window: this.windows, templates: this.waTemplates, status: this.templateStore, onState: (e) => void this.persistWaState(e) },
     });
     this.built.set(channel, { sig, adapter });
-    if (adapter instanceof MetaWhatsappAdapter) void this.restoreWaState(adapter);
+    const core = adapter instanceof ApprovalGatedAdapter ? adapter.unwrapped : adapter; const waCore = core instanceof FailoverAdapter ? undefined : core;
+    if (waCore instanceof MetaWhatsappAdapter) void this.restoreWaState(waCore);
     return adapter;
   }
   /** Tests / go-live wiring can replace an adapter. */
@@ -250,7 +251,7 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
 
   /** Expo receipts (the only reliable "dead token" signal for Expo tokens): revoke what came back DeviceNotRegistered. */
   async sweepPushReceipts() {
-    const a = this.built.get('PUSH')?.adapter;
+    const b = this.built.get('PUSH')?.adapter; const a = b instanceof ApprovalGatedAdapter ? b.unwrapped : b;
     if (!(a instanceof PushAdapter)) return { revoked: 0, checked: 0 };
     const r = await a.sweepExpoReceipts();
     for (const token of r.revoke) await this.prisma.deviceToken.updateMany({ where: { token, revokedAt: null }, data: { revokedAt: new Date() } });
@@ -316,7 +317,7 @@ export class MessagingHub implements OnModuleInit, OnModuleDestroy {
       else if (e.type === 'TEMPLATE_QUALITY') { if (await this.templateStore.apply({ metaName: e.name, language: e.language.slice(0, 2), quality: e.quality, metaTemplateId: e.templateId, at: new Date() })) n++; }
       else if (e.type === 'PHONE_QUALITY') {
         await this.setState('WHATSAPP', 'quality', { event: e.event, tier: e.tier ?? null, tierLimit: e.tier ? (META_TIER_LIMITS[e.tier] ?? null) : null, at: new Date().toISOString() });
-        const a = this.built.get('WHATSAPP')?.adapter; if (a instanceof MetaWhatsappAdapter && e.tier) a.setTier(e.tier);
+        const w = this.built.get('WHATSAPP')?.adapter; const a = w instanceof ApprovalGatedAdapter ? w.unwrapped : w; if (a instanceof MetaWhatsappAdapter && e.tier) a.setTier(e.tier);
         this.log.warn(`[WHATSAPP] phone number quality event ${e.event}${e.tier ? ` tier=${e.tier}` : ''}`); n++;
       } else { await this.setState('WHATSAPP', 'account', { event: e.event, at: new Date().toISOString() }); this.log.warn(`[WHATSAPP] account event ${e.event}`); n++; }
     }

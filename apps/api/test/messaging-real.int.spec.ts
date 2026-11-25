@@ -8,6 +8,7 @@ import { MessagingOpsService } from '../src/messaging/messaging-ops.service';
 import { MetaWhatsappAdapter } from '../src/messaging/whatsapp/meta.adapter';
 import { signUnsubscribeToken } from '../src/messaging/unsubscribe';
 import { GrowthConfigService } from '../src/growth/growth-public';
+import { setApprovedModesSource } from '../src/common/providers/real-mode-gate';
 import { MessagingConfigBinder } from '../src/growth/config/messaging-config.binder';
 import type { MessagingAdapter, OutboundMessage } from '../src/messaging/messaging.types';
 
@@ -302,5 +303,41 @@ describe('real messaging channels (no vendor call)', () => {
       expect((await hub.quietUntil('WHATSAPP', 'EG', Date.parse('2026-11-25T20:30:00Z')))).toBe(Date.parse('2026-11-26T06:00:00Z')); // 22:30 Cairo -> 08:00 Cairo
       const kinds = (await c.http().get('/api/v1/ops/growth/config/kinds').set(A).expect(200)).body; expect(kinds.map((k: any) => k.kind)).toContain('MESSAGING_CHANNELS');
     });
+  });
+});
+
+describe('real-mode approval gate through the real stack', () => {
+  let c: TestCtx; let hub: MessagingHub;
+  beforeAll(async () => { c = await createCtx(); hub = c.get(MessagingHub); });
+  afterAll(async () => { await c.close(); });
+  beforeEach(async () => { await c.reset(); hub.clearAdapters(); delete process.env.INTEGRATION_MODE_GATE_BYPASS; });
+  afterEach(() => { process.env.INTEGRATION_MODE_GATE_BYPASS = 'true'; Object.keys(AGG).forEach((k) => delete process.env[k]); });
+  it('SMS_MODE=real without an INTEGRATION_MODES approval fails closed with NEEDS_HUMAN and calls no vendor; a second super admin approving real opens it', async () => {
+    Object.assign(process.env, AGG);
+    const urls: string[] = []; const { HttpMessagingAdapter } = await import('../src/messaging/adapters'); void HttpMessagingAdapter;
+    const g = globalThis.fetch; globalThis.fetch = (async (u: string) => { urls.push(String(u)); return new Response(JSON.stringify({ SMSID: 1, code: '1901' }), { status: 200 }); }) as never;
+    try {
+      const r = await hub.send({ channel: 'SMS', to: '+201001234567', templateId: 'T', locale: 'en', body: 'x' });
+      expect(r).toMatchObject({ ok: false, status: 'FAILED', error: 'NEEDS_HUMAN_REAL_MODE_NOT_APPROVED:SMS' }); expect(urls).toHaveLength(0);
+      const A = await c.as('adm_a', { roles: ['ops_admin', 'super_admin'] }); const B = await c.as('adm_b', { roles: ['ops_admin', 'super_admin'] });
+      const d = (await c.http().post('/api/v1/ops/growth/config').set(A).send({ kind: 'INTEGRATION_MODES', scope: 'GLOBAL', payload: { modes: { SMS: 'real' } }, ticket: 'T-1', reason: 'go-live SMS', announcement: 'Enable the real SMS provider.' }).expect(201)).body;
+      await c.http().post(`/api/v1/ops/growth/config/${d.id}/submit`).set(A).expect(200); await c.http().post(`/api/v1/ops/growth/config/${d.id}/approve`).set(B).expect(200);
+      c.get(GrowthConfigService).invalidate();
+      const st = (await c.http().get('/api/v1/admin/messaging/channels').set(A).expect(200)).body.channels.find((x: any) => x.channel === 'SMS');
+      expect(st.providers[0].problems.join()).not.toContain('not approved');
+      expect((await hub.send({ channel: 'SMS', to: '+201001234567', templateId: 'T', locale: 'en', body: 'x' })).error).not.toContain('NEEDS_HUMAN_REAL_MODE');
+    } finally { globalThis.fetch = g; }
+  });
+  it('production ignores the bypass flag: it is reported as a problem and the gate stays closed', async () => {
+    Object.assign(process.env, AGG); const nodeEnv = process.env.NODE_ENV;
+    try {
+      setApprovedModesSource(() => ({})); // nothing approved (the previous test's approval is process-wide policy state)
+      process.env.INTEGRATION_MODE_GATE_BYPASS = 'true'; process.env.NODE_ENV = 'production';
+      const A = await c.as('adm_a', { roles: ['ops_admin', 'super_admin'] });
+      const r = await hub.send({ channel: 'SMS', to: '+201001234567', templateId: 'T', locale: 'en', body: 'x' });
+      expect(r.error).toBe('NEEDS_HUMAN_REAL_MODE_NOT_APPROVED:SMS');
+      const sms = (await c.http().get('/api/v1/admin/messaging/channels').set(A)).body.channels?.find((x: any) => x.channel === 'SMS');
+      if (sms) expect(sms.providers[0].problems.join()).toMatch(/not approved|not allowed in production/);
+    } finally { process.env.NODE_ENV = nodeEnv; }
   });
 });

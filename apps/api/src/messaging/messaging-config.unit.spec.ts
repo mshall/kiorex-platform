@@ -1,8 +1,9 @@
 import { effectiveMessagingConfig, failoverOrderFor, MESSAGING_CHANNELS_DEFAULT, quietUntil, resolveSecretRef, retryFor, secretEnvName, SECRET_PATH, validateMessagingChannels } from './messaging-config';
 import { providerEnvFor, providerOrder, providerProblemsFor } from './provider-select';
-import { createMessagingAdapter, FailoverAdapter, HttpMessagingAdapter, MockAdapter, UnconfiguredAdapter } from './adapters';
+import { ApprovalGatedAdapter, createMessagingAdapter, FailoverAdapter, HttpMessagingAdapter, MockAdapter, UnconfiguredAdapter } from './adapters';
 import type { MessagingAdapter, OutboundMessage } from './messaging.types';
 
+process.env.INTEGRATION_MODE_GATE_BYPASS = 'true';
 const ok = (p: unknown) => expect(validateMessagingChannels(p).errors).toEqual([]);
 const bad = (p: unknown, frag: string) => expect(validateMessagingChannels(p).errors.join('\n')).toContain(frag);
 
@@ -114,8 +115,9 @@ describe('adapter chains and failover', () => {
       expect(createMessagingAdapter('SMS')).toBeInstanceOf(MockAdapter);
       Object.assign(process.env, { SMS_MODE: 'real', SMS_PROVIDER: 'aggregator', SMS_API_URL: 'https://sms.agg.example', SMS_API_KEY: 'u:p', SMS_SENDER_ID: 'Kiorex', SMS_WEBHOOK_SECRET: 'dlr_secret_0123456789', _KIOREX_PROD_SMS_TWILIO: 'ACabc:tok', SMS_TWILIO_WEBHOOK_SECRET: 'twilio_secret_0123456', SMS_TWILIO_WEBHOOK_PUBLIC_URL: 'https://api.kiorex.test/x' });
       const chain = effectiveMessagingConfig({ channels: { SMS: { providers: ['aggregator', 'twilio'], secretRefs: { twilio: '/kiorex/prod/sms_twilio' } } } } as never);
-      const a = createMessagingAdapter('SMS', { config: chain }); expect(a).toBeInstanceOf(FailoverAdapter); expect((a as FailoverAdapter).providers).toEqual(['aggregator', 'twilio']);
-      delete process.env._KIOREX_PROD_SMS_TWILIO; expect(createMessagingAdapter('SMS', { config: chain })).toBeInstanceOf(HttpMessagingAdapter); // twilio lost its key: dropped, aggregator remains
+      const un = (x: unknown) => (x instanceof ApprovalGatedAdapter ? x.unwrapped : x);
+      const a = un(createMessagingAdapter('SMS', { config: chain })); expect(a).toBeInstanceOf(FailoverAdapter); expect((a as FailoverAdapter).providers).toEqual(['aggregator', 'twilio']);
+      delete process.env._KIOREX_PROD_SMS_TWILIO; expect(un(createMessagingAdapter('SMS', { config: chain }))).toBeInstanceOf(HttpMessagingAdapter); // twilio lost its key: dropped, aggregator remains
       delete process.env.SMS_API_KEY; expect(createMessagingAdapter('SMS', { config: chain })).toBeInstanceOf(UnconfiguredAdapter);
     } finally { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); }
   });
