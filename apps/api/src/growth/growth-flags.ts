@@ -35,6 +35,8 @@ export const GROWTH_FLAG = {
 } as const;
 /** GRW-P4-C: `growth.corporate` (launch-locked). Kept apart from GROWTH_FLAG until the unreleased contracts set (1.14.0) is vendored: growth-defaults.unit.spec.ts checks GROWTH_FLAG against the vendored tarball. It is mirrored in control-plane/flag-catalogue.ts and corporate-flag.unit.spec.ts proves it. */
 export const CORPORATE_FLAG = 'growth.corporate' as const;
+/** GRW-P4-D: `growth.loyalty` (launch-locked). Apart from GROWTH_FLAG for the same reason as CORPORATE_FLAG (the vendored contracts tarball does not carry it yet); mirrored in control-plane/flag-catalogue.ts and proved by loyalty-guard.unit.spec.ts. */
+export const LOYALTY_FLAG = 'growth.loyalty' as const;
 export type GrowthFlagKey = (typeof GROWTH_FLAG)[keyof typeof GROWTH_FLAG];
 
 /** Flags that are launch-locked (effective only with human-recorded gate evidence, ADR-024). */

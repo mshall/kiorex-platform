@@ -9,12 +9,13 @@ import { GrowthConfigService, MONEY_POLICY_KINDS, type ConfigScope } from '../co
 import { SEO_EXTENSION_DEFAULTS, TEMPLATE_KEYS, TEMPLATE_PLACEHOLDERS } from '../seo/seo-public';
 import { rolesFor } from './growth-access';
 import { LTV_POLICY_SCHEMA } from '../cohorts/ltv-policy';
+import { LOYALTY_RULES_SCHEMA } from '../loyalty/loyalty-config';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const ARR = { schema: { type: 'array', items: { type: 'object', additionalProperties: true } } } as const;
 /** Kinds with a contract JSON Schema are the ones the console can edit in Phase 1 (the other kinds arrive with their phase). */
-export const EDITABLE_KINDS = [...(Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[]), 'LTV_POLICY' as GrowthConfigKind]; // LTV_POLICY (GRW-P3-C): its schema is local until contracts 1.13.0
-const LOCAL_SCHEMAS: Record<string, unknown> = { LTV_POLICY: LTV_POLICY_SCHEMA };
+export const EDITABLE_KINDS = [...(Object.keys(GROWTH_CONFIG_SCHEMAS) as GrowthConfigKind[]), 'LTV_POLICY' as GrowthConfigKind, 'LOYALTY_RULES' as GrowthConfigKind]; // LTV_POLICY (GRW-P3-C): its schema is local until contracts 1.13.0
+const LOCAL_SCHEMAS: Record<string, unknown> = { LTV_POLICY: LTV_POLICY_SCHEMA, LOYALTY_RULES: LOYALTY_RULES_SCHEMA };
 const KIND_NOTES: Record<string, string> = {
   ATTRIBUTION_POLICY: 'Who gets credit for a booking: windows, precedence, dwell. Money policy: 7 days notice and a provider announcement.',
   SEO: 'Public site rules: canonical host, locales, thin-page thresholds, sitemap shard size, cache lifetimes.',
@@ -28,6 +29,7 @@ const KIND_NOTES: Record<string, string> = {
   SPONSORED_PROMOTION_POLICY: 'Provider-sponsored promotions: commission basis, high-value review thresholds, funding defaults. Money: 7 days notice and an announcement.',
   INTEGRATION: 'Read-only marketing integrations by kind: mode, secret reference names, pull schedule, rate budget, retention.',
   LTV_POLICY: 'Cohort LTV model: horizon, tail fit window, discount rate, cost inclusion, bootstrap and the k-anonymity floor (never below 10). Reporting only.',
+  LOYALTY_RULES: 'Loyalty points: points per completed booking, tier thresholds and bonuses, window, expiry, annual cap and the conversion into a reward lot. Every amount and threshold starts at 0 (0 = off). Points are not money. Announcement required.',
   MARKET_GROWTH: 'Per-market growth facts: currency, phone code, locales, booking link host, integrations on/off, secret references.',
 };
 

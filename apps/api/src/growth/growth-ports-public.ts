@@ -132,3 +132,12 @@ export interface CorporateBenefitPort {
   reverse(bookingId: string, amountMinor?: number, reason?: string): Promise<number>;
 }
 export const CORPORATE_BENEFIT_PORT = 'CORPORATE_BENEFIT_PORT';
+
+// ───────────── GRW-P4-D (wave 9): loyalty points. A SEPARATE ledger; booking and refund facts reach it through this port only (an optional dependency: with growth.loyalty OFF accrual is a no-op, a refund still takes accrued points back). ─────────────
+export interface LoyaltyPort {
+  /** A booking reached COMPLETED: accrue points (once per booking) and re-evaluate the tier. Never throws into the booking. */
+  onBookingCompleted(bookingId: string): Promise<void>;
+  /** A refund was created for the booking: take back the points it earned (inside the balance; the rest is recorded as a shortfall). Idempotent. */
+  onBookingRefunded(bookingId: string): Promise<void>;
+}
+export const LOYALTY_PORT = 'GROWTH_LOYALTY_PORT';

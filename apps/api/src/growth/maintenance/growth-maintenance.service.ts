@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { subRefOf } from '../../common/privacy-hash';
 import { memberHashOf } from '../corporate/corporate-code';
+import { loyaltyHashOf } from '../loyalty/partnership-code';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DEFAULT_RETENTION } from '../config/growth-defaults';
 
@@ -34,7 +35,9 @@ export class GrowthMaintenanceService {
     const exp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_experiments(${sub}) AS r`;
     // GRW-P4-C (migration 20270128093000): a corporate member row is keyed by a hash only the application can compute, so it is passed in
     const corp = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_corporate(${memberHashOf(sub)}) AS r`;
-    const r = { ...rows[0].r, ...more[0].r, ...exp[0].r, ...corp[0].r };
+    // GRW-P4-D (migration 20270218090000): the loyalty account keeps its ledger but loses the person; a partnership redemption is keyed by a hash only the application can compute
+    const loy = await this.prisma.$queryRaw<{ r: Record<string, number> }[]>`SELECT growth_erase_loyalty(${sub}, ${loyaltyHashOf(sub)}) AS r`;
+    const r = { ...rows[0].r, ...more[0].r, ...exp[0].r, ...corp[0].r, ...loy[0].r };
     return { ...r, eventsDeleted: Number(r.eventsDeleted) + registered.count };
   }
 

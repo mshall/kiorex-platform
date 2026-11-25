@@ -4,7 +4,7 @@ import { AttributionService, type StoredDecision } from '../attribution/attribut
 import { GrowthRevenueService } from '../analytics/revenue.service';
 import { GROWTH_FAILURE, recordGrowthFailure } from '../growth-failures';
 import { GrowthEventsService } from '../events/growth-events.service';
-import { REFERRAL_PORT, type BookingGrowthContext, type BookingGrowthPort, type ConfirmGrowth, type ReferralPort } from '../growth-ports-public';
+import { LOYALTY_PORT, REFERRAL_PORT, type BookingGrowthContext, type BookingGrowthPort, type ConfirmGrowth, type LoyaltyPort, type ReferralPort } from '../growth-ports-public';
 
 const PLATFORMS = new Set(['web', 'ios', 'android', 'whatsapp', 'widget']);
 export const platformOf = (v: unknown): string | undefined => (typeof v === 'string' && PLATFORMS.has(v.toLowerCase()) ? v.toLowerCase() : undefined);
@@ -20,7 +20,7 @@ export const platformOf = (v: unknown): string | undefined => (typeof v === 'str
 @Injectable()
 export class BookingGrowthService implements BookingGrowthPort {
   private readonly log = new Logger('booking-growth');
-  constructor(private readonly attribution: AttributionService, private readonly events: GrowthEventsService, private readonly prisma: PrismaService, private readonly revenue: GrowthRevenueService, @Optional() @Inject(REFERRAL_PORT) private readonly referral?: ReferralPort) {}
+  constructor(private readonly attribution: AttributionService, private readonly events: GrowthEventsService, private readonly prisma: PrismaService, private readonly revenue: GrowthRevenueService, @Optional() @Inject(REFERRAL_PORT) private readonly referral?: ReferralPort, @Optional() @Inject(LOYALTY_PORT) private readonly loyalty?: LoyaltyPort) {}
 
   async onIntent(b: { id: string; dependantId: string | null; careType: string; createdAt: Date }, market: string, ctx: BookingGrowthContext = {}) {
     if (b.dependantId) return;
@@ -65,6 +65,7 @@ export class BookingGrowthService implements BookingGrowthPort {
   async onCompleted(bookingId: string) {
     await this.revenue.onBookingCompleted(bookingId);
     await this.safe('referral:completed', () => this.referral?.onBookingCompleted(bookingId) ?? Promise.resolve()); // GRW-P2-B1: first completed visit of a referred person
+    await this.safe('loyalty:completed', () => this.loyalty?.onBookingCompleted(bookingId) ?? Promise.resolve()); // GRW-P4-D: points and tier (COMPLETED only; a no-op while growth.loyalty is OFF)
   }
 
   private async safe(what: string, fn: () => Promise<unknown>) { try { await fn(); } catch (e) { this.log.warn(`growth fact ${what} not recorded: ${(e as Error).message}`); } }

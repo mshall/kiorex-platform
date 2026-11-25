@@ -11,7 +11,7 @@ import { addMonths, entryKey, yearStart } from './reward-math';
 import { RewardPolicyService } from './reward-policy.service';
 import { MAX_ACTIVE_LOTS, RECOVERABLE_LOSS_BLOCK_DAYS, type RewardRules } from './reward-rules';
 
-export type LotKind = 'REFERRER' | 'REFEREE' | 'REPEAT' | 'WELCOME' | 'GOODWILL' | 'CAMPAIGN' | 'PROMO' | 'REFUND_CREDIT' | 'RESTORED';
+export type LotKind = 'REFERRER' | 'REFEREE' | 'REPEAT' | 'WELCOME' | 'GOODWILL' | 'CAMPAIGN' | 'PROMO' | 'REFUND_CREDIT' | 'RESTORED' | 'LOYALTY';
 export type Funding = 'PLATFORM_MARKETING' | 'PLATFORM_SERVICE_RECOVERY' | 'PATIENT_REFUND';
 export const SKIP_REASONS = ['REWARDS_OFF', 'ZERO_AMOUNT', 'ANNUAL_CAP', 'CAMPAIGN_CAP', 'BUDGET_EXHAUSTED', 'MAX_OPEN_BALANCE', 'RECOVERABLE_LOSS_BLOCK', 'MAX_ACTIVE_LOTS', 'CURRENCY_MISMATCH', 'QUALIFYING_VISIT_REQUIRED'] as const;
 export type SkipReason = (typeof SKIP_REASONS)[number];

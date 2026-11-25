@@ -1728,6 +1728,8 @@ model GrowthCampaign {
   approvals   GrowthCampaignApproval[]
   history     GrowthCampaignStatusHistory[]
   budgetDaily GrowthCampaignBudgetDaily[]
+  /// GRW-P4-D: the partnership programs this campaign (channel PARTNER) approves.
+  partnerships PartnershipProgram[]
 
   @@unique([market, key])
   @@unique([market, utmCampaign])
@@ -3067,4 +3069,117 @@ model CorporateInvoiceNote {
   account CorporateAccount @relation(fields: [accountId], references: [id])
 
   @@unique([accountId, month])
+}
+
+// ───────────── GRW-P4-D loyalty points and partnership programs (migration 20270218090000_growth_p4_loyalty) ─────────────
+// A SEPARATE points ledger. Points are not money: no cash, top-up, transfer or gift exists. The only way out is a reward lot of kind LOYALTY in the patient reward ledger (RewardLot), written in the same transaction.
+
+/// One per person and market. `pointsBalanceCache` can only be moved by the ledger trigger (loyalty_entry_guard) and can never be negative.
+model LoyaltyAccount {
+  id                 String    @id
+  sub                String
+  market             String    @default("EG")
+  /// NONE SILVER GOLD PLATINUM (CHECK in the migration)
+  tier               String    @default("NONE")
+  tierSince          DateTime?
+  pointsBalanceCache Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  entries LoyaltyAccrualEntry[]
+
+  @@unique([market, sub])
+  @@index([market, tier])
+}
+
+/// Append-only (trigger). ACCRUE and TIER_BONUS add points (with `expiresAt`); EXPIRE, REVERSE and CONVERT subtract. points > 0. idempotencyKey unique. A trigger refuses an entry that would make the balance negative.
+model LoyaltyAccrualEntry {
+  id              String    @id
+  accountId       String
+  type            String // ACCRUE EXPIRE REVERSE TIER_BONUS CONVERT
+  points          Int
+  bookingId       String?
+  /// CONVERT: the RewardLot of kind LOYALTY the points became (checked by the trigger, no foreign key: the ledgers stay separate)
+  lotId           String?
+  idempotencyKey  String    @unique
+  expiresAt       DateTime?
+  /// REVERSE: points that could not be taken back because they were already converted or spent (ops sees the sum).
+  shortfallPoints Int       @default(0)
+  reasonCode      String
+  actor           String
+  createdAt       DateTime  @default(now())
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@index([bookingId])
+  @@index([type, createdAt])
+}
+
+/// A time-boxed, budgeted partner offer. Approval goes through the linked GrowthCampaign (channel PARTNER); the budget cap is a database trigger.
+model PartnershipProgram {
+  id                 String    @id
+  market             String    @default("EG")
+  key                String
+  /// Opaque partner reference (an ops-side label), never a person or a contact.
+  partnerRef         String
+  kind               String // CODE_DISCOUNT CO_PROMO CARD_OFFER
+  rules              Json      @default("{}")
+  status             String    @default("DRAFT") // DRAFT ACTIVE PAUSED ENDED
+  startsAt           DateTime?
+  endsAt             DateTime?
+  fundingMode        String    @default("PLATFORM_MARKETING") // PLATFORM_MARKETING PARTNER_FUNDED (the second cannot be activated: NEEDS_HUMAN)
+  budgetMinor        Int       @default(0)
+  perRedemptionMinor Int       @default(0)
+  currency           String    @default("EGP")
+  campaignId         String?
+  /// Reference of the counsel-approved legal text; a placeholder until counsel supplies it.
+  legalTextRef       String?
+  createdBy          String
+  activatedBy        String?
+  activatedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  campaign    GrowthCampaign?             @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  codes       PartnershipCode[]
+  redemptions PartnershipCodeRedemption[]
+
+  @@unique([market, key])
+  @@index([status, endsAt])
+  @@index([campaignId])
+}
+
+model PartnershipCode {
+  id              String    @id
+  programId       String
+  codeHash        String    @unique
+  label           String
+  maxRedemptions  Int
+  redeemedCount   Int       @default(0)
+  expiresAt       DateTime?
+  status          String    @default("ACTIVE") // ACTIVE REVOKED
+  createdBy       String
+  createdAt       DateTime  @default(now())
+
+  program PartnershipProgram @relation(fields: [programId], references: [id])
+
+  @@index([programId, status])
+}
+
+/// Append-only (trigger, maintenance bypass for erasure). One per person and program. The trigger enforces the program budget, the code limit and that the lot was issued for this program's campaign.
+model PartnershipCodeRedemption {
+  id             String   @id
+  programId      String
+  codeId         String
+  subHash        String
+  lotId          String   @unique
+  amountMinor    Int
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  program PartnershipProgram @relation(fields: [programId], references: [id])
+
+  @@unique([programId, subHash])
+  @@index([programId, createdAt])
 }

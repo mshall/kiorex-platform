@@ -7,7 +7,7 @@
  *   growth_admin (GRW-P2-S) reads the growth console and decides sponsored-promotion reviews (content, scope, high value); never writes configuration
  * One table, so the controllers, the UI capability endpoint and the tests cannot disagree. A new role is one line here.
  */
-export const GROWTH_CAPABILITIES = ['read', 'readFinance', 'writeConfig', 'approveConfig', 'reviewFraud', 'manage', 'manageCampaigns', 'manageExperiments', 'reviewPromotions', 'manageCorporate'] as const;
+export const GROWTH_CAPABILITIES = ['read', 'readFinance', 'writeConfig', 'approveConfig', 'reviewFraud', 'manage', 'manageCampaigns', 'manageExperiments', 'reviewPromotions', 'manageCorporate', 'manageLoyalty'] as const;
 export type GrowthCapability = (typeof GROWTH_CAPABILITIES)[number];
 
 export const GROWTH_ACCESS: Record<GrowthCapability, readonly string[]> = {
@@ -20,6 +20,7 @@ export const GROWTH_ACCESS: Record<GrowthCapability, readonly string[]> = {
   manageCampaigns: ['super_admin'], // GRW-P2-A: create, edit, transition, request and decide campaign approvals (two-person rule)
   reviewPromotions: ['super_admin', 'growth_admin'], // GRW-P2-S: decide sponsored-promotion reviews (the requester is the organisation; a high-value one needs a second approver)
   manageCorporate: ['super_admin'], // GRW-P4-C: corporate accounts, codes, HR lists, leads (terms and activation are a two-person act)
+  manageLoyalty: ['super_admin'], // GRW-P4-D: partnership programs, codes and their activation (a second person activates); the points rules go through the maker-checker config console
   manageExperiments: ['super_admin'], // GRW-P3-A: create, submit, approve and start (two-person rule), stop, ship-winner request
 };
 

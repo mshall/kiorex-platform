@@ -4,6 +4,7 @@ import { validateSeoExtensions } from '../seo/seo-public';
 import { validateFraudRules } from '../fraud/fraud-config';
 import { validateSeoAutomation } from '../seo-automation/seo-automation-config';
 import { validateLtvPolicy } from '../cohorts/ltv-policy';
+import { validateLoyaltyRules } from '../loyalty/loyalty-config';
 import { validateMarketProfile } from '../../market/market-core-public';
 import { forbidden } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -20,7 +21,7 @@ export interface ConfigActor { sub: string; roles: string[] }
 export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY']; // the last: a clinic's sponsored discount changes what a provider funds, so it needs notice
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
 /** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
-export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY'];
+export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES']; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
 export const DEFAULT_ACTOR = 'system:proposed-default';
 
 export interface ResolvedConfig<T = Record<string, unknown>> {
@@ -43,10 +44,10 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
 /** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
-export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE'];
+export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES'];
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
-  if (kind === 'LTV_POLICY' || kind === 'MARKET_PROFILE') {
-    const errors = kind === 'LTV_POLICY' ? validateLtvPolicy(payload).errors : validateMarketProfile(payload);
+  if (kind === 'LTV_POLICY' || kind === 'MARKET_PROFILE' || kind === 'LOYALTY_RULES') {
+    const errors = kind === 'LTV_POLICY' ? validateLtvPolicy(payload).errors : kind === 'LOYALTY_RULES' ? validateLoyaltyRules(payload).errors : validateMarketProfile(payload);
     return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
   }
   // GRW-P3-D and P3-F: the two Wave 7 kinds are validated by their own validators (the contract schema joins them with 1.13.0; both must pass once it does)

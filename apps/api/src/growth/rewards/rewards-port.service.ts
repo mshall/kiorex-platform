@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import type { RewardRedeemResult, RewardReserveInput, RewardReserveResult, RewardRestoreResult, RewardsPort } from '../growth-ports-public';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { LOYALTY_PORT, type LoyaltyPort, type RewardRedeemResult, RewardReserveInput, RewardReserveResult, RewardRestoreResult, RewardsPort } from '../growth-ports-public';
 import { Tx } from '../../prisma/prisma.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RewardEventsService } from './reward-events.service';
@@ -11,7 +11,7 @@ import { RewardReversalService } from './reward-reversal.service';
 /** What the Kiorex Pay module sees of the reward ledger (the `REWARDS_PORT` token). Pay never imports growth code; with the rewards switch OFF every call is a no-op or an empty answer. */
 @Injectable()
 export class RewardsPortService implements RewardsPort {
-  constructor(private readonly prisma: PrismaService, private readonly redemption: RewardRedemptionService, private readonly issuance: RewardIssuanceService, private readonly policy: RewardPolicyService, private readonly events: RewardEventsService, private readonly reversal: RewardReversalService) {}
+  constructor(private readonly prisma: PrismaService, private readonly redemption: RewardRedemptionService, private readonly issuance: RewardIssuanceService, private readonly policy: RewardPolicyService, private readonly events: RewardEventsService, private readonly reversal: RewardReversalService, @Optional() @Inject(LOYALTY_PORT) private readonly loyalty?: LoyaltyPort) {}
 
   reserveForDeposit(i: RewardReserveInput): Promise<RewardReserveResult> { return this.redemption.reserveForDeposit(i); }
   releaseForBooking(bookingId: string, reason: string) { return this.redemption.releaseForBooking(bookingId, reason); }
@@ -28,6 +28,7 @@ export class RewardsPortService implements RewardsPort {
     const restored = await this.redemption.restoreForRefund(t, i);
     // a refund of the booking that EARNED a reward takes the unspent reward back (inside the reversal window); a booking that earned nothing is a no-op
     await this.reversal.reverseForBooking(i.bookingId, 'REFUND').catch(() => undefined);
+    await this.loyalty?.onBookingRefunded(i.bookingId).catch(() => undefined); // GRW-P4-D: the points that booking earned are taken back (separate ledger; never blocks a refund)
     return restored;
   }
   async issueRefundCredit(i: { sub: string; bookingId: string | null; refundId: string; amountMinor: number; currency: string }) {

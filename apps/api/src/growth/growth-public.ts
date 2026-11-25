@@ -59,4 +59,5 @@ export { CohortService } from './cohorts/cohort.service';
 // GRW-P3-G (market onboarding wizard, wave 8 lane A2)
 export { MarketOnboardingModule } from './markets/market-onboarding.module';
 // GRW-P4-C (corporate partnerships, wave 8 lane A4)
+export { LoyaltyModule, LoyaltyService, LoyaltyJob, PartnershipOfferService } from './loyalty-public';
 export { CorporateModule, B2bReferralService, CorporateBenefitService, CorporateService, CorporateMemberService, CorporateReportService, CorporateJob } from './corporate-public';
