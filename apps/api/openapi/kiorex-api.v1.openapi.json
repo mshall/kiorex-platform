@@ -4148,6 +4148,670 @@
         ]
       }
     },
+    "/api/v1/admin/commissions/capabilities": {
+      "get": {
+        "operationId": "CommissionOpsController_caps",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/summary": {
+      "get": {
+        "operationId": "CommissionOpsController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/claims": {
+      "get": {
+        "operationId": "CommissionOpsController_claims",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/claims/{id}": {
+      "get": {
+        "operationId": "CommissionOpsController_claim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/runs": {
+      "get": {
+        "operationId": "CommissionOpsController_runs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/runs/{id}": {
+      "get": {
+        "operationId": "CommissionOpsController_runOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/deductions": {
+      "get": {
+        "operationId": "CommissionOpsController_deductions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/aging": {
+      "get": {
+        "operationId": "CommissionOpsController_aging",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/disputes": {
+      "get": {
+        "operationId": "CommissionOpsController_disputes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/orgs": {
+      "get": {
+        "operationId": "CommissionOpsController_orgs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/orgs/{orgRef}": {
+      "get": {
+        "operationId": "CommissionOpsController_org",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/reconciliation": {
+      "get": {
+        "operationId": "CommissionOpsController_recon",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/timeline": {
+      "get": {
+        "operationId": "CommissionOpsController_timeline",
+        "parameters": [
+          {
+            "name": "org",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/config": {
+      "get": {
+        "operationId": "CommissionOpsController_config",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeRef",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      },
+      "post": {
+        "operationId": "CommissionOpsController_propose",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionProposeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/export-audit": {
+      "get": {
+        "operationId": "CommissionOpsController_audits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/export/{view}": {
+      "get": {
+        "operationId": "CommissionOpsController_export",
+        "parameters": [
+          {
+            "name": "view",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "CSV export of one view (audited: who, filter, rows)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/config/{id}/decide": {
+      "post": {
+        "operationId": "CommissionOpsController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionDecideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/orgs/{orgRef}/provider": {
+      "put": {
+        "operationId": "CommissionOpsController_provider",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/orgs/{orgRef}/saved-method": {
+      "post": {
+        "operationId": "CommissionOpsController_method",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionMethodBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/runs/trigger": {
+      "post": {
+        "operationId": "CommissionOpsController_trigger",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionTriggerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/runs/{id}/retry": {
+      "post": {
+        "operationId": "CommissionOpsController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/runs/{id}/invoice-paid": {
+      "post": {
+        "operationId": "CommissionOpsController_paid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionPaidBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
@@ -24769,6 +25433,118 @@
         },
         "required": [
           "outcome"
+        ]
+      },
+      "CommissionProposeBody": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "MARKET",
+              "ORG"
+            ]
+          },
+          "scopeRef": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{2,64}$"
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "scope",
+          "scopeRef",
+          "settings"
+        ]
+      },
+      "CommissionDecideBody": {
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "approve"
+        ]
+      },
+      "CommissionProviderBody": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$"
+          },
+          "provider": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "market",
+          "provider"
+        ]
+      },
+      "CommissionMethodBody": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "tokenRef": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "brand": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "last4": {
+            "type": "string",
+            "pattern": "^\\d{4}$"
+          }
+        },
+        "required": [
+          "provider",
+          "tokenRef"
+        ]
+      },
+      "CommissionTriggerBody": {
+        "type": "object",
+        "properties": {
+          "orgRef": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{3,64}$"
+          }
+        }
+      },
+      "CommissionPaidBody": {
+        "type": "object",
+        "properties": {
+          "providerRef": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2000000000
+          }
+        },
+        "required": [
+          "providerRef"
         ]
       },
       "CreateBody": {

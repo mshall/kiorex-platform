@@ -623,6 +623,29 @@
 | GET | `/api/v1/admin/payments/fraud/config` |  |
 | POST | `/api/v1/admin/payments/fraud/{id}/review` |  |
 | GET | `/api/v1/admin/payments/reports/rollup` | Payments rollup by organisation / psp / day / platform; json, CSV or PDF; AR or EN |
+| GET | `/api/v1/admin/commissions/capabilities` |  |
+| GET | `/api/v1/admin/commissions/summary` |  |
+| GET | `/api/v1/admin/commissions/claims` |  |
+| GET | `/api/v1/admin/commissions/claims/{id}` |  |
+| GET | `/api/v1/admin/commissions/runs` |  |
+| GET | `/api/v1/admin/commissions/runs/{id}` |  |
+| GET | `/api/v1/admin/commissions/deductions` |  |
+| GET | `/api/v1/admin/commissions/aging` |  |
+| GET | `/api/v1/admin/commissions/disputes` |  |
+| GET | `/api/v1/admin/commissions/orgs` |  |
+| GET | `/api/v1/admin/commissions/orgs/{orgRef}` |  |
+| GET | `/api/v1/admin/commissions/reconciliation` |  |
+| GET | `/api/v1/admin/commissions/timeline` |  |
+| GET | `/api/v1/admin/commissions/config` |  |
+| POST | `/api/v1/admin/commissions/config` |  |
+| GET | `/api/v1/admin/commissions/export-audit` |  |
+| GET | `/api/v1/admin/commissions/export/{view}` | CSV export of one view (audited: who, filter, rows) |
+| POST | `/api/v1/admin/commissions/config/{id}/decide` |  |
+| PUT | `/api/v1/admin/commissions/orgs/{orgRef}/provider` |  |
+| POST | `/api/v1/admin/commissions/orgs/{orgRef}/saved-method` |  |
+| POST | `/api/v1/admin/commissions/runs/trigger` |  |
+| POST | `/api/v1/admin/commissions/runs/{id}/retry` |  |
+| POST | `/api/v1/admin/commissions/runs/{id}/invoice-paid` |  |
 | GET | `/api/v1/admin/providers` | KXM-OP-01 provider directory |
 | POST | `/api/v1/admin/providers/sync` |  |
 | GET | `/api/v1/admin/bookings` | KXM-OP-02 bookings |
