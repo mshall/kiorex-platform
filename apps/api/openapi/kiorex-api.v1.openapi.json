@@ -4585,6 +4585,21 @@
         ]
       }
     },
+    "/api/v1/admin/commissions/statement.pdf": {
+      "get": {
+        "operationId": "CommissionOpsController_statementPdf",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Bilingual (EN + AR) PDF statement of one organisation or of all (audited)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/admin/commissions/config/{id}/decide": {
       "post": {
         "operationId": "CommissionOpsController_decide",

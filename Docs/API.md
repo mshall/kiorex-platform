@@ -640,6 +640,7 @@
 | POST | `/api/v1/admin/commissions/config` |  |
 | GET | `/api/v1/admin/commissions/export-audit` |  |
 | GET | `/api/v1/admin/commissions/export/{view}` | CSV export of one view (audited: who, filter, rows) |
+| GET | `/api/v1/admin/commissions/statement.pdf` | Bilingual (EN + AR) PDF statement of one organisation or of all (audited) |
 | POST | `/api/v1/admin/commissions/config/{id}/decide` |  |
 | PUT | `/api/v1/admin/commissions/orgs/{orgRef}/provider` |  |
 | POST | `/api/v1/admin/commissions/orgs/{orgRef}/saved-method` |  |
