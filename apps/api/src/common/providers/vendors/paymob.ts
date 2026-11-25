@@ -74,14 +74,14 @@ export const paymobVoidBody = (transactionId: string) => ({ transaction_id: Numb
 export const paymobInquiryBody = (i: { orderId?: string; merchantOrderId?: string }) => (i.orderId ? { order_id: i.orderId } : { merchant_order_id: i.merchantOrderId });
 /** The id of the ORIGINAL transaction (a refund / void transaction points to it through parent_transaction). */
 export function paymobTransactionIdFromInquiry(json: any): string {
-  const t = json?.data ?? json;
+  const t = json?.id === undefined && json?.data?.id !== undefined ? json.data : json; // a transaction carries its own `data` sub-object: only unwrap an envelope
   const id = t?.has_parent_transaction && t?.parent_transaction ? (typeof t.parent_transaction === 'object' ? t.parent_transaction.id : t.parent_transaction) : t?.id;
   if (id === undefined || id === null) throw new Error('no transaction id in Paymob inquiry response');
   return String(id);
 }
 /** The PSP's own view of one payment, for the polling fallback when a callback never arrived. */
 export function parsePaymobInquiry(json: any, opts: PaymobParseOpts = {}): PspStatus {
-  const t = json?.data ?? json;
+  const t = json?.id === undefined && json?.data?.id !== undefined ? json.data : json; // a transaction carries its own `data` sub-object: only unwrap an envelope
   if (!t || typeof t !== 'object' || t.id === undefined) return { state: 'UNKNOWN' };
   const amount = Number.isInteger(t.amount_cents) ? (t.amount_cents as number) : undefined;
   const refunded = Number.isInteger(t.refunded_amount_cents) ? (t.refunded_amount_cents as number) : 0;

@@ -56,15 +56,15 @@ export class GuardedPspAdapter implements PspAdapter {
 }
 
 /** Test hook: lets an integration test run PayService against a real vendor adapter wired to an injected fetch (never set in production code). */
-let override: ((name: PspName) => PspAdapter | null) | null = null;
-export const __setPspAdapterOverride = (f: ((name: PspName) => PspAdapter | null) | null) => { override = f; };
+let override: ((name: PspName, settings?: PspSettings) => PspAdapter | null) | null = null;
+export const __setPspAdapterOverride = (f: ((name: PspName, settings?: PspSettings) => PspAdapter | null) | null) => { override = f; };
 
 /** The adapter for a PSP name. `settings` (resolved per PSP and market) carries timeouts, retry budgets, webhook tolerance and the sandbox/live mode. */
 export function pspAdapter(name: string, settings?: PspSettings): PspAdapter {
   const n = (PSP_NAMES.includes(name as PspName) ? name : 'paymob') as PspName;
-  const o = override?.(n); if (o) return o;
-  if (cfg().pspMode === 'sandbox-fake') return new FakePspAdapter(n);
   const s = settings ?? resolveSettings(n, '*');
+  const o = override?.(n, s); if (o) return o instanceof GuardedPspAdapter ? o : new GuardedPspAdapter(o, s);
+  if (cfg().pspMode === 'sandbox-fake') return new FakePspAdapter(n);
   if (PSP_VENDOR_MODE()) { // PAYMENT_PROVIDER=vendor: native Paymob / Fawry clients, InstaPay and the card gateway on the neutral contract, credentials per PSP
     if (vendorPspProblems().length) return new UnconfiguredPspAdapter(n);
     const on = enabledPsps(); const use = on.includes(n) ? n : on[0];

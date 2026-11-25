@@ -1,0 +1,9 @@
+{
+  "payment_keys": [{ "integration": 4000001, "key": "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5.REDACTED.SAMPLE" }],
+  "id": "5550001",
+  "intention_detail": { "amount": 15000, "currency": "EGP" },
+  "client_secret": "egy_csk_test_SAMPLE0123456789",
+  "payment_methods": [{ "integration_id": 4000001, "name": "card", "type": "online" }],
+  "intention_order_id": 5550001,
+  "status": "intended"
+}

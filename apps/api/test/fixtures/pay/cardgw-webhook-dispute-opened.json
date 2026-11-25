@@ -1,0 +1,2 @@
+{ "id": "evt_dsp_0001", "type": "dispute.opened", "paymentRef": "chk_9f2c0a", "reference": "__PAYMENT_ID__", "amountMinor": 15000, "currency": "EGP", "occurredAt": "2026-12-05T08:00:00.000Z",
+  "dispute": { "id": "dsp_77", "reasonCode": "fraudulent", "evidenceDueAt": "2026-12-15T23:59:59.000Z" } }

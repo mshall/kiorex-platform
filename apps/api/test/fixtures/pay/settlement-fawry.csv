@@ -1,0 +1,3 @@
+Merchant Ref Number,Fawry Ref,Transaction Type,Amount,Fawry Fees,Payment Date,Settlement Reference
+pay_f1,970000001,PAYMENT,150.00,3.00,2026-11-25,STL-77
+pay_f2,970000002,REFUND,50.00,0.00,2026-11-25,STL-77

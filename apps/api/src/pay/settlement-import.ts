@@ -73,13 +73,16 @@ export function parseSettlement(content: string, o: { format?: 'CSV' | 'JSON'; d
     records = rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? '').trim()])));
   }
   const m = o.mapping ?? null;
+  let lastKey = '';
   const pick = (rec: Record<string, unknown>, field: string): unknown => {
     const forced = m?.columns?.[field as keyof SettlementFormat['columns']];
     const keys = Object.keys(rec);
-    if (forced) { const k = keys.find((x) => x.trim().toLowerCase() === forced.toLowerCase()); return k === undefined ? undefined : rec[k]; }
-    for (const a of ALIASES[field]) { const k = keys.find((x) => norm(x) === a); if (k !== undefined && rec[k] !== '' && rec[k] !== null && rec[k] !== undefined) return rec[k]; }
+    lastKey = '';
+    if (forced) { const k = keys.find((x) => x.trim().toLowerCase() === forced.toLowerCase()); if (k !== undefined) lastKey = k; return k === undefined ? undefined : rec[k]; }
+    for (const a of ALIASES[field]) { const k = keys.find((x) => norm(x) === a); if (k !== undefined && rec[k] !== '' && rec[k] !== null && rec[k] !== undefined) { lastKey = k; return rec[k]; } }
     return undefined;
   };
+  const MINOR_KEYS = new Set(['amountcents', 'amountminor', 'feeminor', 'feecents']);
   const minorUnit = m?.amountUnit === 'minor';
   const skip = new Set([...(m?.skipStatuses ?? DEFAULT_SKIP)]);
   const lines: SettlementLineIn[] = []; const seen = new Map<string, number>();
@@ -93,10 +96,12 @@ export function parseSettlement(content: string, o: { format?: 'CSV' | 'JSON'; d
     const currency = String(pick(rec, 'currency') ?? o.defaultCurrency ?? 'EGP').toUpperCase();
     const dec = decimalsOf(currency);
     const rawAmt = String(pick(rec, 'amount') ?? '').replace(/^-/, '').replace(/,/g, '');
-    const amount = minorUnit ? (/^\d+$/.test(rawAmt) ? Number(rawAmt) : null) : fromMajor(rawAmt, dec);
+    const amtMinor = minorUnit || MINOR_KEYS.has(norm(lastKey)); // a column NAMED cents / minor is minor units whatever the file-level unit
+    const amount = amtMinor ? (/^\d+$/.test(rawAmt) ? Number(rawAmt) : null) : fromMajor(rawAmt, dec);
     if (amount === null || !Number.isSafeInteger(amount)) return bad('BAD_AMOUNT');
     const rawFee = String(pick(rec, 'fee') ?? '').replace(/^-/, '').replace(/,/g, '');
-    const fee = rawFee === '' ? 0 : minorUnit ? (/^\d+$/.test(rawFee) ? Number(rawFee) : null) : fromMajor(rawFee, dec);
+    const feeMinor = minorUnit || MINOR_KEYS.has(norm(lastKey));
+    const fee = rawFee === '' ? 0 : feeMinor ? (/^\d+$/.test(rawFee) ? Number(rawFee) : null) : fromMajor(rawFee, dec);
     if (fee === null) return bad('BAD_FEE');
     const date = isoDate(pick(rec, 'date')); if (!date) return bad('BAD_DATE');
     const payoutRef = String(pick(rec, 'payoutRef') ?? '').trim();

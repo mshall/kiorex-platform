@@ -1,0 +1,2 @@
+{ "id": "evt_cap_0001", "type": "payment.captured", "paymentRef": "chk_9f2c0a", "reference": "__PAYMENT_ID__", "amountMinor": 15000, "currency": "EGP", "feeMinor": 435, "occurredAt": "2026-11-25T09:30:05.000Z",
+  "card": { "fingerprint": "fp_4242_stable_per_card", "brand": "visa", "last4": "4242", "threeDs": "passed" } }

@@ -1,0 +1,4 @@
+{ "transactions": [
+  { "reference": "chk_9f2c0a", "type": "capture", "amountMinor": 15000, "feeMinor": 435, "currency": "EGP", "date": "2026-11-25", "payoutId": "po_1" },
+  { "reference": "chk_9f2c0a", "type": "chargeback", "amountMinor": 15000, "feeMinor": 0, "currency": "EGP", "date": "2026-12-20", "payoutId": "po_2" }
+] }

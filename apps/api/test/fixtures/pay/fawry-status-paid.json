@@ -1,0 +1,1 @@
+{ "type": "PaymentStatusResponse", "referenceNumber": "970000001", "merchantRefNumber": "__PAYMENT_ID__", "expirationTime": 1795000000000, "paymentAmount": 150.00, "fawryFees": 0.00, "paymentMethod": "CARD", "paymentStatus": "PAID", "paymentTime": 1795000000000, "statusCode": 200, "statusDescription": "Operation done successfully", "fawryRefNumber": "970000001" }

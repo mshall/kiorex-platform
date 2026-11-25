@@ -1,0 +1,6 @@
+{
+  "requestId": "f7f1b3d3f1b34d7aa2a7f0a8c1d0e001", "fawryRefNumber": "970000001", "merchantRefNumber": "__PAYMENT_ID__",
+  "customerMobile": null, "customerMail": null, "paymentAmount": 150.00, "orderAmount": 150.00, "fawryFees": 0.00, "shippingFees": null,
+  "orderStatus": "PAID", "paymentMethod": "CARD", "messageSignature": "__SIGNATURE__", "orderExpiryDate": 1795000000000,
+  "paymentTime": 1795000000000, "authNumber": "123456", "paymentRefrenceNumber": "800000001", "taxes": null
+}
