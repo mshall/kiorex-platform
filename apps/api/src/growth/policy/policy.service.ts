@@ -10,7 +10,7 @@ import { POLICY_KINDS, clearPolicyOverrides, policyNow, policyVersion, setPolicy
 export const POLICY_REFRESH_MS = 15_000;
 
 @Injectable()
-export class PolicyService implements OnModuleInit, OnModuleDestroy {
+export class GrowthPolicyService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('policy');
   private timer?: NodeJS.Timeout;
   constructor(private readonly prisma: PrismaService, private readonly config: GrowthConfigService) {}

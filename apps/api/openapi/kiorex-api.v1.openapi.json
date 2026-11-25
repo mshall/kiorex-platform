@@ -3107,7 +3107,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReasonBody"
+                "$ref": "#/components/schemas/PayReasonBody"
               }
             }
           }
@@ -20934,10 +20934,15 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string",
-            "maxLength": 300
+            "type": "string"
+          },
+          "gateId": {
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "reason"
+        ]
       },
       "DefinitionBody": {
         "type": "object",
@@ -23547,6 +23552,15 @@
           "state",
           "reference"
         ]
+      },
+      "PayReasonBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
       },
       "CreateBody": {
         "type": "object",

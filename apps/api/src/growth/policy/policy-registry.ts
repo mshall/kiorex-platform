@@ -6,7 +6,7 @@ import { deepMerge, schemaDefaults, validateAgainst, type SchemaNode } from './s
 /**
  * Policy configuration registry (configurability sweep). Numbers that used to be code constants are read through `livePolicy(kind, defaults)`: an object whose properties are
  * getters over (code default) merged with (the ACTIVE maker-checker version of the kind, GLOBAL scope). With no stored version the defaults answer, so behaviour is exactly
- * what shipped. `PolicyService` keeps the registry fresh (interval and on every config transition); a bad stored payload is ignored, never half-applied.
+ * what shipped. `GrowthPolicyService` keeps the registry fresh (interval and on every config transition); a bad stored payload is ignored, never half-applied.
  *
  * SAFETY CONTROLS ARE NOT HERE. Nothing in this file can switch off a consent gate, a PHI filter, a k-anonymity floor below 10, the two-person rule or a launch lock:
  * those are code, and the schemas bound every number the registry accepts (e.g. k >= 10).

@@ -1,6 +1,6 @@
 import { createCtx, TestCtx } from './harness';
 import { GrowthConfigService } from '../src/growth/growth-public';
-import { PolicyService } from '../src/growth/policy/policy.service';
+import { GrowthPolicyService } from '../src/growth/policy/policy.service';
 import { RECOMMENDATION_POLICY } from '../src/growth/recommendations/recommendation.types';
 import { recoverableLossBlockDays } from '../src/growth/rewards/reward-rules';
 import { clearPolicyOverrides } from '../src/growth/policy/policy-registry';
@@ -10,8 +10,8 @@ const code = async (p: Promise<unknown>) => { try { await p; return 'NO_ERROR'; 
 
 /** Configurability sweep: a policy kind goes DRAFT -> approved by a second super admin -> live in the code that used to hold the constant, without a deploy. Real Postgres. */
 describe('policy kinds through the maker-checker', () => {
-  let c: TestCtx; let svc: GrowthConfigService; let policy: PolicyService;
-  beforeAll(async () => { c = await createCtx(); svc = c.get(GrowthConfigService); policy = c.get(PolicyService); });
+  let c: TestCtx; let svc: GrowthConfigService; let policy: GrowthPolicyService;
+  beforeAll(async () => { c = await createCtx(); svc = c.get(GrowthConfigService); policy = c.get(GrowthPolicyService); });
   afterAll(async () => { clearPolicyOverrides(); await c.close(); });
   beforeEach(async () => { await c.reset(); clearPolicyOverrides(); });
 

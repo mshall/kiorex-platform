@@ -27,7 +27,7 @@ class DisputeBody {
   @IsOptional() @IsString() @MaxLength(64) reasonCode?: string;
   @IsOptional() @IsDateString() evidenceDueAt?: string;
 }
-class ReasonBody { @IsOptional() @IsString() @MaxLength(300) reason?: string }
+class PayReasonBody { @IsOptional() @IsString() @MaxLength(300) reason?: string }
 
 /** PAY-READY ops surface: connection check, settings, settlement import, disputes, polling, capture / void, refund retry. Ops roles only; every change is audited with the actor; secrets never appear in a request or a response. */
 @ApiTags('ops')
@@ -82,7 +82,7 @@ export class PayOpsController {
 
   @ApiOkResponse(OBJ)
   @Post(':paymentId/void') @HttpCode(200) @ApiOperation({ summary: 'Void an authorised payment' })
-  void(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: ReasonBody) { return this.pay.voidAuthorized(id, u.sub, b.reason ?? 'OPS_VOID'); }
+  void(@CurrentUser() u: AuthUser, @Param('paymentId') id: string, @Body() b: PayReasonBody) { return this.pay.voidAuthorized(id, u.sub, b.reason ?? 'OPS_VOID'); }
 
   @ApiOkResponse(OBJ)
   @Post('refunds/:refundId/retry') @HttpCode(200) @ApiOperation({ summary: 'Retry a FAILED refund' })

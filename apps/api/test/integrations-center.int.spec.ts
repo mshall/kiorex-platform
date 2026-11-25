@@ -1,5 +1,5 @@
 import { createCtx, TestCtx } from './harness';
-import { PolicyService } from '../src/growth/policy/policy.service';
+import { GrowthPolicyService } from '../src/growth/policy/policy.service';
 import { clearPolicyOverrides } from '../src/growth/policy/policy-registry';
 import { INTEGRATIONS, INTEGRATION_KEYS } from '../src/growth/integrations-center/integration-registry';
 
@@ -66,7 +66,7 @@ describe('Integrations Control Center', () => {
     expect((await c.http().get(B).set(A).expect(200)).body.pendingProposal).toMatchObject({ id: p.id, modes: { WHATSAPP_CLOUD: 'real' } });
     await c.http().post(`/api/v1/ops/growth/config/${p.id}/approve`).set(A).expect(403);
     await c.http().post(`/api/v1/ops/growth/config/${p.id}/approve`).set(Bd).expect(200);
-    await c.get(PolicyService).refresh();
+    await c.get(GrowthPolicyService).refresh();
     const w = (await c.http().get(B).set(A).expect(200)).body.integrations.find((i: { key: string }) => i.key === 'WHATSAPP_CLOUD');
     expect(w).toMatchObject({ approvedMode: 'real', mode: 'mock', drift: 'APPROVED_NOT_DEPLOYED' });
   });

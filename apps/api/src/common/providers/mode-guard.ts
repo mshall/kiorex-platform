@@ -2,7 +2,7 @@
  * Real-mode approval guard (shared by every provider adapter: payments, messaging, push, ...). An adapter may run in REAL mode only when the approved record `INTEGRATION_MODES`
  * (maker-checker, Integrations Control Center, second super admin approves) says `real` for THAT integration. Anything else fails CLOSED with a NEEDS_HUMAN error: mock is always allowed.
  *
- * The approved record lives in the growth policy registry (a process-wide synchronous read, kept fresh by PolicyService); this module sits in `common` and cannot import it, so the
+ * The approved record lives in the growth policy registry (a process-wide synchronous read, kept fresh by GrowthPolicyService); this module sits in `common` and cannot import it, so the
  * registry REGISTERS its reader here (`setApprovedModesSource`). No source registered (a bare unit test, a process that did not boot the policy module) = nothing approved = closed.
  *
  * Exemption for development and test stacks only: INTEGRATION_MODES_EXEMPT=true with NODE_ENV other than production. In production the flag is IGNORED (the guard stays closed) and
