@@ -12,7 +12,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "pretest:unit": "prisma generate",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --selectProjects unit",
-    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --selectProjects integration --runInBand",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=12288' jest --selectProjects integration --runInBand",
     "test:contract": "NODE_OPTIONS=--experimental-vm-modules jest --selectProjects integration --runInBand --testPathPattern contract",
     "test:flag-off": "NODE_OPTIONS=--experimental-vm-modules jest --selectProjects integration --runInBand --testPathPattern flag-off",
     "prisma:generate": "prisma generate",
