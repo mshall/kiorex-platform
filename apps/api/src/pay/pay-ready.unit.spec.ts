@@ -112,7 +112,7 @@ describe('settings: layers, fees as config (never invented), windows, routing or
     const s = mergeSettings(PSP_DEFAULTS, { refundWindowDays: 10 }); const cap = new Date('2026-11-01T00:00:00Z');
     expect(withinRefundWindow(s, cap, new Date('2026-11-10T00:00:00Z'))).toBe(true); expect(withinRefundWindow(s, cap, new Date('2026-11-12T00:00:00Z'))).toBe(false); expect(withinRefundWindow(PSP_DEFAULTS, cap, new Date('2030-01-01'))).toBe(true);
     const all = Object.fromEntries(PSP_NAMES.map((n, i) => [n, mergeSettings(PSP_DEFAULTS, { enabled: n !== 'instapay', order: 40 - i * 10, markets: n === 'card' ? ['AE'] : ['*'] }, n)])) as never;
-    expect(pspsForMarket(all, 'EG', 'EGP', 'EGP')).toEqual(['fawry', 'paymob']); expect(pspsForMarket(all, 'AE', 'AED', 'AED')[0]).toBe('card');
+    expect(pspsForMarket(all, 'EG', 'EGP', 'EGP')).toEqual(['bank_ipn', 'fawry', 'paymob']); expect(pspsForMarket(all, 'AE', 'AED', 'AED')[0]).toBe('bank_ipn');
     expect(servesMarket(mergeSettings(PSP_DEFAULTS, { enabled: true }), 'EG', 'USD', 'EGP')).toBe(false);
   });
   it('a test key in live mode (and the reverse) is flagged without echoing the key', () => {

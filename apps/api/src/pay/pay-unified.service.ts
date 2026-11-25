@@ -6,7 +6,7 @@ import {
 import { cfg } from '../common/config';
 import { badRequest, conflict, notFound } from '../common/errors';
 import { newId } from '../common/ids';
-import { policyNow } from '../growth/policy/policy-registry';
+import { policyNow } from '../growth/growth-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { BankIpnPspAdapter } from './psp-bank-ipn';
 import { PayService } from './pay.service';

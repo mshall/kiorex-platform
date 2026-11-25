@@ -61,3 +61,6 @@ export { MarketOnboardingModule } from './markets/market-onboarding.module';
 // GRW-P4-C (corporate partnerships, wave 8 lane A4)
 export { LoyaltyModule, LoyaltyService, LoyaltyJob, PartnershipOfferService } from './loyalty-public';
 export { CorporateModule, B2bReferralService, CorporateBenefitService, CorporateService, CorporateMemberService, CorporateReportService, CorporateJob } from './corporate-public';
+
+/** Read-only view of the policy registry for other contexts (Kiorly Pay reads its PAY_* config kinds through this). */
+export { policyNow } from './policy/policy-registry';
