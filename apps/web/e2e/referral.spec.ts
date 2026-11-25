@@ -46,9 +46,9 @@ test.describe("patient referral screens (web, real sign-in)", () => {
     await expect(page.getByTestId("link-referral")).toBeVisible(); await page.getByTestId("link-referral").click(); await expect(page).toHaveURL(/\/referral$/); await expect(page.getByTestId("invite-code")).toHaveText("7K3M9QPX");
   });
 
-  for (const [lang, theme, width] of [["en", "light", 1440], ["ar", "dark", 320], ["ar", "light", 390], ["en", "dark", 1024]] as const) {
+  for (const [lang, theme, width] of [["en", "light", 1440], ["ar", "dark", 320], ["ar", "light", 390], ["en", "dark", 1024], ["en", "light", 640], ["ar", "light", 640]] as const) {
     test(`invite and rewards screens: ${lang} ${theme} ${width}px, no overflow, keyboard reachable, axe clean`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 }); await page.addInitScript(prefs, [lang, theme]); await mockReferral(page); await signIn(page, "/referral");
+      await page.setViewportSize({ width, height: width === 640 ? 450 : 900 }); await page.addInitScript(prefs, [lang, theme]); await mockReferral(page); await signIn(page, "/referral");
       await expect(page.getByTestId("invite-card")).toBeVisible(); await expect(page.locator("html")).toHaveAttribute("dir", lang === "ar" ? "rtl" : "ltr");
       await expect(page.getByTestId("invite-qr")).toBeVisible(); await expect(page.getByTestId("referral-counts")).toContainText(lang === "ar" ? "٥" : "5"); await noOverflow(page, `invite ${lang} ${width}`);
       await page.keyboard.press("Tab"); for (let i = 0; i < 25 && !(await page.evaluate(() => document.activeElement?.getAttribute("data-testid") === "invite-share")); i++) await page.keyboard.press("Tab");

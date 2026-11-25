@@ -1,3 +1,4 @@
+import { CommissionRateService, orderFeeMinor } from '../commissions/commissions-public';
 import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { PRODUCT_GROWTH, type ProductGrowthPort } from '../growth/growth-ports-public';
 import { LabBooking, Prisma } from '../prisma/generated/client';
@@ -28,7 +29,7 @@ const FINAL = new Set(['RESULT_RELEASED', 'REJECTED', 'CANCELLED']);
 export class LabService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly client: LabClient, private readonly pay: PayService, private readonly records: RecordsService,
-    private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry,
+    private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry, private readonly rates: CommissionRateService,
     @Optional() @Inject(PRODUCT_GROWTH) private readonly growth?: ProductGrowthPort, // GRW-P4-B2: product decision (optional: absent = exactly as before)
   ) {}
 
@@ -86,7 +87,7 @@ export class LabService implements OnModuleInit {
     const fee = i.collectionType === 'HOME' ? quote.collectionFeeMinor ?? 0 : 0;
     const id = newId('kx_lb');
     const b = await this.prisma.labBooking.create({
-      data: { id, sub, labId: i.labId, registrationId, tests: quote.tests as object[], collectionType: i.collectionType, slotStartsAt: start, slotEndsAt: new Date(i.slot.endsAt), address: i.collectionType === 'HOME' ? (i.address as object) : undefined, status: 'PENDING_PAYMENT', subtotalMinor: subtotal, collectionFeeMinor: fee, totalMinor: subtotal + fee, takeRateBps: cfg().labTakeRateBps },
+      data: { id, sub, labId: i.labId, registrationId, tests: quote.tests as object[], collectionType: i.collectionType, slotStartsAt: start, slotEndsAt: new Date(i.slot.endsAt), address: i.collectionType === 'HOME' ? (i.address as object) : undefined, status: 'PENDING_PAYMENT', subtotalMinor: subtotal, collectionFeeMinor: fee, totalMinor: subtotal + fee, takeRateBps: cfg().labTakeRateBps, rateSnapshot: ((await this.rates.snapshotForOrder(registrationId, 'LAB')) ?? undefined) as object | undefined },
     });
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'LAB', sub, partnerId: `lab:${i.labId}`, amountMinor: b.totalMinor, currency: b.currency });
     await this.prisma.labBooking.update({ where: { id }, data: { paymentId: p.id } });
@@ -206,7 +207,7 @@ export class LabService implements OnModuleInit {
     if (!b || FINAL.has(b.status)) return outcome;
     const rec = outcome === 'APPLIED' ? await this.prisma.sharedRecord.findFirst({ where: { sub: b.sub, kind: 'LAB_RESULT', sourceRef: d.reportId } }) : null;
     if (await this.move(b, ['PAID', 'SUBMITTED', 'COLLECTED'], 'RESULT_RELEASED', { resultRecordId: rec?.id ?? null })) {
-      const fee = Math.round((b.subtotalMinor * b.takeRateBps) / 10000); // take on booking (tests) value, rate snapshotted at booking time
+      const fee = orderFeeMinor(b.subtotalMinor, b.rateSnapshot, b.takeRateBps); // take on booking (tests) value, rate snapshotted at booking time (COM-2: default or the partner's own rate)
       await this.prisma.labBooking.update({ where: { id: b.id }, data: { platformFeeMinor: fee } });
       if (b.paymentId) await this.pay.releaseOrder(b.paymentId, { feeMinor: fee });
     }

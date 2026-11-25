@@ -5,6 +5,8 @@ import { cfg } from '../common/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { PSP_NAMES, PspConfigService } from '../pay/pay-public';
 import { type CollectionSettings, missingSettings, parseSettings, resolveSettings, settingsProblems } from './commission-collect';
+import { CommissionRateService } from './commission-rate.service';
+import type { RateProduct } from './commission-rate';
 
 export type PolicyScope = 'MARKET' | 'ORG';
 const MARKET_RE = /^[A-Z]{2}$/;
@@ -17,7 +19,7 @@ const ORG_RE = /^[A-Za-z0-9_-]{3,64}$/;
  */
 @Injectable()
 export class CommissionConfigService {
-  constructor(private readonly prisma: PrismaService, private readonly psp: PspConfigService) {}
+  constructor(private readonly prisma: PrismaService, private readonly psp: PspConfigService, private readonly rates: CommissionRateService) {}
 
   private async audit(actor: string, action: string, resourceId: string, metadata: Record<string, unknown>) {
     await this.prisma.auditLog.create({ data: { actor, action, resource: 'CommissionPolicy', resourceId, metadata: metadata as object } });
@@ -62,7 +64,11 @@ export class CommissionConfigService {
       this.prisma.commissionPolicy.findFirst({ where: { scope: 'MARKET', scopeRef: market.toUpperCase(), status: 'ACTIVE' } }),
       this.prisma.commissionPolicy.findFirst({ where: { scope: 'ORG', scopeRef: orgRef, status: 'ACTIVE' } }),
     ]);
-    const settings = resolveSettings(m ? parseSettings(m.settings) : null, o ? parseSettings(o.settings) : null);
+    const base = resolveSettings(m ? parseSettings(m.settings) : null, o ? parseSettings(o.settings) : null);
+    // COM-2: the collection mode set on the organisation's effective rate (override or product default) wins over the collection settings; null = follow the settings
+    const link = await this.prisma.commissionOrgRateLink.findUnique({ where: { orgRef }, select: { product: true } });
+    const rate = await this.rates.effectiveAt(orgRef, (link?.product as RateProduct | undefined) ?? 'CLINIC', new Date());
+    const settings = rate.spec?.mode ? { ...base, mode: rate.spec.mode } : base;
     return { settings, missing: missingSettings(settings), marketPolicyId: m?.id ?? null, orgPolicyId: o?.id ?? null };
   }
 

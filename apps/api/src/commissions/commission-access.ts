@@ -5,7 +5,7 @@
  *   ops_admin    NO money view (the console shows the page as not allowed); support / growth_admin likewise
  * One table so the controller, the console capability endpoint and the tests cannot disagree. A new role is one line here.
  */
-export const COMMISSION_CAPABILITIES = ['read', 'export', 'operate', 'proposeConfig', 'approveConfig', 'chooseProvider'] as const;
+export const COMMISSION_CAPABILITIES = ['read', 'export', 'operate', 'proposeConfig', 'approveConfig', 'chooseProvider', 'proposeRate', 'approveRate'] as const;
 export type CommissionCapability = (typeof COMMISSION_CAPABILITIES)[number];
 export const COMMISSION_ACCESS: Record<CommissionCapability, readonly string[]> = {
   read: ['super_admin', 'finance'],
@@ -14,6 +14,9 @@ export const COMMISSION_ACCESS: Record<CommissionCapability, readonly string[]> 
   proposeConfig: ['super_admin'],
   approveConfig: ['super_admin'],
   chooseProvider: ['super_admin'],
+  /** COM-2 rates (default per organisation type and per-organisation override): maker AND checker are super admins, never the same person on one change. */
+  proposeRate: ['super_admin'],
+  approveRate: ['super_admin'],
 };
 export const commissionRolesFor = (cap: CommissionCapability): string[] => [...COMMISSION_ACCESS[cap]];
 export const canCommission = (roles: readonly string[], cap: CommissionCapability): boolean => roles.some((r) => COMMISSION_ACCESS[cap].includes(r));

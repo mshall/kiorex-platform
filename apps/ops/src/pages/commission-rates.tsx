@@ -1,0 +1,147 @@
+import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { rawApi } from "@/api/client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CardSkeleton, ErrorState } from "@/components/states";
+import { formatBps, formatDateTime, formatMinor, localToIso } from "@/lib/format";
+
+/** COM-2 commission rates in the ops console: default per organisation type, per-organisation inherit / override, history. Rates are money: maker-checker, enforced by the API. No rate is shipped: "not set" means no charge. */
+export type Spec = { feeType: "PERCENT" | "FLAT"; percentBps: number | null; flatMinor: number | null; minMinor: number | null; maxMinor: number | null; mode: string | null };
+export type Eff = { state: "SET" | "NOT_SET"; source: "OVERRIDE" | "DEFAULT" | null; policyId: string | null; version: number | null; effectiveFrom: string | null; reason: string | null; spec: Spec | null };
+export type RateRow = { id: string; scope: string; product: string; scopeRef: string; kind: string; version: number; status: string; spec: Spec | null; effectiveFrom: string; reason: string | null; proposedBy: string; decidedBy: string | null; decisionNote: string | null };
+type DefaultCard = { product: string; effective: Eff; pending: RateRow | null; upcoming: RateRow | null; history: RateRow[] };
+type OrgView = { orgRef: string; product: string; linked: boolean; state: "SET" | "NOT_SET"; effective: Eff; default: Eff; override: Eff | null; inheriting: boolean; mode: string | null; pending: RateRow | null; upcoming: RateRow | null; history: RateRow[] };
+export type RateCaps = { read: boolean; proposeRate?: boolean; approveRate?: boolean };
+const B = "/admin/commissions/rates";
+const PRODUCTS = ["CLINIC", "PHARMACY", "LAB"] as const;
+const MODES = ["NET_FROM_PAYOUT", "AUTO_CHARGE_SAVED_METHOD", "INVOICE_AND_COLLECT"] as const;
+const selectCls = "h-11 w-full rounded-xl border border-input bg-card px-3 text-sm";
+
+/** One rate in words: "12.5% of the fee, min 5.00, max 90.00" or "40.00 per charge". */
+export function RateText({ spec }: { spec: Spec | null }) {
+  const { t, i18n } = useTranslation();
+  if (!spec) return <Badge variant="warning" data-testid="rate-not-set">{t("commissions.rates.notSet")}</Badge>;
+  const base = spec.feeType === "PERCENT" ? t("commissions.rates.percentOf", { pct: formatBps(spec.percentBps ?? 0, i18n.language) }) : t("commissions.rates.flatPer", { amount: formatMinor(spec.flatMinor ?? 0, i18n.language) });
+  const bounds = [spec.minMinor != null ? `${t("commissions.rates.min")} ${formatMinor(spec.minMinor, i18n.language)}` : null, spec.maxMinor != null ? `${t("commissions.rates.max")} ${formatMinor(spec.maxMinor, i18n.language)}` : null].filter(Boolean).join(", ");
+  return <span data-testid="rate-text">{base}{bounds ? ` (${bounds})` : ""}{spec.mode ? ` · ${t(`commissions.modes.${spec.mode}`, { defaultValue: spec.mode })}` : ""}</span>;
+}
+
+function Effective({ e, label, testid }: { e: Eff | null; label: string; testid: string }) {
+  const { t, i18n } = useTranslation();
+  return <div className="rounded-xl border bg-card p-3" data-testid={testid}>
+    <div className="text-xs text-muted-foreground">{label}</div>
+    <div className="mt-1 text-sm font-semibold">{e && e.state === "SET" ? <RateText spec={e.spec} /> : <RateText spec={null} />}</div>
+    {e && e.state === "SET" && <div className="mt-1 text-xs text-muted-foreground">{t(`commissions.rates.source.${e.source}`)} · v{e.version} · {formatDateTime(e.effectiveFrom, i18n.language)}{e.reason ? ` · ${e.reason}` : ""}</div>}
+    {(!e || e.state === "NOT_SET") && <div className="mt-1 text-xs text-muted-foreground">{t("commissions.rates.notSetHint")}</div>}
+  </div>;
+}
+
+const num = (v: string) => (v.trim() === "" ? null : Number(v));
+const toMinor = (v: string) => (v.trim() === "" ? null : Math.round(Number(v) * 100));
+
+/** The proposal form. Percent is typed as a percentage, money in major units; the API receives basis points and minor units. */
+function RateForm({ onSubmit, busy, withReason, testid }: { onSubmit: (b: { spec: Record<string, unknown>; effectiveFrom?: string; reason: string }) => void; busy: boolean; withReason: boolean; testid: string }) {
+  const { t } = useTranslation();
+  const [feeType, setFeeType] = useState<"PERCENT" | "FLAT">("PERCENT");
+  const [pct, setPct] = useState(""); const [flat, setFlat] = useState(""); const [min, setMin] = useState(""); const [max, setMax] = useState("");
+  const [mode, setMode] = useState(""); const [from, setFrom] = useState(""); const [reason, setReason] = useState("");
+  const valid = (feeType === "PERCENT" ? pct.trim() !== "" && Number(pct) >= 0 && Number(pct) <= 100 : flat.trim() !== "" && Number(flat) >= 0) && (!withReason || reason.trim().length > 0);
+  const submit = () => onSubmit({ spec: { feeType, ...(feeType === "PERCENT" ? { percentBps: Math.round((num(pct) ?? 0) * 100) } : { flatMinor: toMinor(flat) }), minMinor: toMinor(min), maxMinor: toMinor(max), mode: mode || null }, effectiveFrom: localToIso(from), reason });
+  const f = "grid gap-1 text-sm";
+  return <form data-testid={testid} onSubmit={(e) => { e.preventDefault(); if (valid) submit(); }} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <label className={f}>{t("commissions.rates.form.feeType")}<select className={selectCls} value={feeType} onChange={(e) => setFeeType(e.target.value as "PERCENT" | "FLAT")} data-testid="rate-feetype"><option value="PERCENT">{t("commissions.rates.form.percent")}</option><option value="FLAT">{t("commissions.rates.form.flat")}</option></select></label>
+    {feeType === "PERCENT"
+      ? <label className={f}>{t("commissions.rates.form.pct")}<Input dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" max="100" value={pct} onChange={(e) => setPct(e.target.value)} data-testid="rate-pct" /></label>
+      : <label className={f}>{t("commissions.rates.form.flatAmount")}<Input dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" value={flat} onChange={(e) => setFlat(e.target.value)} data-testid="rate-flat" /></label>}
+    <label className={f}>{t("commissions.rates.form.min")}<Input dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" value={min} onChange={(e) => setMin(e.target.value)} /></label>
+    <label className={f}>{t("commissions.rates.form.max")}<Input dir="ltr" inputMode="decimal" type="number" step="0.01" min="0" value={max} onChange={(e) => setMax(e.target.value)} /></label>
+    <label className={f}>{t("commissions.rates.form.mode")}<select className={selectCls} value={mode} onChange={(e) => setMode(e.target.value)} data-testid="rate-mode"><option value="">{t("commissions.rates.form.followSettings")}</option>{MODES.map((m) => <option key={m} value={m}>{t(`commissions.modes.${m}`)}</option>)}</select></label>
+    <label className={f}>{t("commissions.rates.form.effectiveFrom")}<Input type="datetime-local" dir="ltr" value={from} onChange={(e) => setFrom(e.target.value)} data-testid="rate-from" /></label>
+    <label className={`${f} sm:col-span-2 lg:col-span-3`}>{withReason ? t("commissions.rates.form.reason") : t("commissions.rates.form.note")}<Input maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="rate-reason" required={withReason} /></label>
+    <div className="sm:col-span-2 lg:col-span-3"><Button type="submit" disabled={!valid || busy} data-testid="rate-submit">{t("commissions.rates.form.propose")}</Button> <span className="ms-2 text-xs text-muted-foreground">{t("commissions.rates.form.makerChecker")}</span></div>
+  </form>;
+}
+
+function HistoryTable({ rows, caps, onDecide }: { rows: RateRow[]; caps: RateCaps; onDecide: (id: string, approve: boolean) => void }) {
+  const { t, i18n } = useTranslation();
+  if (!rows.length) return <p className="mt-2 text-sm text-muted-foreground" data-testid="rate-history-empty">{t("commissions.rates.noHistory")}</p>;
+  return <div className="mt-2 max-w-full overflow-x-auto" data-testid="rate-history" tabIndex={0} role="region" aria-label={t("commissions.rates.history")}><table className="w-full min-w-[34rem] text-start text-sm"><caption className="sr-only">{t("commissions.rates.history")}</caption>
+    <thead><tr className="text-xs text-muted-foreground"><th scope="col" className="p-2 text-start">{t("commissions.col.version")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.rate")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.effectiveFrom")}</th><th scope="col" className="p-2 text-start">{t("commissions.col.status")}</th><th scope="col" className="p-2 text-start">{t("commissions.col.proposedBy")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.form.reason")}</th><th scope="col" className="p-2" /></tr></thead>
+    <tbody>{rows.map((r) => <tr key={r.id} className="border-t">
+      <td className="p-2" dir="ltr">v{r.version}</td>
+      <td className="p-2">{r.kind === "INHERIT" ? t("commissions.rates.backToDefault") : <RateText spec={r.spec} />}</td>
+      <td className="p-2">{formatDateTime(r.effectiveFrom, i18n.language)}</td>
+      <td className="p-2"><Badge variant={r.status === "ACTIVE" ? "success" : r.status === "PENDING" ? "warning" : "secondary"}>{t(`commissions.status.${r.status}`, { defaultValue: r.status })}</Badge></td>
+      <td className="p-2" dir="ltr">{r.proposedBy}</td>
+      <td className="p-2">{r.reason ?? "-"}</td>
+      <td className="p-2">{r.status === "PENDING" && caps.approveRate && <span className="flex gap-1"><Button size="sm" onClick={() => onDecide(r.id, true)} data-testid="rate-approve">{t("commissions.rates.approve")}</Button><Button size="sm" variant="outline" onClick={() => onDecide(r.id, false)} data-testid="rate-reject">{t("commissions.rates.reject")}</Button></span>}</td>
+    </tr>)}</tbody></table></div>;
+}
+
+function useDecide(invalidate: () => void) {
+  const { t } = useTranslation();
+  return useMutation({ mutationFn: (v: { id: string; approve: boolean }) => rawApi("POST", `${B}/${v.id}/decide`, { approve: v.approve }), onSuccess: () => { toast.success(t("commissions.rates.toast.decided")); invalidate(); }, onError: () => toast.error(t("commissions.rates.toast.forbidden")) });
+}
+
+/** Tab "Default rates": one card per organisation type. */
+export function RatesTab({ caps }: { caps: RateCaps }) {
+  const { t } = useTranslation(); const qc = useQueryClient();
+  const [open, setOpen] = useState<string | null>(null);
+  const q = useQuery({ queryKey: ["com", "rates", "defaults"], queryFn: () => rawApi<DefaultCard[]>("GET", `${B}/defaults`) });
+  const inv = () => void qc.invalidateQueries({ queryKey: ["com"] });
+  const decide = useDecide(inv);
+  const propose = useMutation({ mutationFn: (v: { product: string; spec: Record<string, unknown>; effectiveFrom?: string; note?: string }) => rawApi("POST", `${B}/defaults`, v), onSuccess: () => { toast.success(t("commissions.rates.toast.proposed")); setOpen(null); inv(); }, onError: () => toast.error(t("commissions.toast.error")) });
+  if (q.isLoading) return <CardSkeleton rows={3} />;
+  if (q.error || !q.data) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
+  return <div data-testid="rates-defaults"><p className="mb-3 text-sm text-muted-foreground">{t("commissions.rates.defaultsHint")}</p>
+    <div className="grid gap-4 lg:grid-cols-3">{q.data.map((c) => <section key={c.product} className="min-w-0 rounded-xl border bg-card p-4 shadow-card" data-testid={`rates-card-${c.product}`} aria-label={t(`commissions.rates.product.${c.product}`)}>
+      <h2 className="text-base font-semibold">{t(`commissions.rates.product.${c.product}`)}</h2>
+      <div className="mt-2"><Effective e={c.effective} label={t("commissions.rates.defaultNow")} testid={`rates-eff-${c.product}`} /></div>
+      {c.upcoming && <p className="mt-2 text-sm" data-testid={`rates-upcoming-${c.product}`}>{t("commissions.rates.upcoming")}: <RateText spec={c.upcoming.spec} /> · {formatDateTime(c.upcoming.effectiveFrom, "en")}</p>}
+      {caps.proposeRate && !c.pending && <Button size="sm" variant="outline" className="mt-3" onClick={() => setOpen(open === c.product ? null : c.product)} data-testid={`rates-open-${c.product}`}>{t("commissions.rates.change")}</Button>}
+      {c.pending && <p className="mt-2 text-sm" data-testid={`rates-pending-${c.product}`}><Badge variant="warning">{t("commissions.status.PENDING")}</Badge> <RateText spec={c.pending.spec} /></p>}
+      {open === c.product && <RateForm testid={`rates-form-${c.product}`} withReason={false} busy={propose.isPending} onSubmit={(b) => propose.mutate({ product: c.product, spec: b.spec, effectiveFrom: b.effectiveFrom, note: b.reason || undefined })} />}
+      <h3 className="mt-4 text-sm font-semibold">{t("commissions.rates.history")}</h3>
+      <HistoryTable rows={c.history} caps={caps} onDecide={(id, approve) => decide.mutate({ id, approve })} />
+    </section>)}</div></div>;
+}
+
+/** Per-organisation rate panel: default and override side by side, the effective rate, inherit / override toggle, history. */
+export function OrgRatePanel({ org, caps }: { org: string; caps: RateCaps }) {
+  const { t } = useTranslation(); const qc = useQueryClient();
+  const [product, setProduct] = useState<string>("CLINIC"); const [mode, setMode] = useState<"inherit" | "override" | null>(null); const [reason, setReason] = useState("");
+  const q = useQuery({ queryKey: ["com", "rates", "org", org, product], queryFn: () => rawApi<OrgView>("GET", `${B}/orgs/${encodeURIComponent(org)}?product=${product}`) });
+  const inv = () => void qc.invalidateQueries({ queryKey: ["com"] });
+  const decide = useDecide(inv);
+  const send = useMutation({ mutationFn: (v: Record<string, unknown>) => rawApi("POST", `${B}/orgs/${encodeURIComponent(org)}`, { product, ...v }), onSuccess: () => { toast.success(t("commissions.rates.toast.proposed")); setMode(null); setReason(""); inv(); }, onError: () => toast.error(t("commissions.toast.error")) });
+  if (q.isLoading) return <CardSkeleton rows={2} />;
+  if (q.error || !q.data) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
+  const v = q.data;
+  return <section className="mt-6 min-w-0 rounded-xl border bg-card p-4" data-testid="rates-org-panel" aria-label={t("commissions.rates.orgTitle")}>
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold">{t("commissions.rates.orgTitle")} <span dir="ltr" className="text-muted-foreground">{org}</span></h2>
+      {!v.linked && <label className="flex items-center gap-2 text-sm">{t("commissions.rates.productOf")}<select className={`${selectCls} w-auto`} value={product} onChange={(e) => setProduct(e.target.value)} data-testid="rates-org-product">{PRODUCTS.map((p) => <option key={p} value={p}>{t(`commissions.rates.product.${p}`)}</option>)}</select></label>}</div>
+    <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-3">
+      <Effective e={v.effective} label={t("commissions.rates.effective")} testid="rates-org-effective" />
+      <Effective e={v.default} label={t("commissions.rates.default")} testid="rates-org-default" />
+      <div className="rounded-xl border bg-card p-3" data-testid="rates-org-override"><div className="text-xs text-muted-foreground">{t("commissions.rates.override")}</div>
+        <div className="mt-1 text-sm font-semibold">{v.override ? <RateText spec={v.override.spec} /> : t("commissions.rates.inheriting")}</div>
+        {v.override?.reason && <div className="mt-1 text-xs text-muted-foreground">{v.override.reason}</div>}</div>
+    </div>
+    {v.pending && <p className="mt-3 text-sm" data-testid="rates-org-pending"><Badge variant="warning">{t("commissions.status.PENDING")}</Badge> {v.pending.kind === "INHERIT" ? t("commissions.rates.backToDefault") : <RateText spec={v.pending.spec} />}</p>}
+    {caps.proposeRate && !v.pending && <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("commissions.rates.toggle")}>
+      <Button size="sm" variant={mode === "inherit" || (mode === null && v.inheriting) ? "secondary" : "outline"} aria-pressed={v.inheriting} onClick={() => setMode("inherit")} disabled={v.inheriting} data-testid="rates-toggle-inherit">{t("commissions.rates.useDefault")}</Button>
+      <Button size="sm" variant={mode === "override" ? "secondary" : "outline"} aria-pressed={!v.inheriting} onClick={() => setMode("override")} data-testid="rates-toggle-override">{v.inheriting ? t("commissions.rates.customize") : t("commissions.rates.changeOverride")}</Button>
+    </div>}
+    {mode === "inherit" && <div className="mt-3 grid gap-2 sm:max-w-md"><label className="grid gap-1 text-sm">{t("commissions.rates.form.reason")}<Input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} data-testid="rates-inherit-reason" /></label>
+      <Button size="sm" disabled={!reason.trim() || send.isPending} onClick={() => send.mutate({ kind: "INHERIT", reason })} data-testid="rates-inherit-submit">{t("commissions.rates.form.propose")}</Button></div>}
+    {mode === "override" && <RateForm testid="rates-org-form" withReason busy={send.isPending} onSubmit={(b) => send.mutate({ kind: "RATE", spec: b.spec, effectiveFrom: b.effectiveFrom, reason: b.reason })} />}
+    <h3 className="mt-4 text-sm font-semibold">{t("commissions.rates.history")}</h3>
+    <HistoryTable rows={v.history} caps={caps} onDecide={(id, approve) => decide.mutate({ id, approve })} />
+  </section>;
+}
+
+export type { ReactElement };

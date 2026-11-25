@@ -1,3 +1,4 @@
+import { CommissionRateService, orderFeeMinor } from '../commissions/commissions-public';
 import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { PRODUCT_GROWTH, type ProductGrowthPort } from '../growth/growth-ports-public';
 import { Prisma, PharmacyOrder } from '../prisma/generated/client';
@@ -34,7 +35,7 @@ export class PharmacyService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService, private readonly client: PharmacyClient, private readonly pay: PayService, private readonly records: RecordsService,
     private readonly patients: PatientService, private readonly engagement: EngagementService, private readonly policy: PolicyService,
-    private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry,
+    private readonly routing: PartnerRouting, private readonly registry: PartnerRegistry, private readonly rates: CommissionRateService,
     @Optional() @Inject(PRODUCT_GROWTH) private readonly growth?: ProductGrowthPort, // GRW-P4-B2: product decision (optional: absent = exactly as before)
   ) {}
 
@@ -161,7 +162,7 @@ export class PharmacyService implements OnModuleInit {
     const { _feeMinor, ...address } = ((cart.deliveryAddress ?? {}) as Record<string, unknown>);
     void _feeMinor;
     const order = await this.prisma.pharmacyOrder.create({
-      data: { id, sub, pharmacyId: cart.pharmacyId, registrationId: cart.registrationId, status: 'PENDING_PAYMENT', items: lines as object[], ...t, deliveryMethod: cart.deliveryMethod, deliveryAddress: cart.deliveryMethod === 'DELIVERY' ? (address as object) : undefined, prescriptionRecordId: rxId, rxStatus: rxNeeded ? 'PENDING' : 'NOT_REQUIRED', takeRateBps: cfg().pharmacyTakeRateBps },
+      data: { id, sub, pharmacyId: cart.pharmacyId, registrationId: cart.registrationId, status: 'PENDING_PAYMENT', items: lines as object[], ...t, deliveryMethod: cart.deliveryMethod, deliveryAddress: cart.deliveryMethod === 'DELIVERY' ? (address as object) : undefined, prescriptionRecordId: rxId, rxStatus: rxNeeded ? 'PENDING' : 'NOT_REQUIRED', takeRateBps: cfg().pharmacyTakeRateBps, rateSnapshot: ((await this.rates.snapshotForOrder(cart.registrationId, 'PHARMACY')) ?? undefined) as object | undefined },
     });
     const p = await this.pay.createOrderIntent({ orderRef: id, purpose: 'PHARMACY', sub, partnerId: `ph:${cart.pharmacyId}`, amountMinor: t.totalMinor, currency: order.currency });
     await this.prisma.pharmacyOrder.update({ where: { id }, data: { paymentId: p.id } });
@@ -311,7 +312,7 @@ export class PharmacyService implements OnModuleInit {
         await this.prisma.auditLog.create({ data: { actor: 'pharmacy', action: 'pharmacy.partial_dispense_review', resource: 'PharmacyOrder', resourceId: o.id, metadata: { reason: lines ? 'POLICY_MANUAL_REVIEW' : 'NO_LINES_IN_EVENT' } } });
         return 'APPLIED';
       }
-      const fee = Math.round((o.subtotalMinor * o.takeRateBps) / 10000); // take on fulfilled goods value, rate snapshotted at order time
+      const fee = orderFeeMinor(o.subtotalMinor, o.rateSnapshot, o.takeRateBps); // take on fulfilled goods value, rate snapshotted at order time (COM-2: default or the partner's own rate)
       if (await this.move(o, IN_FLIGHT, 'DISPENSED', { dispensedAt: new Date(data.dispensedAt ?? Date.now()), platformFeeMinor: fee })) {
         if (o.paymentId) await this.pay.releaseOrder(o.paymentId, { feeMinor: fee });
         await this.engagement.notify(o.sub, { kind: 'PHARMACY_ORDER_DISPENSED', dedupeKey: `PHARMACY_ORDER_DISPENSED:${o.id}` });
@@ -331,7 +332,7 @@ export class PharmacyService implements OnModuleInit {
     const pol = this.policy.get('pharmacy.partial_fulfilment', { market: cfg().defaultMarket, orgId: await this.policyOrg(o) });
     const calc = computePartialSettlement({ items: o.items as unknown as Line[], deliveryMethod: o.deliveryMethod, deliveryFeeMinor: o.deliveryFeeMinor, dispensed: i.dispensed, deliveryMade: i.deliveryMade }, pol.value);
     if (calc.nothingFulfilled) { await this.reject(o, 'NOTHING_DISPENSED', from); return calc; }
-    const fee = Math.round((calc.fulfilledGoodsMinor * o.takeRateBps) / 10000); // take on the fulfilled goods only
+    const fee = orderFeeMinor(calc.fulfilledGoodsMinor, o.rateSnapshot, o.takeRateBps); // take on the fulfilled goods only
     const refunded = await this.prisma.$transaction(async (tx) => {
       const refundedAt = new Date().toISOString();
       const settlement = { refund: { lines: calc.lines, goodsMinor: calc.goodsRefundMinor, deliveryFeeMinor: calc.deliveryFeeRefundMinor, totalMinor: calc.refundTotalMinor, fulfilledMinor: calc.fulfilledGoodsMinor, refundedAt }, policy: { key: pol.key, source: pol.source, value: pol.value, note: pol.note ?? PROPOSED_DEFAULT_NOTE }, resolvedBy: actor };

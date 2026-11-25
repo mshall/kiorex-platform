@@ -10,9 +10,10 @@ import { CardSkeleton, ErrorState } from "@/components/states";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { formatDateTime, formatMinor } from "@/lib/format";
+import { OrgRatePanel, RatesTab } from "./commission-rates";
 
 type Page<T> = { total: number; items: T[] };
-type Caps = { read: boolean; export: boolean; operate: boolean; proposeConfig: boolean; approveConfig: boolean; chooseProvider: boolean };
+type Caps = { read: boolean; export: boolean; operate: boolean; proposeConfig: boolean; approveConfig: boolean; chooseProvider: boolean; proposeRate?: boolean; approveRate?: boolean };
 interface Claim { id: string; orgRef: string; chargeId: string; appointmentId: string; amountMinor: number; decisionAmountMinor: number | null; feeBasisMinor: number | null; sponsoredDiscountMinor: number | null; basisPolicyVersion: string | null; policyVersion: string | null; currency: string; chargeStatus: string; disputeStatus: string | null; collectionStatus: string; collectedMinor: number; reversedAfterCollection: boolean; runId: string | null }
 interface Run { id: string; orgRef: string; periodKey: string; status: string; mode: string; modeRequested: string | null; fallbackReason: string | null; provider: string | null; currency: string; claimsCount: number; claimsMinor: number; collectedMinor: number; deductedMinor: number; invoicedMinor: number; paidMinor: number; invoiceNo: string | null }
 interface Attempt { id: string; attemptNo: number; kind: string; status: string; amountMinor: number; failureCode: string | null; providerRef: string | null; payoutRef: string | null }
@@ -24,7 +25,7 @@ interface Org { orgRef: string; market: string; currency: string; claims: number
 interface Policy { id: string; scope: string; scopeRef: string; version: number; status: string; settings: Record<string, unknown>; proposedBy: string }
 interface OrgDetail { config: { settings: Record<string, unknown>; missing: string[] }; provider: string | null; providersAvailable: string[] }
 
-const TABS = ["overview", "ledger", "collections", "payouts", "aging", "disputes", "recon", "orgs", "config"] as const;
+const TABS = ["overview", "ledger", "collections", "payouts", "aging", "disputes", "recon", "orgs", "rates", "config"] as const;
 type Tab = (typeof TABS)[number];
 const B = "/admin/commissions";
 
@@ -103,8 +104,10 @@ export default function CommissionsPage() {
           { key: "o", header: t("commissions.col.org"), cell: (r) => r.orgRef }, { key: "p", header: t("commissions.col.provider"), cell: (r) => r.provider ?? "-" }, { key: "c", header: t("commissions.col.claims"), cell: (r) => r.claims },
           { key: "a", header: t("commissions.col.amount"), cell: (r) => m(r.claimsMinor, r.currency) }, { key: "d", header: t("commissions.col.collected"), cell: (r) => m(r.collectedMinor, r.currency) },
         ]} />))}
+      {tab === "rates" && <RatesTab caps={caps.data} />}
       {tab === "config" && <Config org={org} />}
-      {org && tab === "overview" && <OrgPanel org={org} />}
+      {org && (tab === "overview" || tab === "rates") && <OrgPanel org={org} />}
+      {org && (tab === "overview" || tab === "rates") && <OrgRatePanel org={org} caps={caps.data} />}
     </div>
   );
 }

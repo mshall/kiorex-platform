@@ -4842,6 +4842,212 @@
         ]
       }
     },
+    "/api/v1/admin/commissions/rates/defaults": {
+      "get": {
+        "operationId": "CommissionRatesController_defaults",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Default rate per organisation type: effective, pending, upcoming, history. An unset default says NOT_SET (no charge).",
+        "tags": [
+          "ops"
+        ]
+      },
+      "post": {
+        "operationId": "CommissionRatesController_proposeDefault",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateDefaultBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/rates/orgs/{orgRef}": {
+      "get": {
+        "operationId": "CommissionRatesController_org",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "product",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "One organisation: default, override, effective rate, inherit state, upcoming, pending and history",
+        "tags": [
+          "ops"
+        ]
+      },
+      "post": {
+        "operationId": "CommissionRatesController_proposeOrg",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateOrgBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/rates/{id}/decide": {
+      "post": {
+        "operationId": "CommissionRatesController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateDecideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/rates/resync": {
+      "post": {
+        "operationId": "CommissionRatesController_resync",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateResyncBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Re-send every linked organisation its current rate view over the partner channel",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",
@@ -25576,6 +25782,100 @@
         "required": [
           "providerRef"
         ]
+      },
+      "RateDefaultBody": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "spec": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "product",
+          "spec"
+        ]
+      },
+      "RateOrgBody": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "PHARMACY",
+              "LAB"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "RATE",
+              "INHERIT"
+            ]
+          },
+          "spec": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "product",
+          "kind",
+          "reason"
+        ]
+      },
+      "RateDecideBody": {
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "approve"
+        ]
+      },
+      "RateResyncBody": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "CLINIC",
+              "PHARMACY",
+              "LAB"
+            ]
+          }
+        }
       },
       "CreateBody": {
         "type": "object",

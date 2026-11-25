@@ -647,6 +647,12 @@
 | POST | `/api/v1/admin/commissions/runs/trigger` |  |
 | POST | `/api/v1/admin/commissions/runs/{id}/retry` |  |
 | POST | `/api/v1/admin/commissions/runs/{id}/invoice-paid` |  |
+| GET | `/api/v1/admin/commissions/rates/defaults` | Default rate per organisation type: effective, pending, upcoming, history. An unset default says NOT_SET (no charge). |
+| POST | `/api/v1/admin/commissions/rates/defaults` |  |
+| GET | `/api/v1/admin/commissions/rates/orgs/{orgRef}` | One organisation: default, override, effective rate, inherit state, upcoming, pending and history |
+| POST | `/api/v1/admin/commissions/rates/orgs/{orgRef}` |  |
+| POST | `/api/v1/admin/commissions/rates/{id}/decide` |  |
+| POST | `/api/v1/admin/commissions/rates/resync` | Re-send every linked organisation its current rate view over the partner channel |
 | GET | `/api/v1/admin/providers` | KXM-OP-01 provider directory |
 | POST | `/api/v1/admin/providers/sync` |  |
 | GET | `/api/v1/admin/bookings` | KXM-OP-02 bookings |

@@ -20,6 +20,8 @@ export class FakeKiorly {
   delayMs = 0;
   deposits = new Map<string, any>();
   payouts = new Map<string, any>();
+  /** COM-2: commission rate views pushed to POST /commission-rates, in order. */
+  commissionRates: any[] = [];
   reviewPushes: any[] = [];
   profileViews: any[] = [];
   consentPushes: { patientId: string; consents: any[] }[] = [];
@@ -56,7 +58,7 @@ export class FakeKiorly {
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
-    this.delayMs = 0; this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
+    this.delayMs = 0; this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.commissionRates = []; this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
     this.promotionMode = undefined; this.promotionReservations.clear(); this.promotionReviews = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
@@ -191,6 +193,7 @@ export class FakeKiorly {
       this.carePlanRequests.set(body.requestRef, { body, ack });
       return send(200, ack);
     }
+    if (m === 'POST' && path === '/commission-rates') { this.commissionRates.push(body); return send(200, { applied: true }); }
     if (m === 'POST' && path === '/payouts') {
       const ex = this.payouts.get(body.payoutRef);
       if (!ex) this.payouts.set(body.payoutRef, body);

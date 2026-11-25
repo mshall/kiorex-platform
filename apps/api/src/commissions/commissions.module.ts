@@ -8,16 +8,18 @@ import { CommissionCollectionService } from './commission-collection.service';
 import { CommissionConfigService } from './commission-config.service';
 import { CommissionOpsController } from './commission-ops.controller';
 import { CommissionQueryService } from './commission-query.service';
+import { CommissionRateService } from './commission-rate.service';
+import { CommissionRatesController } from './commission-rates.controller';
 
 @Global()
 @Module({
   imports: [OutboxModule, KiorlyModule],
-  controllers: [CommissionOpsController],
+  controllers: [CommissionOpsController, CommissionRatesController],
   providers: [
-    CommissionClaimsService, CommissionConfigService, CommissionQueryService, CommissionCollectionService, MockCommissionCollector, RealCommissionCollector,
+    CommissionClaimsService, CommissionConfigService, CommissionRateService, CommissionQueryService, CommissionCollectionService, MockCommissionCollector, RealCommissionCollector,
     { provide: COMMISSION_COLLECTOR, useFactory: collectorForMode, inject: [MockCommissionCollector, RealCommissionCollector] },
     { provide: COMMISSION_NETTING_PORT, useExisting: CommissionCollectionService },
   ],
-  exports: [CommissionClaimsService, CommissionConfigService, CommissionQueryService, CommissionCollectionService, COMMISSION_NETTING_PORT],
+  exports: [CommissionClaimsService, CommissionConfigService, CommissionRateService, CommissionQueryService, CommissionCollectionService, COMMISSION_NETTING_PORT],
 })
 export class CommissionsModule {}

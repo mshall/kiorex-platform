@@ -1,0 +1,114 @@
+import { NOT_SET, computeCommissionMinor, orderFeeMinor, snapshotOf, effectiveFromAtApproval, effectiveFromProblem, expectedCommissionMinor, inForce, parseRate, rateProblems, resolveRate, type RateRowLite } from './commission-rate';
+
+/** COM-2 pure domain. Every number below is a TEST placeholder, never a shipped rate. */
+const D = (s: string) => new Date(s);
+const row = (o: Partial<RateRowLite> & { id: string; effectiveFrom: Date }): RateRowLite => ({ scope: 'DEFAULT', kind: 'RATE', version: 1, status: 'ACTIVE', spec: { feeType: 'PERCENT', percentBps: 1000 }, reason: null, ...o });
+
+describe('commission rate validation', () => {
+  it('accepts a percent and a flat rate with floor, cap and mode', () => {
+    expect(rateProblems({ feeType: 'PERCENT', percentBps: 1250, minMinor: 500, maxMinor: 5000, mode: 'NET_FROM_PAYOUT' })).toEqual([]);
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: 3000, mode: 'INVOICE_AND_COLLECT' })).toEqual([]);
+    expect(rateProblems({ feeType: 'PERCENT', percentBps: 0 })).toEqual([]); // an explicit 0 % is a decision, unlike "not set"
+  });
+  it('rejects every malformed shape', () => {
+    expect(rateProblems(null)).toHaveLength(1);
+    expect(rateProblems({ feeType: 'TIERED' })).toContain('feeType must be PERCENT or FLAT');
+    expect(rateProblems({ feeType: 'PERCENT' })).toContain('percentBps must be an integer 0..10000');
+    expect(rateProblems({ feeType: 'PERCENT', percentBps: 10_001 })).toHaveLength(1);
+    expect(rateProblems({ feeType: 'PERCENT', percentBps: 12.5 })).toHaveLength(1);
+    expect(rateProblems({ feeType: 'PERCENT', percentBps: 100, flatMinor: 5 })).toContain('flatMinor is not allowed for PERCENT');
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: -1 })).toHaveLength(1);
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: 100, percentBps: 5 })).toContain('percentBps is not allowed for FLAT');
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: 100, minMinor: 900, maxMinor: 100 })).toContain('minMinor must not exceed maxMinor');
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: 100, mode: 'CASH' })).toContain('mode is not a collection mode');
+    expect(rateProblems({ feeType: 'FLAT', flatMinor: 100, surprise: 1 })).toContain('unknown field surprise');
+  });
+  it('parseRate drops unknown keys and the field of the other fee type', () => {
+    expect(parseRate({ feeType: 'FLAT', flatMinor: 700, percentBps: 5, junk: 1 })).toEqual({ feeType: 'FLAT', percentBps: null, flatMinor: 700, minMinor: null, maxMinor: null, mode: null });
+  });
+});
+
+describe('commission amount', () => {
+  const pct = (bps: number, min: number | null = null, max: number | null = null) => parseRate({ feeType: 'PERCENT', percentBps: bps, minMinor: min, maxMinor: max });
+  it('rounds half up on exact integers (no float drift)', () => {
+    expect(computeCommissionMinor(10_050, pct(1000))).toBe(1005);
+    expect(computeCommissionMinor(10_005, pct(1000))).toBe(1001); // 1000.5 -> 1001
+    expect(computeCommissionMinor(333, pct(3333))).toBe(111); // 110.99... -> 111
+    expect(computeCommissionMinor(0, pct(1000))).toBe(0);
+  });
+  it('applies the floor and the cap, and a flat amount ignores the basis', () => {
+    expect(computeCommissionMinor(1000, pct(1000, 500))).toBe(500);
+    expect(computeCommissionMinor(1_000_000, pct(1000, null, 5000))).toBe(5000);
+    expect(computeCommissionMinor(999_999, parseRate({ feeType: 'FLAT', flatMinor: 2500 }))).toBe(2500);
+  });
+});
+
+describe('effective rate resolution (effective-dated, inheritance, override)', () => {
+  const def1 = row({ id: 'd1', version: 1, effectiveFrom: D('2026-01-01T00:00:00Z'), spec: { feeType: 'PERCENT', percentBps: 1000 } });
+  const def2 = row({ id: 'd2', version: 2, effectiveFrom: D('2026-06-01T00:00:00Z'), spec: { feeType: 'PERCENT', percentBps: 1500 } });
+  const ov = row({ id: 'o1', scope: 'ORG', version: 1, effectiveFrom: D('2026-03-01T00:00:00Z'), spec: { feeType: 'FLAT', flatMinor: 4000 }, reason: 'negotiated' });
+  const back = row({ id: 'o2', scope: 'ORG', kind: 'INHERIT', version: 2, effectiveFrom: D('2026-09-01T00:00:00Z'), spec: null, reason: 'contract ended' });
+
+  it('nothing set -> NOT_SET (no charge), never an invented value', () => {
+    expect(resolveRate([], [], D('2026-05-01T00:00:00Z'))).toEqual(NOT_SET);
+    expect(expectedCommissionMinor(10_000, NOT_SET)).toBeNull();
+  });
+  it('a default that starts later does not apply before it starts', () => {
+    expect(resolveRate([def1], [], D('2025-12-31T23:59:59Z')).state).toBe('NOT_SET');
+    expect(resolveRate([def1], [], D('2026-01-01T00:00:00Z'))).toMatchObject({ state: 'SET', source: 'DEFAULT', policyId: 'd1' });
+  });
+  it('an old instant keeps the old rate after the default changed (past charges keep their rate)', () => {
+    expect(resolveRate([def1, def2], [], D('2026-05-31T23:59:59Z')).policyId).toBe('d1');
+    expect(resolveRate([def1, def2], [], D('2026-06-01T00:00:00Z')).policyId).toBe('d2');
+  });
+  it('the override wins from its start, survives later default changes, and INHERIT returns to the default', () => {
+    expect(resolveRate([def1, def2], [ov], D('2026-02-01T00:00:00Z')).source).toBe('DEFAULT');
+    expect(resolveRate([def1, def2], [ov], D('2026-07-01T00:00:00Z'))).toMatchObject({ source: 'OVERRIDE', policyId: 'o1', reason: 'negotiated' });
+    expect(resolveRate([def1, def2], [ov, back], D('2026-09-01T00:00:00Z'))).toMatchObject({ source: 'DEFAULT', policyId: 'd2' });
+    expect(resolveRate([def1, def2], [ov, back], D('2026-08-31T23:59:59Z')).source).toBe('OVERRIDE');
+  });
+  it('only ACTIVE rows count; ties on the start take the higher version', () => {
+    const pending = row({ id: 'p', version: 3, status: 'PENDING', effectiveFrom: D('2026-01-01T00:00:00Z') });
+    const rejected = row({ id: 'r', version: 4, status: 'REJECTED', effectiveFrom: D('2026-01-01T00:00:00Z') });
+    expect(inForce([pending, rejected], D('2027-01-01T00:00:00Z'))).toBeNull();
+    const a = row({ id: 'a', version: 1, effectiveFrom: D('2026-01-01T00:00:00Z') });
+    const b = row({ id: 'b', version: 2, effectiveFrom: D('2026-01-01T00:00:00Z') });
+    expect(inForce([a, b], D('2026-02-01T00:00:00Z'))?.id).toBe('b');
+  });
+  it('an organisation INHERIT row with no default stays NOT_SET', () => {
+    expect(resolveRate([], [back], D('2026-10-01T00:00:00Z')).state).toBe('NOT_SET');
+  });
+});
+
+describe('effective-from rules', () => {
+  const now = D('2026-05-01T12:00:00Z');
+  it('rejects the past beyond one minute of clock skew and bad dates', () => {
+    expect(effectiveFromProblem(D('2026-05-01T11:58:00Z'), now)).toBe('effectiveFrom must not be in the past');
+    expect(effectiveFromProblem(D('2026-05-01T11:59:30Z'), now)).toBeNull();
+    expect(effectiveFromProblem(new Date('nope'), now)).toBe('effectiveFrom is not a date');
+  });
+  it('approval never moves the start earlier than the approval time', () => {
+    expect(effectiveFromAtApproval(D('2026-05-01T12:00:00Z'), D('2026-05-02T09:00:00Z')).toISOString()).toBe('2026-05-02T09:00:00.000Z');
+    expect(effectiveFromAtApproval(D('2026-06-01T00:00:00Z'), D('2026-05-02T09:00:00Z')).toISOString()).toBe('2026-06-01T00:00:00.000Z');
+  });
+});
+
+describe('order fee (pharmacy order, lab booking) from the snapshot', () => {
+  const snap = (spec: object) => ({ source: 'DEFAULT', policyId: 'crp_1', version: 1, effectiveFrom: '2026-01-01T00:00:00.000Z', spec: { feeType: 'PERCENT', percentBps: null, flatMinor: null, minMinor: null, maxMinor: null, mode: null, ...spec } });
+  it('the snapshot decides: percent, flat, floor and cap', () => {
+    expect(orderFeeMinor(5000, snap({ percentBps: 1000 }), 0)).toBe(500);
+    expect(orderFeeMinor(5000, snap({ feeType: 'FLAT', flatMinor: 150 }), 400)).toBe(150); // the legacy rate is ignored once a rate is snapshotted
+    expect(orderFeeMinor(1000, snap({ percentBps: 1000, minMinor: 300 }), 0)).toBe(300);
+    expect(orderFeeMinor(15000, snap({ percentBps: 500, maxMinor: 500 }), 0)).toBe(500);
+  });
+  it('without a snapshot the legacy take rate applies, and 0 while it is unset (nothing is invented)', () => {
+    expect(orderFeeMinor(5000, null, 400)).toBe(200);
+    expect(orderFeeMinor(5000, null, 0)).toBe(0);
+    expect(orderFeeMinor(5000, { spec: { feeType: 'TIERED' } }, 400)).toBe(200); // a malformed snapshot never charges a made-up amount
+  });
+  it('snapshotOf keeps only a SET rate', () => {
+    expect(snapshotOf(NOT_SET)).toBeNull();
+    const eff = resolveRate([{ id: 'd1', scope: 'DEFAULT', kind: 'RATE', version: 1, status: 'ACTIVE', spec: { feeType: 'FLAT', flatMinor: 100 }, effectiveFrom: new Date('2026-01-01T00:00:00Z'), reason: null }], [], new Date('2026-02-01T00:00:00Z'));
+    expect(snapshotOf(eff)).toMatchObject({ source: 'DEFAULT', policyId: 'd1', version: 1, spec: { feeType: 'FLAT', flatMinor: 100 } });
+  });
+});

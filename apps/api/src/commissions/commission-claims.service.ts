@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { newId } from '../common/ids';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
+import { CommissionRateService } from './commission-rate.service';
+import { expectedCommissionMinor } from './commission-rate';
 
 const minor = (v: unknown): number | null => {
   if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v * 100);
@@ -24,7 +26,7 @@ export type ClaimOutcome = 'APPLIED' | 'IGNORED' | 'STALE';
 @Injectable()
 export class CommissionClaimsService {
   private readonly log = new Logger('commission-claims');
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rates: CommissionRateService) {}
 
   async applyEvent(type: string, data: Record<string, any>, ctx: { tenantId?: string; occurredAt?: string }): Promise<ClaimOutcome> {
     if (!CLAIM_EVENTS.has(type)) return 'IGNORED';
@@ -62,7 +64,11 @@ export class CommissionClaimsService {
         lastEventAt: at,
       };
       if (!prev) {
-        const created = await tx.commissionClaim.create({ data: { id: newId('ccl'), orgRef, chargeId, ...fields } });
+        // COM-2: the organisation inherits its product default when first seen, and the claim keeps the rate that applied when it was reported (never rewritten, so later rate changes do not touch past charges)
+        await this.rates.ensureLink(orgRef, 'CLINIC', tx);
+        const rate = await this.rates.effectiveAt(orgRef, 'CLINIC', fields.attendedAt ?? at, tx);
+        const snapshot = rate.state === 'SET' ? { source: rate.source, policyId: rate.policyId, version: rate.version, effectiveFrom: rate.effectiveFrom, spec: rate.spec, expectedMinor: fields.feeBasisMinor != null ? expectedCommissionMinor(fields.feeBasisMinor, rate) : null } : null;
+        const created = await tx.commissionClaim.create({ data: { id: newId('ccl'), orgRef, chargeId, ...fields, rateSource: rate.source, ratePolicyId: rate.policyId, rateSnapshot: (snapshot ?? undefined) as object | undefined } });
         await this.timeline(tx, orgRef, created.id, 'CLAIM_REPORTED', { status, amountMinor });
         return 'APPLIED' as const;
       }

@@ -146,6 +146,10 @@ export class KiorlyClient {
   recordCommissionCollection(body: Record<string, unknown>, clinicId?: string) {
     return this.request<any>({ method: 'POST', path: '/commission-collections', body, clinicId });
   }
+  /** COM-2 (additive): the organisation's effective commission rate, the default, the override and the history (read-only on the provider side); idempotent, newest `version` wins. */
+  recordCommissionRate(body: Record<string, unknown>) {
+    return this.request<any>({ method: 'POST', path: '/commission-rates', body });
+  }
   syncReviews(body: Record<string, unknown>) {
     return this.request<{ accepted?: number; rejected?: { reviewId: string; reason: string }[] }>({ method: 'POST', path: '/reviews/aggregate', body });
   }

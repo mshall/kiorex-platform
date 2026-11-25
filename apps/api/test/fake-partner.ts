@@ -145,6 +145,7 @@ export class FakePartner {
       }
       if (m === 'POST' && /^\/orders\/[^/]+\/cancel$/.test(path)) return this.cancelMode === '409' ? send(409, { code: 'ALREADY_COLLECTED' }) : send(200, { orderId: 'x', status: 'CANCELLED' });
     }
+    if (m === 'POST' && path === '/commission-rates') return send(200, { applied: true }); // COM-2: the partner records the rate view Kiorex reports
     return send(404, { message: `no route ${m} ${path}` });
   }
 }

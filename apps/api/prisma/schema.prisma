@@ -1004,6 +1004,8 @@ model PharmacyOrder {
   partnerOrderId       String?
   paymentId            String?
   takeRateBps          Int       @default(0)
+  /// COM-2: the effective commission rate (default or this partner's override) that applied when the order was created: {source, policyId, version, effectiveFrom, spec}. Null = no rate set (legacy PHARMACY_TAKE_RATE_BPS applies, 0 while unset). Never rewritten.
+  rateSnapshot         Json?
   platformFeeMinor     Int       @default(0)
   rejectionReason      String?
   readyAt              DateTime?
@@ -1039,6 +1041,8 @@ model LabBooking {
   paymentId          String?
   partnerOrderId     String?
   takeRateBps        Int      @default(0)
+  /// COM-2: the effective commission rate that applied when the booking was created (see PharmacyOrder.rateSnapshot). Null = no rate set (legacy LAB_TAKE_RATE_BPS applies, 0 while unset).
+  rateSnapshot       Json?
   platformFeeMinor   Int      @default(0)
   rejectionReason    String?
   resultRecordId     String?
@@ -3467,6 +3471,9 @@ model CommissionClaim {
   runId                   String?
   collectedMinor          Int       @default(0)
   reversedAfterCollection Boolean   @default(false) // charge reversed or waived after money was taken: a credit is due (never silently kept)
+  rateSource              String? // COM-2: OVERRIDE | DEFAULT | null (rate not set) at the time the claim was reported; never rewritten
+  ratePolicyId            String?
+  rateSnapshot            Json?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
@@ -3493,6 +3500,44 @@ model CommissionPolicy {
 
   @@unique([scope, scopeRef, version])
   @@index([scope, scopeRef, status])
+}
+
+/// COM-2 commission RATES, append-only versions. scope DEFAULT (scopeRef = product) is the platform default per organisation type; scope ORG (scopeRef = orgRef) is one organisation's override or
+/// an INHERIT row that ends it. Maker-checker (the database CHECK repeats it), effective-dated (an ACTIVE row applies from effectiveFrom; older rows keep applying to older instants). No numeric default is shipped.
+model CommissionRatePolicy {
+  id            String    @id // crp_<id>
+  scope         String // DEFAULT | ORG
+  product       String // CLINIC | PHARMACY | LAB
+  scopeRef      String // product for DEFAULT, orgRef for ORG
+  kind          String    @default("RATE") // RATE | INHERIT (ORG only: back to the default)
+  version       Int
+  status        String    @default("PENDING") // PENDING ACTIVE REJECTED
+  spec          Json? // RateSpec; null for INHERIT
+  effectiveFrom DateTime
+  requestedFrom DateTime? // what was asked when approval moved the start to the approval time
+  reason        String? // required for ORG rows
+  proposedBy    String
+  proposedAt    DateTime  @default(now())
+  decidedBy     String?
+  decidedAt     DateTime?
+  decisionNote  String?
+
+  @@unique([scope, scopeRef, version])
+  @@index([scope, scopeRef, status, effectiveFrom])
+  @@index([product, status])
+}
+
+/// COM-2: the organisation is linked to its product default when it is first seen (claim, rate view, override); the link records which default version it inherited then. Inheritance stays live afterwards.
+model CommissionOrgRateLink {
+  orgRef             String   @id
+  product            String
+  defaultPolicyId    String?
+  defaultVersion     Int?
+  linkedAt           DateTime @default(now())
+  lastPushedAt       DateTime?
+  lastPushedVersion  String?
+
+  @@index([product])
 }
 
 /// The organisation's own choice of payment provider for commission collection (validated against the providers enabled for its market, audited).
