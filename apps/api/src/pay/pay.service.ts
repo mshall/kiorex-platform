@@ -17,6 +17,7 @@ import { feeFor, minorDigits, withinRefundWindow, type PspSettings } from './psp
 import { PspConfigService } from './psp-config.service';
 import { depositLines as composeLines, splitDeposit } from './deposit-allocation';
 import { postLedgerTx } from './pay-ledger';
+import { COMMISSION_NETTING_PORT, type CommissionNettingPort } from '../common/commission-netting-port';
 import { PayReconcileService } from './pay-reconcile.service';
 import { unavailable } from '../common/errors';
 import { PSP_EVENT_TYPES } from '../common/providers/vendors/psp-event';
@@ -45,7 +46,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private pollTimer?: NodeJS.Timeout;
   private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort, @Optional() @Inject(CORPORATE_BENEFIT_PORT) private readonly corporate?: CorporateBenefitPort, @Optional() @Inject(PAYMENT_SIGNALS_PORT) private readonly signals?: PaymentSignalsPort, @Optional() private readonly pspConfig?: PspConfigService, @Optional() private readonly recon?: PayReconcileService) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort, @Optional() @Inject(CORPORATE_BENEFIT_PORT) private readonly corporate?: CorporateBenefitPort, @Optional() @Inject(PAYMENT_SIGNALS_PORT) private readonly signals?: PaymentSignalsPort, @Optional() private readonly pspConfig?: PspConfigService, @Optional() private readonly recon?: PayReconcileService, @Optional() @Inject(COMMISSION_NETTING_PORT) private readonly netting?: CommissionNettingPort) {}
 
   /** What the Pay ledger holds for a deposit: the card money still held plus the credit part posted into HELD (GRW-P2-B2). Equals amountMinor - refundedMinor when no credit was used. */
   private heldMinor(p: { amountMinor: number; refundedMinor: number; rewardPostedMinor?: number; sponsoredPostedMinor?: number; corporatePostedMinor?: number }): number { return p.amountMinor - p.refundedMinor + (p.rewardPostedMinor ?? 0) + (p.sponsoredPostedMinor ?? 0) + (p.corporatePostedMinor ?? 0); } // GRW-P2-S: plus the sponsored part posted into HELD (only when postToPayLedger)
@@ -670,11 +671,14 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
         const claimed = await tx.paymentIntent.updateMany({ where: { id: { in: items.map((i) => i.id) }, payoutId: null }, data: { payoutId: id } });
         if (claimed.count !== items.length) throw conflict('PAYOUT_RACE', 'Deposits already claimed by another payout run');
         const refs = items.map((i) => i.id);
-        await tx.payout.create({ data: { id, payoutRef, clinicId, amountMinor: amount, currency: items[0].currency, periodKey, paymentRefs: refs } });
-        await this.postLedger(tx, { key: `payout:${id}`, kind: 'PAYOUT', postings: payoutPosting(clinicId, amount), clinicId });
+        // COM-1: commission owed to Kiorex is kept out of this payout when the organisation's mode is NET_FROM_PAYOUT (0 when no port, no open run or another mode)
+        const deducted = this.netting ? Math.min(Math.max(await this.netting.reserveForPayout(tx, { clinicId, payoutId: id, payoutRef, grossMinor: amount, currency: items[0].currency }), 0), amount) : 0;
+        const cash = amount - deducted;
+        await tx.payout.create({ data: { id, payoutRef, clinicId, amountMinor: cash, commissionDeductedMinor: deducted, currency: items[0].currency, periodKey, paymentRefs: refs } });
+        if (cash > 0) await this.postLedger(tx, { key: `payout:${id}`, kind: 'PAYOUT', postings: payoutPosting(clinicId, cash), clinicId });
         await this.outbox.enqueue(tx, { type: 'kiorly.payout_recorded', target: 'KIORLY', aggregateType: 'Payout', aggregateId: id, payload: { payoutId: id }, dedupeKey: `kiorly.payout_recorded:${id}` });
       }).catch((e) => { if (e?.code === 'P2002') return; throw e; });
-      out.push({ payoutRef, clinicId, amountMinor: amount });
+      out.push({ payoutRef, clinicId, amountMinor: amount }); // gross; the cash paid and the commission kept are on the Payout row
     }
     return { period, payouts: out, ...(heldBack.length ? { heldBack } : {}) };
   }

@@ -432,6 +432,8 @@ model Payout {
   payoutRef   String   @unique
   clinicId    String
   amountMinor Int
+  /// COM-1: cash paid out = amountMinor; gross released deposits = amountMinor + commissionDeductedMinor (commission netted from this payout, mode NET_FROM_PAYOUT)
+  commissionDeductedMinor Int @default(0)
   currency    String   @default("EGP")
   status      String   @default("SENT") // SENT | KIORLY_RECORDED
   periodKey   String
@@ -3346,4 +3348,173 @@ model MessagingChannelState {
   updatedAt DateTime @updatedAt
 
   @@id([channel, key])
+}
+
+// ───────────────────────── commission collection (COM-1) ─────────────────────────
+// Kiorex collects the commissions it is owed through the payment provider each organisation chose. Kiorly never holds funds in the design: collection runs on licensed provider rails.
+// The Clinic stays the system of record for the CHARGE and the DECISION (CR-03, GRW-P1-D2); these tables are Kiorex's claim, collection and settlement ledger for it. Amounts are integer minor units.
+
+/// One row per commission charge reported by a product (source CLINIC_CHARGE). Mirrors the charge and the decision that explains it (incl. the W7 A2 basis fields); never edited by hand.
+model CommissionClaim {
+  id                      String    @id // ccl_<id>
+  orgRef                  String // the product organisation (Clinic tenant id)
+  clinicId                String?
+  market                  String    @default("EG")
+  sourceKind              String    @default("CLINIC_CHARGE") // CLINIC_CHARGE (vertical order fees are netted at release in the Pay ledger and are not claims)
+  chargeId                String    @unique
+  appointmentId           String
+  decisionRef             String?
+  policyVersion           String?
+  origin                  String    @default("")
+  amountMinor             Int
+  decisionAmountMinor     Int? // the amount the append-only decision states; a claim whose amount differs is a reconciliation finding
+  currency                String    @default("EGP")
+  feeBasisMinor           Int?
+  sponsoredDiscountMinor  Int?
+  basisPolicyVersion      String?
+  chargeStatus            String    @default("PENDING") // as reported by the Clinic: PENDING CONFIRMED DISPUTED REVERSED WAIVED BILLED
+  attendedAt              DateTime?
+  confirmedAt             DateTime?
+  disputeDeadline         DateTime?
+  disputeStatus           String? // OPEN AUTO_APPROVED APPROVED REJECTED (reported by the Clinic)
+  lastEventAt            DateTime? // occurredAt of the newest Clinic event applied (older events are ignored)
+  collectionStatus        String    @default("UNCOLLECTED") // UNCOLLECTED IN_RUN COLLECTED INVOICED PAID RELEASED
+  runId                   String?
+  collectedMinor          Int       @default(0)
+  reversedAfterCollection Boolean   @default(false) // charge reversed or waived after money was taken: a credit is due (never silently kept)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([orgRef, collectionStatus, chargeStatus])
+  @@index([runId])
+  @@index([market, createdAt])
+}
+
+/// Collection configuration, append-only versions. scope MARKET (default for a market, money-affecting: maker-checker) or ORG (override for one organisation, maker-checker too).
+/// A field left null is NOT configured (NEEDS_HUMAN, LG-COM-1): automatic collection does not run for it and the run says so; nothing is invented.
+model CommissionPolicy {
+  id           String    @id // cpo_<id>
+  scope        String // MARKET | ORG
+  scopeRef     String // market code or orgRef
+  version      Int
+  status       String    @default("PENDING") // PENDING ACTIVE REJECTED SUPERSEDED
+  settings     Json
+  note         String?
+  proposedBy   String
+  proposedAt   DateTime  @default(now())
+  decidedBy    String?
+  decidedAt    DateTime?
+  decisionNote String?
+
+  @@unique([scope, scopeRef, version])
+  @@index([scope, scopeRef, status])
+}
+
+/// The organisation's own choice of payment provider for commission collection (validated against the providers enabled for its market, audited).
+model CommissionOrgProvider {
+  orgRef    String   @id
+  market    String   @default("EG")
+  provider  String
+  chosenBy  String
+  chosenAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// The organisation's saved payment method for AUTO_CHARGE_SAVED_METHOD: an opaque provider token reference only (never a card number, never a secret), enrolled through the provider's hosted flow.
+model CommissionSavedMethod {
+  id        String    @id // csm_<id>
+  orgRef    String
+  provider  String
+  tokenRef  String
+  brand     String?
+  last4     String?
+  status    String    @default("ACTIVE") // ACTIVE FAILING REVOKED
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([orgRef, status])
+}
+
+/// One collection run per (organisation, period): idempotent. `mode` is the mode actually used; `modeRequested` the configured one (they differ when a safe fallback to invoice applied).
+model CommissionRun {
+  id             String    @id // crn_<id>
+  orgRef         String
+  market         String    @default("EG")
+  periodKey      String // the cut-off date YYYY-MM-DD that closed the period
+  cutoffAt       DateTime
+  collectAt      DateTime
+  modeRequested  String?
+  mode           String
+  fallbackReason String?
+  provider       String?
+  status         String // PLANNED COLLECTING RETRYING COLLECTED PARTIAL INVOICE_OPEN SETTLED NOTHING_DUE NOT_CONFIGURED BELOW_MINIMUM
+  currency       String    @default("EGP")
+  claimsCount    Int       @default(0)
+  claimsMinor    Int       @default(0)
+  collectedMinor Int       @default(0) // card / token charged and succeeded
+  deductedMinor  Int       @default(0) // netted from payouts
+  invoicedMinor  Int       @default(0) // moved to an open invoice
+  paidMinor      Int       @default(0) // invoice paid
+  settingsJson   Json // snapshot of the resolved settings the run used (rates and cycle values are config, so the run explains itself later)
+  invoiceNo      String?
+  invoiceDueAt   DateTime?
+  idempotencyKey String    @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([orgRef, periodKey])
+  @@index([status, collectAt])
+  @@index([market, createdAt])
+}
+
+/// One attempt to collect (a net-from-payout deduction, a saved-method charge, an invoice issue, an invoice payment). Idempotent on its key; retries are new rows with the next attemptNo.
+model CommissionAttempt {
+  id             String    @id // cat_<id>
+  runId          String
+  orgRef         String
+  attemptNo      Int
+  kind           String // DEDUCT CHARGE INVOICE INVOICE_PAYMENT
+  provider       String?
+  providerRef    String?
+  payoutRef      String?
+  amountMinor    Int
+  status         String // PENDING SUCCEEDED FAILED
+  failureCode    String?
+  retryable      Boolean   @default(false)
+  scheduledFor   DateTime  @default(now())
+  executedAt     DateTime?
+  idempotencyKey String    @unique
+  createdAt      DateTime  @default(now())
+
+  @@index([runId, attemptNo])
+  @@index([status, scheduledFor])
+}
+
+/// Append-only status timeline for runs and claims (what happened, when, to which figure). Never updated, never deleted.
+model CommissionTimeline {
+  id          String   @id @default(cuid())
+  orgRef      String
+  subjectType String // CLAIM RUN
+  subjectId   String
+  event       String
+  detail      Json?
+  actor       String   @default("system")
+  at          DateTime @default(now())
+
+  @@index([subjectType, subjectId, at])
+  @@index([orgRef, at])
+}
+
+/// Every export of commission money data (who, what filter, how many rows, which format).
+model CommissionExportAudit {
+  id        String   @id @default(cuid())
+  actor     String
+  view      String
+  format    String // CSV PDF
+  scopeOrg  String? // null = all organisations (platform view)
+  filter    Json?
+  rowCount  Int
+  createdAt DateTime @default(now())
+
+  @@index([actor, createdAt])
 }

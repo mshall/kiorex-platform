@@ -13,6 +13,7 @@ import { PartnerRegistry } from '../partners/partners-public';
 import { WaitlistService } from '../waitlist/waitlist-public';
 import { RecordsService } from '../records/records-public';
 import { PrismaService } from '../prisma/prisma.service';
+import { CommissionClaimsService } from '../commissions/commissions-public';
 import { TrustService } from '../trust/trust-public';
 import { PublicSiteCache } from '../public-site/public-site-public';
 import { WidgetRegistrationService } from '../widget/widget-public';
@@ -27,7 +28,7 @@ const BOOKING_EVENTS = new Set(['APPOINTMENT_CONFIRMED', 'RESCHEDULED', 'APPOINT
 @Injectable()
 export class WebhooksService {
   private readonly log = new Logger('webhooks');
-  constructor(private readonly prisma: PrismaService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, private readonly corporateLeads: B2bReferralService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort, @Optional() @Inject(SEO_TRIGGER) private readonly seoTrigger?: SeoTriggerPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly commissionClaims: CommissionClaimsService, private readonly booking: BookingService, private readonly catalog: CatalogService, private readonly engagement: EngagementService, private readonly trust: TrustService, private readonly records: RecordsService, private readonly waitlist: WaitlistService, private readonly pharmacy: PharmacyService, private readonly lab: LabService, private readonly partners: PartnerRegistry, private readonly safety: SafetyService, private readonly carePlans: CarePlanService, private readonly nurseLab: NurseLabRelayService, private readonly publicSite: PublicSiteCache, private readonly widgets: WidgetRegistrationService, @Inject(GROWTH_REVENUE) private readonly revenue: GrowthRevenuePort, @Inject(LINK_REGISTRY) private readonly linkRegistry: LinkRegistryPort, private readonly verificationUpdates: VerificationUpdateService, private readonly promotionProjection: PromotionProjectionService, private readonly promotionReviews: PromotionReviewService, private readonly sponsoredDiscounts: SponsoredDiscountService, private readonly corporateLeads: B2bReferralService, @Optional() @Inject(CROSS_PRODUCT_EVENTS) private readonly crossProduct?: CrossProductEventPort, @Optional() @Inject(SEO_TRIGGER) private readonly seoTrigger?: SeoTriggerPort) {}
 
   /** `source` selects the shared secret: kiorly (Clinic) | pharmacy | lab. Same signature scheme (`sha256=HMAC(ts.rawBody)`) and eventId de-duplication for all. */
   async receive(raw: string, h: { signature?: string; timestamp?: string; eventIdHeader?: string; clientKey?: string }, source: 'kiorly' | 'pharmacy' | 'lab' = 'kiorly') {
@@ -117,9 +118,12 @@ export class WebhooksService {
         const o = await this.pharmacy.onPartnerEvent(type, data, ctx);
         return o === 'APPLIED' ? 'APPLIED' : o === 'UNKNOWN_ORDER' ? 'UNKNOWN_BOOKING' : 'IGNORED';
       }
+      case 'COMMISSION_CHARGE_STATUS_CHANGED': // COM-1 (additive): confirmation, dispute and waiver of a charge; mirrored into the commission claim ledger only
+        return (await this.commissionClaims.applyEvent(type, data, { tenantId: (env as any).tenantId, occurredAt: (env as any).occurredAt })) === 'IGNORED' ? 'IGNORED' : 'APPLIED';
       case 'COMMISSION_CHARGE_CREATED':
       case 'COMMISSION_CHARGE_REVERSED': // reporting only: Kiorly decides attendance/commission (KX-09 §06)
         await this.prisma.auditLog.create({ data: { actor: 'kiorly', action: `finance.${type.toLowerCase()}`, resource: 'Appointment', resourceId: env.aggregateId, metadata: data as any } });
+        await this.commissionClaims.applyEvent(type, data, { tenantId: (env as any).tenantId, occurredAt: (env as any).occurredAt }).catch((e) => this.log.warn(`commission claim not recorded: ${(e as Error).message}`)); // COM-1
         await this.revenue.recordFromEvent(type, data, (env as any).occurredAt); // GRW-P1-J: Kiorex revenue facts (charges only, never booking value)
         return 'APPLIED';
       case 'ReferralLinkCreated': // link registry (contracts 1.11.0): code -> organisation mapping from the Clinic, known before the first signed token

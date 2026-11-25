@@ -142,6 +142,10 @@ export class KiorlyClient {
   recordPayout(body: { payoutRef: string; clinicId: string; amount: number; currency: string; paidAt: string; depositPaymentRefs: string[] }) {
     return this.request<any>({ method: 'POST', path: '/payouts', body });
   }
+  /** COM-1 (additive): Kiorex's commission collection run (status, totals, claims, attempts) so the provider sees the same figures; idempotent on runId, newest `version` wins. */
+  recordCommissionCollection(body: Record<string, unknown>, clinicId?: string) {
+    return this.request<any>({ method: 'POST', path: '/commission-collections', body, clinicId });
+  }
   syncReviews(body: Record<string, unknown>) {
     return this.request<{ accepted?: number; rejected?: { reviewId: string; reason: string }[] }>({ method: 'POST', path: '/reviews/aggregate', body });
   }
