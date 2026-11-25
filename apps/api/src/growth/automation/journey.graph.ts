@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { AUTOMATION_POLICY_DEFAULTS } from '../policy/policy-defaults';
+import { livePolicy } from '../policy/policy-registry';
 import type { SegmentRule } from '../lifecycle/lifecycle-segments';
 
 /**
@@ -22,17 +24,8 @@ export type SendTemplate = (typeof SEND_TEMPLATES)[number];
 /** The only experiment surface a journey branch may use (P3-A closed registry). */
 export const BRANCH_SURFACE = 'lifecycle.winback.subject_line';
 
-/** Policy numbers. PROPOSED_DEFAULT in code (a config kind needs a contracts release, listed in NEEDS_HUMAN); the validator and the runner both read this one object. */
-export const AUTOMATION_POLICY = {
-  maxNodes: 12,
-  minWaitMinutes: 15,
-  maxWaitMinutes: 90 * 24 * 60,
-  cycleMinWaitMinutes: 24 * 60,
-  maxSendsPerJourney: 3,
-  maxSendsPer30Days: 4,
-  maxCompiledSteps: 24,
-  maxBranchArms: 3,
-} as const;
+/** Policy numbers: the code defaults plus the ACTIVE `AUTOMATION_POLICY` maker-checker version (policy registry); the validator and the runner both read this one object. */
+export const AUTOMATION_POLICY = livePolicy('AUTOMATION_POLICY', AUTOMATION_POLICY_DEFAULTS); // live: the ACTIVE maker-checker AUTOMATION_POLICY version over these defaults
 
 interface Base { id: string; label?: string }
 export interface TriggerNode extends Base { type: 'TRIGGER'; event: TriggerEvent }

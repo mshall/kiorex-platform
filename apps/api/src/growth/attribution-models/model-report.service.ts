@@ -8,7 +8,7 @@ import { growthError } from '../growth-errors';
 import { aggregateModel, type ModelRow, totalsOf } from './aggregate';
 import { dataDriven, type DataDrivenResult } from './data-driven';
 import { liftOf } from './lift';
-import { DEFAULT_MODELS_CONFIG, type AttributionModelsConfig } from './model-config';
+import { modelsConfigNow, type AttributionModelsConfig } from './model-config';
 import { ModelDataService } from './model-data.service';
 import { ATTRIBUTION_MODELS, DEFAULT_MODEL, ONE_MILLION, PATH_MODELS, type AttributionModel } from './models';
 import { buildPaths, pathHashOf, type ConvertingPath, type NonConvertingPath } from './path-builder';
@@ -30,7 +30,7 @@ export class ModelReportService {
 
   /** Recomputes the last `days` market days (default 3; late events and corrections land inside it). Idempotent: the range is replaced in one transaction per table. */
   async rollup(i: { market?: string; days?: number; from?: string; to?: string; now?: Date; config?: AttributionModelsConfig } = {}): Promise<RollupResult> {
-    const market = i.market ?? DEFAULT_MARKET; const zone = marketTimezone(market); const cfg = i.config ?? DEFAULT_MODELS_CONFIG; const now = i.now ?? new Date();
+    const market = i.market ?? DEFAULT_MARKET; const zone = marketTimezone(market); const cfg = i.config ?? modelsConfigNow(); const now = i.now ?? new Date();
     const to = i.to && ISO.test(i.to) ? i.to : localDay(now, zone); const from = i.from && ISO.test(i.from) ? i.from : addDays(to, -(Math.min(Math.max(i.days ?? 3, 1), 120) - 1));
     if (from > to) throw growthError('GROWTH_INVALID_REQUEST', 'from must not be after to');
     const convs = await this.data.conversions(market, from, to);
@@ -92,7 +92,7 @@ export class ModelReportService {
     return { market, from, to, defaultModel: DEFAULT_MODEL, models, reconciled, dataDriven: dd, note: 'Reporting only: models never change a commission decision (ATTRIBUTION_POLICY stays the money rule). Cells under 10 paths are masked.' };
   }
 
-  async dataDrivenStatus(market: string, now: Date, cfg = DEFAULT_MODELS_CONFIG) {
+  async dataDrivenStatus(market: string, now: Date, cfg = modelsConfigNow()) {
     const zone = marketTimezone(market); const to = localDay(now, zone); const from = addDays(to, -89);
     const n = await this.prisma.growthEvent.count({ where: { market, name: 'BookingAttended', props: { path: ['bucket'], equals: 'new' }, occurredAt: { gte: startOfLocalDay(from, zone), lt: startOfLocalDay(addDays(to, 1), zone) } } });
     return n >= cfg.dataDriven.minConversions ? { status: 'OK' as const, conversions90d: n, needed: cfg.dataDriven.minConversions } : { status: 'INSUFFICIENT_VOLUME' as const, message: 'insufficient volume', conversions90d: n, needed: cfg.dataDriven.minConversions };

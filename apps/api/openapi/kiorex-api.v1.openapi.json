@@ -13819,6 +13819,162 @@
         ]
       }
     },
+    "/api/v1/admin/integrations-center": {
+      "get": {
+        "operationId": "IntegrationsCenterController_overview",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Every external integration: mode, approved mode and drift, secret presence (boolean), last check, circuit, webhook, required variable names, runbook",
+        "tags": [
+          "integrations-center"
+        ]
+      }
+    },
+    "/api/v1/admin/integrations-center/{key}/check": {
+      "post": {
+        "operationId": "IntegrationsCenterController_check",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Mock-safe connection check (configuration only; no vendor call)",
+        "tags": [
+          "integrations-center"
+        ]
+      }
+    },
+    "/api/v1/admin/integrations-center/{key}/test-send": {
+      "post": {
+        "operationId": "IntegrationsCenterController_testSend",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSendBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Adapter-level test send (mock mode only; real mode is refused)",
+        "tags": [
+          "integrations-center"
+        ]
+      }
+    },
+    "/api/v1/admin/integrations-center/{key}/propose-mode": {
+      "post": {
+        "operationId": "IntegrationsCenterController_propose",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Ask for a mock or real mode: creates and submits an INTEGRATION_MODES maker-checker version; a different super admin approves it",
+        "tags": [
+          "integrations-center"
+        ]
+      }
+    },
     "/api/v1/admin/growth/attribution-models": {
       "get": {
         "operationId": "AttributionModelsController_compare",
@@ -30185,7 +30341,17 @@
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
               "LTV_POLICY",
-              "LOYALTY_RULES"
+              "LOYALTY_RULES",
+              "EXPERIMENT_POLICY",
+              "AUTOMATION_POLICY",
+              "ATTRIBUTION_MODELS",
+              "RECOMMENDATION_POLICY",
+              "REWARD_GUARDS",
+              "LIFECYCLE_STAGES",
+              "CROSS_PRODUCT_POLICY",
+              "REFERRAL_FRAUD_THRESHOLDS",
+              "INTEGRATION_RUNTIME",
+              "INTEGRATION_MODES"
             ]
           },
           "scope": {
@@ -30296,7 +30462,17 @@
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
               "LTV_POLICY",
-              "LOYALTY_RULES"
+              "LOYALTY_RULES",
+              "EXPERIMENT_POLICY",
+              "AUTOMATION_POLICY",
+              "ATTRIBUTION_MODELS",
+              "RECOMMENDATION_POLICY",
+              "REWARD_GUARDS",
+              "LIFECYCLE_STAGES",
+              "CROSS_PRODUCT_POLICY",
+              "REFERRAL_FRAUD_THRESHOLDS",
+              "INTEGRATION_RUNTIME",
+              "INTEGRATION_MODES"
             ]
           },
           "scope": {
@@ -30717,6 +30893,42 @@
         "required": [
           "kind",
           "channel"
+        ]
+      },
+      "TestSendBody": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "market": {
+            "type": "string",
+            "maxLength": 2
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "ProposeBody": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "mock",
+              "real"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "mode",
+          "reason"
         ]
       },
       "ModelRollupBody": {

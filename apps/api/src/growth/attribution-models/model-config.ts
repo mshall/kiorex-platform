@@ -1,3 +1,4 @@
+import { policyNow } from '../policy/policy-registry';
 import { DEFAULT_DATA_DRIVEN, type DataDrivenConfig } from './data-driven';
 import { DEFAULT_MODEL_OPTIONS, type ModelOptions } from './models';
 import { checkWindows, DEFAULT_WINDOWS, type ModelWindows } from './windows';
@@ -8,6 +9,9 @@ import { checkWindows, DEFAULT_WINDOWS, type ModelWindows } from './windows';
  */
 export interface AttributionModelsConfig { windows: ModelWindows; options: ModelOptions; dataDriven: DataDrivenConfig }
 export const DEFAULT_MODELS_CONFIG: AttributionModelsConfig = { windows: DEFAULT_WINDOWS, options: DEFAULT_MODEL_OPTIONS, dataDriven: DEFAULT_DATA_DRIVEN };
+
+/** The reporting-model settings now in force: the ACTIVE `ATTRIBUTION_MODELS` maker-checker version over the defaults; an unusable stored payload falls back to the defaults. */
+export function modelsConfigNow(): AttributionModelsConfig { try { return resolveModelsConfig(policyNow<Parameters<typeof resolveModelsConfig>[0]>('ATTRIBUTION_MODELS')); } catch { return DEFAULT_MODELS_CONFIG; } }
 
 /** Merges an operator payload over the defaults and validates it (windows 1..90 days, first plus last position share at most 100 percent, thresholds positive). */
 export function resolveModelsConfig(p?: Partial<{ windows: Partial<ModelWindows>; halfLifeDays: number; positionFirstBp: number; positionLastBp: number; dataDriven: Partial<DataDrivenConfig> }>): AttributionModelsConfig {
