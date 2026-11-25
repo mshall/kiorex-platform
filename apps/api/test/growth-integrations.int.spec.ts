@@ -126,6 +126,9 @@ describe('growth integrations and channel performance (GRW-P2-F)', () => {
   });
 
   describe('channel performance', () => {
+    /** The mock adapter derives spend from a hash of the DAY, so on some calendar days it falls under SPEND_FLOOR_MINOR (50,000) and every ratio is hidden by design.
+     *  Tests that print a CAC pin the synthetic rows to a fixed amount so they do not depend on the date they run. */
+    const pinSpend = (key: string, perRowMinor: number) => c.prisma.growthExternalMetricDaily.updateMany({ where: { dimensionKey: key, metric: 'spend_minor' }, data: { value: perRowMinor } });
     const fp = (campaign: string, metric: string, value: number, sourceKind = 'CAMPAIGN') => c.prisma.growthMetricDaily.create({ data: { market: 'EG', day: new Date(`${today()}T00:00:00Z`), metric, campaign, sourceKind, value } });
     it('with nothing connected every channel is "not connected", never zero', async () => {
       const r = (await c.http().get(`${B}/channel-performance`).set(ops).expect(200)).body;
@@ -133,7 +136,7 @@ describe('growth integrations and channel performance (GRW-P2-F)', () => {
       expect(r.notConnected).toHaveLength(10); expect(r.gaps).toContain('NO_INTEGRATION_CONNECTED');
     });
     it('shows external numbers beside first-party facts; CAC is hidden under k < 10 and printed from 10, with ROAS only for finance', async () => {
-      await campaign('winter'); await run('googleads', { from: daysAgo(1), to: today() }).expect(200); await run('metaads', { from: daysAgo(1), to: today() }).expect(200);
+      await campaign('winter'); await run('googleads', { from: daysAgo(1), to: today() }).expect(200); await run('metaads', { from: daysAgo(1), to: today() }).expect(200); await pinSpend('eg-winter', 40_000);
       await fp('eg-winter', 'AttendedNewPatient', 4); await fp('eg-winter', 'BookingConfirmed', 6);
       let r = (await c.http().get(`${B}/channel-performance?from=${daysAgo(1)}&to=${today()}`).set(fin).expect(200)).body;
       let row = r.campaigns.find((x: { key: string }) => x.key === 'eg-winter');
@@ -158,13 +161,13 @@ describe('growth integrations and channel performance (GRW-P2-F)', () => {
       expect(row.cacHidden).toBe('SPEND_FLOOR'); expect(row.cacMinor).toBe('<10'); expect(row.firstParty.attendedNewPatients).toBe(30); expect(row.spend.usedMinor).toBe(0);
     });
     it('blended CAC adds the cost of redeemed marketing rewards and shows both figures', async () => {
-      await campaign('rw'); await run('googleads', { from: today(), to: today() }).expect(200); await fp('eg-rw', 'AttendedNewPatient', 20);
+      await campaign('rw'); await run('googleads', { from: today(), to: today() }).expect(200); await pinSpend('eg-rw', 120_000); await fp('eg-rw', 'AttendedNewPatient', 20);
       const lot = await c.prisma.rewardLot.create({ data: { market: 'EG', sub: 's1', kind: 'PROMO', mode: 'COUPON', amountMinor: 20_000, ruleVersionId: 'rv', expiresAt: new Date(Date.now() + 86_400_000), funding: 'PLATFORM_MARKETING' } as never });
       await c.prisma.rewardLedgerEntry.create({ data: { lotId: lot.id, type: 'ISSUE', amountMinor: 20_000, idempotencyKey: `rwd:issue:t${Date.now()}`, ruleVersionId: 'rv', reasonCode: 'T', actor: 'sys' } as never });
       await c.prisma.rewardLedgerEntry.create({ data: { lotId: lot.id, type: 'RESERVE', amountMinor: 20_000, idempotencyKey: `rwd:reserve:t${Date.now()}`, ruleVersionId: 'rv', reasonCode: 'T', actor: 'sys' } as never });
       await c.prisma.rewardLedgerEntry.create({ data: { lotId: lot.id, type: 'REDEEM', amountMinor: 20_000, idempotencyKey: `rwd:redeem:t${Date.now()}`, ruleVersionId: 'rv', reasonCode: 'T', actor: 'sys' } as never });
       const b = (await c.http().get(`${B}/channel-performance?from=${today()}&to=${today()}`).set(ops).expect(200)).body.blended;
-      expect(b.rewardCostMinor).toBe(20_000); expect(b.cacWithRewardsMinor).toBe(Math.round((b.spendMinor + 20_000) / 20)); expect(b.cacWithRewardsMinor).toBeGreaterThan(b.cacWithoutRewardsMinor);
+      expect(b.spendMinor).toBe(120_000); expect(b.rewardCostMinor).toBe(20_000); expect(b.cacWithoutRewardsMinor).toBe(6_000); expect(b.cacWithRewardsMinor).toBe(7_000); expect(b.cacWithRewardsMinor).toBeGreaterThan(b.cacWithoutRewardsMinor);
     });
     it('organic search by page template and the app funnel appear only from connected adapters; no person-level field anywhere in the payload', async () => {
       await run('searchconsole', { from: today(), to: today() }).expect(200); await run('playconsole', { from: today(), to: today() }).expect(200); await run('appstoreconnect', { from: today(), to: today() }).expect(200);
