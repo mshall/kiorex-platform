@@ -69,7 +69,7 @@ export function AppLayout() {
       <OfflineBanner />
       {/* The six-link nav plus sign out only fit from 1024 px in English (they overflowed 768 to 907 px signed in); below that the bottom tab bar carries the same destinations and Account carries sign out. */}
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
-        <div className="container flex min-h-16 items-center justify-between gap-3">
+        <div className="container flex min-h-16 items-center justify-between gap-2 sm:gap-3">
           <Link to="/" aria-label={t("nav.home")} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
@@ -87,7 +87,7 @@ export function AppLayout() {
             {status !== "loading" && (signedIn ? (
               <Button variant="outline" size="sm" className="hidden lg:inline-flex" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
             ) : (
-              <Button size="sm" onClick={() => void login("/")} data-testid="sign-in"><LogIn className="rtl-flip" aria-hidden="true" />{t("nav.signIn")}</Button>
+              <Button size="sm" className="px-2.5 sm:px-3" onClick={() => void login("/")} data-testid="sign-in"><LogIn className="rtl-flip" aria-hidden="true" /><span className="max-[359px]:sr-only">{t("nav.signIn")}</span></Button>
             ))}
           </div>
         </div>
