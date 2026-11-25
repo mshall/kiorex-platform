@@ -215,9 +215,10 @@ describe('Paymob', () => {
   });
   it('maps captured / failed / refund callbacks and ignores pending', () => {
     const body = (o: object) => JSON.stringify({ type: 'TRANSACTION', obj: { ...obj, ...o } });
-    expect(parsePaymobCallback(body({}))).toMatchObject({ eventId: 'paymob_998877', type: 'payment.captured', pspRef: '5544', paymentId: 'pay_abc', amountMinor: 15000 });
+    expect(parsePaymobCallback(body({}))).toMatchObject({ eventId: 'paymob_998877', type: 'payment.captured', pspRef: '5544', orderRef: '5544', amountMinor: 15000 });
+    expect(parsePaymobCallback(body({}))?.paymentId).toBeUndefined(); // merchant_order_id is NOT signed by Paymob: never trusted, the payment is found by the signed order id
     expect(parsePaymobCallback(body({ success: false }))?.type).toBe('payment.failed');
-    expect(parsePaymobCallback(body({ is_refunded: true }))).toMatchObject({ type: 'refund.settled', eventId: 'paymob_998877_refund', paymentId: 'pay_abc' });
+    expect(parsePaymobCallback(body({ is_refunded: true }))).toMatchObject({ type: 'refund.settled', eventId: 'paymob_998877_refund', orderRef: '5544' });
     expect(parsePaymobCallback(body({ pending: true }))).toBeNull();
     expect(parsePaymobCallback('{"type":"TOKEN"}')).toBeNull();
   });

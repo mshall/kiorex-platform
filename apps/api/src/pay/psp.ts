@@ -2,36 +2,21 @@ import { createHmac } from 'node:crypto';
 import { cfg } from '../common/config';
 import { safeEqual } from '../common/crypto';
 import { outboundFetch } from '../common/outbound-http';
-import { providerEnv, providerProblems, type ProviderEnv } from '../common/providers/env';
-import { enabledPsps, FawryPspAdapter, instapayEnv, PaymobPspAdapter, PSP_VENDOR_MODE, vendorPspProblems } from './psp.vendors';
-import { providerRequest, type FetchLike } from '../common/providers/http';
-import { paymentMapping, type PaymentMapping } from '../common/providers/payment.mapping';
+import { providerProblems } from '../common/providers/env';
+import { paymentMapping } from '../common/providers/payment.mapping';
+import { breakerFor } from './psp-breaker';
+import { PSP_NAMES, resolveSettings, type PspName, type PspSettings } from './psp-config';
+import { HttpPspAdapter } from './psp-http';
+import type { PspAdapter, PspCapabilities, PspCheckoutInput, PspWebhookEvent } from './psp-types';
+import { CardGatewayPspAdapter, enabledPsps, FawryPspAdapter, instapayEnv, PaymobPspAdapter, PSP_VENDOR_MODE, vendorPspProblems } from './psp.vendors';
 
-export type PspName = 'paymob' | 'fawry' | 'instapay';
-export const PSP_NAMES: PspName[] = ['paymob', 'fawry', 'instapay'];
-
-export interface PspWebhookEvent {
-  eventId: string;
-  type: 'payment.captured' | 'payment.failed' | 'refund.settled';
-  pspRef: string;
-  paymentId?: string;
-  amountMinor: number;
-  feeMinor?: number;
-  /** Optional ISO currency the PSP charged; when present it must equal the intent's currency (CURRENCY_MISMATCH otherwise). */
-  currency?: string;
-  occurredAt: string;
-}
-
-export interface PspAdapter {
-  name: PspName;
-  createCheckout(i: { paymentId: string; amountMinor: number; currency: string }): Promise<{ pspRef: string; checkoutUrl: string }>;
-  /** `query` carries vendor signatures that travel in the URL (Paymob `hmac`). */
-  verifyWebhook(rawBody: string, headers: Record<string, unknown>, query?: Record<string, unknown>): PspWebhookEvent | null;
-  refund(i: { pspRef: string; refundId: string; amountMinor: number }): Promise<{ pspRefundRef: string }>;
-}
+export { PSP_NAMES, type PspName };
+export { NO_CAPS, type PspAdapter, type PspCapabilities, type PspCheckoutInput, type PspStatus, type PspWebhookEvent } from './psp-types';
+export { HttpPspAdapter } from './psp-http';
 
 /** PSP_MODE=sandbox-fake: hosted checkout served by this API; webhook = HMAC(raw body) with PSP_FAKE_WEBHOOK_SECRET. */
 export class FakePspAdapter implements PspAdapter {
+  capabilities: PspCapabilities = { capture: true, void: true, status: false, partialRefund: true, hostedCheckout: true, cardFacts: false };
   constructor(public name: PspName) {}
   async createCheckout(i: { paymentId: string; amountMinor: number }) {
     return { pspRef: `fake_${this.name}_${i.paymentId}`, checkoutUrl: `${cfg().publicBaseUrl}/api/v1/pay/fake-checkout/${i.paymentId}` };
@@ -44,30 +29,8 @@ export class FakePspAdapter implements PspAdapter {
     return ev && typeof ev === 'object' && !Array.isArray(ev) ? ev : null;
   }
   async refund(i: { refundId: string }) { return { pspRefundRef: `fake_rf_${i.refundId}` }; }
-}
-
-/**
- * PAYMENT_MODE=real: generic HTTP PSP driven only by PAYMENT_API_URL / PAYMENT_API_KEY / PAYMENT_WEBHOOK_SECRET (see common/providers
- * and Docs/PROVIDERS.md). Checkout creation is idempotent on the payment id, refunds on the refund id (Idempotency-Key header), so a
- * retried call can never create a second charge or a second refund. Webhooks are HMAC verified by the mapping.
- */
-export class HttpPspAdapter implements PspAdapter {
-  constructor(public name: PspName, private readonly mapping: PaymentMapping = paymentMapping, private readonly fetchImpl: FetchLike = outboundFetch, private readonly envOverride?: () => ProviderEnv) {}
-  private get env() { return this.envOverride?.() ?? providerEnv('PAYMENT'); }
-  async createCheckout(i: { paymentId: string; amountMinor: number; currency: string }) {
-    const w = this.mapping.buildCheckout(i);
-    const r = await providerRequest(this.env, { path: w.path, body: w.body, idempotencyKey: `checkout:${i.paymentId}` }, { fetchImpl: this.fetchImpl }, this.mapping.authHeaders(this.env.apiKey));
-    return this.mapping.parseCheckout(r.json);
-  }
-  verifyWebhook(raw: string, headers: Record<string, unknown>): PspWebhookEvent | null {
-    if (!this.mapping.verifyWebhook({ secret: this.env.webhookSecret, rawBody: raw, headers })) return null;
-    return this.mapping.parseWebhook(raw);
-  }
-  async refund(i: { pspRef: string; refundId: string; amountMinor: number }) {
-    const w = this.mapping.buildRefund(i);
-    const r = await providerRequest(this.env, { path: w.path, body: w.body, idempotencyKey: `refund:${i.refundId}` }, { fetchImpl: this.fetchImpl }, this.mapping.authHeaders(this.env.apiKey));
-    return this.mapping.parseRefund(r.json);
-  }
+  async capture(i: { paymentId: string }) { return { pspCaptureRef: `fake_cap_${i.paymentId}` }; }
+  async void(i: { paymentId: string }) { return { pspVoidRef: `fake_void_${i.paymentId}` }; }
 }
 
 /** Real mode without usable config (startup check normally prevents this): fails closed. */
@@ -78,13 +41,36 @@ export class UnconfiguredPspAdapter implements PspAdapter {
   async refund(): Promise<never> { throw new Error(`NEEDS_HUMAN: ${this.name} adapter not configured`); }
 }
 
-export function pspAdapter(name: string): PspAdapter {
+/** Wraps every outbound PSP call in the per-PSP circuit breaker. Webhook verification is local and never goes through it. */
+export class GuardedPspAdapter implements PspAdapter {
+  constructor(private readonly inner: PspAdapter, private readonly s: PspSettings) {}
+  get name() { return this.inner.name; }
+  get capabilities() { return this.inner.capabilities; }
+  private b() { return breakerFor(`${this.inner.name}:${this.s.mode}`, this.s.breaker); }
+  createCheckout(i: PspCheckoutInput) { return this.b().exec(() => this.inner.createCheckout(i)); }
+  verifyWebhook(raw: string, headers: Record<string, unknown>, query?: Record<string, unknown>) { return this.inner.verifyWebhook(raw, headers, query); }
+  refund(i: Parameters<PspAdapter['refund']>[0]) { return this.b().exec(() => this.inner.refund(i)); }
+  get capture() { const f = this.inner.capture?.bind(this.inner); return f ? (i: { pspRef: string; paymentId: string; amountMinor: number }) => this.b().exec(() => f(i)) : undefined; }
+  get void() { const f = this.inner.void?.bind(this.inner); return f ? (i: { pspRef: string; paymentId: string }) => this.b().exec(() => f(i)) : undefined; }
+  get status() { const f = this.inner.status?.bind(this.inner); return f ? (i: { pspRef: string; paymentId: string }) => this.b().exec(() => f(i)) : undefined; }
+}
+
+/** Test hook: lets an integration test run PayService against a real vendor adapter wired to an injected fetch (never set in production code). */
+let override: ((name: PspName) => PspAdapter | null) | null = null;
+export const __setPspAdapterOverride = (f: ((name: PspName) => PspAdapter | null) | null) => { override = f; };
+
+/** The adapter for a PSP name. `settings` (resolved per PSP and market) carries timeouts, retry budgets, webhook tolerance and the sandbox/live mode. */
+export function pspAdapter(name: string, settings?: PspSettings): PspAdapter {
   const n = (PSP_NAMES.includes(name as PspName) ? name : 'paymob') as PspName;
+  const o = override?.(n); if (o) return o;
   if (cfg().pspMode === 'sandbox-fake') return new FakePspAdapter(n);
-  if (PSP_VENDOR_MODE()) { // PAYMENT_PROVIDER=vendor: native Paymob / Fawry / InstaPay clients, credentials per PSP
+  const s = settings ?? resolveSettings(n, '*');
+  if (PSP_VENDOR_MODE()) { // PAYMENT_PROVIDER=vendor: native Paymob / Fawry clients, InstaPay and the card gateway on the neutral contract, credentials per PSP
     if (vendorPspProblems().length) return new UnconfiguredPspAdapter(n);
     const on = enabledPsps(); const use = on.includes(n) ? n : on[0];
-    return use === 'paymob' ? new PaymobPspAdapter() : use === 'fawry' ? new FawryPspAdapter() : new HttpPspAdapter('instapay', paymentMapping, outboundFetch, () => instapayEnv());
+    const s2 = use === n ? s : resolveSettings(use, '*');
+    const inner: PspAdapter = use === 'paymob' ? new PaymobPspAdapter(process.env, outboundFetch, s2) : use === 'fawry' ? new FawryPspAdapter(process.env, outboundFetch, s2) : use === 'card' ? new CardGatewayPspAdapter(process.env, outboundFetch, s2) : new HttpPspAdapter('instapay', paymentMapping, outboundFetch, () => instapayEnv(), s2);
+    return new GuardedPspAdapter(inner, s2);
   }
-  return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new HttpPspAdapter(n);
+  return providerProblems('PAYMENT').length ? new UnconfiguredPspAdapter(n) : new GuardedPspAdapter(new HttpPspAdapter(n, paymentMapping, outboundFetch, undefined, s), s);
 }

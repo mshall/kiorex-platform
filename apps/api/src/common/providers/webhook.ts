@@ -23,7 +23,8 @@ export function verifyWebhookBody(o: { secret: string; rawBody: string; headers:
   const ts = header(o.headers, WEBHOOK_TIMESTAMP_HEADER);
   if (!sig || !/^\d+$/.test(ts)) return false;
   const now = o.nowSeconds ?? Math.floor(Date.now() / 1000);
-  if (Math.abs(now - Number(ts)) > (o.toleranceSeconds ?? WEBHOOK_TOLERANCE_SECONDS)) return false;
+  const tol = o.toleranceSeconds ?? WEBHOOK_TOLERANCE_SECONDS;
+  if (tol > 0 && Math.abs(now - Number(ts)) > tol) return false; // tolerance 0 = window check off (the timestamp stays part of the signed string); replay is then caught by event-id dedupe
   return eq(sig, signWebhookBody(o.secret, ts, o.rawBody));
 }
 

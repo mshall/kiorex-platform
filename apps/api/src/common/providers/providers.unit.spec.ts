@@ -177,7 +177,7 @@ describe('payment real adapter (mapping + wiring)', () => {
       script = [json(503, {}), json(200, { id: 'psp_1', checkoutUrl: 'https://pay.example/c/1' })];
       expect(await a.createCheckout({ paymentId: 'pay_1', amountMinor: 15000, currency: 'EGP' })).toEqual({ pspRef: 'psp_1', checkoutUrl: 'https://pay.example/c/1' });
       expect(hits.map((h) => h.headers['idempotency-key'])).toEqual(['checkout:pay_1', 'checkout:pay_1']);
-      expect(hits[1].body).toEqual({ reference: 'pay_1', amountMinor: 15000, currency: 'EGP' });
+      expect(hits[1].body).toEqual({ reference: 'pay_1', amountMinor: 15000, currency: 'EGP', capture: true, threeDs: 'preferred', returnUrl: 'http://localhost:5180/pay/return?payment=pay_1', webhookUrl: 'http://localhost:4000/api/v1/pay/webhooks/paymob' });
       hits = []; script = [json(200, { id: 'rf_psp_1' })];
       expect(await a.refund({ pspRef: 'psp_1', refundId: 'rf_1', amountMinor: 5000 })).toEqual({ pspRefundRef: 'rf_psp_1' });
       expect(hits[0].headers['idempotency-key']).toBe('refund:rf_1');
@@ -189,7 +189,7 @@ describe('payment real adapter (mapping + wiring)', () => {
     await withEnv(realEnv('PAYMENT'), async () => {
       const a = new HttpPspAdapter('paymob');
       const raw = JSON.stringify({ id: 'evt_1', type: 'payment.captured', paymentRef: 'psp_1', reference: 'pay_1', amountMinor: 15000, feeMinor: 300, occurredAt: '2026-11-22T10:00:00Z' });
-      expect(a.verifyWebhook(raw, signedWebhookHeaders('whsec_test_0123456789', raw))).toEqual({ eventId: 'evt_1', type: 'payment.captured', pspRef: 'psp_1', paymentId: 'pay_1', amountMinor: 15000, feeMinor: 300, occurredAt: '2026-11-22T10:00:00Z' });
+      expect(a.verifyWebhook(raw, signedWebhookHeaders('whsec_test_0123456789', raw))).toEqual({ eventId: 'evt_1', type: 'payment.captured', pspRef: 'psp_1', paymentId: 'pay_1', amountMinor: 15000, feeMinor: 300, occurredAt: '2026-11-22T10:00:00.000Z' });
       expect(a.verifyWebhook(raw, signedWebhookHeaders('wrong_secret_0123456789', raw))).toBeNull();
       expect(a.verifyWebhook(raw, {})).toBeNull();
       const junk = JSON.stringify({ id: 'e', type: 'payment.unknown', amountMinor: 1, paymentRef: 'p' });

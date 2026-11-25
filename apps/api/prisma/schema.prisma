@@ -349,8 +349,26 @@ model PaymentIntent {
   sponsoredMinor       Int @default(0)
   sponsoredPostedMinor Int @default(0)
   sponsoredVoidedMinor Int @default(0)
+  /// PAY-READY (migration 20270301090000): corporate sponsor-funded benefit that reduced this deposit (gross = amountMinor + rewardMinor + sponsoredMinor + corporateMinor), sized on what is payable AFTER the sponsored discount and applied BEFORE patient credit and card.
+  /// `corporatePostedMinor` is the part in the Pay ledger HELD account (only when REWARD_RULES.postToPayLedger, H-25); `corporateVoidedMinor` the cumulative share given back to the corporate account by refunds / a forfeited deposit (never paid to the patient).
+  corporateMinor       Int @default(0)
+  corporatePostedMinor Int @default(0)
+  corporateVoidedMinor Int @default(0)
+  authorizedAt   DateTime?
+  voidedAt       DateTime?
+  /// HMAC-hashed card fingerprint (never a PAN), brand and last4 as the PSP reports them; threeDsStatus NONE | CHALLENGED | PASSED | FAILED | UNKNOWN.
+  cardFingerprint String?
+  cardBrand       String?
+  cardLast4       String?
+  threeDsStatus   String?
+  /// OPEN | WON | LOST (chargeback / dispute raised by the PSP)
+  disputeState    String?
+  /// sandbox | live: the PSP mode the checkout was created in (a sandbox payment is never reconciled against a live report)
+  pspMode         String?
+  lastPolledAt    DateTime?
 
   refunds Refund[]
+  disputes PaymentDispute[]
 
   @@index([bookingId])
   @@index([clinicId, status])
@@ -379,6 +397,8 @@ model Refund {
   pspRefundRef   String?
   createdAt      DateTime      @default(now())
   settledAt      DateTime?
+  failedAt       DateTime?
+  failureCode    String?
 }
 
 model LedgerTx {
@@ -426,13 +446,69 @@ model PspSettlementLine {
   id          String   @id @default(cuid())
   psp         String
   pspRef      String
-  kind        String // CAPTURE | REFUND
+  kind        String // CAPTURE | REFUND | CHARGEBACK | PAYOUT | FEE_ADJUST
   amountMinor Int
   feeMinor    Int      @default(0)
   date        DateTime @db.Date
   matched     Boolean  @default(false)
+  /// PAY-READY: the imported file this line came from, the currency and the vendor payout (bank transfer) reference
+  fileId      String?
+  currency    String   @default("EGP")
+  payoutRef   String?
 
   @@unique([psp, pspRef, kind])
+  @@index([fileId])
+}
+
+/// PAY-READY: one imported vendor settlement / report file (CSV or JSON). Idempotent on (psp, sha256): the same file twice imports nothing. Lines keep the file id; the raw file is never stored (only counts and totals).
+model PspSettlementFile {
+  id         String   @id @default(cuid())
+  psp        String
+  format     String // CSV | JSON
+  filename   String
+  sha256     String
+  lineCount  Int
+  rejected   Int      @default(0)
+  totals     Json?
+  mode       String   @default("live")
+  importedBy String
+  importedAt DateTime @default(now())
+
+  @@unique([psp, sha256])
+}
+
+/// PAY-READY: a chargeback / dispute raised by a PSP. One row per (psp, pspDisputeRef); `holds` records what Kiorex held while it is OPEN (reward lots, referral review, sponsored and corporate lines, payout).
+model PaymentDispute {
+  id             String        @id
+  paymentId      String
+  payment        PaymentIntent @relation(fields: [paymentId], references: [id])
+  psp            String
+  pspDisputeRef  String
+  state          String        @default("OPEN") // OPEN | WON | LOST
+  amountMinor    Int
+  currency       String        @default("EGP")
+  reasonCode     String?
+  evidenceDueAt  DateTime?
+  openedAt       DateTime      @default(now())
+  resolvedAt     DateTime?
+  holds          Json?
+  createdAt      DateTime      @default(now())
+
+  @@unique([psp, pspDisputeRef])
+  @@index([paymentId])
+  @@index([state])
+}
+
+/// PAY-READY: per PSP and market payment settings (enabled, order of preference, fees as config, 3DS and capture mode, refund window, timeouts, retry budgets, webhook tolerance, sandbox/live). One document per (psp, market); market '*' = default. Never holds a secret (secrets are references).
+model PspSetting {
+  psp       String
+  market    String   @default("*")
+  settings  Json
+  version   Int      @default(1)
+  updatedBy String
+  updatedAt DateTime @updatedAt
+
+  @@id([psp, market])
 }
 
 model ReconciliationRun {

@@ -27,6 +27,10 @@ export const A = {
   promoFunded: 'PROMO_FUNDED:rewards',
   /** GRW-P2-S: the provider-funded part of a deposit (sponsored discount) posted into HELD, only when REWARD_RULES.postToPayLedger is true (finance H-25, default false). Debit-normal: a receivable settled by the Clinic's wallet DEBIT (Kiorly side), never Kiorex revenue or expense; the payout gate holds it until that DEBIT exists. */
   sponsorFunded: 'SPONSOR_FUNDED:clinicCredit',
+  /** PAY-READY: the corporate-funded part of a deposit posted into HELD, only when REWARD_RULES.postToPayLedger is true (finance H-25, default false). Debit-normal receivable from the corporate benefit ledger (its own ledger, no wallet): never Kiorex revenue or expense, never the provider's. */
+  corporateFunded: 'CORPORATE_FUNDED:benefit',
+  /** PAY-READY: a lost chargeback on a deposit that was already paid out (Kiorex out of pocket until ops recovers it). Debit-normal expense. NEEDS_HUMAN: who bears chargebacks. */
+  chargebackLoss: 'CHARGEBACK_LOSS',
 };
 
 const dr = (account: string, n: number): Posting => ({ account, debit: n, credit: 0 });
@@ -54,6 +58,16 @@ export const rewardRestore = (account: string, refundCreditMinor: number, promoM
 export const sponsorTender = (clinic: string, n: number): Posting[] => [dr(A.sponsorFunded, n), cr(A.held(clinic), n)];
 /** GRW-P2-S: the sponsored share is voided (refund of the deposit, or a forfeited deposit where no discount was earned): the exact reverse of sponsorTender. `account` is HELD, or REVIEW_HOLD for a deposit under review. */
 export const sponsorVoid = (account: string, n: number): Posting[] => [dr(account, n), cr(A.sponsorFunded, n)];
+/** PAY-READY: the corporate-funded part of a deposit reaches the clinic's HELD from CORPORATE_FUNDED (balanced by construction). */
+export const corporateTender = (clinic: string, n: number): Posting[] => [dr(A.corporateFunded, n), cr(A.held(clinic), n)];
+/** PAY-READY: the corporate share goes back to the corporate benefit ledger (refund of the deposit, or a forfeited deposit): the exact reverse of corporateTender. `account` is HELD, or REVIEW_HOLD for a deposit under review. */
+export const corporateVoid = (account: string, n: number): Posting[] => [dr(account, n), cr(A.corporateFunded, n)];
+/** PAY-READY: a chargeback LOST on a deposit still held: the PSP takes the money back, the held deposit leaves exactly like a settled refund (HELD -> clearing in one posting). */
+export const chargebackFromHeld = (account: string, n: number): Posting[] => [dr(account, n), cr(A.clearing, n)];
+/** PAY-READY: a chargeback LOST on a deposit released to the provider but not yet paid out: the provider's payable pays for it. */
+export const chargebackFromPayable = (clinic: string, n: number): Posting[] => [dr(A.payable(clinic), n), cr(A.clearing, n)];
+/** PAY-READY: a chargeback LOST after the payout: Kiorex is out of pocket (expense) until ops recovers it. */
+export const chargebackLoss = (n: number): Posting[] => [dr(A.chargebackLoss, n), cr(A.clearing, n)];
 /** A refund the patient chose to keep as credit: the money stays at Kiorex, the liability moves from "owed back by card" to "refund credit". */
 export const refundToCredit = (n: number): Posting[] => [dr(A.refundPayable, n), cr(A.patientRefundCredit, n)];
 /** A refund-credit lot expired and its unspent rest goes back to the ORIGINAL payment method: the liability returns to "owed back by card". */
@@ -73,7 +87,7 @@ export function assertValid(p: Posting[]): void {
   if (d === 0) throw new LedgerError('zero-value transaction');
 }
 
-const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees || a === A.promoFunded || a === A.sponsorFunded;
+const DEBIT_NORMAL = (a: string) => a === A.clearing || a === A.fees || a === A.promoFunded || a === A.sponsorFunded || a === A.corporateFunded || a === A.chargebackLoss;
 
 /** In-memory book used by property tests and by the reconciliation invariant checker. */
 export class LedgerBook {
@@ -108,5 +122,5 @@ export class LedgerBook {
 
 /** Accounting identity: debit-normal accounts (clearing, fees, promo funded) == liabilities. */
 export function identityHolds(book: LedgerBook): boolean {
-  return book.balance(A.clearing) + book.balance(A.fees) + book.balance(A.promoFunded) + book.balance(A.sponsorFunded) === book.liabilities();
+  return book.balance(A.clearing) + book.balance(A.fees) + book.balance(A.promoFunded) + book.balance(A.sponsorFunded) + book.balance(A.corporateFunded) + book.balance(A.chargebackLoss) === book.liabilities();
 }

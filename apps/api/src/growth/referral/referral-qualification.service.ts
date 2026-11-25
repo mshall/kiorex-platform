@@ -92,7 +92,7 @@ export class ReferralQualificationService implements ReferralPort {
       this.prisma.bookingIntent.count({ where: { sub: rel.refereeSub, dependantId: null, createdAt: { lt: rel.createdAt }, status: { in: ['COMPLETED', 'CHECKED_IN', 'NO_SHOW', 'PENDING_CLINIC', 'CONFIRMED'] } } }),
     ]);
     const phoneOther = refereePhoneHashes.length ? (await Promise.all(refereePhoneHashes.map((h) => this.identity.seenOnOtherSub('PHONE', h, rel.refereeSub)))).some(Boolean) : false;
-    const refunded = booking ? (booking.depositStatus === 'REFUNDED' && booking.status !== 'CANCELLED') || (await this.prisma.paymentIntent.count({ where: { bookingId: booking.id, status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] } } })) > 0 : false;
+    const refunded = booking ? (booking.depositStatus === 'REFUNDED' && booking.status !== 'CANCELLED') || (await this.prisma.paymentIntent.count({ where: { bookingId: booking.id, OR: [{ status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] } }, { disputeState: { in: ['OPEN', 'LOST'] } }] } })) > 0 : false; // PAY-READY: an open or lost chargeback counts as disputed
     const providerLed = booking ? await this.providerLedByReferrer(booking.id, rel.referrerSub) : false;
     const skipFraud = o.override || o.reviewedAllow || rel.reviewState === 'RELEASED';
     const qFacts = skipFraud ? null : await this.fraud.qualificationFacts({ id: rel.id, referrerSub: rel.referrerSub, refereeSub: rel.refereeSub, createdAt: rel.createdAt, qualifiedAt: rel.qualifiedAt }, booking, now);

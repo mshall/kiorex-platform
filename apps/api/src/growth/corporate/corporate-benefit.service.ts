@@ -53,7 +53,7 @@ export class CorporateBenefitService implements CorporateBenefitPort {
     return m;
   }
 
-  private async size(sub: string, bookingId: string, now: Date) {
+  private async size(sub: string, bookingId: string, now: Date, payableMinor?: number) {
     const b = await this.prisma.bookingIntent.findFirst({ where: { id: bookingId, sub }, select: { id: true, status: true, depositAmountMinor: true, currency: true, dependantId: true, tenantId: true } });
     if (!b) throw notFound('BOOKING_NOT_FOUND', 'Booking not found');
     const m = await this.activeMembership(sub, now);
@@ -63,25 +63,26 @@ export class CorporateBenefitService implements CorporateBenefitPort {
     if (a.sponsorCeilingMinor == null || a.coverBp == null) return null;
     const [accUse, memUse] = await Promise.all([this.use(this.prisma, { accountId: a.id }), this.use(this.prisma, { memberId: m.id })]);
     const cap = m.perMemberCapMinor ?? a.perMemberCapMinor ?? 0;
-    const amount = benefitFor({ depositMinor: b.depositAmountMinor, coverBp: a.coverBp, perVisitMaxMinor: a.perVisitMaxMinor, memberRemainingMinor: Math.max(0, cap - memUse.used), accountRemainingMinor: Math.max(0, a.sponsorCeilingMinor - accUse.used) });
+    const base = payableMinor !== undefined ? Math.min(b.depositAmountMinor, Math.max(0, payableMinor)) : b.depositAmountMinor; // the cover share is taken of what is payable after the sponsored discount
+    const amount = benefitFor({ depositMinor: base, coverBp: a.coverBp, perVisitMaxMinor: a.perVisitMaxMinor, memberRemainingMinor: Math.max(0, cap - memUse.used), accountRemainingMinor: Math.max(0, a.sponsorCeilingMinor - accUse.used) });
     return { booking: b, member: m, account: a, amount };
   }
 
-  async quote(sub: string, bookingId: string, now = new Date()): Promise<CorporateBenefitQuoteOut | null> {
-    const s = await this.size(sub, bookingId, now);
+  async quote(sub: string, bookingId: string, opts: { payableMinor?: number } = {}, now = new Date()): Promise<CorporateBenefitQuoteOut | null> {
+    const s = await this.size(sub, bookingId, now, opts.payableMinor);
     if (!s || s.amount <= 0) return null;
     const held = await this.use(this.prisma, { bookingId });
     if (held.used > 0) return { accountRef: s.account.id, amountMinor: held.used, currency: s.account.currency, sponsor: { ar: s.account.displayName, en: s.account.displayName }, endsAt: s.account.endsAt?.toISOString() ?? null };
     return { accountRef: s.account.id, amountMinor: s.amount, currency: s.account.currency, sponsor: { ar: s.account.displayName, en: s.account.displayName }, endsAt: s.account.endsAt?.toISOString() ?? null };
   }
 
-  async reserve(sub: string, bookingId: string, now = new Date()): Promise<{ amountMinor: number; currency: string; reservationRef: string } | null> {
+  async reserve(sub: string, bookingId: string, opts: { payableMinor?: number } = {}, now = new Date()): Promise<{ amountMinor: number; currency: string; reservationRef: string } | null> {
     try {
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         const existing = await this.use(this.prisma, { bookingId });
         const first = await this.prisma.corporateBenefitEntry.findFirst({ where: { bookingId, type: 'RESERVE' }, orderBy: { createdAt: 'desc' } });
         if (existing.used > 0 && first) return { amountMinor: existing.used, currency: first.currency, reservationRef: first.id };
-        const s = await this.size(sub, bookingId, now);
+        const s = await this.size(sub, bookingId, now, opts.payableMinor);
         if (!s || s.amount <= 0) return null;
         const nth = await this.prisma.corporateBenefitEntry.count({ where: { bookingId, type: 'RESERVE' } });
         try {
@@ -98,7 +99,8 @@ export class CorporateBenefitService implements CorporateBenefitPort {
     } catch (e) { this.log.warn(`corporate reserve failed for ${bookingId}: ${(e as Error).message}`); return null; }
   }
 
-  private async move(bookingId: string, type: 'REDEEM' | 'RELEASE' | 'REVERSE', reason: string, cap?: number): Promise<number> {
+  private async move(bookingId: string, type: 'REDEEM' | 'RELEASE' | 'REVERSE', reason: string, cap?: number, key?: string): Promise<number> {
+    if (key && (await this.prisma.corporateBenefitEntry.findUnique({ where: { idempotencyKey: `corp:${type.toLowerCase()}:k:${key}` }, select: { id: true } }))) return 0; // a redelivered call: already done
     const u = await this.use(this.prisma, { bookingId });
     const room = type === 'REVERSE' ? u.net : u.held;
     const amount = Math.min(room, cap ?? room);
@@ -107,16 +109,18 @@ export class CorporateBenefitService implements CorporateBenefitPort {
     if (!last) return 0;
     const nth = await this.prisma.corporateBenefitEntry.count({ where: { bookingId, type } });
     try {
-      await this.prisma.corporateBenefitEntry.create({ data: { accountId: last.accountId, memberId: last.memberId, type, amountMinor: amount, currency: last.currency, bookingId, idempotencyKey: `corp:${type.toLowerCase()}:${bookingId}:${nth}`, reasonCode: reason, actor: 'system:pay' } });
+      await this.prisma.corporateBenefitEntry.create({ data: { accountId: last.accountId, memberId: last.memberId, type, amountMinor: amount, currency: last.currency, bookingId, idempotencyKey: key ? `corp:${type.toLowerCase()}:k:${key}` : `corp:${type.toLowerCase()}:${bookingId}:${nth}`, reasonCode: reason, actor: 'system:pay' } });
       return amount;
     } catch (e) {
       if (/Unique constraint|CORPORATE_NOTHING_/.test((e as Error).message)) return 0; // a parallel call already moved it
       throw e;
     }
   }
-  redeem(bookingId: string, reason = 'DEPOSIT_CAPTURED') { return this.move(bookingId, 'REDEEM', reason); }
-  release(bookingId: string, reason = 'BOOKING_NOT_PAID') { return this.move(bookingId, 'RELEASE', reason); }
-  reverse(bookingId: string, amountMinor?: number, reason = 'DEPOSIT_REFUNDED') { return this.move(bookingId, 'REVERSE', reason, amountMinor); }
+  redeem(bookingId: string, reason = 'DEPOSIT_CAPTURED', idempotencyKey?: string) { return this.move(bookingId, 'REDEEM', reason, undefined, idempotencyKey); }
+  release(bookingId: string, reason = 'BOOKING_NOT_PAID', amountMinor?: number, idempotencyKey?: string) { return this.move(bookingId, 'RELEASE', reason, amountMinor, idempotencyKey); }
+  reverse(bookingId: string, amountMinor?: number, reason = 'DEPOSIT_REFUNDED', idempotencyKey?: string) { return this.move(bookingId, 'REVERSE', reason, amountMinor, idempotencyKey); }
+  /** Ledger totals of one booking for the Pay reconciliation (no member or account identity is returned). */
+  async bookingUse(bookingId: string): Promise<{ held: number; used: number; net: number }> { const u = await this.use(this.prisma, { bookingId }); return { held: u.held, used: u.used, net: u.net }; }
 
   /** Holds whose booking is over (or older than a day with no capture) go back. Idempotent. */
   async releaseStale(now = new Date()): Promise<number> {
