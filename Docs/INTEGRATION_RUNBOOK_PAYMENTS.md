@@ -88,3 +88,34 @@ Rollback (no deploy needed): propose `mock` for the integration in the Integrati
 ## 10. Corporate benefit and the other tenders
 
 Order: sponsored discount, then corporate benefit (a cover share of what is still payable, bounded by the account ceiling, the member cap and the per-visit maximum), then patient credit, then the card (never below one minor unit). The Clinic is told the gross deposit and the tender split (`tender.corporateBenefitMinor` is additive: contracts bump, `LG-INT-PAY-9`). A refund or cancel returns the corporate share pro rata (exactly all of it with the last refund); a forfeited deposit returns it too unless `PAYMENT_CORPORATE_FORFEIT=keep`. `postToPayLedger` is false by default; both paths are tested.
+
+
+## 11. Unified layer: bank IPN, wallets, matching, links, fraud (shadow), reports
+
+* **Bank IPN** (`#bank-ipn`): secret `/kiorex/<env>/bank-ipn-webhook-secret` -> `BANK_IPN_WEBHOOK_SECRET` (16+ characters), `PAYMENT_ENABLED_PSPS=...,bank_ipn`, webhook `https://<api>/api/v1/pay/webhooks/bank_ipn` with `X-Webhook-Timestamp` and `X-Webhook-Signature: sha256=HMAC(secret, "<ts>.<body>")`; or upload the daily file in ops > *Pay matching and risk* (`POST /admin/payments/matching/ipn`, CSV / JSON). Layout override: `BANK_IPN_CONFIG_JSON` (columns, `amountUnit`, status words, signature). Real mode needs `BANK_IPN` approved in `INTEGRATION_MODES`.
+* **Wallets**: `PAYMOB_WALLET_INTEGRATION_IDS=vodafone_cash:<id>`; a checkout with `rail: wallet` uses that integration id; without it the checkout is refused with NEEDS_HUMAN.
+* **Matching**: exact reference + amount applies automatically; everything else is in the queue for `finance` / `super_admin` (confirm needs the payment id; the payment's amount and currency checks still apply). Tune with config kind `PAY_MATCHING_POLICY` (floors enforced).
+* **Links**: `POST /admin/payments/links` (context, subject, org, amount, ttl 60 s to 7 days); needs `PAY_LINK_SECRET` (32+ characters, required in production). The payer opens `/pay/l/<token>`; checkout consumes the link atomically.
+* **Organisation preference**: `PUT /admin/payments/organisations/<id>/provider-preference` `{ "preference": { "order": ["fawry","paymob"], "blocked": ["card"] } }`; ordering strategy in `PAY_ROUTING_POLICY`.
+* **Fraud (shadow)**: nothing to switch on; scores appear in the queue. `PAY_FRAUD_THRESHOLDS` (maker-checker) tunes inside safety bounds; `FLAG` only adds items to the review queue.
+* **Reports**: `GET /admin/payments/reports/rollup?level=organisation|psp|day|platform&format=json|csv|pdf&lang=en|ar` (finance). Branch rollups: Clinic `GET /billing/pay/reports/rollup`.
+
+
+## Commission collection (COM-1)
+
+Principle: Kiorex collects the commission it is owed through the provider each organisation chose; Kiorly never holds funds. Counsel decides the funds flow (`LG-COM-3`).
+
+**Data flow.** The Clinic stays the system of record for the charge and the decision. It reports `COMMISSION_CHARGE_CREATED`, `COMMISSION_CHARGE_REVERSED` and (additive) `COMMISSION_CHARGE_STATUS_CHANGED` (confirmed, disputed, waived; with `tenantId`, `clinicId`, `decisionAmount`, `disputeDeadline`, `disputeStatus`, fee-basis fields). Kiorex mirrors each as a `CommissionClaim` (idempotent, time-ordered). A **run** (`CommissionRun`, unique per organisation and period, idempotency key `com:<org>:<cutoff>`) takes the CONFIRMED, undisputed, past-dispute-window, uncollected claims up to the cut-off; older uncollected claims carry over (never lost). Each step is a `CommissionAttempt` (idempotent key) and an append-only `CommissionTimeline` row (database trigger forbids update and delete). Run state is pushed to the product (`POST /commission-collections`, HMAC, outbox) so the provider sees the same figures.
+
+**Modes** (per market default, per organisation override, both maker-checker: proposer and approver differ, enforced in code and by a database CHECK):
+- `NET_FROM_PAYOUT`: the run waits; each weekly payout run keeps commission out of the cash (Pay's payout transaction calls the netting port; `Payout.amountMinor` is the cash, `commissionDeductedMinor` the commission, gross = both; ledger `PAYABLE:<clinic>` to `COMMISSION_FEES`). When the payout window (last retry day) ends with a shortfall the rest becomes an invoice (`NET_SHORTFALL`).
+- `AUTO_CHARGE_SAVED_METHOD`: one idempotent charge through the saved token of the organisation's chosen provider. A retryable decline retries on the configured days; a hard decline, no provider, no saved method or an unapproved real rail falls back to an invoice at once. Ledger `PSP_CLEARING` to `COMMISSION_FEES`.
+- `INVOICE_AND_COLLECT`: an invoice (`KXC-<cutoff>-<org>`) with a due date; payment is recorded by finance (`POST /admin/commissions/runs/:id/invoice-paid`, idempotent on the provider reference; partial payments allowed). Automatic matching of provider receipts to these invoices belongs to the unified Pay layer lane (not built here).
+
+**Safety.** No pause of listing, booking, plan or care exists in this module (a unit test scans the sources). Failure ends as an open invoice that ages on the console. Mock collector is the default (`token` prefix `fail_retry`, `fail_once`, `fail_hard` drive outcomes); real mode uses `common/providers/mode-guard.ts` per provider key and the vendor API is not wired (`LG-COM-4`).
+
+**Reconciliation** (`GET /admin/commissions/reconciliation`, and per run in the drill-down): charged = decision amount; run claims = collected + deducted + invoiced; each total = its succeeded attempts; payout cash + deduction = released deposits; reversals after collection (`CREDIT_DUE`). Runs with findings are shown in the console; CSV export per view.
+
+**Console and API.** Ops console "Commissions" (ledger, collections, payout deductions, aging, disputes, reconciliation, organisations, configuration); API `/api/v1/admin/commissions/*`. Roles: `super_admin` and `finance` read, export (audited in `CommissionExportAudit` and `AuditLog`) and operate; only `super_admin` proposes or approves configuration and chooses a provider; `ops_admin` alone sees no money.
+
+**Go-live checklist.** `LG-COM-1..10` answered; market and organisation settings approved; provider choice per organisation; saved-method enrolment through the provider's hosted flow; real mode approved per provider; sandbox run with a real provider token; first live run watched by finance; reconciliation empty.
