@@ -1,0 +1,76 @@
+{
+  "en": {
+    "messaging": {
+      "channels": {
+        "title": "Messaging channels",
+        "hint": "Readiness of WhatsApp, SMS, e-mail and push. Secrets are never shown: only the names of the secret references and whether they are set.",
+        "backToLog": "Back to the message log",
+        "mode": "Mode",
+        "ready": "Ready",
+        "readyYes": "Ready",
+        "readyNo": "Not ready",
+        "providers": "Providers (order)",
+        "sender": "Sender",
+        "problems": "Missing or invalid",
+        "failover": "Failover order",
+        "webhook": "Register in the vendor console",
+        "url": "Callback URL",
+        "verifyToken": "Verify token",
+        "notSet": "not set",
+        "fields": "Subscribe to fields",
+        "reveal": "Reveal for registration (audited)",
+        "test": "Test send and connection check",
+        "testHint": "Test sends go only to internal numbers and addresses on the allow-list ({{n}} configured), five per hour.",
+        "to": "Recipient",
+        "testSend": "Send test",
+        "check": "Connection check",
+        "skipped": "skipped",
+        "templates": "WhatsApp templates",
+        "sync": "Sync status from Meta",
+        "export": "Export for approval",
+        "synced": "{{n}} templates updated",
+        "language": "Language",
+        "metaName": "Meta name",
+        "category": "Category",
+        "open": "Channels and test send"
+      }
+    }
+  },
+  "ar": {
+    "messaging": {
+      "channels": {
+        "title": "قنوات الرسائل",
+        "hint": "جاهزية واتساب والرسائل النصية والبريد والإشعارات. لا تظهر الأسرار أبدًا: فقط أسماء مراجع الأسرار وهل هي مضبوطة.",
+        "backToLog": "العودة إلى سجل الرسائل",
+        "mode": "الوضع",
+        "ready": "الجاهزية",
+        "readyYes": "جاهز",
+        "readyNo": "غير جاهز",
+        "providers": "المزودون (بالترتيب)",
+        "sender": "المرسل",
+        "problems": "ناقص أو غير صالح",
+        "failover": "ترتيب التحويل",
+        "webhook": "التسجيل في لوحة المزود",
+        "url": "رابط الاستدعاء",
+        "verifyToken": "رمز التحقق",
+        "notSet": "غير مضبوط",
+        "fields": "اشترك في الحقول",
+        "reveal": "إظهار للتسجيل (مسجّل في التدقيق)",
+        "test": "إرسال تجريبي وفحص الاتصال",
+        "testHint": "الإرسال التجريبي يذهب فقط إلى أرقام وعناوين داخلية في القائمة المسموحة ({{n}} مضبوطة)، خمس مرات في الساعة.",
+        "to": "المستلم",
+        "testSend": "إرسال تجربة",
+        "check": "فحص الاتصال",
+        "skipped": "تم التخطي",
+        "templates": "قوالب واتساب",
+        "sync": "مزامنة الحالة من ميتا",
+        "export": "تصدير للاعتماد",
+        "synced": "تم تحديث {{n}} قالبًا",
+        "language": "اللغة",
+        "metaName": "اسم القالب في ميتا",
+        "category": "الفئة",
+        "open": "القنوات والإرسال التجريبي"
+      }
+    }
+  }
+}

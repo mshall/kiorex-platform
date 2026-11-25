@@ -232,6 +232,425 @@
         ]
       }
     },
+    "/api/v1/messaging/webhooks/{channel}/{provider}": {
+      "post": {
+        "operationId": "MessagingWebhookController_statusFor",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingWebhookAckDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delivery-status webhook of a SECONDARY provider of the channel (failover chain), verified with that provider's own secret",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/messaging/unsubscribe/{token}": {
+      "get": {
+        "operationId": "UnsubscribeController_check",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubscribeResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check an unsubscribe link (does not unsubscribe; POST does)",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "UnsubscribeController_unsubscribe",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubscribeResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One-click unsubscribe from marketing e-mail (RFC 8058): adds the address to the suppression list",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels": {
+      "get": {
+        "operationId": "MessagingOpsController_status",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL channel status: mode, providers, config problems (names only), secretRef presence, webhook URLs, WhatsApp quality and tier, failover order, quiet hours",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/whatsapp/templates": {
+      "get": {
+        "operationId": "MessagingOpsController_templates",
+        "parameters": [
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL WhatsApp template registry with Meta name, language, category and review status (format=csv for the approval checklist)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/whatsapp/templates/export": {
+      "get": {
+        "operationId": "MessagingOpsController_exportTemplates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL submit-for-approval export: one Graph message_templates payload per template and language",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/{channel}/webhook": {
+      "get": {
+        "operationId": "MessagingOpsController_webhook",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL the callback URL and verify token to register in the Meta / SES / SMS console (the secret part is masked)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/{channel}/webhook/reveal": {
+      "post": {
+        "operationId": "MessagingOpsController_reveal",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL reveal the verify token / SNS subscription URL for registration (super admin, audited)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/{channel}/test-send": {
+      "post": {
+        "operationId": "MessagingOpsController_testSend",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSendBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL test send to an ALLOW-LISTED internal number / e-mail / device (mock mode: dev inbox only). 5 per hour",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/{channel}/connection-check": {
+      "post": {
+        "operationId": "MessagingOpsController_connection",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL connection check: read-only vendor calls (account, profile, identity, token); mock mode makes no call",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/email/domain-check": {
+      "post": {
+        "operationId": "MessagingOpsController_domain",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailDomainBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL SPF / DKIM / DMARC check of the sending domain against DNS",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/whatsapp/templates/sync": {
+      "post": {
+        "operationId": "MessagingOpsController_sync",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL pull template statuses and ids from Meta (read only)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/channels/whatsapp/templates/submit": {
+      "post": {
+        "operationId": "MessagingOpsController_submit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitTemplatesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "MSG-REAL submit templates to Meta for approval (dry run unless confirm=true)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/markets": {
       "get": {
         "operationId": "MarketController_list",
@@ -14247,162 +14666,6 @@
         ]
       }
     },
-    "/api/v1/admin/integrations-center": {
-      "get": {
-        "operationId": "IntegrationsCenterController_overview",
-        "parameters": [
-          {
-            "name": "market",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        },
-        "summary": "Every external integration: mode, approved mode and drift, secret presence (boolean), last check, circuit, webhook, required variable names, runbook",
-        "tags": [
-          "integrations-center"
-        ]
-      }
-    },
-    "/api/v1/admin/integrations-center/{key}/check": {
-      "post": {
-        "operationId": "IntegrationsCenterController_check",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "market",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        },
-        "summary": "Mock-safe connection check (configuration only; no vendor call)",
-        "tags": [
-          "integrations-center"
-        ]
-      }
-    },
-    "/api/v1/admin/integrations-center/{key}/test-send": {
-      "post": {
-        "operationId": "IntegrationsCenterController_testSend",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestSendBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        },
-        "summary": "Adapter-level test send (mock mode only; real mode is refused)",
-        "tags": [
-          "integrations-center"
-        ]
-      }
-    },
-    "/api/v1/admin/integrations-center/{key}/propose-mode": {
-      "post": {
-        "operationId": "IntegrationsCenterController_propose",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProposeBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        },
-        "summary": "Ask for a mock or real mode: creates and submits an INTEGRATION_MODES maker-checker version; a different super admin approves it",
-        "tags": [
-          "integrations-center"
-        ]
-      }
-    },
     "/api/v1/admin/growth/attribution-models": {
       "get": {
         "operationId": "AttributionModelsController_compare",
@@ -19824,12 +20087,73 @@
           },
           "ignored": {
             "type": "number"
+          },
+          "suppressed": {
+            "type": "number"
           }
         },
         "required": [
           "applied",
           "ignored"
         ]
+      },
+      "UnsubscribeResultDto": {
+        "type": "object",
+        "properties": {
+          "unsubscribed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "unsubscribed"
+        ]
+      },
+      "TestSendBody": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "EmailDomainBody": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "pattern": "^[a-z0-9.-]{3,253}$"
+          },
+          "dkimTokens": {
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "SubmitTemplatesBody": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        }
       },
       "MarketDto": {
         "type": "object",
@@ -30866,16 +31190,7 @@
               "WIDGET_POLICY",
               "LTV_POLICY",
               "LOYALTY_RULES",
-              "EXPERIMENT_POLICY",
-              "AUTOMATION_POLICY",
-              "ATTRIBUTION_MODELS",
-              "RECOMMENDATION_POLICY",
-              "REWARD_GUARDS",
-              "LIFECYCLE_STAGES",
-              "CROSS_PRODUCT_POLICY",
-              "REFERRAL_FRAUD_THRESHOLDS",
-              "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES"
+              "MESSAGING_CHANNELS"
             ]
           },
           "scope": {
@@ -30987,16 +31302,7 @@
               "WIDGET_POLICY",
               "LTV_POLICY",
               "LOYALTY_RULES",
-              "EXPERIMENT_POLICY",
-              "AUTOMATION_POLICY",
-              "ATTRIBUTION_MODELS",
-              "RECOMMENDATION_POLICY",
-              "REWARD_GUARDS",
-              "LIFECYCLE_STAGES",
-              "CROSS_PRODUCT_POLICY",
-              "REFERRAL_FRAUD_THRESHOLDS",
-              "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES"
+              "MESSAGING_CHANNELS"
             ]
           },
           "scope": {
@@ -31417,42 +31723,6 @@
         "required": [
           "kind",
           "channel"
-        ]
-      },
-      "TestSendBody": {
-        "type": "object",
-        "properties": {
-          "to": {
-            "type": "string",
-            "maxLength": 64
-          },
-          "market": {
-            "type": "string",
-            "maxLength": 2
-          }
-        },
-        "required": [
-          "to"
-        ]
-      },
-      "ProposeBody": {
-        "type": "object",
-        "properties": {
-          "mode": {
-            "type": "string",
-            "enum": [
-              "mock",
-              "real"
-            ]
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "mode",
-          "reason"
         ]
       },
       "ModelRollupBody": {

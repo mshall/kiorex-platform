@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { FlaskConical, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export default function MessagingPage() {
     <div>
       <PageHeader title={t("messaging.title")} hint={t("messaging.hint")} actions={
         <div className="flex items-center gap-2">
+          <Link className="text-sm underline" to="/messaging/channels" data-testid="open-channels">{t("messaging.channels.open")}</Link>
           {stats.data && <Badge variant={mock ? "warning" : "success"} data-testid="messaging-mode">{mock ? t("messaging.modeMock") : t("messaging.modeReal")}</Badge>}
           {mock && <Button variant="outline" disabled={tick.isPending} onClick={() => tick.mutate(undefined, { onSuccess: (r) => toast.success(t("messaging.ticked", { count: r.delivered })), onError: err })} data-testid="delivery-tick"><RefreshCw aria-hidden="true" />{t("messaging.tick")}</Button>}
         </div>} />
