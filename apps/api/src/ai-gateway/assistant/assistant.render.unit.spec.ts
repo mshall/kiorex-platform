@@ -10,7 +10,7 @@ const sample = (d: Dialect) => [
   R.slots(d, 'Dr A', [{ startsAt: '2030-01-01T10:00:00.000Z' }]).body, R.noSlots(d, true).body, R.noSlots(d, false).body,
   R.confirmPrompt(d, { doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', feeMinor: 30000, currency: 'EGP', depositMinor: 5000 }, 'CONFIRM:x:y', 'DECLINE:x:y').body,
   R.confirmed(d, { doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', pendingClinic: false, link: 'https://kiorex.com/app/assistant?al=kxa1.t' }).body, R.confirmed(d, { doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', pendingClinic: true }).body,
-  R.declined(d).body, R.alreadyDone(d, 'x').body, R.invalidConfirm(d).body, R.useButtons(d).body, R.bookings(d, [{ doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', status: 'CONFIRMED' }], 'cancel').body,
+  R.declined(d).body, R.alreadyDone(d, 'x').body, R.invalidConfirm(d).body, R.cancelWindowClosed(d).body, R.useButtons(d).body, R.bookings(d, [{ doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', status: 'CONFIRMED' }], 'cancel').body,
   R.noBookings(d).body, R.cancelPrompt(d, { doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z', depositMinor: 5000, currency: 'EGP', depositRefundable: true }, 'a', 'b').body, R.cancelPrompt(d, { doctor: 'Dr A', startsAt: '2030-01-01T10:00:00.000Z' }, 'a', 'b').body,
   R.cancelled(d).body, R.reschedulePrompt(d, { doctor: 'Dr A', oldStartsAt: '2030-01-01T10:00:00.000Z', newStartsAt: '2030-01-02T10:00:00.000Z' }, 'a', 'b').body, R.rescheduled(d, { doctor: 'Dr A', startsAt: '2030-01-02T10:00:00.000Z' }).body,
   R.waitlisted(d).body, R.waitlistUnavailable(d).body, R.link(d, 'https://kiorex.com/app/assistant?al=kxa1.t', 'VERIFY').body, R.handoff(d, 30).body, R.emergency(d).body, R.medicalRedirect(d).body, R.refuse(d).body,

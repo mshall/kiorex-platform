@@ -130,6 +130,13 @@ describe('LTV model', () => {
     expect(projectCurve(monthMeans(population(9, 5, 1, 0), 10, 12), policy).note).toBe('NOT_ENOUGH_DATA');
     const mixed = [...population(30, 2, 1, 0), ...population(4, 8, 2, 0)]; expect(monthMeans(mixed, 10, 12).lastObserved).toBe(2); // months 3 and later have 4 patients
   });
+  it('a cohort whose net contribution is negative (reversals) still satisfies low <= estimate <= high (database CHECK; found by the W9 full run, was a 500 on the rollup route)', () => {
+    for (const seed of [1, 2, 3]) {
+      const neg: LtvPatient[] = Array.from({ length: 60 }, (_, i) => ({ age: 5, contrib: Array.from({ length: 6 }, (_, m) => (m === 0 ? 100 : -300 * (1 + ((i + seed) % 3)) * 0.7 ** m)) }));
+      const f = fitLtv(neg, policy, `neg${seed}`);
+      if (f) { expect(f.lowMinor).toBeLessThanOrEqual(f.estimateMinor); expect(f.estimateMinor).toBeLessThanOrEqual(f.highMinor); expect(f.lowMinor).toBeGreaterThanOrEqual(0); }
+    }
+  });
   it('a group below the floor has no estimate at all', () => { expect(fitLtv(population(9, 5, 1, 0), policy, 'k')).toBeNull(); });
   it('discounting lowers the estimate month by month', () => { const a = projectCurve(monthMeans(population(20, 11, 1, 0), 10, 12), policy).cumulative[11]!; const b = projectCurve(monthMeans(population(20, 11, 1, 0), 10, 12), { ...policy, discountRateBp: 2000 }).cumulative[11]!; expect(b).toBeLessThan(a); });
   it('same inputs and seed give the same estimate; another seed changes only the interval', () => {
