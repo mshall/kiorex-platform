@@ -30,6 +30,24 @@ export class MarketService {
     for (const cc of await this.known()) if (await this.flags.isEnabled(KEY(cc), { market: cc })) out.push(cc);
     return out;
   }
+  /**
+   * The specialty subset a market chose in the onboarding wizard (step `specialties`), read from the PUBLISHED plan: `{ code, nameAr, nameEn }[]`, or null when the market has no plan (EG, SA and AE keep the
+   * complete catalogue: no restriction). Cached for 15 seconds (the wizard publishes rarely); a missing or malformed step also means no restriction, never an empty list that hides a whole market.
+   */
+  private specCache = new Map<string, { at: number; v: { code: string; nameAr: string; nameEn: string }[] | null }>();
+  async enabledSpecialties(cc: string): Promise<{ code: string; nameAr: string; nameEn: string }[] | null> {
+    const key = cc.toUpperCase(); const hit = this.specCache.get(key);
+    if (hit && Date.now() - hit.at < 15_000) return hit.v;
+    const plan = await this.prisma.marketOnboardingPlan.findUnique({ where: { cc: key }, select: { status: true, steps: true } });
+    const list = (plan?.status === 'PUBLISHED' ? (plan.steps as { specialties?: { enabled?: unknown } } | null)?.specialties?.enabled : undefined) as unknown;
+    const v = Array.isArray(list) && list.length
+      ? list.filter((x): x is { code: string; nameAr: string; nameEn: string } => !!x && typeof (x as { code?: unknown }).code === 'string').map((x) => ({ code: x.code, nameAr: String(x.nameAr ?? x.code), nameEn: String(x.nameEn ?? x.code) }))
+      : null;
+    this.specCache.set(key, { at: Date.now(), v: v && v.length ? v : null });
+    return v && v.length ? v : null;
+  }
+  invalidateSpecialties(): void { this.specCache.clear(); }
+
   async list() {
     const out: { code: string; live: boolean; flag: string; state: string }[] = [];
     for (const cc of await this.known()) {

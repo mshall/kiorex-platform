@@ -13,6 +13,8 @@ export interface PatientRecord {
   sourceKind: string;
   campaignId: string;
   platform: string;
+  /** The patient's preferred language ('ar' or 'en'); empty = unknown (no language cut for this person). */
+  language?: string;
   /** Completed bookings (attended), each with the net Kiorex revenue fact of the booking. */
   visits: { at: number; revenueMinor: number }[];
   /** Reward redemptions funded by the platform marketing budget. */
@@ -21,12 +23,12 @@ export interface PatientRecord {
 export interface CohortCell {
   cohortMonth: string; // YYYY-MM-01
   basis: CohortBasis;
-  sourceKind: string; campaignId: string; platform: string;
+  sourceKind: string; campaignId: string; platform: string; language: string;
   monthIndex: number;
   patients: number; retainedPatients: number; completedBookings: number; revenueMinor: number; rewardCostMinor: number;
   k: number; suppressed: boolean;
 }
-export type CohortDimension = 'ALL' | 'SOURCE' | 'CAMPAIGN' | 'PLATFORM';
+export type CohortDimension = 'ALL' | 'SOURCE' | 'CAMPAIGN' | 'PLATFORM' | 'LANGUAGE';
 
 export const monthOf = (at: number, zone: string): string => localDay(at, zone).slice(0, 7);
 export const monthsBetween = (from: string, to: string): number => (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + (Number(to.slice(5, 7)) - Number(from.slice(5, 7)));
@@ -46,7 +48,7 @@ export function buildCohorts(patients: readonly PatientRecord[], o: { basis: Coh
     if (anchor === null || anchor === undefined) continue;
     const cohortMonth = monthOf(anchor, o.zone); const age = monthsBetween(cohortMonth, nowMonth); if (age < 0) continue;
     const dims: [CohortDimension, string][] = [['ALL', ''], ['SOURCE', p.sourceKind]];
-    if (p.campaignId) dims.push(['CAMPAIGN', p.campaignId]); if (p.platform) dims.push(['PLATFORM', p.platform]);
+    if (p.campaignId) dims.push(['CAMPAIGN', p.campaignId]); if (p.platform) dims.push(['PLATFORM', p.platform]); if (p.language) dims.push(['LANGUAGE', p.language]);
     // per-patient month buckets, computed once
     const months = new Map<number, { bookings: number; revenue: number; reward: number }>();
     const at = (i: number) => { let m = months.get(i); if (!m) { m = { bookings: 0, revenue: 0, reward: 0 }; months.set(i, m); } return m; };
@@ -63,14 +65,18 @@ export function buildCohorts(patients: readonly PatientRecord[], o: { basis: Coh
   const byMonth = new Map<string, KCell[]>();
   for (const g of groups.values()) if (g.dim === 'SOURCE') { const l = byMonth.get(g.cohortMonth) ?? []; l.push({ key: g.value, count: g.acc.patients }); byMonth.set(g.cohortMonth, l); }
   for (const [m, cells] of byMonth) for (const c of applyKAnonymity(cells)) if (c.masked) suppressedKey.add(`${m}|SOURCE|${c.key}`);
+  // the language cut partitions ALL too (ar plus en): one hidden language also hides the other when the other would reveal it by subtraction
+  const byLang = new Map<string, KCell[]>();
+  for (const g of groups.values()) if (g.dim === 'LANGUAGE') { const l = byLang.get(g.cohortMonth) ?? []; l.push({ key: g.value, count: g.acc.patients }); byLang.set(g.cohortMonth, l); }
+  for (const [m, cells] of byLang) for (const c of applyKAnonymity(cells)) if (c.masked) suppressedKey.add(`${m}|LANGUAGE|${c.key}`);
   const out: CohortCell[] = [];
   for (const g of groups.values()) {
     const key = `${g.cohortMonth}|${g.dim}|${g.value}`;
-    const base = { cohortMonth: monthStart(g.cohortMonth), basis: o.basis, sourceKind: g.dim === 'SOURCE' ? g.value : '', campaignId: g.dim === 'CAMPAIGN' ? g.value : '', platform: g.dim === 'PLATFORM' ? g.value : '', k };
+    const base = { cohortMonth: monthStart(g.cohortMonth), basis: o.basis, sourceKind: g.dim === 'SOURCE' ? g.value : '', campaignId: g.dim === 'CAMPAIGN' ? g.value : '', platform: g.dim === 'PLATFORM' ? g.value : '', language: g.dim === 'LANGUAGE' ? g.value : '', k };
     if (g.acc.patients < k || suppressedKey.has(key)) { out.push({ ...base, monthIndex: 0, patients: 0, retainedPatients: 0, completedBookings: 0, revenueMinor: 0, rewardCostMinor: 0, suppressed: true }); continue; }
     for (const [i, s] of [...g.acc.byIndex].sort((a, b) => a[0] - b[0])) out.push({ ...base, monthIndex: i, patients: g.acc.patients, retainedPatients: s.retained, completedBookings: s.bookings, revenueMinor: s.revenue, rewardCostMinor: s.reward, suppressed: false });
   }
-  return out.sort((a, b) => a.cohortMonth.localeCompare(b.cohortMonth) || a.sourceKind.localeCompare(b.sourceKind) || a.campaignId.localeCompare(b.campaignId) || a.platform.localeCompare(b.platform) || a.monthIndex - b.monthIndex);
+  return out.sort((a, b) => a.cohortMonth.localeCompare(b.cohortMonth) || a.sourceKind.localeCompare(b.sourceKind) || a.campaignId.localeCompare(b.campaignId) || a.platform.localeCompare(b.platform) || a.language.localeCompare(b.language) || a.monthIndex - b.monthIndex);
 }
-export const dimensionOf = (c: Pick<CohortCell, 'sourceKind' | 'campaignId' | 'platform'>): CohortDimension => (c.sourceKind ? 'SOURCE' : c.campaignId ? 'CAMPAIGN' : c.platform ? 'PLATFORM' : 'ALL');
+export const dimensionOf = (c: Pick<CohortCell, 'sourceKind' | 'campaignId' | 'platform'> & { language?: string }): CohortDimension => (c.sourceKind ? 'SOURCE' : c.campaignId ? 'CAMPAIGN' : c.platform ? 'PLATFORM' : c.language ? 'LANGUAGE' : 'ALL');
 export const lastDayOfMonth = (ym: string) => addDays(`${addMonths(ym, 1)}-01`, -1);

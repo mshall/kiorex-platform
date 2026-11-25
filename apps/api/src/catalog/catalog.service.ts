@@ -315,6 +315,8 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     if (q.profession) where.push(Prisma.sql`p.profession = ${String(q.profession).toUpperCase()}`);
     const specialty = q.specialty && isSpecialtyCode(q.specialty) ? q.specialty : q.specialty;
     if (specialty) where.push(Prisma.sql`p.specialty = ${specialty}`);
+    // A market that chose a specialty subset in the onboarding wizard shows only that subset (EG, SA and AE have no plan and keep the whole catalogue)
+    for (const m of live) { const sub = await this.markets.enabledSpecialties(m); if (sub) where.push(Prisma.sql`(p.market <> ${m} OR p.specialty IN (${Prisma.join(sub.map((x) => x.code))}))`); }
     if (q.q?.trim()) {
       const n = normalizeText(q.q);
       const toks = n.split(' ').filter((t) => t.length >= 2);
@@ -409,9 +411,13 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     return { items: out, total, page, pageSize, sort, specialties: mapped.map((c) => ({ code: c, ...SPECIALTY_LABELS[c] })) };
   }
 
-  specialties() {
+  async specialties(market?: string) {
     // Complete catalogue, alphabetical by English name (clients re-sort by the active language).
-    return SPECIALTY_CODES.map((code) => ({ code, ...SPECIALTY_LABELS[code] })).sort((a, b) => a.en.localeCompare(b.en, 'en'));
+    const all = SPECIALTY_CODES.map((code) => ({ code, ...SPECIALTY_LABELS[code] })).sort((a, b) => a.en.localeCompare(b.en, 'en'));
+    const cc = market?.trim().toUpperCase();
+    if (!cc || !/^[A-Z]{2}$/.test(cc)) return all;
+    const sub = await this.markets.enabledSpecialties(cc); // the subset chosen in the market wizard, with the market's own names; null = the whole catalogue
+    return sub ? sub.map((x) => ({ code: x.code, ar: x.nameAr, en: x.nameEn })).sort((a, b) => a.en.localeCompare(b.en, 'en')) : all;
   }
 
   // ───────────── analytics (KXM-DS-08) — never records free text ─────────────

@@ -2590,6 +2590,8 @@ model GrowthCohortMonthly {
   sourceKind        String   @default("")
   campaignId        String   @default("")
   platform          String   @default("")
+  /// Gap closure: language cut ('ar' or 'en', the patient's preferred language); '' = not applicable. Part of the unique key (migration 20270219091000).
+  language          String   @default("")
   monthIndex        Int
   patients          Int      @default(0)
   retainedPatients  Int      @default(0)
@@ -2600,7 +2602,7 @@ model GrowthCohortMonthly {
   suppressed        Boolean  @default(false)
   updatedAt         DateTime @default(now())
 
-  @@unique([market, cohortMonth, cohortBasis, sourceKind, campaignId, platform, monthIndex], map: "GrowthCohortMonthly_key")
+  @@unique([market, cohortMonth, cohortBasis, sourceKind, campaignId, platform, language, monthIndex], map: "GrowthCohortMonthly_lang_key")
   @@index([market, cohortMonth])
 }
 

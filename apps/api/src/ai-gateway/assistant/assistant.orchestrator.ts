@@ -1,4 +1,5 @@
 import { DEFAULT_MARKET } from '../../market/market-core-public';
+import { inConversationMarket } from './assistant-market';
 import { Injectable, Logger } from '@nestjs/common';
 import { BookingService } from '../../booking/booking-public';
 import { CatalogService } from '../../catalog/catalog-public';
@@ -41,7 +42,10 @@ export class AssistantOrchestrator {
     private readonly policies: AssistantPolicyService, private readonly models: AssistantModelFactory, private readonly booking: BookingService, private readonly catalog: CatalogService,
   ) {}
 
-  async turn(i: TurnInput): Promise<RouteDecision> {
+  /** One conversation turn, answered in the conversation's market (currency, minor units and time zone of the reply come from the registry; the default market is unchanged). */
+  turn(i: TurnInput): Promise<RouteDecision> { return inConversationMarket(i.profile?.market ?? DEFAULT_MARKET, () => this.turnInMarket(i)); }
+
+  private async turnInMarket(i: TurnInput): Promise<RouteDecision> {
     const t0 = Date.now(); const now = i.now ?? new Date();
     const market = i.profile?.market ?? DEFAULT_MARKET; const sub = i.profile?.sub ?? null; const verified = !!sub; const phone = i.conversation.phone;
     const policy = await this.policies.get(market);

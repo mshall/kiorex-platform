@@ -34,8 +34,12 @@ export const formatCountdown = (ms: number) => {
 };
 
 /** Money on the wire is integer minor units (piastres). */
-export const formatMinor = (minor: number, lang: string, currency = "EGP") =>
-  new Intl.NumberFormat(loc(lang), { style: "currency", currency, minimumFractionDigits: minor % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 }).format(minor / 100);
+/** Minor units of a currency from Intl (EGP, SAR, AED 2; JOD, KWD, BHD, OMR 3): a market with another exponent prints the right amount (ZY readiness). */
+const minorDigits = (currency: string): number => { try { return new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2; } catch { return 2; } };
+export const formatMinor = (minor: number, lang: string, currency = "EGP") => {
+  const d = minorDigits(currency); const unit = 10 ** d;
+  return new Intl.NumberFormat(loc(lang), { style: "currency", currency, minimumFractionDigits: minor % unit === 0 ? 0 : d, maximumFractionDigits: d }).format(minor / unit);
+};
 
 export const formatDateTime = (iso: string, lang: string) =>
   new Intl.DateTimeFormat(loc(lang), { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Africa/Cairo" }).format(new Date(iso));

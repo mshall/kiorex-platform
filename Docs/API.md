@@ -72,7 +72,7 @@
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/v1/search/providers` | KXM-DS-01..04/06 search; emergency keywords return 123 guidance and no results |
-| GET | `/api/v1/specialties` | Specialty codes with AR/EN labels |
+| GET | `/api/v1/specialties` | Specialty codes with AR/EN labels; with ?market=<cc> the subset that market chose in its onboarding wizard (the whole catalogue when it chose none) |
 | GET | `/api/v1/providers/{id}` | KXM-PR-01/02/04 provider profile |
 | GET | `/api/v1/providers/{id}/slots` | KXM-BK-01 slots from Kiorly (60 s cache) |
 | GET | `/api/v1/care-types` | KXMDS01 care-type categories (Doctors · Physiotherapy · Home nursing) with enabled state (flags kiorex.category.*) |

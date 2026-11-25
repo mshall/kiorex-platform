@@ -15,7 +15,7 @@ import { addDays, localDay } from '../campaigns/market-day';
 
 export const LTV_MODEL = 'ltv-v1';
 export const BASES: readonly CohortBasis[] = ['FIRST_COMPLETED', 'REGISTRATION'];
-const DIMS: readonly CohortDimension[] = ['ALL', 'SOURCE', 'CAMPAIGN', 'PLATFORM'];
+const DIMS: readonly CohortDimension[] = ['ALL', 'SOURCE', 'CAMPAIGN', 'PLATFORM', 'LANGUAGE'];
 const policyTag = (p: LtvPolicy) => createHash('sha256').update(JSON.stringify(Object.keys(p).sort().map((k) => [k, (p as unknown as Record<string, unknown>)[k]]))).digest('hex').slice(0, 8);
 export const cohortKey = (basis: CohortBasis, dim: CohortDimension, value: string) => `${basis}|${dim}|${value}`;
 
@@ -52,7 +52,7 @@ export class CohortService {
       const first = monthStart(addMonths(monthOf(now.getTime(), zone), -(months - 1)));
       await this.prisma.$transaction(async (tx) => {
         await tx.growthCohortMonthly.deleteMany({ where: { market: i.market, cohortBasis: basis, cohortMonth: { gte: new Date(`${first}T00:00:00Z`) } } });
-        for (let o = 0; o < cells.length; o += 2000) await tx.growthCohortMonthly.createMany({ data: cells.slice(o, o + 2000).map((c) => ({ market: i.market, cohortMonth: new Date(`${c.cohortMonth}T00:00:00Z`), cohortBasis: c.basis, sourceKind: c.sourceKind, campaignId: c.campaignId, platform: c.platform, monthIndex: c.monthIndex, patients: c.patients, retainedPatients: c.retainedPatients, completedBookings: c.completedBookings, revenueMinor: BigInt(c.revenueMinor), rewardCostMinor: BigInt(c.rewardCostMinor), k: c.k, suppressed: c.suppressed })) });
+        for (let o = 0; o < cells.length; o += 2000) await tx.growthCohortMonthly.createMany({ data: cells.slice(o, o + 2000).map((c) => ({ market: i.market, cohortMonth: new Date(`${c.cohortMonth}T00:00:00Z`), cohortBasis: c.basis, sourceKind: c.sourceKind, campaignId: c.campaignId, platform: c.platform, language: c.language, monthIndex: c.monthIndex, patients: c.patients, retainedPatients: c.retainedPatients, completedBookings: c.completedBookings, revenueMinor: BigInt(c.revenueMinor), rewardCostMinor: BigInt(c.rewardCostMinor), k: c.k, suppressed: c.suppressed })) });
       }, { timeout: 120_000 });
       out[`cells_${basis}`] = cells.length;
       if (basis === 'FIRST_COMPLETED') out.estimates = await this.estimate(i.market, records, zone, now, policy, tag);
@@ -65,7 +65,7 @@ export class CohortService {
     const add = (dim: CohortDimension, value: string, p: LtvPatient) => { const k = cohortKey('FIRST_COMPLETED', dim, value); const g = groups.get(k) ?? { dim, value, list: [] }; g.list.push(p); groups.set(k, g); };
     for (const r of records) {
       const p = toLtvPatient(r, zone, now.getTime(), policy.includeRewardCost); if (!p) continue;
-      add('ALL', '', p); add('SOURCE', r.sourceKind, p); if (r.campaignId) add('CAMPAIGN', r.campaignId, p); if (r.platform) add('PLATFORM', r.platform, p);
+      add('ALL', '', p); add('SOURCE', r.sourceKind, p); if (r.campaignId) add('CAMPAIGN', r.campaignId, p); if (r.platform) add('PLATFORM', r.platform, p); if (r.language) add('LANGUAGE', r.language, p);
     }
     let n = 0; const keep = new Set<string>();
     for (const [key, g] of groups) {
@@ -80,16 +80,16 @@ export class CohortService {
   }
 
   private cells(rows: Awaited<ReturnType<PrismaService['growthCohortMonthly']['findMany']>>): CohortCell[] {
-    return rows.map((r) => ({ cohortMonth: r.cohortMonth.toISOString().slice(0, 10), basis: r.cohortBasis as CohortBasis, sourceKind: r.sourceKind, campaignId: r.campaignId, platform: r.platform, monthIndex: r.monthIndex, patients: r.patients, retainedPatients: r.retainedPatients, completedBookings: r.completedBookings, revenueMinor: Number(r.revenueMinor), rewardCostMinor: Number(r.rewardCostMinor), k: r.k, suppressed: r.suppressed }));
+    return rows.map((r) => ({ cohortMonth: r.cohortMonth.toISOString().slice(0, 10), basis: r.cohortBasis as CohortBasis, sourceKind: r.sourceKind, campaignId: r.campaignId, platform: r.platform, language: r.language, monthIndex: r.monthIndex, patients: r.patients, retainedPatients: r.retainedPatients, completedBookings: r.completedBookings, revenueMinor: Number(r.revenueMinor), rewardCostMinor: Number(r.rewardCostMinor), k: r.k, suppressed: r.suppressed }));
   }
   private async load(market: string, basis: CohortBasis, dimension: CohortDimension, value: string): Promise<CohortCell[]> {
-    const where = { market, cohortBasis: basis, sourceKind: dimension === 'SOURCE' ? value : '', campaignId: dimension === 'CAMPAIGN' ? value : '', platform: dimension === 'PLATFORM' ? value : '' };
+    const where = { market, cohortBasis: basis, sourceKind: dimension === 'SOURCE' ? value : '', campaignId: dimension === 'CAMPAIGN' ? value : '', platform: dimension === 'PLATFORM' ? value : '', language: dimension === 'LANGUAGE' ? value : '' };
     return this.cells(await this.prisma.growthCohortMonthly.findMany({ where, orderBy: [{ cohortMonth: 'asc' }, { monthIndex: 'asc' }] }));
   }
   /** The values a dimension has stored cells for (suppressed cells show the value but never a count). */
   async values(market: string, basis: CohortBasis, dimension: Exclude<CohortDimension, 'ALL'>): Promise<string[]> {
-    const col = dimension === 'SOURCE' ? 'sourceKind' : dimension === 'CAMPAIGN' ? 'campaignId' : 'platform';
-    const rows = await this.prisma.growthCohortMonthly.findMany({ where: { market, cohortBasis: basis, [col]: { not: '' }, suppressed: false }, distinct: [col], select: { sourceKind: true, campaignId: true, platform: true } });
+    const col = dimension === 'SOURCE' ? 'sourceKind' : dimension === 'CAMPAIGN' ? 'campaignId' : dimension === 'LANGUAGE' ? 'language' : 'platform';
+    const rows = await this.prisma.growthCohortMonthly.findMany({ where: { market, cohortBasis: basis, [col]: { not: '' }, suppressed: false }, distinct: [col], select: { sourceKind: true, campaignId: true, platform: true, language: true } });
     return rows.map((r) => r[col as 'sourceKind']).sort();
   }
 

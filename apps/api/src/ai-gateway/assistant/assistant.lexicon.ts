@@ -1,5 +1,5 @@
 import { isSpecialtyCode, normalizeText, SPECIALTY_CODES, SPECIALTY_LABELS, type SpecialtyCode } from '../../safety/safety-public';
-import { marketZone } from '../../common/market-time';
+import { conversationZone } from './assistant-market';
 import lexicon from './model/fixtures/lexicon-eg.json';
 import type { Dialect, Lang } from './assistant.types';
 
@@ -43,11 +43,11 @@ export function detectDialect(text: string, lang: Lang, previous?: Dialect): Dia
 }
 
 /** yyyy-mm-dd of an instant in the market time zone (Cairo, DST aware). */
-export function marketDate(d: Date = new Date(), zone = marketZone()): string {
+export function marketDate(d: Date = new Date(), zone = conversationZone()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 export function addDays(iso: string, days: number): string { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
-export function marketHour(iso: string, zone = marketZone()): number { return Number(new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', hour12: false }).format(new Date(iso))) % 24; }
+export function marketHour(iso: string, zone = conversationZone()): number { return Number(new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', hour12: false }).format(new Date(iso))) % 24; }
 export type DayPart = 'morning' | 'afternoon' | 'evening';
 export const partOfHour = (h: number): DayPart => (h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening');
 

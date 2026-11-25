@@ -2363,7 +2363,16 @@
     "/api/v1/specialties": {
       "get": {
         "operationId": "CatalogController_specialties",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2379,7 +2388,7 @@
             }
           }
         },
-        "summary": "Specialty codes with AR/EN labels",
+        "summary": "Specialty codes with AR/EN labels; with ?market=<cc> the subset that market chose in its onboarding wizard (the whole catalogue when it chose none)",
         "tags": [
           "catalog"
         ]

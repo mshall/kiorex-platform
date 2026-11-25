@@ -15,7 +15,7 @@ const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 class CohortRollupBody { @IsOptional() @IsInt() @Min(1) @Max(60) months?: number }
 const market = (m?: string) => (m && /^[A-Z]{2}$/.test(m) ? m : DEFAULT_MARKET);
 const basisOf = (b?: string): CohortBasis | undefined => { if (!b) return undefined; if (!(BASES as readonly string[]).includes(b)) throw growthError('GROWTH_INVALID_REQUEST', 'basis must be FIRST_COMPLETED or REGISTRATION'); return b as CohortBasis; };
-const dimOf = (d?: string): CohortDimension | undefined => { if (!d) return undefined; if (!['ALL', 'SOURCE', 'CAMPAIGN', 'PLATFORM'].includes(d)) throw growthError('GROWTH_INVALID_REQUEST', 'dimension must be ALL, SOURCE, CAMPAIGN or PLATFORM'); return d as CohortDimension; };
+const dimOf = (d?: string): CohortDimension | undefined => { if (!d) return undefined; if (!['ALL', 'SOURCE', 'CAMPAIGN', 'PLATFORM', 'LANGUAGE'].includes(d)) throw growthError('GROWTH_INVALID_REQUEST', 'dimension must be ALL, SOURCE, CAMPAIGN, LANGUAGE or PLATFORM'); return d as CohortDimension; };
 const VALUE = /^[A-Za-z0-9_-]{1,64}$/;
 const valueOf = (v?: string) => { if (v === undefined || v === '') return undefined; if (!VALUE.test(v)) throw growthError('GROWTH_INVALID_REQUEST', 'value has an invalid format'); return v; };
 

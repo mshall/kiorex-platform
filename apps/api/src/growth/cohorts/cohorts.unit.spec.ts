@@ -162,3 +162,31 @@ describe('LTV_POLICY validation', () => {
     expect(validateLtvPolicy({ horizonMonths: 0, perPersonLtv: true }).errors.length).toBe(2);
   });
 });
+
+
+describe('language cut (gap closure): ar and en partition the cohort, k applies, and nothing hides by subtraction', () => {
+  const mk = (n: number, language: string): PatientRecord[] => Array.from({ length: n }, () => ({ acquiredAt: at('2027-01-10'), sourceKind: 'DIRECT', campaignId: '', platform: '', language, visits: [{ at: at('2027-01-10'), revenueMinor: 100000 }], rewards: [] }));
+  const cells = (rec: PatientRecord[]) => buildCohorts(rec, { basis: 'FIRST_COMPLETED', zone: ZONE, asOf: AS_OF });
+  it('a language with enough people gets its own cells; the ALL cells still hold everyone', () => {
+    const c = cells([...mk(30, 'ar'), ...mk(20, 'en')]);
+    const ar = c.filter((x) => x.language === 'ar' && x.monthIndex === 0)[0]!; const en = c.filter((x) => x.language === 'en' && x.monthIndex === 0)[0]!;
+    expect([ar.patients, en.patients, ar.suppressed, en.suppressed]).toEqual([30, 20, false, false]);
+    expect(c.filter((x) => !x.sourceKind && !x.campaignId && !x.platform && !x.language && x.monthIndex === 0)[0]!.patients).toBe(50);
+    expect(c.every((x) => x.language === '' || ['ar', 'en'].includes(x.language))).toBe(true);
+  });
+  it('a language below k is suppressed with every measure zero, and the other language is suppressed with it (no recovery by subtraction from ALL)', () => {
+    const c = cells([...mk(40, 'ar'), ...mk(6, 'en')]);
+    const lang = c.filter((x) => x.language !== '');
+    expect(lang.filter((x) => x.language === 'en').every((x) => x.suppressed && x.patients === 0 && x.revenueMinor === 0)).toBe(true);
+    expect(lang.filter((x) => x.language === 'ar').every((x) => x.suppressed)).toBe(true);
+  });
+  it('patients with no known language have no language cut, only the ALL cells', () => {
+    const c = cells(mk(30, ''));
+    expect(c.filter((x) => x.language !== '')).toEqual([]);
+    expect(c.filter((x) => x.monthIndex === 0 && !x.sourceKind).length).toBe(1);
+  });
+  it('a record that never set a language (the old shape) keeps working', () => {
+    const rec = mk(30, '').map(({ language: _l, ...r }) => r as PatientRecord);
+    expect(() => cells(rec)).not.toThrow();
+  });
+});

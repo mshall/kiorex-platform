@@ -75,6 +75,13 @@ export class CohortDataService {
     return out;
   }
 
+  /** The preferred language of each person ('ar' or 'en'), for the language cut; a profile without one (or another value) has no language cut. */
+  private async languagesOf(market: string, subs: readonly string[]): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    for (const c of chunks(subs)) for (const p of await this.prisma.patientProfile.findMany({ where: { market, sub: { in: c } }, select: { sub: true, preferredLocale: true } })) if (p.preferredLocale === 'ar' || p.preferredLocale === 'en') out.set(p.sub, p.preferredLocale);
+    return out;
+  }
+
   private async firstCompleted(market: string, since: Date, now: Date): Promise<PatientRecord[]> {
     const inWindow = await this.prisma.growthEvent.findMany({ where: { market, name: 'BookingAttended', bookingId: { not: null }, occurredAt: { gte: since, lte: now } }, select: { bookingId: true }, distinct: ['bookingId'] });
     const ids = inWindow.map((e) => e.bookingId!);
@@ -82,10 +89,10 @@ export class CohortDataService {
     const attended = await this.attendedBy(market, [...subs], now);
     const people = [...attended.entries()].filter(([, l]) => l.length && l[0]!.at >= since); // a first completed booking before the window means the person belongs to an older cohort
     const firstIds = people.map(([, l]) => l[0]!.bookingId); const allIds = people.flatMap(([, l]) => l.map((v) => v.bookingId));
-    const [revenue, source, rewards] = await Promise.all([this.revenueOf(market, allIds), this.sourceOf(market, firstIds), this.rewardsBy(market, people.map(([s]) => s), now)]);
+    const [revenue, source, rewards, langs] = await Promise.all([this.revenueOf(market, allIds), this.sourceOf(market, firstIds), this.rewardsBy(market, people.map(([s]) => s), now), this.languagesOf(market, people.map(([s]) => s))]);
     return people.map(([sub, l]) => {
       const src = source.get(l[0]!.bookingId) ?? { sourceKind: 'UNATTRIBUTED', campaignId: '', platform: '' };
-      return { acquiredAt: l[0]!.at.getTime(), registeredAt: null, ...src, visits: l.map((v) => ({ at: v.at.getTime(), revenueMinor: revenue.get(v.bookingId) ?? 0 })), rewards: rewards.get(sub) ?? [] };
+      return { acquiredAt: l[0]!.at.getTime(), registeredAt: null, ...src, language: langs.get(sub) ?? '', visits: l.map((v) => ({ at: v.at.getTime(), revenueMinor: revenue.get(v.bookingId) ?? 0 })), rewards: rewards.get(sub) ?? [] };
     });
   }
 
@@ -98,10 +105,10 @@ export class CohortDataService {
     }
     const attended = await this.attendedBy(market, profiles.map((p) => p.sub), now);
     const allIds = [...attended.values()].flatMap((l) => l.map((v) => v.bookingId)); const firstIds = [...attended.values()].filter((l) => l.length).map((l) => l[0]!.bookingId);
-    const [revenue, source, rewards] = await Promise.all([this.revenueOf(market, allIds), this.sourceOf(market, firstIds), this.rewardsBy(market, profiles.map((p) => p.sub), now)]);
+    const [revenue, source, rewards, langs] = await Promise.all([this.revenueOf(market, allIds), this.sourceOf(market, firstIds), this.rewardsBy(market, profiles.map((p) => p.sub), now), this.languagesOf(market, profiles.map((p) => p.sub))]);
     return profiles.map((p) => {
       const l = attended.get(p.sub) ?? []; const src = l.length ? (source.get(l[0]!.bookingId) ?? { sourceKind: 'UNATTRIBUTED', campaignId: '', platform: '' }) : { sourceKind: 'NO_BOOKING', campaignId: '', platform: '' };
-      return { acquiredAt: l[0]?.at.getTime() ?? null, registeredAt: p.createdAt.getTime(), ...src, visits: l.map((v) => ({ at: v.at.getTime(), revenueMinor: revenue.get(v.bookingId) ?? 0 })), rewards: rewards.get(p.sub) ?? [] };
+      return { acquiredAt: l[0]?.at.getTime() ?? null, registeredAt: p.createdAt.getTime(), ...src, language: langs.get(p.sub) ?? '', visits: l.map((v) => ({ at: v.at.getTime(), revenueMinor: revenue.get(v.bookingId) ?? 0 })), rewards: rewards.get(p.sub) ?? [] };
     });
   }
 }

@@ -71,6 +71,25 @@ describe('growth cohorts and LTV (GRW-P3-C)', () => {
     expect(await svc.reconcile('EG', NOW, 6)).toMatchObject({ ok: true, patientsStored: 200, patientsRecount: 200 });
   });
 
+  it('language cut: the January cohort splits into ar (70) and en (30) from the patient preferred language; a sub without a profile has no language cut; ALL still holds everyone', async () => {
+    await seedFixture();
+    for (let i = 1; i <= 100; i++) await c.prisma.patientProfile.upsert({ where: { sub: `sub_coh${i}` }, create: { sub: `sub_coh${i}`, market: 'EG', preferredLocale: i <= 70 ? 'ar' : 'en' } as never, update: { preferredLocale: i <= 70 ? 'ar' : 'en' } });
+    await svc.rollup({ market: 'EG', now: NOW, months: 6, basis: 'FIRST_COMPLETED' });
+    const ar = (await svc.table({ market: 'EG', dimension: 'LANGUAGE', value: 'ar' })).rows.find((x) => x.cohortMonth === '2027-01-01')!;
+    const en = (await svc.table({ market: 'EG', dimension: 'LANGUAGE', value: 'en' })).rows.find((x) => x.cohortMonth === '2027-01-01')!;
+    expect([ar.suppressed, en.suppressed]).toEqual([false, false]); if (ar.suppressed || en.suppressed) throw new Error('unreachable');
+    expect([ar.patients, en.patients]).toEqual([70, 30]);
+    expect((await svc.table({ market: 'EG' })).rows.find((x) => x.cohortMonth === '2027-01-01')).toMatchObject({ patients: 100 });
+    // February and March patients have no profile here: no language rows exist for those months
+    expect(await c.prisma.growthCohortMonthly.count({ where: { language: { not: '' }, cohortMonth: { gt: new Date('2027-01-31T00:00:00Z') } } })).toBe(0);
+    expect(await svc.values('EG', 'FIRST_COMPLETED', 'LANGUAGE')).toEqual(['ar', 'en']);
+    // LTV also has the language groups (n >= 10)
+    const l = await svc.ltv({ market: 'EG' }); expect(l.rows.find((x) => x.dimension === 'LANGUAGE' && x.value === 'ar')?.n).toBe(70);
+    // the HTTP API accepts the dimension, and an unknown one is still refused
+    await c.http().get(`${BASE}?dimension=LANGUAGE&value=ar`).set(ops).expect(200);
+    await c.http().get(`${BASE}?dimension=NOPE&value=ar`).set(ops).expect(400);
+    expect(await svc.reconcile('EG', NOW, 6)).toMatchObject({ ok: true });
+  });
   it('is idempotent: a second and parallel rollups leave the same cells and estimates', async () => {
     await seedFixture();
     const snap = async () => JSON.stringify([(await c.prisma.growthCohortMonthly.findMany({ orderBy: [{ cohortMonth: 'asc' }, { sourceKind: 'asc' }, { campaignId: 'asc' }, { platform: 'asc' }, { monthIndex: 'asc' }] })).map(({ id, updatedAt, ...r }) => ({ ...r, revenueMinor: String(r.revenueMinor), rewardCostMinor: String(r.rewardCostMinor) })), (await c.prisma.growthLtvEstimate.findMany({ orderBy: { cohortKey: 'asc' } })).map(({ id, computedAt, ...r }) => ({ ...r, estimateMinor: String(r.estimateMinor), lowMinor: String(r.lowMinor), highMinor: String(r.highMinor) }))]);

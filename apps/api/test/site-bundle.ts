@@ -10,7 +10,8 @@ const newest = (dir: string): number => readdirSync(dir).reduce((m, f) => { cons
 export function ensurePublicBundle(): { server: string; client: string } {
   const server = join(WEB, 'dist-public/server/entry-server.cjs');
   const client = join(WEB, 'dist-public/client/.vite/manifest.json');
-  const srcTime = Math.max(newest(join(WEB, 'src/public')), statSync(join(WEB, 'src/entry-server.tsx')).mtimeMs, statSync(join(WEB, 'src/entry-client.tsx')).mtimeMs);
+  const srcTime = Math.max(newest(join(WEB, 'src/public')), newest(join(WEB, 'src/lib')), // the public pages import src/lib (money, dates): a change there must rebuild the bundle
+     statSync(join(WEB, 'src/entry-server.tsx')).mtimeMs, statSync(join(WEB, 'src/entry-client.tsx')).mtimeMs);
   const stale = !existsSync(server) || !existsSync(client) || statSync(server).mtimeMs < srcTime || statSync(client).mtimeMs < srcTime;
   if (stale) execSync('npm run build:public', { cwd: WEB, stdio: 'ignore' });
   return { server, client };

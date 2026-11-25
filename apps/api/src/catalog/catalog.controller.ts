@@ -41,8 +41,8 @@ export class CatalogController {
 
   @ApiOkResponse({ type: SpecialtyDto, isArray: true })
 
-  @Public() @Get('specialties') @ApiOperation({ summary: 'Specialty codes with AR/EN labels' })
-  specialties() { return this.svc.specialties(); }
+  @Public() @Get('specialties') @ApiOperation({ summary: 'Specialty codes with AR/EN labels; with ?market=<cc> the subset that market chose in its onboarding wizard (the whole catalogue when it chose none)' })
+  specialties(@Query('market') market?: string) { return this.svc.specialties(market); }
 
   @ApiOkResponse({ type: ProviderProfileDto })
 
