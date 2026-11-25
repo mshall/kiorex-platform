@@ -54,6 +54,9 @@ jobs:
       - name: OpenAPI is current
         run: npm run openapi:export -w apps/api && git diff --exit-code apps/api/openapi Docs/API.md
         working-directory: kiorex-platform
+      - name: OpenAPI is valid (Redocly lint, structure and references)
+        run: npx --yes @redocly/cli@2.2.0 lint apps/api/openapi/kiorex-api.v1.openapi.json --config .redocly.yaml
+        working-directory: kiorex-platform
 
   workspaces:
     runs-on: ubuntu-latest

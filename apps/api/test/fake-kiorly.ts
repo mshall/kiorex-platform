@@ -16,6 +16,8 @@ export class FakeKiorly {
   promotionMode: string | undefined; promotionReservations = new Map<string, any>(); promotionReviews: any[] = [];
   holds = new Map<string, any>();
   calls: { method: string; path: string; body: any; headers: Record<string, any> }[] = [];
+  /** Milliseconds the Clinic takes to answer POST /bookings (0 = immediately). */
+  delayMs = 0;
   deposits = new Map<string, any>();
   payouts = new Map<string, any>();
   reviewPushes: any[] = [];
@@ -54,7 +56,7 @@ export class FakeKiorly {
   }
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
-    this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
+    this.delayMs = 0; this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
     this.promotionMode = undefined; this.promotionReservations.clear(); this.promotionReviews = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
@@ -71,6 +73,7 @@ export class FakeKiorly {
     const path = url.pathname.replace('/marketplace/v1', '');
     const body = raw.length ? JSON.parse(raw.toString()) : undefined;
     this.calls.push({ method: req.method!, path, body, headers: req.headers });
+    if (this.delayMs && req.method === 'POST' && path === '/bookings') await new Promise((r) => setTimeout(r, this.delayMs)); // multi-instance tests: a slow Clinic answer
     const m = req.method!;
     const send = (s: number, b: any) => this.send(res, s, b);
     const hang = () => new Promise<void>(() => undefined);

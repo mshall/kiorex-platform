@@ -318,6 +318,7 @@
 | POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes` | GRW-P4-C create a code (the plain code is returned once) |
 | POST | `/api/v1/admin/growth/corporate/accounts/{id}/codes/{codeId}/revoke` | GRW-P4-C revoke a code |
 | GET | `/api/v1/admin/growth/corporate/accounts/{id}/report` | GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k |
+| GET | `/api/v1/admin/growth/corporate/accounts/{id}/report/export` | GRW-P4-C the aggregate report as a CSV or PDF file for ops to hand to the employer (no employer login; every cell below k masked; the export is audited) |
 | GET | `/api/v1/admin/growth/corporate/accounts/{id}/statement` | GRW-P4-C invoice basis of one month (finance) |
 | GET | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C manual invoice notes |
 | POST | `/api/v1/admin/growth/corporate/accounts/{id}/invoice-notes` | GRW-P4-C record the sponsor spend of a month for manual invoicing |

@@ -154,3 +154,5 @@ export interface PaymentSignalsPort {
   onPaymentDispute(i: PaymentDisputeIn): Promise<PaymentDisputeOut>;
 }
 export const PAYMENT_SIGNALS_PORT = 'PAYMENT_SIGNALS_PORT';
+// Gap closure: the Clinic's visit times (CHECKED_IN, COMPLETED) are stored by the booking module as a BookingEvent for the fraud rules; pure helpers, no I/O.
+export { VISIT_TIMES_KIND, visitTimesDetail } from './fraud/visit-facts';

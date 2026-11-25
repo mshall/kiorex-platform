@@ -280,6 +280,16 @@ describe('growth corporate programme (GRW-P4-C)', () => {
       expect(rep.suppressed).toEqual([]);
       const text = JSON.stringify(rep); for (const forbidden of ['emp_', 'bookingId', 'kx_bk', 'subHash', 'provider', 'specialty', 'clinic', 'doctor', 'phone', 'email']) expect(text).not.toContain(forbidden);
       expect(await svc().reconcile()).toEqual([]);
+      // employer export: ops (finance or super admin) issues a CSV or PDF of exactly this masked report; support cannot; every export is an audit row without figures
+      const csv = await c.http().get(`${ADM}/accounts/${id}/report/export?format=csv`).set(fin).expect(200);
+      expect(csv.headers['content-type']).toContain('text/csv'); expect(csv.headers['content-disposition']).toMatch(/attachment; filename="employer-benefit-report-\d{4}-\d{2}-\d{2}\.csv"/); expect(csv.headers['cache-control']).toBe('no-store');
+      expect(csv.text).toContain('Members enrolled,30'); expect(csv.text).toContain('Sponsored value,3000.00 EGP');
+      for (const forbidden of ['emp_', 'kx_bk', 'subHash', 'provider', 'specialty', 'clinic', 'doctor']) expect(csv.text).not.toContain(forbidden);
+      const pdf = await c.http().get(`${ADM}/accounts/${id}/report/export?format=pdf`).set(fin).buffer(true).parse((r, cb) => { const ch: Buffer[] = []; r.on('data', (d: Buffer) => ch.push(d)); r.on('end', () => cb(null, Buffer.concat(ch))); }).expect(200);
+      expect(pdf.headers['content-type']).toBe('application/pdf'); expect((pdf.body as Buffer).subarray(0, 8).toString()).toBe('%PDF-1.4');
+      expect((await c.http().get(`${ADM}/accounts/${id}/report/export`).set(ops)).status).toBe(403); // ops_admin without the finance capability
+      expect(await c.prisma.auditLog.count({ where: { action: 'growth.corporate.report_exported', resourceId: id } })).toBe(2);
+      expect(JSON.stringify(await c.prisma.auditLog.findMany({ where: { action: 'growth.corporate.report_exported' } }))).not.toMatch(/300000|Members enrolled/);
       const st = (await c.http().get(`${ADM}/accounts/${id}/statement?month=${new Date().toISOString().slice(0, 7)}`).set(fin).expect(200)).body; expect(st.sponsorSpendMinor).toBe(300_000);
       expect((await c.http().get(`${ADM}/accounts/${id}/statement`).set(ops)).status).toBe(403); // finance only
       const note = (await c.http().post(`${ADM}/accounts/${id}/invoice-notes`).set(a).send({ month: new Date().toISOString().slice(0, 7), notes: 'PO 4471, sent to finance' }).expect(201)).body; expect(note.sponsorSpendMinor).toBe(300_000);
@@ -294,6 +304,8 @@ describe('growth corporate programme (GRW-P4-C)', () => {
       expect(rep.utilisation).toEqual({ membersWhoUsedBenefit: null, sponsoredVisits: null, sponsoredValueMinor: null });
       expect(rep.byMonth.every((m: any) => m.membersWhoUsedBenefit === null && m.sponsoredValueMinor === null)).toBe(true);
       expect(rep.suppressed.length).toBeGreaterThan(4);
+      const masked = (await c.http().get(`${ADM}/accounts/${id}/report/export?format=csv`).set(fin).expect(200)).text; // the export masks exactly like the report
+      expect(masked).toContain('Members enrolled,<10'); expect(masked).toContain('Sponsored value,<10'); expect(masked).not.toMatch(/Members enrolled,9|Sponsored value,\d/);
       await join(await emp(10), cd).expect(200); // now 10 members, 9 used the benefit
       const rep2 = (await c.http().get(`${ADM}/accounts/${id}/report`).set(ops).expect(200)).body; expect(rep2.enrolment.enrolled).toBe(10); expect(rep2.utilisation.membersWhoUsedBenefit).toBeNull();
     });

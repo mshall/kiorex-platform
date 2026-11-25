@@ -1,4 +1,3 @@
-import { VISIT_TIMES_KIND, visitTimesDetail } from '../growth/fraud/visit-facts';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { BookingIntent, Prisma, Provider } from '../prisma/generated/client';
 import { createHash } from 'node:crypto';
@@ -13,7 +12,7 @@ import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/k
 import { OutboxService } from '../outbox/outbox-public';
 import { PatientService } from '../patient/patient-public';
 import { PayService } from '../pay/pay-public';
-import { BOOKING_GROWTH, REWARDS_PORT, SPONSORED_DISCOUNT_PORT, type BookingGrowthContext, type BookingGrowthPort, type RewardsPort, type SponsoredDiscountPort } from '../growth/growth-ports-public';
+import { BOOKING_GROWTH, REWARDS_PORT, VISIT_TIMES_KIND, visitTimesDetail, SPONSORED_DISCOUNT_PORT, type BookingGrowthContext, type BookingGrowthPort, type RewardsPort, type SponsoredDiscountPort } from '../growth/growth-ports-public';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddressService, VisitAddress } from '../address/address-public';
 import { addressForLog } from '../common/district';
@@ -33,6 +32,10 @@ export type HomeListener = (b: BookingIntent, kind: HomeStatusKind) => Promise<v
 export interface ConfirmInput { marketplaceConsent: boolean; remindersConsent?: boolean; notes?: string }
 
 interface KiorlyEventCtx { type: string; aggregateId?: string; data: Record<string, any> }
+
+/** Gap closure: a confirm claim older than this is taken over (the instance that held it is gone); a waiting instance gives up after CONFIRM_WAIT_MS. */
+export const CONFIRM_LEASE_MS = 45_000;
+export const CONFIRM_WAIT_MS = 10_000;
 
 @Injectable()
 export class BookingService implements OnModuleInit, OnModuleDestroy {
@@ -251,7 +254,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
    * One confirm of a booking at a time per process: a duplicate click or a parallel retry waits for the first call and then finds the booking already moved on, instead of
    * racing it into Kiorly (where the second request can lose with SLOT_TAKEN against the first one's own insert and used to expire a booking the Clinic had confirmed).
    * It is an in-memory chain, not a database lock: a lock held on a pooled connection while the same call needs more connections would starve the pool under load.
-   * Across instances the post-check in the catch block below covers the same case.
+   * Across instances (gap closure) the claim below is a database compare-and-set on `callState` (HELD and not IN_FLIGHT, or an IN_FLIGHT lease older than CONFIRM_LEASE_MS): only one
+   * instance sends the booking to the Clinic; the others wait a bounded time (CONFIRM_WAIT_MS, polling, no connection held) for the first call's result and answer it, or answer 503
+   * CONFIRM_IN_PROGRESS (retryable). The post-check in the catch block below stays as the last line of defence.
    */
   private readonly confirming = new Map<string, Promise<unknown>>();
   private async withBookingLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
@@ -260,6 +265,20 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const tail = run.catch(() => undefined);
     this.confirming.set(id, tail);
     try { return await run; } finally { if (this.confirming.get(id) === tail) this.confirming.delete(id); }
+  }
+
+  /** Lease of an IN_FLIGHT claim (an instance that died mid-call): after this the claim may be taken again; the Clinic call is idempotent on the booking id. Public so a test can shorten it. */
+  confirmLeaseMs = CONFIRM_LEASE_MS;
+  confirmWaitMs = CONFIRM_WAIT_MS;
+  private async answerOtherConfirm(id: string) {
+    const until = Date.now() + this.confirmWaitMs;
+    for (;;) {
+      const cur = await this.prisma.bookingIntent.findUniqueOrThrow({ where: { id } });
+      if (cur.status !== 'HELD') return this.present(cur); // the first call finished: same answer as a double click
+      if (cur.callState !== 'IN_FLIGHT') throw unavailable('CONFIRM_IN_PROGRESS', 'Your booking is being confirmed; try again in a moment', { bookingId: id, retryable: true }); // the first call failed and released the claim: the patient may press Confirm again
+      if (Date.now() >= until) throw unavailable('CONFIRM_IN_PROGRESS', 'Your booking is being confirmed; try again in a moment', { bookingId: id, retryable: true });
+      await new Promise((r) => setTimeout(r, 150));
+    }
   }
 
   async confirm(sub: string, id: string, c: ConfirmInput, g: BookingGrowthContext = {}) {
@@ -285,7 +304,8 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
       if (found === 'UNAVAILABLE') throw unavailable('CLINIC_SYSTEM_BUSY', 'Clinic system busy; your booking is pending and will be retried', { bookingId: id, status: 'HELD', retryable: true });
     }
     const identity = await this.patients.bookingIdentity(sub, b.dependantId ?? undefined);
-    await this.prisma.bookingIntent.update({ where: { id }, data: { callState: 'IN_FLIGHT', patientSnapshot: { ...((b.patientSnapshot as Record<string, unknown> | null) ?? {}), forDependant: identity.forDependant } as any } });
+    const claim = await this.prisma.bookingIntent.updateMany({ where: { id, status: 'HELD', OR: [{ callState: { not: 'IN_FLIGHT' } }, { updatedAt: { lt: new Date(Date.now() - this.confirmLeaseMs) } }] }, data: { callState: 'IN_FLIGHT', patientSnapshot: { ...((b.patientSnapshot as Record<string, unknown> | null) ?? {}), forDependant: identity.forDependant } as any } });
+    if (claim.count === 0) return this.answerOtherConfirm(id); // another instance holds the claim: wait for its result, never send a second request to the Clinic
     const gx = await this.growth.forConfirm(id, { ...g, lt: (b.patientSnapshot as { growthLt?: string } | null)?.growthLt ?? g.lt }); // {} when growth.attribution is OFF: the request is then byte-identical to before
     const body = {
       clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,

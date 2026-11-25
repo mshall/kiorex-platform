@@ -4,6 +4,7 @@ import { notFound } from '../../common/errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CorporateConfigService } from './corporate-config';
 import { effectiveK, maskBreakdown, maskCount, maskTotal } from './corporate-privacy';
+import { reportToCsv, reportToPdf, type ExportReport } from './corporate-report-export';
 
 /**
  * The only report the corporate programme produces (GRW-P4-C): ENROLMENT and UTILISATION counts and the total sponsored value, every cell masked below k (at least 10, set in CORPORATE_POLICY,
@@ -39,6 +40,22 @@ export class CorporateReportService {
     const walk = (o: unknown, path: string) => { if (o && typeof o === 'object') for (const [key, v] of Object.entries(o)) { if (v === null) out.suppressed.push(`${path}${key}`); else walk(v, `${path}${key}.`); } };
     walk({ enrolment: out.enrolment, utilisation: out.utilisation }, '');
     return out;
+  }
+
+  /**
+   * The report as a CSV or a PDF file that ops hands to the employer (no employer login exists). It is exactly the masked report (never more), and the export itself is an audit row with the actor,
+   * the account and the format (never the figures). The file name carries no personal data.
+   */
+  async exportFile(accountId: string, format: 'csv' | 'pdf', actor: string, now = new Date()): Promise<{ filename: string; contentType: string; body: Buffer }> {
+    const a = await this.prisma.corporateAccount.findUnique({ where: { id: accountId }, select: { displayName: true } });
+    if (!a) throw notFound('CORPORATE_ACCOUNT_NOT_FOUND', 'Corporate account not found');
+    const report = (await this.report(accountId, now)) as unknown as ExportReport;
+    const meta = { company: a.displayName, generatedAt: now };
+    await this.prisma.auditLog.create({ data: { actor, action: 'growth.corporate.report_exported', resource: 'CorporateAccount', resourceId: accountId, metadata: { format, k: report.k } } });
+    const stamp = now.toISOString().slice(0, 10);
+    return format === 'pdf'
+      ? { filename: `employer-benefit-report-${stamp}.pdf`, contentType: 'application/pdf', body: reportToPdf(report, meta) }
+      : { filename: `employer-benefit-report-${stamp}.csv`, contentType: 'text/csv; charset=utf-8', body: Buffer.from(reportToCsv(report, meta), 'utf8') };
   }
 
   /** The invoice basis for ops finance: the sponsor spend of one month as the ledger shows it (REDEEM minus REVERSE). The total is what the sponsor owes, so it is not masked here; who produced it never is shown. */

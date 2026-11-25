@@ -18447,6 +18447,30 @@
         ]
       }
     },
+    "/api/v1/admin/growth/corporate/accounts/{id}/report/export": {
+      "get": {
+        "operationId": "CorporateAdminController_exportReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "GRW-P4-C the aggregate report as a CSV or PDF file for ops to hand to the employer (no employer login; every cell below k masked; the export is audited)",
+        "tags": [
+          "growth-corporate"
+        ]
+      }
+    },
     "/api/v1/admin/growth/corporate/accounts/{id}/statement": {
       "get": {
         "operationId": "CorporateAdminController_statement",

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
@@ -89,6 +90,12 @@ export class CorporateAdminController {
 
   @Get('accounts/:id/report') @ApiOperation({ summary: 'GRW-P4-C aggregate report (enrolment, utilisation, sponsored value), every cell masked below k' }) @ApiOkResponse(OBJ)
   report(@Param('id') id: string) { return this.reports.report(id); }
+  @Roles(...rolesFor('readFinance')) @Get('accounts/:id/report/export') @ApiOperation({ summary: 'GRW-P4-C the aggregate report as a CSV or PDF file for ops to hand to the employer (no employer login; every cell below k masked; the export is audited)' })
+  async exportReport(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('format') format: string | undefined, @Res({ passthrough: true }) res: Response) {
+    const f = await this.reports.exportFile(id, format === 'pdf' ? 'pdf' : 'csv', u.sub);
+    res.set({ 'content-type': f.contentType, 'content-disposition': `attachment; filename="${f.filename}"`, 'cache-control': 'no-store' });
+    return new StreamableFile(f.body);
+  }
   @Roles(...rolesFor('readFinance')) @Get('accounts/:id/statement') @ApiOperation({ summary: 'GRW-P4-C invoice basis of one month (finance)' }) @ApiOkResponse(OBJ)
   statement(@Param('id') id: string, @Query('month') month: string) { return this.reports.monthlyStatement(id, /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? '') ? month : new Date().toISOString().slice(0, 7)); }
   @Get('accounts/:id/invoice-notes') @ApiOperation({ summary: 'GRW-P4-C manual invoice notes' }) @ApiOkResponse(OBJ)

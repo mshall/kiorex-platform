@@ -31,7 +31,7 @@ export class JwtAuthGuard implements CanActivate {
       roles,
       phone: payload.phone_number as string | undefined,
       email: typeof payload.email === 'string' ? payload.email : undefined,
-      emailVerified: payload.email_verified === true, // GRW-P4-C: only an explicit true claim; Passport does not issue it yet (corporate domain eligibility stays unavailable until it does)
+      emailVerified: payload.email_verified === true, // GRW-P4-C: only an explicit true claim; Passport issues it only after the person verified the address with a code (gap closure; the web and app request the email scope)
       name: payload.name as string | undefined,
       locale: payload.locale as string | undefined,
       sid: (payload.sid as string | undefined) ?? undefined,
