@@ -5281,6 +5281,193 @@
         ]
       }
     },
+    "/api/v1/partner/commissions/settlement-statement": {
+      "get": {
+        "operationId": "CommissionPartnerStatementController_statement",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Client-Key",
+            "in": "header",
+            "description": "Partner client key (Clinic: the shared Clinic key; Pharmacy and Lab: the registered client key)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Timestamp",
+            "in": "header",
+            "description": "Unix milliseconds, within 5 minutes of the server clock",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Nonce",
+            "in": "header",
+            "description": "One-time value; a replay is 401",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Signature",
+            "in": "header",
+            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Org-Ref",
+            "in": "header",
+            "description": "Clinic: the tenant id (required). Pharmacy and Lab: optional, must equal the partner registration or the request is 403",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unsigned, unknown key, wrong secret, stale or replayed signature"
+          },
+          "403": {
+            "description": "PARTNER_ORG_MISMATCH: another organisation was named"
+          },
+          "429": {
+            "description": "PARTNER_RATE_LIMITED, with Retry-After"
+          }
+        },
+        "summary": "Settlement statement of the signed partner's own organisation and period (same figures and shape as the ops route; Clinic: tenant in X-Kiorly-Org-Ref; Pharmacy and Lab: the partner registration)",
+        "tags": [
+          "partner"
+        ]
+      }
+    },
+    "/api/v1/partner/commissions/settlement-statement/export": {
+      "get": {
+        "operationId": "CommissionPartnerStatementController_statementCsv",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Client-Key",
+            "in": "header",
+            "description": "Partner client key (Clinic: the shared Clinic key; Pharmacy and Lab: the registered client key)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Timestamp",
+            "in": "header",
+            "description": "Unix milliseconds, within 5 minutes of the server clock",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Nonce",
+            "in": "header",
+            "description": "One-time value; a replay is 401",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Signature",
+            "in": "header",
+            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Org-Ref",
+            "in": "header",
+            "description": "Clinic: the tenant id (required). Pharmacy and Lab: optional, must equal the partner registration or the request is 403",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unsigned, unknown key, wrong secret, stale or replayed signature"
+          },
+          "403": {
+            "description": "PARTNER_ORG_MISMATCH: another organisation was named"
+          },
+          "429": {
+            "description": "PARTNER_RATE_LIMITED, with Retry-After"
+          }
+        },
+        "summary": "CSV of the same statement (audited)",
+        "tags": [
+          "partner"
+        ]
+      }
+    },
     "/api/v1/bookings": {
       "post": {
         "operationId": "BookingController_create",

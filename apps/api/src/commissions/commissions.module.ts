@@ -15,13 +15,15 @@ import { PAYOUT_ROUTE_GATE_PORT } from '../common/payout-route-gate-port';
 import { CommissionSettlementService } from './commission-settlement.service';
 import { CommissionRateService } from './commission-rate.service';
 import { CommissionRatesController } from './commission-rates.controller';
+import { CommissionPartnerStatementController } from './commission-partner-statement.controller';
+import { CommissionPartnerStatementService } from './commission-partner-statement.service';
 
 @Global()
 @Module({
   imports: [OutboxModule, KiorlyModule],
-  controllers: [CommissionOpsController, CommissionRatesController, CommissionPolicyController],
+  controllers: [CommissionOpsController, CommissionRatesController, CommissionPolicyController, CommissionPartnerStatementController],
   providers: [
-    CommissionClaimsService, CommissionConfigService, CommissionPolicyService, CommissionSettlementService, CommissionRateService, CommissionQueryService, CommissionCollectionService, MockCommissionCollector, RealCommissionCollector,
+    CommissionClaimsService, CommissionConfigService, CommissionPolicyService, CommissionSettlementService, CommissionPartnerStatementService, CommissionRateService, CommissionQueryService, CommissionCollectionService, MockCommissionCollector, RealCommissionCollector,
     { provide: COMMISSION_COLLECTOR, useFactory: collectorForMode, inject: [MockCommissionCollector, RealCommissionCollector] },
     { provide: COMMISSION_NETTING_PORT, useExisting: CommissionCollectionService },
     { provide: COUNSEL_GATE_PORT, useExisting: CommissionPolicyService },

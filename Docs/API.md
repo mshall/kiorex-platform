@@ -754,6 +754,13 @@
 | PATCH | `/api/v1/admin/partner-leads/{id}` | OP: set the lead status and/or assignee |
 | POST | `/api/v1/admin/partner-leads/{id}/notes` | OP: add a note to the lead |
 
+## partner
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/partner/commissions/settlement-statement` | Settlement statement of the signed partner's own organisation and period (same figures and shape as the ops route; Clinic: tenant in X-Kiorly-Org-Ref; Pharmacy and Lab: the partner registration) |
+| GET | `/api/v1/partner/commissions/settlement-statement/export` | CSV of the same statement (audited) |
+
 ## partner-connections
 
 | Method | Path | Summary |
