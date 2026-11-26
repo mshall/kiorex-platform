@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { newId } from '../common/ids';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
 import { CommissionRateService } from './commission-rate.service';
-import { expectedCommissionMinor } from './commission-rate';
+import { expectedCommissionMinor, specForTender, tenderKindOf } from './commission-rate';
 import { parseTenderFields, type TenderFields } from './commission-tender';
 
 const minor = (v: unknown): number | null => {
@@ -78,7 +78,9 @@ export class CommissionClaimsService {
         // COM-2: the organisation inherits its product default when first seen, and the claim keeps the rate that applied when it was reported (never rewritten, so later rate changes do not touch past charges)
         await this.rates.ensureLink(orgRef, 'CLINIC', tx);
         const rate = await this.rates.effectiveAt(orgRef, 'CLINIC', fields.attendedAt ?? at, tx);
-        const snapshot = rate.state === 'SET' ? { source: rate.source, policyId: rate.policyId, version: rate.version, effectiveFrom: rate.effectiveFrom, spec: rate.spec, expectedMinor: fields.feeBasisMinor != null ? expectedCommissionMinor(fields.feeBasisMinor, rate) : null } : null;
+        // LG-COM-20: the treatment of the claim's tender kind prices it (a kind with no setting inherits the base rate); the snapshot keeps the policy, the kind and the spec that was used, so the statement, the CLAIM_NE_RATE check and the CSV read the same thing
+        const tenderKind = tenderKindOf(fields); const used = rate.state === 'SET' && rate.spec ? specForTender(rate.spec, tenderKind) : null;
+        const snapshot = rate.state === 'SET' && used ? { source: rate.source, policyId: rate.policyId, version: rate.version, effectiveFrom: rate.effectiveFrom, spec: (({ treatment: _t, ...u }) => u)(used), tenderKind, treatment: used.treatment, expectedMinor: fields.feeBasisMinor != null ? expectedCommissionMinor(fields.feeBasisMinor, { ...rate, spec: used }) : null } : null;
         const created = await tx.commissionClaim.create({ data: { id: newId('ccl'), orgRef, chargeId, ...fields, rateSource: rate.source, ratePolicyId: rate.policyId, rateSnapshot: (snapshot ?? undefined) as object | undefined } });
         await this.timeline(tx, orgRef, created.id, 'CLAIM_REPORTED', { status, amountMinor });
         return 'APPLIED' as const;

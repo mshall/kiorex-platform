@@ -143,6 +143,14 @@
       },
       "empty": "Nothing to show",
       "rates": {
+        "tender": {
+          "title": "Treatment by payment kind",
+          "hint": "Optional. Set a different rate, minimum, cap, collection mode or grace for one kind of payment. Anything left empty follows the base rate above, so nothing changes until you set it. Cash transfer means a direct bank, InstaPay or card-terminal payment at the clinic.",
+          "sameRate": "Same as base",
+          "ONLINE": "Online (Kiorex Pay)",
+          "CASH": "Cash at the visit",
+          "CASH_TRANSFER": "Cash transfer"
+        },
         "defaultsHint": "The default commission rate for each type of organisation. Every organisation inherits it unless the super admin overrides it for that organisation. Changes need a second super admin to approve them and apply from their start time; charges already recorded keep the rate they were recorded with.",
         "notSet": "Rate not set",
         "notSetHint": "No rate is configured, so no commission is charged. Finance or the founder must set the rate.",
@@ -487,6 +495,14 @@
       },
       "empty": "لا شيء للعرض",
       "rates": {
+        "tender": {
+          "title": "المعاملة حسب نوع الدفع",
+          "hint": "اختياري. حدّد نسبة أو حداً أدنى أو أقصى أو طريقة تحصيل أو مهلة مختلفة لنوع دفع بعينه. أي حقل يُترك فارغاً يتبع النسبة الأساسية أعلاه، فلا يتغير شيء حتى تضبطه. التحويل النقدي هو دفع مباشر للعيادة بتحويل بنكي أو إنستاباي أو ماكينة بطاقات.",
+          "sameRate": "مثل الأساسي",
+          "ONLINE": "إلكتروني (كيوركس باي)",
+          "CASH": "نقداً عند الزيارة",
+          "CASH_TRANSFER": "تحويل نقدي"
+        },
         "defaultsHint": "النسبة الافتراضية للعمولة لكل نوع جهة. ترث كل جهة هذه النسبة ما لم يُحدّد المدير الأعلى نسبة خاصة بها. التغييرات تحتاج موافقة مدير أعلى آخر وتسري من وقت بدايتها؛ الرسوم المسجلة سابقا تحتفظ بالنسبة التي سُجلت بها.",
         "notSet": "النسبة غير مضبوطة",
         "notSetHint": "لم تُضبط أي نسبة، لذلك لا تُحتسب عمولة. على المالية أو المؤسس تحديد النسبة.",

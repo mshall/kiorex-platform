@@ -47,11 +47,25 @@ export interface RateSpec {
   reminderDays: number[] | null;
   disputeWindowDays: number | null;
   savedMethodChargeAllowed: boolean | null;
+  /** LG-COM-20: per tender kind treatment (additive, optional; absent = every tender follows the base values above). */
+  tenders?: TenderTreatments;
 }
+/**
+ * LG-COM-20 addendum (founder, 27 Nov 2026): the treatment can differ per KIND of tender (ONLINE, CASH, CASH_TRANSFER). `tenders` is an additive optional key of the policy spec (stored with the same
+ * maker-checker, effective-dated, append-only row; contracts 1.13.0 is unchanged and ignores it). A tender with no entry (or no field in its entry) INHERITS the policy's base value, so nothing changes
+ * until an operator sets it. No number is shipped: the seeded defaults carry no `tenders`, which keeps CASH_TRANSFER equal to the base rate (the same as CASH); it is editable in Ops.
+ * An entry may set: the rate (feeType with percentBps or flatMinor), minMinor, maxMinor (null = no floor / no cap for this tender), mode and graceDays. Each field left out inherits.
+ */
+export const TENDER_KINDS = ['ONLINE', 'CASH', 'CASH_TRANSFER'] as const;
+export type TenderKind = (typeof TENDER_KINDS)[number];
+export interface TenderTreatment { feeType?: FeeType; percentBps?: number | null; flatMinor?: number | null; minMinor?: number | null; maxMinor?: number | null; mode?: CollectionMode | null; graceDays?: number | null }
+export type TenderTreatments = Partial<Record<TenderKind, TenderTreatment>>;
+const TREATMENT_KEYS = ['feeType', 'percentBps', 'flatMinor', 'minMinor', 'maxMinor', 'mode', 'graceDays'];
+
 export const ROUNDINGS = ['HALF_UP', 'DOWN', 'UP'] as const;
 export type Rounding = (typeof ROUNDINGS)[number];
 
-const KEYS: (keyof RateSpec)[] = ['feeType', 'percentBps', 'flatMinor', 'minMinor', 'maxMinor', 'mode', 'currency', 'rounding', 'minCollectMinor', 'graceDays', 'retryDays', 'invoiceDueDays', 'reminderDays', 'disputeWindowDays', 'savedMethodChargeAllowed'];
+const KEYS: (keyof RateSpec)[] = ['feeType', 'percentBps', 'flatMinor', 'minMinor', 'maxMinor', 'mode', 'currency', 'rounding', 'minCollectMinor', 'graceDays', 'retryDays', 'invoiceDueDays', 'reminderDays', 'disputeWindowDays', 'savedMethodChargeAllowed', 'tenders'];
 const dayList = (v: unknown, min: number, max: number, maxLen: number): v is number[] => Array.isArray(v) && v.length <= maxLen && v.every((n, i, a) => isInt(n, min, max) && (i === 0 || n > (a[i - 1] as number)));
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
 const MAX_MINOR = 100_000_000;
@@ -83,6 +97,32 @@ export function rateProblems(raw: unknown): string[] {
   if (o.retryDays != null && !dayList(o.retryDays, 1, b.retryDayMax, b.retryMaxCount)) out.push(`retryDays must be ascending whole days 1..${b.retryDayMax}, at most ${b.retryMaxCount}`);
   if (o.reminderDays != null && !dayList(o.reminderDays, -30, 90, 8)) out.push('reminderDays must be ascending whole days -30..90, at most 8');
   if (o.savedMethodChargeAllowed != null && typeof o.savedMethodChargeAllowed !== 'boolean') out.push('savedMethodChargeAllowed must be true or false');
+  if (o.tenders != null) out.push(...tenderProblems(o.tenders));
+  return out;
+}
+
+/** Problems with the per-tender treatments (LG-COM-20); empty = valid. An entry validates like the base: a rate is a feeType with its own amount, a floor may not exceed a cap. */
+export function tenderProblems(raw: unknown): string[] {
+  const out: string[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return ['tenders must be an object'];
+  const g = raw as Record<string, unknown>;
+  for (const [kind, v] of Object.entries(g)) {
+    const at = `tenders.${kind}`;
+    if (!(TENDER_KINDS as readonly string[]).includes(kind)) { out.push(`unknown tender kind ${kind}`); continue; }
+    if (v == null) continue;
+    if (typeof v !== 'object' || Array.isArray(v)) { out.push(`${at} must be an object`); continue; }
+    const o = v as Record<string, unknown>;
+    for (const k of Object.keys(o)) if (!TREATMENT_KEYS.includes(k)) out.push(`${at}: unknown field ${k}`);
+    if (o.feeType != null) {
+      if (!FEE_TYPES.includes(o.feeType as FeeType)) out.push(`${at}.feeType must be PERCENT or FLAT`);
+      else if (o.feeType === 'PERCENT') { if (!isInt(o.percentBps, 0, 10_000)) out.push(`${at}.percentBps must be an integer 0..10000`); if (o.flatMinor != null) out.push(`${at}.flatMinor is not allowed for PERCENT`); }
+      else { if (!isInt(o.flatMinor, 0, MAX_MINOR)) out.push(`${at}.flatMinor must be a non-negative integer (minor units)`); if (o.percentBps != null) out.push(`${at}.percentBps is not allowed for FLAT`); }
+    } else if (o.percentBps != null || o.flatMinor != null) out.push(`${at}: a rate needs its feeType`);
+    for (const k of ['minMinor', 'maxMinor'] as const) if (o[k] != null && !isInt(o[k], 0, MAX_MINOR)) out.push(`${at}.${k} must be a non-negative integer (minor units)`);
+    if (isInt(o.minMinor, 0, MAX_MINOR) && isInt(o.maxMinor, 0, MAX_MINOR) && o.minMinor > o.maxMinor) out.push(`${at}.minMinor must not exceed maxMinor`);
+    if (o.mode != null && !COLLECTION_MODES.includes(o.mode as CollectionMode)) out.push(`${at}.mode is not a collection mode`);
+    if (o.graceDays != null && !isInt(o.graceDays, 0, dunningBounds().graceDaysMax)) out.push(`${at}.graceDays must be an integer 0..${dunningBounds().graceDaysMax}`);
+  }
   return out;
 }
 
@@ -98,7 +138,41 @@ export function parseRate(raw: unknown): RateSpec {
     currency: typeof o.currency === 'string' && /^[A-Z]{3}$/.test(o.currency) ? o.currency : null, rounding: ROUNDINGS.includes(o.rounding as Rounding) ? (o.rounding as Rounding) : null,
     minCollectMinor: n(o.minCollectMinor), graceDays: n(o.graceDays), retryDays: days(o.retryDays, 1, b.retryDayMax, b.retryMaxCount), invoiceDueDays: n(o.invoiceDueDays), reminderDays: days(o.reminderDays, -30, 90, 8),
     disputeWindowDays: n(o.disputeWindowDays), savedMethodChargeAllowed: typeof o.savedMethodChargeAllowed === 'boolean' ? o.savedMethodChargeAllowed : null,
+    ...(parseTenders(o.tenders) ? { tenders: parseTenders(o.tenders)! } : {}),
   };
+}
+
+/** Strict parse of VALID treatments: only the fields that were set stay (a field left out inherits); an empty entry is dropped; undefined when nothing is set. */
+export function parseTenders(raw: unknown): TenderTreatments | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: TenderTreatments = {};
+  for (const kind of TENDER_KINDS) {
+    const v = (raw as Record<string, unknown>)[kind];
+    if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+    const o = v as Record<string, unknown>; const t: TenderTreatment = {};
+    if (FEE_TYPES.includes(o.feeType as FeeType)) { t.feeType = o.feeType as FeeType; if (o.feeType === 'PERCENT') t.percentBps = typeof o.percentBps === 'number' ? o.percentBps : 0; else t.flatMinor = typeof o.flatMinor === 'number' ? o.flatMinor : 0; }
+    for (const k of ['minMinor', 'maxMinor', 'graceDays'] as const) if (k in o && (o[k] === null || typeof o[k] === 'number')) t[k] = o[k] as number | null;
+    if ('mode' in o && (o.mode === null || COLLECTION_MODES.includes(o.mode as CollectionMode))) t.mode = o.mode as CollectionMode | null;
+    if (Object.keys(t).length) out[kind] = t;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** Which treatment a claim falls under: the kind of its tender. CASH with kind CASH_TRANSFER is CASH_TRANSFER, any other CASH (also an older client) is CASH; a tender not reported has no kind and takes the base. */
+export const tenderKindOf = (c: { tender?: string | null; tenderMethod?: string | null }): TenderKind | null => (c.tender === 'ONLINE' ? 'ONLINE' : c.tender === 'CASH' ? (c.tenderMethod === 'CASH_TRANSFER' ? 'CASH_TRANSFER' : 'CASH') : null);
+
+/** The spec that prices one tender kind: the base spec with the fields that kind sets replacing the base ones; every field it leaves out inherits. No kind, or no entry, is the base spec itself. The result carries no `tenders`. */
+export function specForTender(spec: RateSpec, kind: TenderKind | null): RateSpec & { treatment: 'BASE' | 'TENDER' } {
+  const { tenders, ...base } = spec;
+  const t = kind ? tenders?.[kind] : undefined;
+  if (!t) return { ...base, treatment: 'BASE' };
+  const r: RateSpec = { ...base };
+  if (t.feeType) { r.feeType = t.feeType; r.percentBps = t.feeType === 'PERCENT' ? (t.percentBps ?? 0) : null; r.flatMinor = t.feeType === 'FLAT' ? (t.flatMinor ?? 0) : null; }
+  if ('minMinor' in t) r.minMinor = t.minMinor ?? null;
+  if ('maxMinor' in t) r.maxMinor = t.maxMinor ?? null;
+  if ('mode' in t) r.mode = t.mode ?? null;
+  if ('graceDays' in t) r.graceDays = t.graceDays ?? null;
+  return { ...r, treatment: 'TENDER' };
 }
 
 /** Commission for one charge in minor units: percent of the fee basis (rounded per `rounding`, half up when unset: what always shipped) or the flat amount, then the floor and the cap. */

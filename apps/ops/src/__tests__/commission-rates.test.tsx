@@ -50,6 +50,27 @@ describe("commission rates console (COM-2)", () => {
     expect(await violations()).toEqual([]);
   });
 
+  it("LG-COM-20: the treatment per payment kind is shown next to the base rate and a super admin sets it; empty fields inherit and are not sent", async () => {
+    type TB = { spec: { tenders: unknown } }; let body: TB | undefined;
+    const withT = spec({ tenders: { CASH_TRANSFER: { feeType: "PERCENT", percentBps: 500 } } });
+    base(caps({ proposeRate: true, approveRate: true }));
+    server.use(http.get(`${B}/rates/defaults`, () => HttpResponse.json(defaults({ effective: set("DEFAULT", withT), pending: null, upcoming: null, history: [row({ spec: withT })] }))),
+      http.post(`${B}/rates/defaults`, async ({ request }) => { body = (await request.json()) as TB; return HttpResponse.json({ id: "crp_3" }); }));
+    renderOps(<CommissionsPage />); const user = userEvent.setup();
+    await user.click(await screen.findByTestId("com-tab-rates"));
+    expect(await screen.findByTestId("rates-eff-CLINIC")).toHaveTextContent("Cash transfer: 5%");
+    expect(within(screen.getByTestId("rates-eff-CLINIC")).queryByTestId("rate-tender-CASH")).toBeNull(); // no entry = same as base, nothing listed
+    await user.click(screen.getByTestId("rates-open-CLINIC"));
+    const form = screen.getByTestId("rates-form-CLINIC");
+    await user.type(within(form).getByTestId("rate-pct"), "10");
+    await user.selectOptions(within(form).getByTestId("tender-fee-CASH_TRANSFER"), "PERCENT");
+    await user.type(within(form).getByTestId("tender-pct-CASH_TRANSFER"), "7.5");
+    await user.click(within(form).getByTestId("rate-submit"));
+    await waitFor(() => expect(body).toBeTruthy());
+    expect(body!.spec.tenders).toEqual({ CASH_TRANSFER: { feeType: "PERCENT", percentBps: 750 } });
+    expect(await violations()).toEqual([]);
+  });
+
   it("a pending proposal can be approved or rejected only by a role that may; the decision is posted", async () => {
     let decided: unknown; const pending = row({ id: "crp_9", version: 2, status: "PENDING", proposedBy: "sa1", decidedBy: null });
     base(caps({ approveRate: true }));
