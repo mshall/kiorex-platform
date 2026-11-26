@@ -63,12 +63,13 @@ describe("commission policy page (COM-3)", () => {
     serve(caps({ approveConfig: true, export: true }), state({ counsel: { record: DEF, version: null, effectiveFrom: null, source: "DEFAULT", pending, history: [pending] } }));
     let decided: unknown = null;
     server.use(http.post(`${B}/policy/versions/gcv_1/decide`, async ({ request }) => { decided = await request.json(); return HttpResponse.json({}); }),
-      http.get(`${B}/settlement-statement/org_alpha`, () => HttpResponse.json({ orgRef: "org_alpha", currency: "EGP", onlineCollectionsMinor: 30000, cashVisitCommissionAccruedMinor: 4000, cashVisitCommissionNettedMinor: 0, cashVisitCommissionOpenMinor: 4000, deductions: { commissionMinor: 10000, feesMinor: null, refundsMinor: 0, chargebacksMinor: 0 }, netPayableMinor: 20000, paidByBankTransferMinor: 20000, reconciliation: "MATCHED", payouts: [{ payoutRef: "po_1", bankReference: "po_1", reconciliation: "MATCHED", cashMinor: 20000 }] })));
+      http.get(`${B}/settlement-statement/org_alpha`, () => HttpResponse.json({ orgRef: "org_alpha", currency: "EGP", onlineCollectionsMinor: 30000, cashVisitCommissionAccruedMinor: 4000, cashVisitCommissionNettedMinor: 0, cashVisitCommissionOpenMinor: 4000, cashBreakdown: { cash: { accruedMinor: 1500, nettedMinor: 0, openMinor: 1500, charges: 1 }, cashTransfer: { accruedMinor: 2500, nettedMinor: 0, openMinor: 2500, charges: 2, byDetail: { BANK_TRANSFER: 0, INSTAPAY: 2, CARD_TERMINAL: 0 }, unspecifiedDetail: 0 } }, unknownTender: { charges: 4, commissionMinor: 900 }, deductions: { commissionMinor: 10000, feesMinor: null, refundsMinor: 0, chargebacksMinor: 0 }, netPayableMinor: 20000, paidByBankTransferMinor: 20000, reconciliation: "MATCHED", payouts: [{ payoutRef: "po_1", bankReference: "po_1", reconciliation: "MATCHED", cashMinor: 20000 }] })));
     const user = userEvent.setup(); renderOps(<CommissionPolicyPage />);
     await user.click(await screen.findByTestId("policy-approve"));
     await waitFor(() => expect(decided).toEqual({ approve: true }));
     await user.type(screen.getByTestId("settlement-org"), "org_alpha"); await user.click(screen.getByTestId("settlement-go"));
     const f = await screen.findByTestId("settlement-figures");
     expect(f).toHaveTextContent(/cash-visit commission accrued/i); expect(f).toHaveTextContent(/matched/i);
+    expect(f).toHaveTextContent(/of which cash transfer: accrued/i); expect(screen.getByTestId("settlement-unknown-tender")).toHaveTextContent("4");
   });
 });

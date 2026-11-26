@@ -13,9 +13,9 @@ describe('commission settlement statement, cash visits, two-way parity', () => {
   const S = { mode: 'NET_FROM_PAYOUT', cycle: 'MONTHLY', cutoffDay: 5, graceDays: 1, retryDays: [2, 4], minCollectMinor: 0, invoiceDueDays: 10 };
   const wh = async (...a: Parameters<TestCtx['webhook']>) => { const r = await c.webhook(...a); expect([200, 202]).toContain(r.status); };
   let n = 0;
-  const charge = async (amount: string, tender?: string, dispute?: string) => {
+  const charge = async (amount: string, tender?: string, dispute?: string, extra: Record<string, unknown> = {}) => {
     const i = ++n;
-    await wh('COMMISSION_CHARGE_CREATED', { chargeId: `chg_s${i}`, appointmentId: `apt_s${i}`, amount, currency: 'EGP', status: 'PENDING', tenantId: ORG, clinicId: ORG, decisionAmount: amount, disputeDeadline: '2026-11-20T00:00:00Z', feeBasisMinor: 100000, ...(tender ? { tender } : {}) }, { aggregateId: `apt_s${i}`, eventId: `e_s_${i}_a` });
+    await wh('COMMISSION_CHARGE_CREATED', { chargeId: `chg_s${i}`, appointmentId: `apt_s${i}`, amount, currency: 'EGP', status: 'PENDING', tenantId: ORG, clinicId: ORG, decisionAmount: amount, disputeDeadline: '2026-11-20T00:00:00Z', feeBasisMinor: 100000, ...(tender ? { tender } : {}), ...extra }, { aggregateId: `apt_s${i}`, eventId: `e_s_${i}_a` });
     await wh('COMMISSION_CHARGE_STATUS_CHANGED', { chargeId: `chg_s${i}`, appointmentId: `apt_s${i}`, amount, currency: 'EGP', status: 'CONFIRMED', tenantId: ORG, confirmedAt: '2026-11-10T00:00:00Z', disputeDeadline: '2026-11-20T00:00:00Z', ...(dispute ? { disputeStatus: dispute } : {}) }, { aggregateId: `apt_s${i}`, eventId: `e_s_${i}_b` });
     return `chg_s${i}`;
   };
@@ -48,6 +48,42 @@ describe('commission settlement statement, cash visits, two-way parity', () => {
     const s = (await c.http().get(`${A}/settlement-statement/${ORG}`).query({ from: '2026-11-01T00:00:00Z', to: '2099-01-01T00:00:00Z' }).set(sa1).expect(200)).body;
     expect(s).toMatchObject({ onlineCollectionsMinor: 30000, deductions: { commissionMinor: 10000, refundsMinor: 0, chargebacksMinor: 0 }, netPayableMinor: 20000, paidByBankTransferMinor: 20000, reconciliation: 'MATCHED' });
     expect(s.payouts[0]).toMatchObject({ payoutRef: 'po_s1_ref', bankReference: 'po_s1_ref', reconciliation: 'MATCHED' });
+  });
+
+  it('LG-COM-20: a cash transfer (bank / InstaPay / card terminal at the clinic) is cash-type for accrual and netting, shown as its own kind; plain cash and an older client stay plain cash; unknown stays unknown and is counted as an exception', async () => {
+    await charge('40.00', 'CASH'); // older client: no tenderMethod
+    await charge('10.00', 'CASH', undefined, { tenderMethod: 'CASH' });
+    await charge('20.00', 'CASH', undefined, { tenderMethod: 'CASH_TRANSFER', tenderDetail: 'INSTAPAY' });
+    await charge('30.00', 'CASH', undefined, { tenderMethod: 'CASH_TRANSFER', tenderDetail: 'CARD_TERMINAL' });
+    await charge('5.00', 'CASH', undefined, { tenderMethod: 'CASH_TRANSFER', tenderDetail: 'MOON_PAY' }); // unknown detail is dropped, the kind stays
+    await charge('60.00', 'ONLINE', undefined, { tenderMethod: 'CASH_TRANSFER', tenderDetail: 'BANK_TRANSFER' }); // method on a non-cash tender is ignored
+    await charge('7.00'); // tender not reported
+    await charge('3.00', 'BARTER', undefined, { tenderMethod: 'CASH_TRANSFER' }); // not a valid tender: not reported, nothing guessed
+    const rows = await c.prisma.commissionClaim.findMany({ orderBy: { chargeId: 'asc' }, select: { chargeId: true, tender: true, tenderMethod: true, tenderDetail: true } });
+    expect(rows.map((r) => [r.tender, r.tenderMethod, r.tenderDetail])).toEqual([['CASH', null, null], ['CASH', 'CASH', null], ['CASH', 'CASH_TRANSFER', 'INSTAPAY'], ['CASH', 'CASH_TRANSFER', 'CARD_TERMINAL'], ['CASH', 'CASH_TRANSFER', null], ['ONLINE', null, null], [null, null, null], [null, null, null]]);
+    const s = (await c.http().get(`${A}/settlement-statement/${ORG}`).query(range).set(fin).expect(200)).body;
+    // totals keep covering every cash-type visit (older clients included): 40 + 10 + 20 + 30 + 5 = 105.00
+    expect(s).toMatchObject({ cashVisitCommissionAccruedMinor: 10500, cashVisitCommissionOpenMinor: 10500, cashVisitCharges: 5 });
+    expect(s.cashBreakdown.cash).toMatchObject({ accruedMinor: 5000, charges: 2 });
+    expect(s.cashBreakdown.cashTransfer).toMatchObject({ accruedMinor: 5500, charges: 3, byDetail: { INSTAPAY: 1, CARD_TERMINAL: 1, BANK_TRANSFER: 0 }, unspecifiedDetail: 1 });
+    expect(s.unknownTender).toEqual({ charges: 2, commissionMinor: 1000 });
+    // netting: it is claimed in the run like any commission and netted in the next bank payout, not from that visit
+    await c.get(CommissionCollectionService).runForOrg(ORG, NOW);
+    const run = await c.prisma.commissionRun.findFirstOrThrow();
+    expect(run.claimsMinor).toBe(17500); // every live claim is in the run, whatever its tender
+    const snap = (await c.get(CommissionCollectionService).snapshot(run.id))!;
+    expect(snap.claims.find((x: any) => x.tenderDetail === 'INSTAPAY')).toMatchObject({ tender: 'CASH', tenderMethod: 'CASH_TRANSFER' });
+    // a later event without the kind keeps the kind already known; a later event with another kind replaces it
+    const id = rows[2]!.chargeId;
+    await wh('COMMISSION_CHARGE_STATUS_CHANGED', { chargeId: id, appointmentId: 'apt_s3', amount: '20.00', currency: 'EGP', status: 'CONFIRMED', tenantId: ORG, tender: 'CASH', confirmedAt: '2026-11-11T00:00:00Z' }, { aggregateId: 'apt_s3', eventId: 'e_s_3_c' });
+    expect(await c.prisma.commissionClaim.findUniqueOrThrow({ where: { chargeId: id }, select: { tenderMethod: true, tenderDetail: true } })).toEqual({ tenderMethod: 'CASH_TRANSFER', tenderDetail: 'INSTAPAY' });
+    // CSV and Ops summary carry the kinds and the exception count
+    const csv = (await c.http().get(`${A}/settlement-statement/${ORG}/export`).query(range).set(fin).expect(200)).text;
+    expect(csv).toContain('cashTransferAccrued,55.00'); expect(csv).toContain('cashOnlyAccrued,50.00'); expect(csv).toContain('unknownTenderCharges,2'); expect(csv).toContain('cashVisitCommissionAccrued,105.00');
+    const sum = (await c.http().get(`${A}/summary`).set(fin).expect(200)).body;
+    expect(sum.counts).toMatchObject({ unknownTender: 2, cashTransfer: 3 });
+    const claimsCsv = (await c.http().get(`${A}/export/claims`).set(fin).expect(200)).text;
+    expect(claimsCsv).toContain('tender,tenderMethod,tenderDetail'); expect(claimsCsv).toContain('CASH,CASH_TRANSFER,INSTAPAY');
   });
 
   it('an unmatched payout and an open dispute are visible as UNMATCHED and DISPUTED', async () => {

@@ -14,7 +14,7 @@ import { OrgRatePanel, RatesTab } from "./commission-rates";
 
 type Page<T> = { total: number; items: T[] };
 type Caps = { read: boolean; export: boolean; operate: boolean; proposeConfig: boolean; approveConfig: boolean; chooseProvider: boolean; proposeRate?: boolean; approveRate?: boolean };
-interface Claim { id: string; orgRef: string; chargeId: string; appointmentId: string; amountMinor: number; decisionAmountMinor: number | null; feeBasisMinor: number | null; sponsoredDiscountMinor: number | null; basisPolicyVersion: string | null; policyVersion: string | null; currency: string; chargeStatus: string; disputeStatus: string | null; collectionStatus: string; collectedMinor: number; reversedAfterCollection: boolean; runId: string | null }
+interface Claim { id: string; orgRef: string; chargeId: string; appointmentId: string; amountMinor: number; decisionAmountMinor: number | null; feeBasisMinor: number | null; sponsoredDiscountMinor: number | null; basisPolicyVersion: string | null; policyVersion: string | null; currency: string; chargeStatus: string; disputeStatus: string | null; collectionStatus: string; collectedMinor: number; reversedAfterCollection: boolean; runId: string | null; tender?: string | null; tenderMethod?: string | null; tenderDetail?: string | null }
 interface Run { id: string; orgRef: string; periodKey: string; status: string; mode: string; modeRequested: string | null; fallbackReason: string | null; provider: string | null; currency: string; claimsCount: number; claimsMinor: number; collectedMinor: number; deductedMinor: number; invoicedMinor: number; paidMinor: number; invoiceNo: string | null }
 interface Attempt { id: string; attemptNo: number; kind: string; status: string; amountMinor: number; failureCode: string | null; providerRef: string | null; payoutRef: string | null }
 interface Tl { id: string; at: string; event: string; actor: string; detail: unknown }
@@ -47,6 +47,8 @@ export default function CommissionsPage() {
   if (!caps.data?.read) return <div role="alert" className="mx-auto mt-16 max-w-md text-center" data-testid="com-no-access"><h1 className="text-xl">{t("commissions.title")}</h1><p className="mt-2 text-muted-foreground">{t("commissions.noAccess")}</p></div>;
 
   const view = (key: string, path: string, render: (d: any) => ReactElement) => <Q k={key} path={`${path}`} render={render} />;
+  // LG-COM-20: a cash transfer is cash-type but shown as its own kind; a claim whose tender was not reported reads "Not reported" (never guessed)
+  const tenderLabel = (r: Claim) => (r.tender === "ONLINE" ? t("commissions.tender.ONLINE") : r.tender === "CASH" ? (r.tenderMethod === "CASH_TRANSFER" ? <>{t("commissions.tender.CASH_TRANSFER")}{r.tenderDetail ? <span className="text-xs text-muted-foreground"> ({t(`commissions.tender.detail.${r.tenderDetail}`, { defaultValue: r.tenderDetail })})</span> : null}</> : t("commissions.tender.CASH")) : t("commissions.tender.NONE"));
   const claimCols = (rows: Claim[]) => <DataTable caption={t("commissions.tabs.ledger")} rows={rows} rowKey={(r) => r.id} empty={t("commissions.empty")} columns={[
     { key: "o", header: t("commissions.col.org"), cell: (r) => <button className="underline" onClick={() => setOrg(r.orgRef)}>{r.orgRef}</button> },
     { key: "c", header: t("commissions.col.charge"), cell: (r) => <code dir="ltr" className="text-xs">{r.chargeId}</code> },
@@ -55,6 +57,7 @@ export default function CommissionsPage() {
     { key: "b", header: t("commissions.col.basis"), cell: (r) => (r.feeBasisMinor === null ? "-" : <>{m(r.feeBasisMinor, r.currency)} <span className="text-xs text-muted-foreground">({r.basisPolicyVersion})</span></>) },
     { key: "s", header: t("commissions.col.sponsored"), cell: (r) => (r.sponsoredDiscountMinor === null ? "-" : m(r.sponsoredDiscountMinor, r.currency)) },
     { key: "p", header: t("commissions.col.policy"), cell: (r) => <span className="text-xs" dir="ltr">{r.policyVersion ?? "-"}</span> },
+    { key: "td", header: t("commissions.col.tender"), cell: (r) => <span data-testid="com-claim-tender">{tenderLabel(r)}</span> },
     { key: "st", header: t("commissions.col.status"), cell: (r) => st(r.chargeStatus) },
     { key: "co", header: t("commissions.col.collection"), cell: (r) => <>{st(r.collectionStatus)}{r.reversedAfterCollection && <Badge variant="destructive" className="ms-1">{t("commissions.cards.creditDue")}</Badge>}</> },
     { key: "r", header: "", cell: (r) => (r.runId ? <Button size="sm" variant="outline" onClick={() => setRun(r.runId)}>{t("commissions.actions.drill")}</Button> : null) },
@@ -72,9 +75,14 @@ export default function CommissionsPage() {
       </div>
       {run && <RunDrill id={run} onClose={() => setRun(null)} canRetry={caps.data.operate} onRetry={(id) => retry.mutate(id)} m={m} st={st} />}
       {tab === "overview" && view(`sum${qs}`, `${B}/summary${qs}`, (d: Summary) => (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="com-cards">
+        <><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="com-cards">
           {([["collected", d.figures.collectedMinor], ["deducted", d.figures.deductedMinor], ["invoiceOpen", d.figures.invoiceOpenMinor], ["overdue", d.figures.overdueMinor], ["disputedOpen", d.figures.disputedOpenMinor], ["creditDue", d.figures.creditDueMinor]] as const).map(([k, v]) => <div key={k} className="rounded-xl border bg-card p-4 shadow-card"><div className="text-xs text-muted-foreground">{t(`commissions.cards.${k}`)}</div><div className="mt-1 text-xl font-semibold" data-testid={`com-card-${k}`}>{m(v ?? 0)}</div></div>)}
-        </div>))}
+        </div>
+        {/* LG-COM-20: exceptions and kinds of tender, counts of live claims */}
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="com-tender-counts">
+          <div className="rounded-xl border bg-card p-4 shadow-card"><dt className="text-xs text-muted-foreground">{t("commissions.cards.cashTransfer")}</dt><dd className="mt-1 text-xl font-semibold" data-testid="com-card-cashTransfer">{d.counts.cashTransfer ?? 0}</dd></div>
+          <div className="rounded-xl border bg-card p-4 shadow-card"><dt className="text-xs text-muted-foreground">{t("commissions.cards.unknownTender")}</dt><dd className="mt-1 flex items-center gap-2 text-xl font-semibold" data-testid="com-card-unknownTender">{d.counts.unknownTender ?? 0}{(d.counts.unknownTender ?? 0) > 0 && <Badge variant="warning">{t("commissions.cards.exception")}</Badge>}</dd><dd className="mt-1 text-xs text-muted-foreground">{t("commissions.cards.unknownTenderHint")}</dd></div>
+        </dl></>))}
       {tab === "ledger" && <><ExportBtn onClick={() => void exp("claims")} label={t("commissions.actions.export")} disabled={!caps.data.export} />{view(`claims${qs}`, `${B}/claims${qs}`, (d: Page<Claim>) => claimCols(d.items))}</>}
       {tab === "collections" && <><ExportBtn onClick={() => void exp("runs")} label={t("commissions.actions.export")} disabled={!caps.data.export} />{view(`runs${qs}`, `${B}/runs${qs}`, (d: Page<Run>) => (
         <DataTable caption={t("commissions.tabs.collections")} rows={d.items} rowKey={(r) => r.id} empty={t("commissions.empty")} onRowClick={(r) => setRun(r.id)} columns={[

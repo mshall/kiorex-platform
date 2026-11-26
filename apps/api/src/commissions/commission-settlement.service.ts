@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { badRequest } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
 import { major, toCsv } from './commission-collect';
+import { isCashTransfer } from './commission-tender';
 import { reconStatus, settlementTotals, type PayoutFacts } from './commission-settlement';
 
 /**
@@ -36,9 +37,15 @@ export class CommissionSettlementService {
     const chargebacksMinor = pays.filter((p) => p.disputeState === 'LOST').reduce((s, p) => s + p.amountMinor, 0);
     const openDisputes = claimRows.filter((c) => c.disputeStatus === 'OPEN').length;
     const totals = settlementTotals({ payouts, refundsMinor, chargebacksMinor });
-    const cash = claimRows.filter((c) => c.tender === 'CASH' && ['CONFIRMED', 'BILLED', 'PENDING', 'DISPUTED'].includes(c.chargeStatus));
+    // LG-COM-20: cash-type = plain cash AND cash transfer (bank / InstaPay transfer or card terminal at the clinic); the totals keep covering both, the split shows each kind on its own row
+    const LIVE = ['CONFIRMED', 'BILLED', 'PENDING', 'DISPUTED'];
+    const cash = claimRows.filter((c) => c.tender === 'CASH' && LIVE.includes(c.chargeStatus));
     const cashAccruedMinor = cash.reduce((s, c) => s + c.amountMinor, 0);
     const cashNettedMinor = cash.reduce((s, c) => s + c.collectedMinor, 0);
+    const kind = (rows: typeof cash) => { const a = rows.reduce((s, c) => s + c.amountMinor, 0); const n = rows.reduce((s, c) => s + c.collectedMinor, 0); return { accruedMinor: a, nettedMinor: n, openMinor: Math.max(0, a - n), charges: rows.length }; };
+    const transfers = cash.filter((c) => isCashTransfer(c));
+    const byDetail = Object.fromEntries(['BANK_TRANSFER', 'INSTAPAY', 'CARD_TERMINAL'].map((d) => [d, transfers.filter((c) => c.tenderDetail === d).length]));
+    const unknownTender = claimRows.filter((c) => c.tender === null && LIVE.includes(c.chargeStatus));
     const commissionMinor = claimRows.filter((c) => !['REVERSED', 'WAIVED'].includes(c.chargeStatus)).reduce((s, c) => s + c.amountMinor, 0);
     const collectedMinor = claimRows.reduce((s, c) => s + c.collectedMinor, 0);
     const statuses = payouts.map((p) => reconStatus(p, openDisputes));
@@ -47,6 +54,9 @@ export class CommissionSettlementService {
       orgRef, period: { from: from.toISOString(), to: to.toISOString() }, currency: payouts[0]?.currency ?? claimRows[0]?.currency ?? 'EGP', payoutMethod: 'BANK_TRANSFER',
       onlineCollectionsMinor: totals.onlineCollectionsMinor,
       cashVisitCommissionAccruedMinor: cashAccruedMinor, cashVisitCommissionNettedMinor: cashNettedMinor, cashVisitCommissionOpenMinor: Math.max(0, cashAccruedMinor - cashNettedMinor), cashVisitCharges: cash.length,
+      // LG-COM-20 (additive): the cash-type total above split into plain cash and cash transfer; visits whose tender was not reported are an exception, never counted as cash or online
+      cashBreakdown: { cash: kind(cash.filter((c) => !isCashTransfer(c))), cashTransfer: { ...kind(transfers), byDetail, unspecifiedDetail: transfers.filter((c) => !c.tenderDetail).length } },
+      unknownTender: { charges: unknownTender.length, commissionMinor: unknownTender.reduce((s, c) => s + c.amountMinor, 0) },
       deductions: { commissionMinor: totals.commissionDeductedMinor, feesMinor: null as number | null, refundsMinor: totals.refundsMinor, chargebacksMinor: totals.chargebacksMinor },
       commission: { totalMinor: commissionMinor, collectedMinor, openMinor: Math.max(0, commissionMinor - collectedMinor), disputedOpen: openDisputes },
       netPayableMinor: totals.netPayableMinor, paidByBankTransferMinor: totals.paidMinor,
@@ -59,7 +69,8 @@ export class CommissionSettlementService {
   async exportCsv(orgRef: string, o: { from?: string; to?: string }) {
     const s = await this.statement(orgRef, o);
     const rows: unknown[][] = [
-      ['onlineCollections', major(s.onlineCollectionsMinor)], ['cashVisitCommissionAccrued', major(s.cashVisitCommissionAccruedMinor)], ['cashVisitCommissionNetted', major(s.cashVisitCommissionNettedMinor)],
+      ['onlineCollections', major(s.onlineCollectionsMinor)], ['cashVisitCommissionAccrued', major(s.cashVisitCommissionAccruedMinor)], ['cashVisitCommissionNetted', major(s.cashVisitCommissionNettedMinor)], ['cashOnlyAccrued', major(s.cashBreakdown.cash.accruedMinor)], ['cashOnlyNetted', major(s.cashBreakdown.cash.nettedMinor)], ['cashTransferAccrued', major(s.cashBreakdown.cashTransfer.accruedMinor)], ['cashTransferNetted', major(s.cashBreakdown.cashTransfer.nettedMinor)], ['unknownTenderCharges', String(s.unknownTender.charges)],
+      ['cashOnlyAccrued', major(s.cashBreakdown.cash.accruedMinor)], ['cashOnlyNetted', major(s.cashBreakdown.cash.nettedMinor)], ['cashTransferAccrued', major(s.cashBreakdown.cashTransfer.accruedMinor)], ['cashTransferNetted', major(s.cashBreakdown.cashTransfer.nettedMinor)], ['unknownTenderCharges', String(s.unknownTender.charges)],
       ['deductionCommission', major(s.deductions.commissionMinor)], ['deductionFees', s.deductions.feesMinor === null ? '' : major(s.deductions.feesMinor)], ['deductionRefunds', major(s.deductions.refundsMinor)], ['deductionChargebacks', major(s.deductions.chargebacksMinor)],
       ['netPayable', major(s.netPayableMinor)], ['paidByBankTransfer', major(s.paidByBankTransferMinor)], ['reconciliation', s.reconciliation],
       ...s.payouts.map((p) => [`payout:${p.payoutRef}`, major(p.cashMinor), major(p.commissionDeductedMinor), p.bankReference ?? '', p.reconciliation]),

@@ -24,6 +24,17 @@ describe("commissions console (COM-1)", () => {
     expect(screen.getByText("(BP1)")).toBeInTheDocument();
     expect(await violations()).toEqual([]);
   });
+  it("LG-COM-20: a cash transfer reads as its own kind next to cash and online, an unreported tender reads Not reported, and unknown-tender visits show as an exception", async () => {
+    const rows = [{ ...claim, id: "c1", tender: "CASH" }, { ...claim, id: "c2", chargeId: "chg_2", tender: "CASH", tenderMethod: "CASH_TRANSFER", tenderDetail: "INSTAPAY" }, { ...claim, id: "c3", chargeId: "chg_3", tender: "ONLINE" }, { ...claim, id: "c4", chargeId: "chg_4", tender: null }];
+    server.use(http.get(`${B}/capabilities`, () => HttpResponse.json(caps())), http.get(`${B}/summary`, () => HttpResponse.json({ ...summary, counts: { unknownTender: 3, cashTransfer: 2 } })), http.get(`${B}/claims`, () => HttpResponse.json({ total: 4, items: rows })));
+    renderOps(<CommissionsPage />); const user = userEvent.setup();
+    expect(await screen.findByTestId("com-card-unknownTender")).toHaveTextContent("3");
+    expect(screen.getByTestId("com-card-cashTransfer")).toHaveTextContent("2");
+    await user.click(screen.getByTestId("com-tab-ledger"));
+    await screen.findByText("chg_2");
+    expect(screen.getAllByTestId("com-claim-tender").map((n) => n.textContent)).toEqual(["Cash at the visit", "Cash transfer (InstaPay)", "Online (Kiorex Pay)", "Not reported"]);
+    expect(await violations()).toEqual([]);
+  });
   it("a role without the finance view sees no money, and no figure request is made", async () => {
     let asked = false;
     server.use(http.get(`${B}/capabilities`, () => HttpResponse.json(caps({ read: false, export: false, operate: false }))), http.get(`${B}/summary`, () => { asked = true; return HttpResponse.json(summary); }));

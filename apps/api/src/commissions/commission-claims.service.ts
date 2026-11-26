@@ -3,6 +3,7 @@ import { newId } from '../common/ids';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
 import { CommissionRateService } from './commission-rate.service';
 import { expectedCommissionMinor } from './commission-rate';
+import { parseTenderFields, type TenderFields } from './commission-tender';
 
 const minor = (v: unknown): number | null => {
   if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v * 100);
@@ -15,6 +16,15 @@ const CLAIM_EVENTS = new Set(['COMMISSION_CHARGE_CREATED', 'COMMISSION_CHARGE_RE
 export const isCommissionClaimEvent = (type: string) => CLAIM_EVENTS.has(type);
 /** Statuses that take a claim out of collection. */
 const OUT = new Set(['REVERSED', 'WAIVED']);
+
+/** Tender of the event; an event that does not carry a valid tender keeps what the claim had (LG-COM-20: tenderMethod / tenderDetail are additive and optional, so an older client's CASH stays plain CASH). */
+export function tenderOf(data: Record<string, any>, prev?: { tender: string | null; tenderMethod: string | null; tenderDetail: string | null } | null): TenderFields {
+  const n = parseTenderFields(data);
+  const had = { tender: (prev?.tender ?? null) as TenderFields['tender'], tenderMethod: (prev?.tenderMethod ?? null) as TenderFields['tenderMethod'], tenderDetail: (prev?.tenderDetail ?? null) as TenderFields['tenderDetail'] };
+  if (!n.tender) return had;
+  if (n.tender === 'CASH' && !n.tenderMethod && had.tender === 'CASH') return had; // same tender, no kind in this event: keep the kind already known
+  return n;
+}
 
 export type ClaimOutcome = 'APPLIED' | 'IGNORED' | 'STALE';
 
@@ -56,7 +66,7 @@ export class CommissionClaimsService {
         feeBasisMinor: typeof data.feeBasisMinor === 'number' ? data.feeBasisMinor : (prev?.feeBasisMinor ?? null),
         sponsoredDiscountMinor: typeof data.sponsoredDiscountMinor === 'number' ? data.sponsoredDiscountMinor : (prev?.sponsoredDiscountMinor ?? null),
         basisPolicyVersion: str(data.basisPolicyVersion) ?? prev?.basisPolicyVersion ?? null,
-        tender: ['CASH', 'ONLINE'].includes(String(data.tender ?? '').toUpperCase()) ? String(data.tender).toUpperCase() : (prev?.tender ?? null),
+        ...tenderOf(data, prev),
         attendedAt: date(data.attendedAt) ?? prev?.attendedAt ?? null,
         confirmedAt: status === 'CONFIRMED' ? (date(data.confirmedAt) ?? prev?.confirmedAt ?? at) : (OUT.has(status) || status === 'PENDING' || status === 'DISPUTED' ? (status === 'DISPUTED' ? prev?.confirmedAt ?? null : null) : (date(data.confirmedAt) ?? prev?.confirmedAt ?? null)),
         disputeDeadline: date(data.disputeDeadline) ?? prev?.disputeDeadline ?? null,

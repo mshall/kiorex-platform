@@ -309,7 +309,7 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
     const run = await this.prisma.commissionRun.findUnique({ where: { id: runId } });
     if (!run) return null;
     const [claims, attempts, tl] = await Promise.all([
-      this.prisma.commissionClaim.findMany({ where: { runId }, select: { chargeId: true, appointmentId: true, amountMinor: true, collectedMinor: true, collectionStatus: true, chargeStatus: true, decisionRef: true, feeBasisMinor: true, sponsoredDiscountMinor: true, basisPolicyVersion: true, disputeStatus: true, disputeDeadline: true, tender: true, rateSource: true, rateSnapshot: true }, orderBy: { id: 'asc' } }),
+      this.prisma.commissionClaim.findMany({ where: { runId }, select: { chargeId: true, appointmentId: true, amountMinor: true, collectedMinor: true, collectionStatus: true, chargeStatus: true, decisionRef: true, feeBasisMinor: true, sponsoredDiscountMinor: true, basisPolicyVersion: true, disputeStatus: true, disputeDeadline: true, tender: true, tenderMethod: true, tenderDetail: true, rateSource: true, rateSnapshot: true }, orderBy: { id: 'asc' } }),
       this.prisma.commissionAttempt.findMany({ where: { runId }, orderBy: { createdAt: 'asc' }, select: { attemptNo: true, kind: true, provider: true, payoutRef: true, amountMinor: true, status: true, failureCode: true, scheduledFor: true, executedAt: true } }),
       this.prisma.commissionTimeline.findMany({ where: { subjectType: 'RUN', subjectId: runId }, orderBy: { at: 'asc' }, select: { at: true, event: true, actor: true } }),
     ]);

@@ -3476,6 +3476,10 @@ model CommissionClaim {
   rateSnapshot            Json?
   /// COM-3: how the patient paid the service this charge belongs to, as the product reports it: ONLINE (deposit / card through the Pay layer) or CASH (paid at the visit; Kiorex never holds cash). null = not reported.
   tender                  String?
+  /// LG-COM-20: kind of a CASH tender: CASH | CASH_TRANSFER (direct bank / InstaPay transfer or card terminal at the clinic: cash-type for accrual and netting, shown as its own kind). null = older client or not reported.
+  tenderMethod            String?
+  /// LG-COM-20: BANK_TRANSFER | INSTAPAY | CARD_TERMINAL, only with tenderMethod CASH_TRANSFER.
+  tenderDetail            String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 

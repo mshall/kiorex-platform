@@ -116,7 +116,7 @@ describe('partner settlement statement (signed partner route)', () => {
 
   it('the body of the statement has only the fields of the ops statement and none of counsel, maker, document or internal-note data; invalid periods are a 400', async () => {
     const body = (await get(P, sign({ org: ORG })).expect(200)).body;
-    expect(Object.keys(body).sort()).toEqual(['cashVisitCharges', 'cashVisitCommissionAccruedMinor', 'cashVisitCommissionNettedMinor', 'cashVisitCommissionOpenMinor', 'commission', 'currency', 'deductions', 'netPayableMinor', 'notes', 'onlineCollectionsMinor', 'orgRef', 'paidByBankTransferMinor', 'payoutMethod', 'payouts', 'period', 'reconciliation']);
+    expect(Object.keys(body).sort()).toEqual(['cashBreakdown', 'cashVisitCharges', 'cashVisitCommissionAccruedMinor', 'cashVisitCommissionNettedMinor', 'cashVisitCommissionOpenMinor', 'commission', 'currency', 'deductions', 'netPayableMinor', 'notes', 'onlineCollectionsMinor', 'orgRef', 'paidByBankTransferMinor', 'payoutMethod', 'payouts', 'period', 'reconciliation', 'unknownTender']);
     expect(JSON.stringify(body)).not.toMatch(/counsel|reviewer|proposedBy|decidedBy|approvedBy|documentUrl|conditions|internalNote|maker|sa1|sa2|fin1/i);
     await get(P, sign({ org: ORG }), { from: '2026-12-01', to: '2026-11-01' }).expect(400);
     await get(P, sign({ org: ORG }), { from: 'garbage' }).expect(400);

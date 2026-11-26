@@ -25,9 +25,21 @@
         "invoiceOpen": "Invoices open",
         "overdue": "Overdue",
         "disputedOpen": "Under dispute",
-        "creditDue": "Credit due to providers"
+        "creditDue": "Credit due to providers",
+        "cashTransfer": "Cash transfer visits (direct to the clinic)",
+        "unknownTender": "Visits with payment method not reported",
+        "unknownTenderHint": "Shown to both sides as an exception; never counted as cash or online until the clinic reports it.",
+        "exception": "Exception"
+      },
+      "tender": {
+        "CASH": "Cash at the visit",
+        "CASH_TRANSFER": "Cash transfer",
+        "ONLINE": "Online (Kiorex Pay)",
+        "NONE": "Not reported",
+        "detail": { "BANK_TRANSFER": "Bank transfer", "INSTAPAY": "InstaPay", "CARD_TERMINAL": "Card terminal" }
       },
       "col": {
+        "tender": "Paid by",
         "org": "Organisation",
         "period": "Period",
         "status": "Status",
@@ -305,6 +317,10 @@
           "online": "Online collections",
           "cashAccrued": "Cash-visit commission accrued",
           "cashNetted": "Cash-visit commission netted",
+          "cashOnlyAccrued": "Of which cash at the visit: accrued",
+          "cashTransferAccrued": "Of which cash transfer: accrued",
+          "cashTransferNetted": "Of which cash transfer: netted",
+          "unknownTender": "Visits with payment method not reported (exception)",
           "dedCommission": "Deduction: commission",
           "dedFees": "Deduction: fees",
           "dedRefunds": "Deduction: refunds",
@@ -353,9 +369,21 @@
         "invoiceOpen": "فواتير مفتوحة",
         "overdue": "متأخر",
         "disputedOpen": "قيد النزاع",
-        "creditDue": "رصيد مستحق للجهات"
+        "creditDue": "رصيد مستحق للجهات",
+        "cashTransfer": "زيارات بتحويل نقدي (مباشر للعيادة)",
+        "unknownTender": "زيارات لم تُبلَّغ طريقة دفعها",
+        "unknownTenderHint": "تظهر للطرفين كاستثناء، ولا تُحتسب نقداً ولا إلكترونياً حتى تبلّغ العيادة بطريقة الدفع.",
+        "exception": "استثناء"
+      },
+      "tender": {
+        "CASH": "نقداً عند الزيارة",
+        "CASH_TRANSFER": "تحويل نقدي",
+        "ONLINE": "إلكتروني (كيوركس باي)",
+        "NONE": "غير مُبلَّغ",
+        "detail": { "BANK_TRANSFER": "تحويل بنكي", "INSTAPAY": "إنستاباي", "CARD_TERMINAL": "ماكينة بطاقات" }
       },
       "col": {
+        "tender": "طريقة الدفع",
         "org": "الجهة",
         "period": "الفترة",
         "status": "الحالة",
@@ -633,6 +661,10 @@
           "online": "التحصيلات الإلكترونية",
           "cashAccrued": "عمولة الزيارات النقدية المستحقة",
           "cashNetted": "عمولة الزيارات النقدية المخصومة",
+          "cashOnlyAccrued": "منها نقد عند الزيارة: مستحقة",
+          "cashTransferAccrued": "منها تحويل نقدي: مستحقة",
+          "cashTransferNetted": "منها تحويل نقدي: مخصومة",
+          "unknownTender": "زيارات لم تُبلَّغ طريقة دفعها (استثناء)",
           "dedCommission": "خصم: العمولة",
           "dedFees": "خصم: الرسوم",
           "dedRefunds": "خصم: المرتجعات",
