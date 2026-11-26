@@ -1,4 +1,4 @@
-import { claimRateFinding, reconcileClaimRates, NOT_SET, computeCommissionMinor, orderFeeMinor, snapshotOf, effectiveFromAtApproval, effectiveFromProblem, expectedCommissionMinor, inForce, parseRate, rateProblems, resolveRate, type RateRowLite } from './commission-rate';
+import { claimRateFinding, reconcileClaimRates, NOT_SET, computeCommissionMinor, orderFeeMinor, snapshotOf, effectiveFromAtApproval, effectiveFromProblem, expectedCommissionMinor, parseRate, rateProblems, resolveRate, type RateRowLite } from './commission-rate';
 
 /** COM-2 pure domain. Every number below is a TEST placeholder, never a shipped rate. */
 const D = (s: string) => new Date(s);
@@ -70,10 +70,10 @@ describe('effective rate resolution (effective-dated, inheritance, override)', (
   it('only ACTIVE rows count; ties on the start take the higher version', () => {
     const pending = row({ id: 'p', version: 3, status: 'PENDING', effectiveFrom: D('2026-01-01T00:00:00Z') });
     const rejected = row({ id: 'r', version: 4, status: 'REJECTED', effectiveFrom: D('2026-01-01T00:00:00Z') });
-    expect(inForce([pending, rejected], D('2027-01-01T00:00:00Z'))).toBeNull();
+    expect(resolveRate([pending, rejected], [], D('2027-01-01T00:00:00Z')).state).toBe('NOT_SET');
     const a = row({ id: 'a', version: 1, effectiveFrom: D('2026-01-01T00:00:00Z') });
     const b = row({ id: 'b', version: 2, effectiveFrom: D('2026-01-01T00:00:00Z') });
-    expect(inForce([a, b], D('2026-02-01T00:00:00Z'))?.id).toBe('b');
+    expect(resolveRate([a, b], [], D('2026-02-01T00:00:00Z')).policyId).toBe('b');
   });
   it('an organisation INHERIT row with no default stays NOT_SET', () => {
     expect(resolveRate([], [back], D('2026-10-01T00:00:00Z')).state).toBe('NOT_SET');

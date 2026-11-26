@@ -1,11 +1,17 @@
 import { FLAG_CATALOGUE as CONTRACT_FLAGS, FLAGS, GROWTH_CONFIG_KINDS_WITH_SCHEMA, validateGrowthConfig } from '@kiorex/contracts';
 import { FLAG_CATALOGUE } from '../control-plane/flag-catalogue';
+import { CORPORATE_POLICY_DEFAULTS } from './corporate/corporate-config';
+import { FRAUD_RULES_DEFAULTS } from './fraud/fraud-config';
+import { SEO_AUTOMATION_DEFAULTS } from './seo-automation/seo-automation-config';
 import { DEFAULT_RETENTION, GROWTH_DEFAULT_MARKET, GROWTH_DEFAULT_PAYLOADS, GROWTH_FLAG, GROWTH_LAUNCH_LOCKED_FLAGS } from './growth-public';
 
 describe('growth PROPOSED_DEFAULT configuration', () => {
-  it.each(GROWTH_CONFIG_KINDS_WITH_SCHEMA)('%s default payload validates against the contracts JSON Schema', (kind) => {
-    expect(GROWTH_DEFAULT_PAYLOADS[kind]).toBeDefined();
-    expect(validateGrowthConfig(kind, GROWTH_DEFAULT_PAYLOADS[kind])).toMatchObject({ valid: true });
+  // Kinds whose shipped defaults live with their own module (contracts 1.13.0 added their schemas); MARKET_PROFILE has no default by design (per-market rows; the registry code fallback answers).
+  const OWN_DEFAULTS: Record<string, unknown> = { FRAUD_RULES: FRAUD_RULES_DEFAULTS(), SEO_AUTOMATION: SEO_AUTOMATION_DEFAULTS(), CORPORATE_POLICY: CORPORATE_POLICY_DEFAULTS() };
+  it.each(GROWTH_CONFIG_KINDS_WITH_SCHEMA.filter((k) => k !== 'MARKET_PROFILE'))('%s default payload validates against the contracts JSON Schema', (kind) => {
+    const payload = OWN_DEFAULTS[kind] ?? GROWTH_DEFAULT_PAYLOADS[kind];
+    expect(payload).toBeDefined();
+    expect(validateGrowthConfig(kind, payload)).toMatchObject({ valid: true });
   });
   it('attribution defaults are the documented ones (30 d provider window, 7 d campaign, PROVIDER_FIRST, 1000 ms dwell, 25/13 month retention)', () => {
     expect(GROWTH_DEFAULT_PAYLOADS.ATTRIBUTION_POLICY).toMatchObject({ providerTouchWindowDays: 30, campaignClickWindowDays: 7, precedence: 'PROVIDER_FIRST', minDwellMsForProviderTouch: 1000, newPatientLookbackMonths: 24, allowOfflineEvidence: false });

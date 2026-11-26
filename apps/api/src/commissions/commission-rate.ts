@@ -10,6 +10,7 @@
  */
 import { COLLECTION_MODES, type CollectionMode } from './commission-collect';
 import { dunningBounds } from './commission-bounds';
+import { commissionAmountMinor, effectiveCommissionRate, type CommissionRateHistoryRow, type CommissionRateSpec } from '@kiorex/contracts';
 
 export const RATE_PRODUCTS = ['CLINIC', 'PHARMACY', 'LAB'] as const;
 export type RateProduct = (typeof RATE_PRODUCTS)[number];
@@ -102,12 +103,15 @@ export function parseRate(raw: unknown): RateSpec {
 
 /** Commission for one charge in minor units: percent of the fee basis (rounded per `rounding`, half up when unset: what always shipped) or the flat amount, then the floor and the cap. */
 export function computeCommissionMinor(basisMinor: number, spec: RateSpec): number {
-  const exact = basisMinor * (spec.percentBps ?? 0);
-  const pct = spec.rounding === 'DOWN' ? Math.floor(exact / 10_000) : spec.rounding === 'UP' ? Math.ceil(exact / 10_000) : Math.floor((exact * 2 + 10_000) / 20_000);
-  let v = spec.feeType === 'FLAT' ? (spec.flatMinor ?? 0) : pct;
-  if (spec.minMinor != null) v = Math.max(v, spec.minMinor);
-  if (spec.maxMinor != null) v = Math.min(v, spec.maxMinor);
-  return v;
+  if (spec.feeType === 'PERCENT' && (spec.rounding === 'DOWN' || spec.rounding === 'UP')) {
+    // The contracts reference (`commissionAmountMinor`) is half-up only; DOWN and UP (COM-3, optional) are Kiorex-side and stay here.
+    const exact = basisMinor * (spec.percentBps ?? 0);
+    let v = spec.rounding === 'DOWN' ? Math.floor(exact / 10_000) : Math.ceil(exact / 10_000);
+    if (spec.minMinor != null) v = Math.max(v, spec.minMinor);
+    if (spec.maxMinor != null) v = Math.min(v, spec.maxMinor);
+    return v;
+  }
+  return commissionAmountMinor(basisMinor, spec);
 }
 
 export interface RateRowLite { id: string; scope: RateScope; kind: RateKind; version: number; status: string; spec: unknown; effectiveFrom: Date; reason: string | null }
@@ -123,19 +127,18 @@ export interface EffectiveRate {
 }
 export const NOT_SET: EffectiveRate = { state: 'NOT_SET', source: null, policyId: null, version: null, effectiveFrom: null, reason: null, spec: null };
 
-/** Newest ACTIVE row that is already in force at `at` (ties on effectiveFrom: the higher version). */
-export function inForce(rows: readonly RateRowLite[], at: Date): RateRowLite | null {
-  const live = rows.filter((r) => r.status === 'ACTIVE' && r.effectiveFrom.getTime() <= at.getTime());
-  live.sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime() || b.version - a.version);
-  return live[0] ?? null;
-}
-
+/**
+ * Resolution at an instant is the shared reference of @kiorex/contracts 1.13.0 (`effectiveCommissionRate`: newest row in force of the organisation decides, RATE = override, INHERIT = back to the default;
+ * newest start wins, ties take the higher version). Only ACTIVE rows count (pending and rejected proposals are dropped before the call); the DB row keeps its id and a default's reason is reported as stored.
+ */
 export function resolveRate(defaults: readonly RateRowLite[], orgRows: readonly RateRowLite[], at: Date): EffectiveRate {
-  const o = inForce(orgRows, at);
-  if (o && o.kind === 'RATE') return { state: 'SET', source: 'OVERRIDE', policyId: o.id, version: o.version, effectiveFrom: o.effectiveFrom, reason: o.reason, spec: parseRate(o.spec) };
-  const d = inForce(defaults, at);
-  if (d && d.kind === 'RATE') return { state: 'SET', source: 'DEFAULT', policyId: d.id, version: d.version, effectiveFrom: d.effectiveFrom, reason: d.reason, spec: parseRate(d.spec) };
-  return NOT_SET;
+  const active = (rows: readonly RateRowLite[], scope: RateScope) => rows.filter((r) => r.status === 'ACTIVE').map((row) => ({ row, h: { version: row.version, scope, kind: row.kind, effectiveFrom: row.effectiveFrom.toISOString(), reason: row.reason, spec: (row.spec ?? {}) as CommissionRateSpec } satisfies CommissionRateHistoryRow }));
+  const all = [...active(orgRows, 'ORG'), ...active(defaults, 'DEFAULT')];
+  const e = effectiveCommissionRate(all.map((x) => x.h), at);
+  if (e.state !== 'SET' || !e.source) return NOT_SET;
+  const scope: RateScope = e.source === 'OVERRIDE' ? 'ORG' : 'DEFAULT';
+  const hit = all.find((x) => x.h.scope === scope && x.h.kind === 'RATE' && x.h.version === e.version && x.h.effectiveFrom === e.effectiveFrom)!.row;
+  return { state: 'SET', source: e.source, policyId: hit.id, version: hit.version, effectiveFrom: hit.effectiveFrom, reason: hit.reason, spec: parseRate(hit.spec) };
 }
 
 /** What a charge would be under an effective rate; null while the rate is not set (no charge). */
