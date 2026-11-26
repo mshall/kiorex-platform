@@ -1,6 +1,6 @@
 # Configuration catalogue (configurability sweep, 25 Nov 2026)
 
-Status: built and tested locally; nothing pushed, published or deployed. Contracts 1.13.0 is **unpublished**: the new kinds live on branch `contracts-1.13.0` and are mirrored in the platform (`apps/api/src/growth/policy/policy-schemas.generated.ts`, refreshed by `apps/api/scripts/sync-policy-schemas.mjs`) until the founder publishes. Mirror of this file: `_docs/CONFIGURATION_CATALOG.md`.
+Status: built and tested locally; nothing pushed, published or deployed. Contracts 1.13.0 is vendored (registry publish pending); the platform reads the new kinds' schemas from its `GROWTH_CONFIG_SCHEMAS` export in `apps/api/src/growth/policy/policy-schemas.ts` (no generated copy any more). Mirror of this file: `_docs/CONFIGURATION_CATALOG.md`.
 
 ## How a number becomes configurable
 
@@ -228,7 +228,7 @@ Consent gates and quiet hours enforcement; PHI and health-targeting filters (`as
 
 ## Honest gaps
 
-1. The nine policy kinds cannot be **created** through the vendored contracts 1.12.0 client; they are validated locally and the schemas are byte-copies of the contracts branch. When 1.13.0 is vendored, delete the sync script and generated file and import from `@kiorex/contracts`.
+1. The nine policy kinds cannot be **created** through the vendored contracts 1.12.0 client; they are validated locally; the schemas now come straight from the vendored `@kiorex/contracts` 1.13.0 (`GROWTH_CONFIG_SCHEMAS`). One local patch remains: contracts' `INTEGRATION_MODES` lacks `CARD_GATEWAY` (and `BANK_IPN`), which `policy-schemas.ts` adds.
 2. `AUTOMATION_POLICY.holdoutPercent` exists in the contract but nothing consumes it yet (reserved).
 3. `EXPERIMENT_POLICY.deniedTags` can only add tags; the registry still ships the code list.
 4. Lifecycle journey step delays (for example the 30 day second re-engagement step) and the per-journey frequency parameters remain code; `LIFECYCLE_POLICY` has no place for them. Candidate for a later kind.

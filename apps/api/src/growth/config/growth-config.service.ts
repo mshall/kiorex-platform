@@ -47,7 +47,7 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  * part by F's validator. Both run on every write; nothing else may be added.
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
-/** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
+/** GRW-P3-C and P3-G kinds that the vendored contracts 1.13.0 still does not carry as growth-config kinds: validated here, accepted by `assertKind`. */
 export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...COMMISSION_POLICY_KINDS, ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
   if (isPolicyKind(kind)) { const errors = validatePolicy(kind, payload); return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> }; }

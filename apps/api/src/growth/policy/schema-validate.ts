@@ -1,7 +1,7 @@
 /**
  * Minimal JSON-Schema validator for the policy kinds (the subset the contract schemas use: type, properties, additionalProperties:false, minimum/maximum and their exclusive
- * forms, enum, items, pattern, maxItems). It exists because the vendored contracts 1.12.0 cannot validate kinds that only 1.13.0 defines; it is deleted with the sync script the
- * day 1.13.0 is vendored. Errors are `/path message` strings and never contain a payload value that is not a number or an enum member.
+ * forms, enum, items, pattern, maxItems). It exists to validate the contract kinds and the local Pay kinds without a JSON Schema library; the schemas themselves come from the vendored
+ * @kiorex/contracts 1.13.0 (GROWTH_CONFIG_SCHEMAS) plus the Pay kinds in policy-schemas.ts. Errors are `/path message` strings and never contain a payload value that is not a number or an enum member.
  */
 export type SchemaNode = {
   type?: string; properties?: Record<string, SchemaNode>; additionalProperties?: boolean; minimum?: number; maximum?: number; exclusiveMinimum?: number; exclusiveMaximum?: number;
