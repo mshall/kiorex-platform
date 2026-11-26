@@ -7,6 +7,7 @@ import { KiorlyClient } from '../kiorly/kiorly-public';
 import { PartnerRegistry } from '../partners/partners-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
+import { commissionJobIntervalMs } from './commission-bounds';
 import { CommissionPolicyService } from './commission-policy.service';
 import { RATE_PRODUCTS, snapshotOf, type RateSnapshot, type EffectiveRate, type RateKind, type RateProduct, type RateRowLite, type RateScope, effectiveFromAtApproval, effectiveFromProblem, parseRate, rateProblems, resolveRate } from './commission-rate';
 
@@ -32,7 +33,7 @@ export class CommissionRateService implements OnModuleInit {
   onModuleInit() {
     this.outbox?.register(RATE_PUSH_EVENT, (e) => this.pushToPartner(e.payload.orgRef));
     // COM-3: a dated change of the counsel record or the disclosure texts reaches the products when its time comes (the view version moves with it); the tick only queues what changed
-    if (cfg().jobsEnabled && this.outbox && this.policy) setInterval(() => { void this.syncChangedViews().catch((e) => this.log.warn(`syncChangedViews failed: ${(e as Error).message}`)); }, 15 * 60_000).unref();
+    if (cfg().jobsEnabled && this.outbox && this.policy) setInterval(() => { void this.syncChangedViews().catch((e) => this.log.warn(`syncChangedViews failed: ${(e as Error).message}`)); }, commissionJobIntervalMs()).unref();
   }
 
   private audit(actor: string, action: string, resourceId: string, metadata: Record<string, unknown>) {

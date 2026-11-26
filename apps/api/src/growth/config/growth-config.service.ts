@@ -13,7 +13,7 @@ import { growthError } from '../growth-errors';
 import { POLICY_ANNOUNCEMENT_KINDS, POLICY_GLOBAL_ONLY, POLICY_KINDS, isPolicyKind, validatePolicy } from '../policy/policy-registry';
 import { sha256Hex } from '../growth-secrets';
 import { GROWTH_DEFAULT_PAYLOADS, PROPOSED_DEFAULT_MARKER } from './growth-defaults';
-import { COMMISSION_POLICY_KINDS, COUNSEL_KIND, counselProblems, disclosureProblems } from '../../commissions/commission-policy-public';
+import { COMMISSION_POLICY_KINDS, COUNSEL_KIND, counselProblems, disclosureProblems, moneyPolicyLeadMs, moneyPolicyNoticeDays } from '../../commissions/commission-policy-public';
 import { ConfigReaders } from './config-readers';
 import { diffPayload } from '../admin/config-diff';
 import { DAILY_VERSION_BUDGET, evaluateGuardrails, findSecretViolations } from '../admin/config-guardrails';
@@ -22,6 +22,7 @@ export type ConfigScope = { scope: 'GLOBAL'; scopeId?: '' } | { scope: 'MARKET';
 export interface ConfigActor { sub: string; roles: string[] }
 /** Kinds whose change moves money or evidence rules: effectiveFrom must be at least 7 days after approval and an announcement text is required (ARCH section 16). */
 export const MONEY_POLICY_KINDS: readonly string[] = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY']; // the last: a clinic's sponsored discount changes what a provider funds, so it needs notice
+/** Default notice (7 days); the effective notice is `moneyPolicyLeadMs()` (MONEY_POLICY_NOTICE_DAYS, default 7). */
 export const MONEY_POLICY_LEAD_MS = 7 * 86_400_000;
 /** GRW-P2: kinds that move marketing money or messaging need an announcement text (10+ characters) but NO 7-day notice: they never change what a provider is charged. */
 export const ANNOUNCEMENT_KINDS: readonly string[] = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...POLICY_ANNOUNCEMENT_KINDS]; // GRW-P4-D: points rules move marketing money (no 7-day notice: they never change what a provider is charged)
@@ -247,8 +248,8 @@ export class GrowthConfigService {
     if (ANNOUNCEMENT_KINDS.includes(row.kind) && (!row.announcement || row.announcement.trim().length < 10)) errors.push('/announcement: an announcement (10+ characters) is required for this kind');
     if (MONEY_POLICY_KINDS.includes(row.kind)) {
       if (!row.announcement || row.announcement.trim().length < 10) errors.push('/announcement: a provider-facing announcement (10+ characters) is required for this kind');
-      const min = now.getTime() + MONEY_POLICY_LEAD_MS;
-      if (!row.effectiveFrom || row.effectiveFrom.getTime() < min) errors.push(`/effectiveFrom: must be at least 7 days after approval (earliest ${new Date(min).toISOString()} if approved now)`);
+      const min = now.getTime() + moneyPolicyLeadMs();
+      if (!row.effectiveFrom || row.effectiveFrom.getTime() < min) errors.push(`/effectiveFrom: must be at least ${moneyPolicyNoticeDays()} days after approval (earliest ${new Date(min).toISOString()} if approved now)`);
     }
     return { valid: errors.length === 0, errors, warnings };
   }
@@ -415,7 +416,7 @@ export class GrowthConfigService {
     if (ANNOUNCEMENT_KINDS.includes(row.kind) && (!row.announcement || row.announcement.trim().length < 10)) throw growthError('GROWTH_CONFIG_INVALID', 'An announcement text is required for this kind', { errors: ['/announcement required'] });
     if (!MONEY_POLICY_KINDS.includes(row.kind)) return;
     if (!row.announcement || row.announcement.trim().length < 10) throw growthError('GROWTH_CONFIG_INVALID', 'An announcement text for providers is required for this kind', { errors: ['/announcement required'] });
-    if (!row.effectiveFrom || row.effectiveFrom.getTime() < now.getTime() + MONEY_POLICY_LEAD_MS) throw growthError('GROWTH_CONFIG_EFFECTIVE_TOO_SOON', 'effectiveFrom must be at least 7 days after approval for this kind', { minEffectiveFrom: new Date(now.getTime() + MONEY_POLICY_LEAD_MS).toISOString() });
+    if (!row.effectiveFrom || row.effectiveFrom.getTime() < now.getTime() + moneyPolicyLeadMs()) throw growthError('GROWTH_CONFIG_EFFECTIVE_TOO_SOON', `effectiveFrom must be at least ${moneyPolicyNoticeDays()} days after approval for this kind`, { minEffectiveFrom: new Date(now.getTime() + moneyPolicyLeadMs()).toISOString() });
   }
   private async must(id: string) {
     const row = await this.prisma.growthConfigVersion.findUnique({ where: { id } });

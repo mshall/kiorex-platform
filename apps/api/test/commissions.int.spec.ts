@@ -152,6 +152,16 @@ describe('commission collection', () => {
     expect((await q().reconciliation({ orgRef: ORG })).findings.map((f) => f.code)).toEqual(['CHARGE_NE_DECISION']);
   });
 
+  it('a claim that differs from the resolved commission rate is reported (CLAIM_NE_RATE); a claim equal to it is not', async () => {
+    const R = '/api/v1/admin/commissions/rates';
+    const p = (await c.http().post(`${R}/defaults`).set(sa1).send({ product: 'CLINIC', spec: { feeType: 'PERCENT', percentBps: 1000 } }).expect(200)).body; // TEST placeholder: 10% of the 300.00 fee basis = 30.00
+    await c.http().post(`${R}/${p.id}/decide`).set(sa2).send({ approve: true }).expect(200);
+    await confirmed(ORG, '30.00'); const bad = await confirmed(ORG, '35.00');
+    const f = (await q().reconciliation({ orgRef: ORG })).findings;
+    expect(f.map((x) => x.code)).toEqual(['CLAIM_NE_RATE']);
+    expect(f[0]).toMatchObject({ ref: (await c.prisma.commissionClaim.findUniqueOrThrow({ where: { chargeId: bad } })).id, expectedMinor: 3000, actualMinor: 3500 });
+  });
+
   it('exports are CSV, role-checked and audited; the same filter exports the same rows', async () => {
     await confirmed(ORG, '100.00'); await confirmed(ORG2, '20.00');
     await c.http().get('/api/v1/admin/commissions/export/claims').set(ops).expect(403);

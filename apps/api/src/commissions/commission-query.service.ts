@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { badRequest, notFound } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
-import { AGING_BUCKETS, type Finding, agingBucket, major, reconcilePayout, reconcileRun, toCsv } from './commission-collect';
+import { reconcileClaimRates } from './commission-rate';
+import { agingBucketList, type Finding, agingBucket, major, reconcilePayout, reconcileRun, toCsv } from './commission-collect';
 import { CommissionConfigService } from './commission-config.service';
 import { buildBilingualPdf, type PdfRow } from './bilingual-pdf';
 
@@ -82,7 +83,7 @@ export class CommissionQueryService {
       this.prisma.commissionAttempt.findMany({ where: { runId: id }, orderBy: { attemptNo: 'asc' } }),
       this.prisma.commissionTimeline.findMany({ where: { subjectType: 'RUN', subjectId: id }, orderBy: { at: 'asc' } }),
     ]);
-    const findings = reconcileRun(run, claims, attempts);
+    const findings = [...reconcileRun(run, claims, attempts), ...reconcileClaimRates(claims)];
     return { run, claims, attempts, timeline, findings };
   }
 
@@ -103,7 +104,7 @@ export class CommissionQueryService {
       const open = r.status === 'INVOICE_OPEN' ? r.invoicedMinor - r.paidMinor : Math.max(0, r.claimsMinor - r.collectedMinor - r.deductedMinor);
       return { runId: r.id, orgRef: r.orgRef, periodKey: r.periodKey, status: r.status, mode: r.mode, currency: r.currency, openMinor: open, dueAt: r.invoiceDueAt ?? r.collectAt, bucket: agingBucket(r.invoiceDueAt ?? r.collectAt, now), invoiceNo: r.invoiceNo };
     }).filter((r) => r.openMinor > 0);
-    const buckets = Object.fromEntries(AGING_BUCKETS.map((b) => [b, rows.filter((r) => r.bucket === b).reduce((s, r) => s + r.openMinor, 0)]));
+    const buckets = Object.fromEntries(agingBucketList().map((b) => [b, rows.filter((r) => r.bucket === b).reduce((s, r) => s + r.openMinor, 0)]));
     return { buckets, rows };
   }
 
@@ -143,6 +144,7 @@ export class CommissionQueryService {
     ]);
     const findings: Finding[] = [];
     for (const r of runs) findings.push(...reconcileRun(r, claims, attempts));
+    findings.push(...reconcileClaimRates(claims)); // claim vs the resolved rate policy it was reported under (CLAIM_NE_RATE)
     const loose = claims.filter((c) => !c.runId && c.chargeStatus !== 'REVERSED' && c.chargeStatus !== 'WAIVED' && c.decisionAmountMinor !== null && c.decisionAmountMinor !== c.amountMinor);
     for (const c of loose) findings.push({ orgRef: c.orgRef, code: 'CHARGE_NE_DECISION', ref: c.id, expectedMinor: c.decisionAmountMinor!, actualMinor: c.amountMinor, message: 'charged amount differs from the decision amount' });
     for (const c of claims.filter((x) => x.reversedAfterCollection)) findings.push({ orgRef: c.orgRef, code: 'CREDIT_DUE', ref: c.id, expectedMinor: 0, actualMinor: c.collectedMinor, message: 'charge reversed after commission was collected: a credit is due to the provider' });

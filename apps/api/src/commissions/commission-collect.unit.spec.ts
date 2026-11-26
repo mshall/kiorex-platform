@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { agingBucketNames, agingEdges, commissionJobIntervalMs, dunningBounds, moneyPolicyLeadMs, moneyPolicyNoticeDays } from './commission-bounds';
 import { AGING_BUCKETS, afterFailure, agingBucket, collectAtOf, csvCell, duePeriod, eligibleForRun, latestCutoff, missingSettings, netSplit, parseSettings, reconcilePayout, reconcileRun, resolveSettings, settingsProblems, startingMode, toCsv, EMPTY_SETTINGS, type ClaimLite } from './commission-collect';
 import { canCommission, commissionCapabilitiesOf } from './commission-access';
 
@@ -157,5 +158,36 @@ describe('COM-3 configured dispute window and token permission', () => {
     expect(startingMode(s, { ...f, savedMethodAllowed: false })).toMatchObject({ mode: 'INVOICE_AND_COLLECT', fallbackReason: 'SAVED_METHOD_NOT_PERMITTED' });
     expect(startingMode(s, { ...f, savedMethodAllowed: true }).mode).toBe('AUTO_CHARGE_SAVED_METHOD');
     expect(startingMode(s, f).mode).toBe('AUTO_CHARGE_SAVED_METHOD');
+  });
+});
+
+describe('12.B hardcoded values now configuration (defaults unchanged)', () => {
+  const KEYS = ['COMMISSION_RETRY_DAY_MAX', 'COMMISSION_RETRY_MAX_COUNT', 'COMMISSION_GRACE_DAYS_MAX', 'COMMISSION_INVOICE_DUE_DAYS_MAX', 'COMMISSION_AGING_BUCKET_DAYS', 'COMMISSION_JOB_INTERVAL_MS', 'MONEY_POLICY_NOTICE_DAYS'];
+  afterEach(() => { for (const k of KEYS) delete process.env[k]; });
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  it('defaults equal the values that used to be literals', () => {
+    expect(dunningBounds()).toEqual({ retryDayMax: 60, retryMaxCount: 6, graceDaysMax: 30, invoiceDueDaysMax: 90 });
+    expect(agingEdges()).toEqual([30, 60, 90]); expect(agingBucketNames()).toEqual([...AGING_BUCKETS]);
+    expect(commissionJobIntervalMs()).toBe(15 * 60_000); expect(moneyPolicyNoticeDays()).toBe(7); expect(moneyPolicyLeadMs()).toBe(7 * 86_400_000);
+  });
+  it('dunning bounds widen the accepted settings; out-of-range or junk values fall back to the default', () => {
+    expect(parseSettings({ retryDays: [1, 90] }).retryDays).toBeNull(); expect(parseSettings({ graceDays: 45 }).graceDays).toBeNull(); expect(parseSettings({ invoiceDueDays: 120 }).invoiceDueDays).toBeNull();
+    process.env.COMMISSION_RETRY_DAY_MAX = '120'; process.env.COMMISSION_GRACE_DAYS_MAX = '60'; process.env.COMMISSION_INVOICE_DUE_DAYS_MAX = '180'; process.env.COMMISSION_RETRY_MAX_COUNT = '8';
+    expect(parseSettings({ retryDays: [1, 90] }).retryDays).toEqual([1, 90]); expect(parseSettings({ graceDays: 45 }).graceDays).toBe(45); expect(parseSettings({ invoiceDueDays: 120 }).invoiceDueDays).toBe(120);
+    expect(parseSettings({ retryDays: [1, 2, 3, 4, 5, 6, 7, 8] }).retryDays).toHaveLength(8);
+    process.env.COMMISSION_RETRY_DAY_MAX = '0'; process.env.COMMISSION_GRACE_DAYS_MAX = 'abc'; expect(dunningBounds().retryDayMax).toBe(60); expect(dunningBounds().graceDaysMax).toBe(30);
+  });
+  it('aging edges and bucket names follow COMMISSION_AGING_BUCKET_DAYS; invalid values keep 30/60/90', () => {
+    const now = d('2027-01-01');
+    process.env.COMMISSION_AGING_BUCKET_DAYS = '15,45,120';
+    expect(agingBucketNames()).toEqual(['CURRENT', 'D1_15', 'D16_45', 'D46_120', 'D120_PLUS']);
+    expect([agingBucket(d('2026-12-20'), now), agingBucket(d('2026-12-01'), now), agingBucket(d('2026-10-01'), now), agingBucket(d('2026-05-01'), now)]).toEqual(['D1_15', 'D16_45', 'D46_120', 'D120_PLUS']);
+    for (const bad of ['30,60', '60,30,90', 'a,b,c', '0,5,9', '30,60,400']) { process.env.COMMISSION_AGING_BUCKET_DAYS = bad; expect(agingEdges()).toEqual([30, 60, 90]); }
+  });
+  it('job interval and money-policy notice are clamped', () => {
+    process.env.COMMISSION_JOB_INTERVAL_MS = '60000'; expect(commissionJobIntervalMs()).toBe(60_000);
+    process.env.COMMISSION_JOB_INTERVAL_MS = '10'; expect(commissionJobIntervalMs()).toBe(15 * 60_000);
+    process.env.MONEY_POLICY_NOTICE_DAYS = '14'; expect(moneyPolicyLeadMs()).toBe(14 * 86_400_000);
+    process.env.MONEY_POLICY_NOTICE_DAYS = '0'; expect(moneyPolicyNoticeDays()).toBe(7); process.env.MONEY_POLICY_NOTICE_DAYS = '1.5'; expect(moneyPolicyNoticeDays()).toBe(7);
   });
 });

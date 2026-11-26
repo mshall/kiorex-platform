@@ -6,10 +6,11 @@ import { CommissionPartnerStatementService, type PartnerStatementReq } from './c
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const SIGNED = () => applyDecorators(
-  ApiHeader({ name: 'X-Kiorly-Client-Key', required: true, description: 'Partner client key (Clinic: the shared Clinic key; Pharmacy and Lab: the registered client key)' }),
+  ApiHeader({ name: 'X-Kiorly-Client-Key', required: true, description: 'Partner client key (Clinic: the Clinic key; Pharmacy and Lab: the registered client key)' }),
   ApiHeader({ name: 'X-Kiorly-Timestamp', required: true, description: 'Unix milliseconds, within 5 minutes of the server clock' }),
   ApiHeader({ name: 'X-Kiorly-Nonce', required: true, description: 'One-time value; a replay is 401' }),
-  ApiHeader({ name: 'X-Kiorly-Signature', required: true, description: 'Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret' }),
+  ApiHeader({ name: 'X-Kiorly-Signature', required: true, description: 'Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret (Clinic: its per-organisation secret, or the shared Clinic secret while the deployment still allows it)' }),
+  ApiHeader({ name: 'X-Kiorly-Query-Signature', required: false, description: 'base64url HMAC-SHA256, same secret, over "kiorly-query-v1\\n<timestamp>\\n<nonce>\\n<METHOD>\\n<path>\\n<sorted, percent-encoded key=value pairs joined by &>". Optional until the deployment sets COMMISSION_STATEMENT_QUERY_SIGNATURE=required; a present signature that does not verify is 401' }),
   ApiHeader({ name: 'X-Kiorly-Org-Ref', required: false, description: 'Clinic: the tenant id (required). Pharmacy and Lab: optional, must equal the partner registration or the request is 403' }),
   ApiUnauthorizedResponse({ description: 'Unsigned, unknown key, wrong secret, stale or replayed signature' }),
   ApiForbiddenResponse({ description: 'PARTNER_ORG_MISMATCH: another organisation was named' }),

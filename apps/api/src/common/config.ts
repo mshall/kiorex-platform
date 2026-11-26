@@ -108,6 +108,10 @@ export const cfg = () => ({
   openaiBase: env('OPENAI_EU_BASE_URL'),
   openaiKey: env('OPENAI_EU_API_KEY'),
   jobsEnabled: bool('JOBS_ENABLED', true),
+  /** Commission jobs (collection run + pending, rate/policy view sync): tick interval in ms. Default 15 minutes; clamped 1 minute .. 24 hours where it is read. */
+  commissionJobIntervalMs: num('COMMISSION_JOB_INTERVAL_MS', 15 * 60_000),
+  /** Notice before a money policy (commission, attribution, sponsored promotion) can take effect, in days. Default 7; counsel decides (13.15); clamped 1..90 where it is read. */
+  moneyPolicyNoticeDays: num('MONEY_POLICY_NOTICE_DAYS', 7),
   /** NEEDS_HUMAN: quiet hours default (local Africa/Cairo hours) */
   quietStart: num('QUIET_HOURS_START', 22),
   quietEnd: num('QUIET_HOURS_END', 8),

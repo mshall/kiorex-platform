@@ -12,6 +12,7 @@ import { CommissionClaimsService } from './commission-claims.service';
 import { COMMISSION_COLLECTOR, type CommissionCollectorPort } from './commission-collector';
 import { type CollectionSettings, afterFailure, duePeriod, eligibleForRun, netSplit, parseSettings, startingMode, type FallbackReason } from './commission-collect';
 import { CommissionConfigService } from './commission-config.service';
+import { commissionJobIntervalMs } from './commission-bounds';
 import { CommissionPolicyService } from './commission-policy.service';
 import { commissionNet, commissionReceived } from './commission-ledger';
 
@@ -38,7 +39,7 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
 
   onModuleInit() {
     this.outbox.register('kiorly.commission_collection', (e) => this.pushToClinic(e.payload.runId));
-    if (cfg().jobsEnabled) setInterval(() => { void this.runDue().catch((e) => this.log.warn(`runDue failed: ${(e as Error).message}`)); void this.processPending().catch((e) => this.log.warn(`processPending failed: ${(e as Error).message}`)); }, 15 * 60_000).unref();
+    if (cfg().jobsEnabled) setInterval(() => { void this.runDue().catch((e) => this.log.warn(`runDue failed: ${(e as Error).message}`)); void this.processPending().catch((e) => this.log.warn(`processPending failed: ${(e as Error).message}`)); }, commissionJobIntervalMs()).unref();
   }
 
   // ───────────────────────── planning ─────────────────────────

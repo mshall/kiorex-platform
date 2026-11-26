@@ -1,4 +1,5 @@
 import { signKiorlyRequest } from '@kiorex/contracts';
+import { canonicalQuery, clinicOrgSecret, signStatementQuery } from './commission-partner-signing';
 import { CommissionPartnerStatementService, type PartnerStatementReq } from './commission-partner-statement.service';
 
 const PATH = '/api/v1/partner/commissions/settlement-statement';
@@ -89,5 +90,101 @@ describe('partner settlement statement authentication', () => {
       await svc.authenticate(req({ org: 'tenant_a', ip: '9.9.9.9' })); await svc.authenticate(req({ org: 'tenant_b', ip: '9.9.9.9' }));
       await expect(svc.authenticate(req({ org: 'tenant_c', ip: '9.9.9.9' }))).rejects.toMatchObject({ status: 429 });
     } finally { delete process.env.COMMISSION_STATEMENT_RATE_IP_PER_MIN; }
+  });
+});
+
+describe('partner statement: per-organisation Clinic credentials and the signed query string', () => {
+  const MASTER = 'm'.repeat(32);
+  const ENV = ['COMMISSION_STATEMENT_ORG_KEY_MASTER', 'COMMISSION_STATEMENT_ORG_SECRETS', 'COMMISSION_STATEMENT_CLINIC_AUTH', 'COMMISSION_STATEMENT_QUERY_SIGNATURE'];
+  beforeAll(() => { process.env.RATE_LIMIT_STORE = 'memory'; });
+  afterAll(() => { delete process.env.RATE_LIMIT_STORE; });
+  afterEach(() => { for (const k of ENV) delete process.env[k]; });
+
+  function mk() {
+    const { svc } = setup();
+    const build = (o: { secret?: string; org?: string; query?: Record<string, string>; rawQuery?: string; sign?: boolean | string; tamper?: string } = {}): PartnerStatementReq => {
+      const s = signKiorlyRequest({ clientKey: CLINIC.key, clientSecret: o.secret ?? CLINIC.secret, method: 'GET', path: PATH });
+      const headers: Record<string, string> = Object.fromEntries(Object.entries(s.headers).map(([k, v]) => [k.toLowerCase(), v as string]));
+      if (o.org) headers['x-kiorly-org-ref'] = o.org;
+      const q = o.query ?? {};
+      if (o.sign) headers['x-kiorly-query-signature'] = typeof o.sign === 'string' ? o.sign : signStatementQuery(o.secret ?? CLINIC.secret, { timestamp: s.timestamp, nonce: s.nonce, method: 'GET', path: PATH, query: q });
+      const qs = o.rawQuery ?? (Object.keys(q).length ? '?' + new URLSearchParams(o.tamper ? { ...q, ...Object.fromEntries([[o.tamper, '2099-01-01']]) } : q).toString() : '');
+      return { ip: '10.0.0.2', originalUrl: PATH + qs, method: 'GET', headers, query: q };
+    };
+    return { svc, build };
+  }
+
+  it('derives a stable secret per organisation; none without a master; the explicit map wins; a short or malformed value is ignored', () => {
+    expect(clinicOrgSecret('tenant_a')).toBeNull();
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = MASTER;
+    const a = clinicOrgSecret('tenant_a'); const b = clinicOrgSecret('tenant_b');
+    expect(a).toMatch(/^[0-9a-f]{64}$/); expect(a).not.toBe(b); expect(clinicOrgSecret('tenant_a')).toBe(a);
+    process.env.COMMISSION_STATEMENT_ORG_SECRETS = JSON.stringify({ tenant_a: 'pinned-secret-0123456789', tenant_b: 'short' });
+    expect(clinicOrgSecret('tenant_a')).toBe('pinned-secret-0123456789'); expect(clinicOrgSecret('tenant_b')).toBe(b);
+    process.env.COMMISSION_STATEMENT_ORG_SECRETS = '{not json'; expect(clinicOrgSecret('tenant_a')).toBe(a);
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = 'too-short'; delete process.env.COMMISSION_STATEMENT_ORG_SECRETS; expect(clinicOrgSecret('tenant_a')).toBeNull();
+  });
+  it('default (either): the shared Clinic secret still works (backward compatible) and so does the organisation own secret', async () => {
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = MASTER;
+    const { svc, build } = mk();
+    expect(await svc.authenticate(build({ org: 'tenant_a' }))).toMatchObject({ orgRef: 'tenant_a', credential: 'SHARED' });
+    expect(await svc.authenticate(build({ org: 'tenant_a', secret: clinicOrgSecret('tenant_a')! }))).toMatchObject({ orgRef: 'tenant_a', credential: 'ORG' });
+  });
+  it('an organisation secret only opens its own organisation: tenant_a key with tenant_b in the header is 401', async () => {
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = MASTER;
+    const { svc, build } = mk();
+    await expect(svc.authenticate(build({ org: 'tenant_b', secret: clinicOrgSecret('tenant_a')! }))).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
+  });
+  it('per_org refuses the shared secret; shared ignores organisation secrets', async () => {
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = MASTER;
+    process.env.COMMISSION_STATEMENT_CLINIC_AUTH = 'per_org';
+    let m = mk();
+    await expect(m.svc.authenticate(m.build({ org: 'tenant_a' }))).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
+    expect(await m.svc.authenticate(m.build({ org: 'tenant_a', secret: clinicOrgSecret('tenant_a')! }))).toMatchObject({ credential: 'ORG' });
+    process.env.COMMISSION_STATEMENT_CLINIC_AUTH = 'shared';
+    m = mk();
+    await expect(m.svc.authenticate(m.build({ org: 'tenant_a', secret: clinicOrgSecret('tenant_a')! }))).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
+    expect(await m.svc.authenticate(m.build({ org: 'tenant_a' }))).toMatchObject({ credential: 'SHARED' });
+  });
+  it('per_org without any configured credential refuses everything (fail closed)', async () => {
+    process.env.COMMISSION_STATEMENT_CLINIC_AUTH = 'per_org';
+    const { svc, build } = mk();
+    await expect(svc.authenticate(build({ org: 'tenant_a' }))).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
+  });
+
+  it('canonical query is order independent and encoded', () => {
+    expect(canonicalQuery('to=2026-12-31&from=2026-12-01')).toBe('from=2026-12-01&to=2026-12-31');
+    expect(canonicalQuery({ to: '2026-12-31', from: '2026-12-01' })).toBe('from=2026-12-01&to=2026-12-31');
+    expect(canonicalQuery('?a=b%20c&a=a')).toBe('a=a&a=b%20c'); expect(canonicalQuery(undefined)).toBe(''); expect(canonicalQuery('')).toBe('');
+  });
+  it('a signed query verifies, whatever the order the client sent it in', async () => {
+    const { svc, build } = mk();
+    expect(await svc.authenticate(build({ org: 'tenant_a', query: { from: '2026-12-01', to: '2026-12-31' }, sign: true, rawQuery: '?to=2026-12-31&from=2026-12-01' }))).toMatchObject({ orgRef: 'tenant_a' });
+  });
+  it('a changed query value, an added parameter or a signature of another query is 401', async () => {
+    const { svc, build } = mk();
+    const code = (r: PartnerStatementReq) => svc.authenticate(r).then(() => 'OK', (e) => e.getResponse().code);
+    expect(await code(build({ org: 'tenant_a', query: { from: '2026-12-01' }, sign: true, tamper: 'from' }))).toBe('PARTNER_UNAUTHORIZED');
+    expect(await code(build({ org: 'tenant_a', query: { from: '2026-12-01' }, sign: true, tamper: 'to' }))).toBe('PARTNER_UNAUTHORIZED');
+    expect(await code(build({ org: 'tenant_a', query: { from: '2026-12-01' }, sign: 'AAAA' }))).toBe('PARTNER_UNAUTHORIZED');
+    expect(await code(build({ org: 'tenant_a', query: { from: '2026-12-01' }, sign: true }))).toBe('OK');
+  });
+  it('optional (default): an unsigned query is still accepted; required: a missing query signature is 401', async () => {
+    let m = mk();
+    expect(await m.svc.authenticate(m.build({ org: 'tenant_a', query: { from: '2026-12-01' } }))).toMatchObject({ orgRef: 'tenant_a' });
+    process.env.COMMISSION_STATEMENT_QUERY_SIGNATURE = 'required';
+    m = mk();
+    await expect(m.svc.authenticate(m.build({ org: 'tenant_a', query: { from: '2026-12-01' } }))).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
+    expect(await m.svc.authenticate(m.build({ org: 'tenant_a', query: { from: '2026-12-01' }, sign: true }))).toMatchObject({ orgRef: 'tenant_a' });
+  });
+  it('the query signature is bound to the secret: the shared-secret signature does not pass for an organisation-secret request', async () => {
+    process.env.COMMISSION_STATEMENT_ORG_KEY_MASTER = MASTER;
+    const { svc, build } = mk();
+    const own = clinicOrgSecret('tenant_a')!;
+    const r = build({ org: 'tenant_a', secret: own, query: { from: '2026-12-01' }, sign: true });
+    expect(await svc.authenticate(r)).toMatchObject({ credential: 'ORG' });
+    const bad = build({ org: 'tenant_a', secret: own, query: { from: '2026-12-01' } });
+    bad.headers['x-kiorly-query-signature'] = signStatementQuery(CLINIC.secret, { timestamp: bad.headers['x-kiorly-timestamp'] as string, nonce: bad.headers['x-kiorly-nonce'] as string, method: 'GET', path: PATH, query: { from: '2026-12-01' } });
+    await expect(svc.authenticate(bad)).rejects.toMatchObject({ response: { code: 'PARTNER_UNAUTHORIZED' } });
   });
 });

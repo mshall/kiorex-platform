@@ -1,4 +1,4 @@
-import { NOT_SET, computeCommissionMinor, orderFeeMinor, snapshotOf, effectiveFromAtApproval, effectiveFromProblem, expectedCommissionMinor, inForce, parseRate, rateProblems, resolveRate, type RateRowLite } from './commission-rate';
+import { claimRateFinding, reconcileClaimRates, NOT_SET, computeCommissionMinor, orderFeeMinor, snapshotOf, effectiveFromAtApproval, effectiveFromProblem, expectedCommissionMinor, inForce, parseRate, rateProblems, resolveRate, type RateRowLite } from './commission-rate';
 
 /** COM-2 pure domain. Every number below is a TEST placeholder, never a shipped rate. */
 const D = (s: string) => new Date(s);
@@ -133,5 +133,35 @@ describe('COM-3 rate parameters: every numeric is configurable, none is shipped'
     expect([at(null), at('HALF_UP'), at('DOWN'), at('UP')]).toEqual([15, 15, 15, 16]);
     const half = (rounding: 'HALF_UP' | 'DOWN' | 'UP' | null) => computeCommissionMinor(1050, { ...parseRate(base), percentBps: 150, rounding }); // 15.75
     expect([half(null), half('DOWN'), half('UP')]).toEqual([16, 15, 16]);
+  });
+});
+
+describe('reconciliation: claim differs from the rate (CLAIM_NE_RATE)', () => {
+  const spec = { feeType: 'PERCENT', percentBps: 1000 }; // TEST placeholder
+  const snap = { source: 'DEFAULT', policyId: 'crp_1', version: 2, effectiveFrom: '2026-01-01T00:00:00.000Z', spec, expectedMinor: 3000 };
+  const claim = (o: Record<string, unknown> = {}) => ({ id: 'ccl_1', orgRef: 'org_a', amountMinor: 3000, chargeStatus: 'CONFIRMED', feeBasisMinor: 30000, rateSnapshot: snap, ...o }) as Parameters<typeof claimRateFinding>[0];
+  it('no finding when the charge equals the rate on the fee basis', () => expect(claimRateFinding(claim())).toBeNull());
+  it('a charge that differs from the rate is a finding with expected and actual', () => {
+    expect(claimRateFinding(claim({ amountMinor: 3500 }))).toMatchObject({ code: 'CLAIM_NE_RATE', ref: 'ccl_1', orgRef: 'org_a', expectedMinor: 3000, actualMinor: 3500 });
+  });
+  it('is recomputed from the stored spec, so a stale or damaged expectedMinor cannot hide it', () => {
+    expect(claimRateFinding(claim({ amountMinor: 2500, rateSnapshot: { ...snap, expectedMinor: 2500 } }))).toMatchObject({ expectedMinor: 3000, actualMinor: 2500 });
+  });
+  it('floor, cap and flat rates are honoured', () => {
+    expect(claimRateFinding(claim({ amountMinor: 5000, rateSnapshot: { ...snap, spec: { feeType: 'PERCENT', percentBps: 1000, minMinor: 5000 } } }))).toBeNull();
+    expect(claimRateFinding(claim({ amountMinor: 1000, rateSnapshot: { ...snap, spec: { feeType: 'FLAT', flatMinor: 1200 } } }))).toMatchObject({ expectedMinor: 1200 });
+  });
+  it('falls back to the stored expectedMinor without a fee basis; nothing to compare = no finding', () => {
+    expect(claimRateFinding(claim({ feeBasisMinor: null, amountMinor: 100 }))).toMatchObject({ expectedMinor: 3000 });
+    expect(claimRateFinding(claim({ feeBasisMinor: null, rateSnapshot: { ...snap, expectedMinor: null }, amountMinor: 100 }))).toBeNull();
+  });
+  it('claims reported while no rate was set (no snapshot) and reversed or waived claims are not findings', () => {
+    expect(claimRateFinding(claim({ rateSnapshot: null, amountMinor: 1 }))).toBeNull();
+    expect(claimRateFinding(claim({ chargeStatus: 'REVERSED', amountMinor: 1 }))).toBeNull();
+    expect(claimRateFinding(claim({ chargeStatus: 'WAIVED', amountMinor: 1 }))).toBeNull();
+  });
+  it('an invalid stored spec is ignored (falls back), never throws', () => {
+    expect(() => claimRateFinding(claim({ rateSnapshot: { ...snap, spec: { feeType: 'NOPE' } } }))).not.toThrow();
+    expect(reconcileClaimRates([claim(), claim({ id: 'ccl_2', amountMinor: 1 })]).map((f) => f.ref)).toEqual(['ccl_2']);
   });
 });

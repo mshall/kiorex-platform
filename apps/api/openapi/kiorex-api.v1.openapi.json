@@ -5304,7 +5304,7 @@
           {
             "name": "X-Kiorly-Client-Key",
             "in": "header",
-            "description": "Partner client key (Clinic: the shared Clinic key; Pharmacy and Lab: the registered client key)",
+            "description": "Partner client key (Clinic: the Clinic key; Pharmacy and Lab: the registered client key)",
             "required": true,
             "schema": {
               "type": "string"
@@ -5331,8 +5331,17 @@
           {
             "name": "X-Kiorly-Signature",
             "in": "header",
-            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret",
+            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret (Clinic: its per-organisation secret, or the shared Clinic secret while the deployment still allows it)",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Query-Signature",
+            "in": "header",
+            "description": "base64url HMAC-SHA256, same secret, over \"kiorly-query-v1\\n<timestamp>\\n<nonce>\\n<METHOD>\\n<path>\\n<sorted, percent-encoded key=value pairs joined by &>\". Optional until the deployment sets COMMISSION_STATEMENT_QUERY_SIGNATURE=required; a present signature that does not verify is 401",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -5398,7 +5407,7 @@
           {
             "name": "X-Kiorly-Client-Key",
             "in": "header",
-            "description": "Partner client key (Clinic: the shared Clinic key; Pharmacy and Lab: the registered client key)",
+            "description": "Partner client key (Clinic: the Clinic key; Pharmacy and Lab: the registered client key)",
             "required": true,
             "schema": {
               "type": "string"
@@ -5425,8 +5434,17 @@
           {
             "name": "X-Kiorly-Signature",
             "in": "header",
-            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret",
+            "description": "Kiorly request HMAC over method, path (query excluded) and body hash, keyed with the partner webhook secret (Clinic: its per-organisation secret, or the shared Clinic secret while the deployment still allows it)",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Kiorly-Query-Signature",
+            "in": "header",
+            "description": "base64url HMAC-SHA256, same secret, over \"kiorly-query-v1\\n<timestamp>\\n<nonce>\\n<METHOD>\\n<path>\\n<sorted, percent-encoded key=value pairs joined by &>\". Optional until the deployment sets COMMISSION_STATEMENT_QUERY_SIGNATURE=required; a present signature that does not verify is 401",
+            "required": false,
             "schema": {
               "type": "string"
             }

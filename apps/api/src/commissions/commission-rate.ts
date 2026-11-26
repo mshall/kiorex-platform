@@ -9,6 +9,7 @@
  * organisation follows the product default again. With no organisation row the product default applies; with no default the state is NOT_SET.
  */
 import { COLLECTION_MODES, type CollectionMode } from './commission-collect';
+import { dunningBounds } from './commission-bounds';
 
 export const RATE_PRODUCTS = ['CLINIC', 'PHARMACY', 'LAB'] as const;
 export type RateProduct = (typeof RATE_PRODUCTS)[number];
@@ -74,10 +75,11 @@ export function rateProblems(raw: unknown): string[] {
   if (o.currency != null && !(typeof o.currency === 'string' && /^[A-Z]{3}$/.test(o.currency))) out.push('currency must be a 3-letter ISO 4217 code in capitals');
   if (o.rounding != null && !ROUNDINGS.includes(o.rounding as Rounding)) out.push('rounding must be HALF_UP, DOWN or UP');
   if (o.minCollectMinor != null && !isInt(o.minCollectMinor, 0, MAX_MINOR)) out.push('minCollectMinor must be a non-negative integer (minor units)');
-  if (o.graceDays != null && !isInt(o.graceDays, 0, 30)) out.push('graceDays must be an integer 0..30');
-  if (o.invoiceDueDays != null && !isInt(o.invoiceDueDays, 1, 90)) out.push('invoiceDueDays must be an integer 1..90');
+  const b = dunningBounds();
+  if (o.graceDays != null && !isInt(o.graceDays, 0, b.graceDaysMax)) out.push(`graceDays must be an integer 0..${b.graceDaysMax}`);
+  if (o.invoiceDueDays != null && !isInt(o.invoiceDueDays, 1, b.invoiceDueDaysMax)) out.push(`invoiceDueDays must be an integer 1..${b.invoiceDueDaysMax}`);
   if (o.disputeWindowDays != null && !isInt(o.disputeWindowDays, 0, 365)) out.push('disputeWindowDays must be an integer 0..365');
-  if (o.retryDays != null && !dayList(o.retryDays, 1, 60, 6)) out.push('retryDays must be ascending whole days 1..60, at most 6');
+  if (o.retryDays != null && !dayList(o.retryDays, 1, b.retryDayMax, b.retryMaxCount)) out.push(`retryDays must be ascending whole days 1..${b.retryDayMax}, at most ${b.retryMaxCount}`);
   if (o.reminderDays != null && !dayList(o.reminderDays, -30, 90, 8)) out.push('reminderDays must be ascending whole days -30..90, at most 8');
   if (o.savedMethodChargeAllowed != null && typeof o.savedMethodChargeAllowed !== 'boolean') out.push('savedMethodChargeAllowed must be true or false');
   return out;
@@ -88,11 +90,12 @@ export function parseRate(raw: unknown): RateSpec {
   const o = (raw ?? {}) as Record<string, unknown>;
   const n = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null);
   const days = (v: unknown, min: number, max: number, len: number) => (dayList(v, min, max, len) ? [...(v as number[])] : null);
+  const b = dunningBounds();
   return {
     feeType: o.feeType as FeeType, percentBps: o.feeType === 'PERCENT' ? n(o.percentBps) : null, flatMinor: o.feeType === 'FLAT' ? n(o.flatMinor) : null, minMinor: n(o.minMinor), maxMinor: n(o.maxMinor),
     mode: COLLECTION_MODES.includes(o.mode as CollectionMode) ? (o.mode as CollectionMode) : null,
     currency: typeof o.currency === 'string' && /^[A-Z]{3}$/.test(o.currency) ? o.currency : null, rounding: ROUNDINGS.includes(o.rounding as Rounding) ? (o.rounding as Rounding) : null,
-    minCollectMinor: n(o.minCollectMinor), graceDays: n(o.graceDays), retryDays: days(o.retryDays, 1, 60, 6), invoiceDueDays: n(o.invoiceDueDays), reminderDays: days(o.reminderDays, -30, 90, 8),
+    minCollectMinor: n(o.minCollectMinor), graceDays: n(o.graceDays), retryDays: days(o.retryDays, 1, b.retryDayMax, b.retryMaxCount), invoiceDueDays: n(o.invoiceDueDays), reminderDays: days(o.reminderDays, -30, 90, 8),
     disputeWindowDays: n(o.disputeWindowDays), savedMethodChargeAllowed: typeof o.savedMethodChargeAllowed === 'boolean' ? o.savedMethodChargeAllowed : null,
   };
 }
@@ -159,3 +162,23 @@ export function orderFeeMinor(goodsMinor: number, snapshot: unknown, legacyBps: 
   if (s && s.spec && rateProblems(s.spec).length === 0) return computeCommissionMinor(goodsMinor, parseRate(s.spec));
   return Math.round((goodsMinor * legacyBps) / 10000);
 }
+
+/** The part of a commission claim the rate reconciliation needs. */
+export interface RateCheckClaim { id: string; orgRef: string; amountMinor: number; chargeStatus: string; feeBasisMinor: number | null; rateSnapshot: unknown }
+
+/**
+ * Reconciliation finding "claim differs from the rate" (CLAIM_NE_RATE): the claim keeps the resolved CommissionRatePolicy it was reported under (default or override, version, spec).
+ * What that policy yields on the claim's own fee basis must equal what the Clinic charged. Recomputed from the stored spec (not the stored `expectedMinor`, which is only the fallback),
+ * so a damaged snapshot cannot hide a difference. Not a finding: reversed or waived claims, claims reported while no rate was set (no snapshot), claims without a fee basis (nothing to recompute).
+ */
+export function claimRateFinding(c: RateCheckClaim): import('./commission-collect').Finding | null {
+  if (c.chargeStatus === 'REVERSED' || c.chargeStatus === 'WAIVED') return null;
+  const snap = c.rateSnapshot as { spec?: unknown; expectedMinor?: unknown; version?: number | null; source?: string } | null;
+  if (!snap || typeof snap !== 'object') return null;
+  let expected: number | null = null;
+  if (c.feeBasisMinor != null && snap.spec && rateProblems(snap.spec).length === 0) expected = computeCommissionMinor(c.feeBasisMinor, parseRate(snap.spec));
+  else if (typeof snap.expectedMinor === 'number') expected = snap.expectedMinor;
+  if (expected === null || expected === c.amountMinor) return null;
+  return { code: 'CLAIM_NE_RATE', orgRef: c.orgRef, ref: c.id, expectedMinor: expected, actualMinor: c.amountMinor, message: `charged amount differs from the commission rate that applied (${snap.source ?? 'rate'} v${snap.version ?? '?'})` };
+}
+export const reconcileClaimRates = (claims: readonly RateCheckClaim[]) => claims.map(claimRateFinding).filter((f): f is NonNullable<typeof f> => f !== null);

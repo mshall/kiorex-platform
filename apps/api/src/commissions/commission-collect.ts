@@ -10,6 +10,8 @@
  *  - the claims of a period are exactly the CONFIRMED, undisputed, past-dispute-window, uncollected claims up to the cut-off (earlier uncollected ones carry over).
  */
 
+import { agingBucketNames, agingEdges, dunningBounds } from './commission-bounds';
+
 export const COLLECTION_MODES = ['NET_FROM_PAYOUT', 'AUTO_CHARGE_SAVED_METHOD', 'INVOICE_AND_COLLECT'] as const;
 export type CollectionMode = (typeof COLLECTION_MODES)[number];
 export const CYCLES = ['WEEKLY', 'MONTHLY'] as const;
@@ -37,16 +39,17 @@ const int = (v: unknown, min: number, max: number): number | null => (typeof v =
 /** Strict parse of a stored or submitted settings object; unknown keys are dropped, invalid values become null (and are reported by settingsProblems on the raw input). */
 export function parseSettings(raw: unknown): CollectionSettings {
   const o = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  const retry = Array.isArray(o.retryDays) && o.retryDays.every((n) => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 60) && o.retryDays.every((n, i, a) => i === 0 || n > (a[i - 1] as number)) && o.retryDays.length <= 6 ? (o.retryDays as number[]) : null;
+  const b = dunningBounds();
+  const retry = Array.isArray(o.retryDays) && o.retryDays.every((n) => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= b.retryDayMax) && o.retryDays.every((n, i, a) => i === 0 || n > (a[i - 1] as number)) && o.retryDays.length <= b.retryMaxCount ? (o.retryDays as number[]) : null;
   const cycle = CYCLES.includes(o.cycle as Cycle) ? (o.cycle as Cycle) : null;
   return {
     mode: COLLECTION_MODES.includes(o.mode as CollectionMode) ? (o.mode as CollectionMode) : null,
     cycle,
     cutoffDay: cycle === 'WEEKLY' ? int(o.cutoffDay, 1, 7) : cycle === 'MONTHLY' ? int(o.cutoffDay, 1, 28) : int(o.cutoffDay, 1, 28),
-    graceDays: int(o.graceDays, 0, 30),
+    graceDays: int(o.graceDays, 0, b.graceDaysMax),
     retryDays: retry,
     minCollectMinor: int(o.minCollectMinor, 0, 100_000_000),
-    invoiceDueDays: int(o.invoiceDueDays, 1, 90),
+    invoiceDueDays: int(o.invoiceDueDays, 1, b.invoiceDueDaysMax),
   };
 }
 
@@ -154,12 +157,15 @@ export function afterFailure(attemptNo: number, firstAttemptAt: Date, failedAt: 
 }
 
 // ───────────────────────── aging ─────────────────────────
+/** The default bucket names (edges 30/60/90). With COMMISSION_AGING_BUCKET_DAYS set the names follow the edges: use `agingBucketList()`. */
 export const AGING_BUCKETS = ['CURRENT', 'D1_30', 'D31_60', 'D61_90', 'D90_PLUS'] as const;
-export type AgingBucket = (typeof AGING_BUCKETS)[number];
+export type AgingBucket = string;
+export const agingBucketList = (): string[] => agingBucketNames();
 /** Days past due of an open item (due date null = not yet invoiced = counted from its collect-at). */
 export function agingBucket(dueAt: Date, now: Date): AgingBucket {
   const d = Math.floor((utcDay(now).getTime() - utcDay(dueAt).getTime()) / DAY);
-  return d <= 0 ? 'CURRENT' : d <= 30 ? 'D1_30' : d <= 60 ? 'D31_60' : d <= 90 ? 'D61_90' : 'D90_PLUS';
+  const e = agingEdges(); const n = agingBucketNames(e);
+  return d <= 0 ? n[0]! : d <= e[0] ? n[1]! : d <= e[1] ? n[2]! : d <= e[2] ? n[3]! : n[4]!;
 }
 
 // ───────────────────────── reconciliation ─────────────────────────
