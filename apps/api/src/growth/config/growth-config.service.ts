@@ -13,6 +13,7 @@ import { growthError } from '../growth-errors';
 import { POLICY_ANNOUNCEMENT_KINDS, POLICY_GLOBAL_ONLY, POLICY_KINDS, isPolicyKind, validatePolicy } from '../policy/policy-registry';
 import { sha256Hex } from '../growth-secrets';
 import { GROWTH_DEFAULT_PAYLOADS, PROPOSED_DEFAULT_MARKER } from './growth-defaults';
+import { COMMISSION_POLICY_KINDS, COUNSEL_KIND, counselProblems, disclosureProblems } from '../../commissions/commission-policy-public';
 import { ConfigReaders } from './config-readers';
 import { diffPayload } from '../admin/config-diff';
 import { DAILY_VERSION_BUDGET, evaluateGuardrails, findSecretViolations } from '../admin/config-guardrails';
@@ -46,9 +47,13 @@ export interface ResolvedConfig<T = Record<string, unknown>> {
  */
 export const SEO_EXTENSION_KEYS = ['templates', 'paginatedIndexable', 'reviewMarkupMinCount', 'sameDayWindowHours', 'minAvailableProviders', 'maxParentSimilarityPercent'] as const;
 /** GRW-P3-C and P3-G kinds that the vendored contracts do not know yet (1.13.0 adds them): validated here, accepted by `assertKind`. */
-export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
+export const LOCAL_CONFIG_KINDS: readonly string[] = ['LTV_POLICY', 'MARKET_PROFILE', 'LOYALTY_RULES', 'MESSAGING_CHANNELS', ...COMMISSION_POLICY_KINDS, ...POLICY_KINDS]; // POLICY_KINDS: configurability sweep (contracts 1.13.0 schemas mirrored in policy/policy-schemas.generated.ts until publish)
 export function validateGrowthConfig(kind: string, payload: unknown): { valid: true; value: Record<string, unknown> } | { valid: false; errors: string[] } {
   if (isPolicyKind(kind)) { const errors = validatePolicy(kind, payload); return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> }; }
+  if ((COMMISSION_POLICY_KINDS as readonly string[]).includes(kind)) { // COM-3: counsel sign-off and provider disclosure texts, per market, no shipped value
+    const errors = kind === COUNSEL_KIND ? counselProblems(payload) : disclosureProblems(payload);
+    return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
+  }
   if (kind === 'MESSAGING_CHANNELS') { // MSG-REAL: provider order, sender ids, secretRefs (paths only), retry, rate budgets, failover, quiet hours, template names, push deep links; per-market overrides inside
     const errors = validateMessagingChannels(payload).errors;
     return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
@@ -402,6 +407,7 @@ export class GrowthConfigService {
   private assertKind(kind: string) { if (!(GROWTH_CONFIG_KINDS as readonly string[]).includes(kind) && !LOCAL_CONFIG_KINDS.includes(kind)) throw growthError('GROWTH_INVALID_REQUEST', `Unknown config kind ${kind}`); }
   private assertScope(s: ConfigScope & { kind?: string }) {
     if (s.kind && POLICY_GLOBAL_ONLY.includes(s.kind) && s.scope !== 'GLOBAL') throw growthError('GROWTH_INVALID_REQUEST', `${s.kind} exists at GLOBAL scope only (it is read by process-wide code; a market row would be ignored)`);
+    if (s.kind && (COMMISSION_POLICY_KINDS as readonly string[]).includes(s.kind) && s.scope !== 'MARKET') throw growthError('GROWTH_INVALID_REQUEST', `${s.kind} is per market: use MARKET scope with the ISO country code`);
     if (s.scope === 'GLOBAL' && (s.scopeId ?? '') !== '') throw growthError('GROWTH_INVALID_REQUEST', 'GLOBAL scope has no scopeId');
     if (s.scope === 'MARKET' && !/^[A-Z]{2}$/.test(s.scopeId)) throw growthError('GROWTH_INVALID_REQUEST', 'MARKET scope needs an ISO country code as scopeId');
   }

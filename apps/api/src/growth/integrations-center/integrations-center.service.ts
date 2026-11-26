@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { COUNSEL_GATE_PORT, type CounselGatePort } from '../../common/counsel-gate-port';
 import { conflict, badRequest } from '../../common/errors';
 import { createMessagingAdapter, maskRecipient, type MsgChannel } from '../../messaging/messaging-public';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -19,7 +21,7 @@ export type Drift = 'NONE' | 'APPROVED_NOT_DEPLOYED' | 'REAL_NOT_APPROVED';
  */
 @Injectable()
 export class IntegrationsCenterService {
-  constructor(private readonly prisma: PrismaService, private readonly growth: IntegrationService, private readonly config: GrowthConfigService) {}
+  constructor(private readonly prisma: PrismaService, private readonly growth: IntegrationService, private readonly config: GrowthConfigService, @Optional() @Inject(COUNSEL_GATE_PORT) private readonly counsel?: CounselGatePort) {}
 
   private approvedModes(): Partial<Record<IntegrationKey, Mode>> { return (policyNow<{ modes?: Partial<Record<IntegrationKey, Mode>> }>('INTEGRATION_MODES').modes ?? {}); }
 
@@ -31,11 +33,19 @@ export class IntegrationsCenterService {
     const pending = await this.prisma.growthConfigVersion.findFirst({ where: { kind: 'INTEGRATION_MODES', scope: 'GLOBAL', scopeId: '', status: { in: ['DRAFT', 'PENDING_APPROVAL'] } }, orderBy: { version: 'desc' }, select: { id: true, status: true, payload: true, createdBy: true, createdAt: true } });
     const assistantMode = await this.config.resolve<{ model?: { mode?: string } }>('ASSISTANT_POLICY', { market }).then((r) => r.payload?.model?.mode ?? 'mock').catch(() => 'mock');
     const rows = INTEGRATIONS.map((d) => this.row(d, env, growthByKind.get(d.growthKind ?? ''), approved, checks.get(d.key), assistantMode));
+    // COM-3: the funds-flow counsel sign-off of this market gates the payment rails (and the commission collection modes) in REAL mode; mock is always allowed
+    const counsel = this.counsel ? await this.counsel.state(market).catch(() => null) : null;
+    if (counsel) for (const r of rows) {
+      if (r.group !== 'payments') continue;
+      const g = counsel.gates.find((x) => x.kind === 'PAYOUT_ROUTE' && x.key === r.key);
+      (r as Record<string, unknown>).counselGate = g ? { allowed: g.allowed, reason: g.reason, status: g.status } : null;
+    }
     return {
       generatedAt: new Date().toISOString(), market,
       summary: { total: rows.length, real: rows.filter((r) => r.mode === 'real').length, mock: rows.filter((r) => r.mode === 'mock').length, unobservable: rows.filter((r) => r.mode === null).length, drift: rows.filter((r) => r.drift !== 'NONE').length, notReady: rows.filter((r) => r.mode === 'real' && !r.ready).length },
       approvedModes: approved, pendingProposal: pending ? { id: pending.id, status: pending.status, modes: (pending.payload as { modes?: unknown }).modes ?? {}, createdBy: pending.createdBy, createdAt: pending.createdAt.toISOString() } : null,
       integrations: rows,
+      counsel: counsel ? { market: counsel.market, status: counsel.counsel.record.status, reviewedOn: counsel.counsel.record.reviewedOn || null, realBlocked: counsel.realBlocked, gates: counsel.gates.map((g) => ({ kind: g.kind, key: g.key, allowed: g.allowed, reason: g.reason })), page: '/commission-policy' } : null,
       rules: { secrets: 'Only variable names and whether each is set. No value is ever returned.', switching: 'A switch to real is a maker-checker change (INTEGRATION_MODES); this page never edits the environment.', checks: 'A connection check validates configuration and answers mock-safe; it makes no call to a vendor in this build.' },
     };
   }

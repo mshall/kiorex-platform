@@ -4539,6 +4539,100 @@
         ]
       }
     },
+    "/api/v1/admin/commissions/settlement-statement/{orgRef}": {
+      "get": {
+        "operationId": "CommissionOpsController_statementOf",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Settlement statement of one organisation and period: online collections, cash-visit commission accrued, deductions, net payable, bank reference, reconciliation status",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/settlement-statement/{orgRef}/export": {
+      "get": {
+        "operationId": "CommissionOpsController_statementCsv",
+        "parameters": [
+          {
+            "name": "orgRef",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/admin/commissions/export-audit": {
       "get": {
         "operationId": "CommissionOpsController_audits",
@@ -5043,6 +5137,145 @@
           }
         },
         "summary": "Re-send every linked organisation its current rate view over the partner channel",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/policy": {
+      "get": {
+        "operationId": "CommissionPolicyController_markets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Markets that have a commission policy record or are known to the platform",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/policy/{market}": {
+      "get": {
+        "operationId": "CommissionPolicyController_state",
+        "parameters": [
+          {
+            "name": "market",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "One market: counsel sign-off in force and pending, disclosure texts, every real-mode gate with its reason, history of both records",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/policy/{market}/propose": {
+      "post": {
+        "operationId": "CommissionPolicyController_propose",
+        "parameters": [
+          {
+            "name": "market",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyProposeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Propose a new counsel sign-off or disclosure version for a market (maker). A different super admin must approve.",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/policy/versions/{id}/decide": {
+      "post": {
+        "operationId": "CommissionPolicyController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyDecideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Approve or reject a proposal (checker: never its author). An approved change in force is pushed to the products.",
         "tags": [
           "ops"
         ]
@@ -25876,6 +26109,50 @@
             ]
           }
         }
+      },
+      "PolicyProposeBody": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "COMMISSION_COUNSEL_SIGNOFF",
+              "COMMISSION_DISCLOSURE"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "kind",
+          "payload",
+          "reason"
+        ]
+      },
+      "PolicyDecideBody": {
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "approve"
+        ]
       },
       "CreateBody": {
         "type": "object",

@@ -30,9 +30,27 @@ export interface RateSpec {
   maxMinor: number | null;
   /** Collection mode for the organisation; null = follow the collection settings (COM-1). */
   mode: CollectionMode | null;
+  /**
+   * COM-3 (all optional, null = not set here, the collection settings of the market / organisation (COM-1) answer; NO value is shipped):
+   * currency the commission is charged in; rounding of a percent charge (null = HALF_UP, what always shipped); the collection timeline (grace, dunning retries, invoice due, reminders);
+   * the dispute window; the minimum total to collect in a period; whether a provider saved-method (token) charge is permitted for the organisation.
+   */
+  currency: string | null;
+  rounding: Rounding | null;
+  minCollectMinor: number | null;
+  graceDays: number | null;
+  retryDays: number[] | null;
+  invoiceDueDays: number | null;
+  /** Reminder cadence of the collection timeline: whole days relative to the invoice due date (negative = before), ascending, at most 8. */
+  reminderDays: number[] | null;
+  disputeWindowDays: number | null;
+  savedMethodChargeAllowed: boolean | null;
 }
+export const ROUNDINGS = ['HALF_UP', 'DOWN', 'UP'] as const;
+export type Rounding = (typeof ROUNDINGS)[number];
 
-const KEYS: (keyof RateSpec)[] = ['feeType', 'percentBps', 'flatMinor', 'minMinor', 'maxMinor', 'mode'];
+const KEYS: (keyof RateSpec)[] = ['feeType', 'percentBps', 'flatMinor', 'minMinor', 'maxMinor', 'mode', 'currency', 'rounding', 'minCollectMinor', 'graceDays', 'retryDays', 'invoiceDueDays', 'reminderDays', 'disputeWindowDays', 'savedMethodChargeAllowed'];
+const dayList = (v: unknown, min: number, max: number, maxLen: number): v is number[] => Array.isArray(v) && v.length <= maxLen && v.every((n, i, a) => isInt(n, min, max) && (i === 0 || n > (a[i - 1] as number)));
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
 const MAX_MINOR = 100_000_000;
 
@@ -53,6 +71,15 @@ export function rateProblems(raw: unknown): string[] {
   for (const k of ['minMinor', 'maxMinor'] as const) if (o[k] != null && !isInt(o[k], 0, MAX_MINOR)) out.push(`${k} must be a non-negative integer (minor units)`);
   if (isInt(o.minMinor, 0, MAX_MINOR) && isInt(o.maxMinor, 0, MAX_MINOR) && o.minMinor > o.maxMinor) out.push('minMinor must not exceed maxMinor');
   if (o.mode != null && !COLLECTION_MODES.includes(o.mode as CollectionMode)) out.push('mode is not a collection mode');
+  if (o.currency != null && !(typeof o.currency === 'string' && /^[A-Z]{3}$/.test(o.currency))) out.push('currency must be a 3-letter ISO 4217 code in capitals');
+  if (o.rounding != null && !ROUNDINGS.includes(o.rounding as Rounding)) out.push('rounding must be HALF_UP, DOWN or UP');
+  if (o.minCollectMinor != null && !isInt(o.minCollectMinor, 0, MAX_MINOR)) out.push('minCollectMinor must be a non-negative integer (minor units)');
+  if (o.graceDays != null && !isInt(o.graceDays, 0, 30)) out.push('graceDays must be an integer 0..30');
+  if (o.invoiceDueDays != null && !isInt(o.invoiceDueDays, 1, 90)) out.push('invoiceDueDays must be an integer 1..90');
+  if (o.disputeWindowDays != null && !isInt(o.disputeWindowDays, 0, 365)) out.push('disputeWindowDays must be an integer 0..365');
+  if (o.retryDays != null && !dayList(o.retryDays, 1, 60, 6)) out.push('retryDays must be ascending whole days 1..60, at most 6');
+  if (o.reminderDays != null && !dayList(o.reminderDays, -30, 90, 8)) out.push('reminderDays must be ascending whole days -30..90, at most 8');
+  if (o.savedMethodChargeAllowed != null && typeof o.savedMethodChargeAllowed !== 'boolean') out.push('savedMethodChargeAllowed must be true or false');
   return out;
 }
 
@@ -60,12 +87,21 @@ export function rateProblems(raw: unknown): string[] {
 export function parseRate(raw: unknown): RateSpec {
   const o = (raw ?? {}) as Record<string, unknown>;
   const n = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null);
-  return { feeType: o.feeType as FeeType, percentBps: o.feeType === 'PERCENT' ? n(o.percentBps) : null, flatMinor: o.feeType === 'FLAT' ? n(o.flatMinor) : null, minMinor: n(o.minMinor), maxMinor: n(o.maxMinor), mode: COLLECTION_MODES.includes(o.mode as CollectionMode) ? (o.mode as CollectionMode) : null };
+  const days = (v: unknown, min: number, max: number, len: number) => (dayList(v, min, max, len) ? [...(v as number[])] : null);
+  return {
+    feeType: o.feeType as FeeType, percentBps: o.feeType === 'PERCENT' ? n(o.percentBps) : null, flatMinor: o.feeType === 'FLAT' ? n(o.flatMinor) : null, minMinor: n(o.minMinor), maxMinor: n(o.maxMinor),
+    mode: COLLECTION_MODES.includes(o.mode as CollectionMode) ? (o.mode as CollectionMode) : null,
+    currency: typeof o.currency === 'string' && /^[A-Z]{3}$/.test(o.currency) ? o.currency : null, rounding: ROUNDINGS.includes(o.rounding as Rounding) ? (o.rounding as Rounding) : null,
+    minCollectMinor: n(o.minCollectMinor), graceDays: n(o.graceDays), retryDays: days(o.retryDays, 1, 60, 6), invoiceDueDays: n(o.invoiceDueDays), reminderDays: days(o.reminderDays, -30, 90, 8),
+    disputeWindowDays: n(o.disputeWindowDays), savedMethodChargeAllowed: typeof o.savedMethodChargeAllowed === 'boolean' ? o.savedMethodChargeAllowed : null,
+  };
 }
 
-/** Commission for one charge in minor units: percent of the fee basis (round half up on exact integers) or the flat amount, then the floor and the cap. */
+/** Commission for one charge in minor units: percent of the fee basis (rounded per `rounding`, half up when unset: what always shipped) or the flat amount, then the floor and the cap. */
 export function computeCommissionMinor(basisMinor: number, spec: RateSpec): number {
-  let v = spec.feeType === 'FLAT' ? (spec.flatMinor ?? 0) : Math.floor((basisMinor * (spec.percentBps ?? 0) * 2 + 10_000) / 20_000);
+  const exact = basisMinor * (spec.percentBps ?? 0);
+  const pct = spec.rounding === 'DOWN' ? Math.floor(exact / 10_000) : spec.rounding === 'UP' ? Math.ceil(exact / 10_000) : Math.floor((exact * 2 + 10_000) / 20_000);
+  let v = spec.feeType === 'FLAT' ? (spec.flatMinor ?? 0) : pct;
   if (spec.minMinor != null) v = Math.max(v, spec.minMinor);
   if (spec.maxMinor != null) v = Math.min(v, spec.maxMinor);
   return v;

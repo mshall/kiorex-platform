@@ -2,6 +2,7 @@ import type { GrowthConfigKind } from '@kiorex/contracts';
 import { LTV_POLICY_DEFAULT } from '../cohorts/ltv-policy';
 import { LOYALTY_RULES_DEFAULT } from '../loyalty/loyalty-config';
 import { POLICY_DEFAULTS } from '../policy/policy-defaults';
+import { COUNSEL_DEFAULT, COUNSEL_KIND, DISCLOSURE_DEFAULT, DISCLOSURE_KIND } from '../../commissions/commission-policy-public';
 import { MESSAGING_CHANNELS_DEFAULT } from '../../messaging/messaging-public';
 
 /**
@@ -13,8 +14,10 @@ import { MESSAGING_CHANNELS_DEFAULT } from '../../messaging/messaging-public';
 export const PROPOSED_DEFAULT_MARKER = 'PROPOSED_DEFAULT';
 
 /** Kinds that exist in this repo before the contracts package carries their schema (W8: validated by their own validators in growth-config.service). */
-export type LocalConfigKind = 'LTV_POLICY' | 'MARKET_PROFILE' | 'LOYALTY_RULES' | 'MESSAGING_CHANNELS' | keyof typeof POLICY_DEFAULTS;
+export type LocalConfigKind = 'LTV_POLICY' | 'MARKET_PROFILE' | 'LOYALTY_RULES' | 'MESSAGING_CHANNELS' | typeof COUNSEL_KIND | typeof DISCLOSURE_KIND | keyof typeof POLICY_DEFAULTS;
 export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalConfigKind, Record<string, unknown>>> = {
+  // COM-3: no sign-off, no wording, reason hidden: real-money modes stay blocked until counsel's record is approved
+  [COUNSEL_KIND]: JSON.parse(JSON.stringify(COUNSEL_DEFAULT)), [DISCLOSURE_KIND]: JSON.parse(JSON.stringify(DISCLOSURE_DEFAULT)),
   ...POLICY_DEFAULTS, // configurability sweep: the shipped numbers of every policy kind
   // GRW-P3-C: no market literal here; MARKET_PROFILE has no default (the code fallback of the registry answers for EG, SA and AE)
   LTV_POLICY: { ...LTV_POLICY_DEFAULT },

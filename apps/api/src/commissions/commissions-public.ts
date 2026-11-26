@@ -6,3 +6,5 @@ export { canCommission, commissionCapabilitiesOf, COMMISSION_ACCESS } from './co
 
 export { CommissionRateService } from './commission-rate.service';
 export * from './commission-rate';
+export { CommissionPolicyService } from './commission-policy.service';
+export * from './commission-policy';

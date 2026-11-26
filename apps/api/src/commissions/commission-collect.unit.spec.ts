@@ -141,3 +141,21 @@ describe('collection never blocks care', () => {
     }
   });
 });
+
+describe('COM-3 configured dispute window and token permission', () => {
+  const cut = d('2026-11-20');
+  it('a dispute window on the rate (days after confirmation) replaces the reported deadline; unset keeps it', () => {
+    const c = claim({ confirmedAt: d('2026-11-10'), disputeDeadline: d('2026-11-30') });
+    expect(eligibleForRun(c, cut)).toBe(false); // reported deadline after the cut-off
+    expect(eligibleForRun(c, cut, 5)).toBe(true); // 10 Nov + 5 days = 15 Nov
+    expect(eligibleForRun(c, cut, 15)).toBe(false); // 25 Nov
+    expect(eligibleForRun(c, cut, 0)).toBe(true);
+  });
+  it('savedMethodChargeAllowed=false falls back to an invoice with its own reason; true / unset keep the saved-method charge', () => {
+    const s = { ...EMPTY_SETTINGS, mode: 'AUTO_CHARGE_SAVED_METHOD' as const };
+    const f = { provider: 'paymob', hasSavedMethod: true, payableMinor: 0 };
+    expect(startingMode(s, { ...f, savedMethodAllowed: false })).toMatchObject({ mode: 'INVOICE_AND_COLLECT', fallbackReason: 'SAVED_METHOD_NOT_PERMITTED' });
+    expect(startingMode(s, { ...f, savedMethodAllowed: true }).mode).toBe('AUTO_CHARGE_SAVED_METHOD');
+    expect(startingMode(s, f).mode).toBe('AUTO_CHARGE_SAVED_METHOD');
+  });
+});

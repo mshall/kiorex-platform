@@ -1,3 +1,4 @@
+import { CommissionSettlementService } from './commission-settlement.service';
 import { Body, Controller, ForbiddenException, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
@@ -20,7 +21,7 @@ class CommissionTriggerBody { @IsOptional() @IsString() @Matches(/^[A-Za-z0-9_-]
 @ApiTags('ops')
 @Controller('admin/commissions')
 export class CommissionOpsController {
-  constructor(private readonly q: CommissionQueryService, private readonly cfg: CommissionConfigService, private readonly run: CommissionCollectionService) {}
+  constructor(private readonly q: CommissionQueryService, private readonly cfg: CommissionConfigService, private readonly run: CommissionCollectionService, private readonly settle: CommissionSettlementService) {}
 
   private need(u: AuthUser, cap: CommissionCapability) { if (!canCommission(u.roles, cap)) throw new ForbiddenException({ code: 'COMMISSION_ROLE_REQUIRED', message: `Requires one of: ${COMMISSION_ACCESS[cap].join(', ')}` }); }
   private filter(q: Record<string, string | undefined>): Filter { return { orgRef: q.org, market: q.market, status: q.status, collectionStatus: q.collection, periodKey: q.period, from: q.from, to: q.to }; }
@@ -54,6 +55,13 @@ export class CommissionOpsController {
   timeline(@Query('org') org?: string) { return this.q.timeline(org); }
   @ApiOkResponse(OBJ) @Roles(...commissionRolesFor('read')) @Get('config')
   config(@Query('scope') scope?: string, @Query('scopeRef') scopeRef?: string) { return this.cfg.list({ scope, scopeRef }); }
+  @ApiOkResponse(OBJ) @ApiOperation({ summary: 'Settlement statement of one organisation and period: online collections, cash-visit commission accrued, deductions, net payable, bank reference, reconciliation status' }) @Roles(...commissionRolesFor('read')) @Get('settlement-statement/:orgRef')
+  statementOf(@Param('orgRef') orgRef: string, @Query('from') from?: string, @Query('to') to?: string) { return this.settle.statement(orgRef, { from, to }); }
+  @ApiOkResponse({ description: 'CSV', schema: { type: 'string' } }) @Roles(...commissionRolesFor('export')) @Get('settlement-statement/:orgRef/export')
+  @Header('content-type', 'text/csv; charset=utf-8')
+  async statementCsv(@Param('orgRef') orgRef: string, @Res({ passthrough: true }) res: { setHeader(k: string, v: string): void }, @Query('from') from?: string, @Query('to') to?: string) {
+    const r = await this.settle.exportCsv(orgRef, { from, to }); res.setHeader('content-disposition', `attachment; filename="${r.filename}"`); return r.csv;
+  }
   @ApiOkResponse(OBJ) @Roles(...commissionRolesFor('read')) @Get('export-audit')
   audits() { return this.q.exportAudits(); }
 

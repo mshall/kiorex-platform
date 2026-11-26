@@ -638,6 +638,8 @@
 | GET | `/api/v1/admin/commissions/timeline` |  |
 | GET | `/api/v1/admin/commissions/config` |  |
 | POST | `/api/v1/admin/commissions/config` |  |
+| GET | `/api/v1/admin/commissions/settlement-statement/{orgRef}` | Settlement statement of one organisation and period: online collections, cash-visit commission accrued, deductions, net payable, bank reference, reconciliation status |
+| GET | `/api/v1/admin/commissions/settlement-statement/{orgRef}/export` |  |
 | GET | `/api/v1/admin/commissions/export-audit` |  |
 | GET | `/api/v1/admin/commissions/export/{view}` | CSV export of one view (audited: who, filter, rows) |
 | GET | `/api/v1/admin/commissions/statement.pdf` | Bilingual (EN + AR) PDF statement of one organisation or of all (audited) |
@@ -653,6 +655,10 @@
 | POST | `/api/v1/admin/commissions/rates/orgs/{orgRef}` |  |
 | POST | `/api/v1/admin/commissions/rates/{id}/decide` |  |
 | POST | `/api/v1/admin/commissions/rates/resync` | Re-send every linked organisation its current rate view over the partner channel |
+| GET | `/api/v1/admin/commissions/policy` | Markets that have a commission policy record or are known to the platform |
+| GET | `/api/v1/admin/commissions/policy/{market}` | One market: counsel sign-off in force and pending, disclosure texts, every real-mode gate with its reason, history of both records |
+| POST | `/api/v1/admin/commissions/policy/{market}/propose` | Propose a new counsel sign-off or disclosure version for a market (maker). A different super admin must approve. |
+| POST | `/api/v1/admin/commissions/policy/versions/{id}/decide` | Approve or reject a proposal (checker: never its author). An approved change in force is pushed to the products. |
 | GET | `/api/v1/admin/providers` | KXM-OP-01 provider directory |
 | POST | `/api/v1/admin/providers/sync` |  |
 | GET | `/api/v1/admin/bookings` | KXM-OP-02 bookings |

@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { cfg } from '../common/config';
 import { badRequest, conflict, forbidden, notFound } from '../common/errors';
 import { newId } from '../common/ids';
 import { partnerRequest } from '../common/partner-http';
@@ -6,6 +7,7 @@ import { KiorlyClient } from '../kiorly/kiorly-public';
 import { PartnerRegistry } from '../partners/partners-public';
 import { OutboxService } from '../outbox/outbox-public';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
+import { CommissionPolicyService } from './commission-policy.service';
 import { RATE_PRODUCTS, snapshotOf, type RateSnapshot, type EffectiveRate, type RateKind, type RateProduct, type RateRowLite, type RateScope, effectiveFromAtApproval, effectiveFromProblem, parseRate, rateProblems, resolveRate } from './commission-rate';
 
 const ORG_RE = /^[A-Za-z0-9_-]{3,64}$/;
@@ -25,10 +27,12 @@ const effOut = (e: EffectiveRate) => ({ state: e.state, source: e.source, policy
 @Injectable()
 export class CommissionRateService implements OnModuleInit {
   private readonly log = new Logger('commission-rates');
-  constructor(private readonly prisma: PrismaService, @Optional() private readonly outbox?: OutboxService, @Optional() private readonly kiorly?: KiorlyClient, @Optional() private readonly partners?: PartnerRegistry) {}
+  constructor(private readonly prisma: PrismaService, @Optional() private readonly outbox?: OutboxService, @Optional() private readonly kiorly?: KiorlyClient, @Optional() private readonly partners?: PartnerRegistry, @Optional() private readonly policy?: CommissionPolicyService) {}
 
   onModuleInit() {
     this.outbox?.register(RATE_PUSH_EVENT, (e) => this.pushToPartner(e.payload.orgRef));
+    // COM-3: a dated change of the counsel record or the disclosure texts reaches the products when its time comes (the view version moves with it); the tick only queues what changed
+    if (cfg().jobsEnabled && this.outbox && this.policy) setInterval(() => { void this.syncChangedViews().catch((e) => this.log.warn(`syncChangedViews failed: ${(e as Error).message}`)); }, 15 * 60_000).unref();
   }
 
   private audit(actor: string, action: string, resourceId: string, metadata: Record<string, unknown>) {
@@ -146,12 +150,19 @@ export class CommissionRateService implements OnModuleInit {
   /** What the organisation's own admin / finance may see (read only): no actor identities. */
   async partnerView(orgRef: string, now = new Date()) {
     const v = await this.orgView(orgRef, undefined, now);
-    const strip = (r: Row) => ({ version: r.version, scope: r.scope, kind: r.kind, effectiveFrom: r.effectiveFrom, reason: r.scope === 'ORG' ? r.reason : null, spec: r.spec });
+    const facing = this.policy ? await this.policy.providerFacing(await this.policy.marketOfOrg(orgRef), now) : null;
+    const showReason = facing?.disclosure.showOverrideReason === true; // COM-3: the reason of an override is visible to the organisation only when the super admin said so (default hidden)
+    const hide = <T extends { reason: string | null }>(e: T | null): T | null => (e && !showReason ? { ...e, reason: null } : e);
+    const strip = (r: Row) => ({ version: r.version, scope: r.scope, kind: r.kind, effectiveFrom: r.effectiveFrom, reason: r.scope === 'ORG' && showReason ? r.reason : null, spec: r.spec });
     const [defaults, orgRows] = await Promise.all([
       this.prisma.commissionRatePolicy.findMany({ where: { scope: 'DEFAULT', scopeRef: v.product, status: 'ACTIVE' }, orderBy: { effectiveFrom: 'desc' }, take: 50 }),
       this.prisma.commissionRatePolicy.findMany({ where: { scope: 'ORG', scopeRef: orgRef, status: 'ACTIVE' }, orderBy: { effectiveFrom: 'desc' }, take: 100 }),
     ]);
-    return { orgRef, product: v.product, state: v.state, effective: v.effective, default: v.default, override: v.override, inheriting: v.inheriting, mode: v.mode, history: [...orgRows, ...defaults].sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime()).map(strip), version: await this.viewVersion(orgRef, v.product), asOf: now.toISOString() };
+    return {
+      orgRef, product: v.product, state: v.state, effective: hide(v.effective), default: v.default, override: hide(v.override), inheriting: v.inheriting, mode: v.mode,
+      history: [...orgRows, ...defaults].sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime() || b.version - a.version).map(strip), version: await this.viewVersion(orgRef, v.product), asOf: now.toISOString(),
+      ...(facing ? { disclosure: facing.disclosure, counsel: facing.counsel } : {}),
+    };
   }
 
   /** Monotonic version of an organisation's view for idempotent pushes: the newest decided row of either scope. */
@@ -160,8 +171,22 @@ export class CommissionRateService implements OnModuleInit {
       this.prisma.commissionRatePolicy.findFirst({ where: { scope: 'ORG', scopeRef: orgRef, status: { not: 'PENDING' } }, orderBy: { decidedAt: 'desc' }, select: { id: true, decidedAt: true } }),
       this.prisma.commissionRatePolicy.findFirst({ where: { scope: 'DEFAULT', scopeRef: product, status: { not: 'PENDING' } }, orderBy: { decidedAt: 'desc' }, select: { id: true, decidedAt: true } }),
     ]);
-    const t = Math.max(o?.decidedAt?.getTime() ?? 0, d?.decidedAt?.getTime() ?? 0);
-    return String(t);
+    const policy = this.policy ? await this.policy.stamp(await this.policy.marketOfOrg(orgRef)) : 0; // COM-3: a change of counsel status or disclosure text moves the version too
+    return String(Math.max(o?.decidedAt?.getTime() ?? 0, d?.decidedAt?.getTime() ?? 0, policy));
+  }
+
+  /** COM-3 job: queue a push for every organisation whose view version moved since its last push (a dated counsel / disclosure change that has just come into force). */
+  async syncChangedViews(): Promise<{ queued: number }> {
+    if (!this.outbox || !this.policy) return { queued: 0 };
+    const links = await this.prisma.commissionOrgRateLink.findMany({ select: { orgRef: true, product: true, lastPushedVersion: true }, take: 5000 });
+    let queued = 0;
+    for (const l of links) {
+      const now = await this.viewVersion(l.orgRef, l.product);
+      if (Number(now) <= Number(l.lastPushedVersion ?? 0)) continue;
+      await this.outbox.enqueue(this.prisma, { type: RATE_PUSH_EVENT, target: 'KIORLY', aggregateType: 'CommissionOrgRateLink', aggregateId: l.orgRef, payload: { orgRef: l.orgRef }, dedupeKey: `${RATE_PUSH_EVENT}:sync:${l.orgRef}:${now}` });
+      queued++;
+    }
+    return { queued };
   }
 
   // ───────────── org link (inherit on creation) ─────────────

@@ -24,7 +24,7 @@ describe('commission rate validation', () => {
     expect(rateProblems({ feeType: 'FLAT', flatMinor: 100, surprise: 1 })).toContain('unknown field surprise');
   });
   it('parseRate drops unknown keys and the field of the other fee type', () => {
-    expect(parseRate({ feeType: 'FLAT', flatMinor: 700, percentBps: 5, junk: 1 })).toEqual({ feeType: 'FLAT', percentBps: null, flatMinor: 700, minMinor: null, maxMinor: null, mode: null });
+    expect(parseRate({ feeType: 'FLAT', flatMinor: 700, percentBps: 5, junk: 1 })).toMatchObject({ feeType: 'FLAT', percentBps: null, flatMinor: 700, minMinor: null, maxMinor: null, mode: null, currency: null, rounding: null, retryDays: null, savedMethodChargeAllowed: null });
   });
 });
 
@@ -110,5 +110,28 @@ describe('order fee (pharmacy order, lab booking) from the snapshot', () => {
     expect(snapshotOf(NOT_SET)).toBeNull();
     const eff = resolveRate([{ id: 'd1', scope: 'DEFAULT', kind: 'RATE', version: 1, status: 'ACTIVE', spec: { feeType: 'FLAT', flatMinor: 100 }, effectiveFrom: new Date('2026-01-01T00:00:00Z'), reason: null }], [], new Date('2026-02-01T00:00:00Z'));
     expect(snapshotOf(eff)).toMatchObject({ source: 'DEFAULT', policyId: 'd1', version: 1, spec: { feeType: 'FLAT', flatMinor: 100 } });
+  });
+});
+
+describe('COM-3 rate parameters: every numeric is configurable, none is shipped', () => {
+  const base = { feeType: 'PERCENT', percentBps: 1000 };
+  it('a rate without the new fields stays valid and parses them as "not set" (follow the collection settings)', () => {
+    expect(rateProblems(base)).toEqual([]);
+    expect(parseRate(base)).toMatchObject({ currency: null, rounding: null, minCollectMinor: null, graceDays: null, retryDays: null, invoiceDueDays: null, reminderDays: null, disputeWindowDays: null, savedMethodChargeAllowed: null });
+  });
+  it('accepts and parses the timeline, dispute window, currency, rounding and token permission', () => {
+    const full = { ...base, currency: 'EGP', rounding: 'DOWN', minCollectMinor: 5000, graceDays: 3, retryDays: [2, 5], invoiceDueDays: 14, reminderDays: [-3, 0, 7], disputeWindowDays: 10, savedMethodChargeAllowed: false };
+    expect(rateProblems(full)).toEqual([]);
+    expect(parseRate(full)).toMatchObject(full);
+  });
+  it('rejects out-of-range or malformed values', () => {
+    for (const bad of [{ currency: 'egp' }, { rounding: 'BANKERS' }, { graceDays: 31 }, { retryDays: [5, 2] }, { retryDays: [1, 2, 3, 4, 5, 6, 7] }, { reminderDays: [0, 0] }, { reminderDays: [-31] }, { invoiceDueDays: 0 }, { disputeWindowDays: 366 }, { minCollectMinor: -1 }, { savedMethodChargeAllowed: 'yes' }, { junk: 1 }])
+      expect(rateProblems({ ...base, ...bad }).length).toBeGreaterThan(0);
+  });
+  it('rounding: unset = half up (what shipped), DOWN and UP follow the setting', () => {
+    const at = (rounding: 'HALF_UP' | 'DOWN' | 'UP' | null) => computeCommissionMinor(1005, { ...parseRate(base), percentBps: 150, rounding }); // 15.075
+    expect([at(null), at('HALF_UP'), at('DOWN'), at('UP')]).toEqual([15, 15, 15, 16]);
+    const half = (rounding: 'HALF_UP' | 'DOWN' | 'UP' | null) => computeCommissionMinor(1050, { ...parseRate(base), percentBps: 150, rounding }); // 15.75
+    expect([half(null), half('DOWN'), half('UP')]).toEqual([16, 15, 16]);
   });
 });

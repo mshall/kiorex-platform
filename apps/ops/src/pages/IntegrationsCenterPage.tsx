@@ -27,6 +27,11 @@ export default function IntegrationsCenterPage() {
         <>
           {!manage && <p role="note" className="mb-4 flex items-start gap-2 rounded-xl border border-dashed border-border bg-muted px-4 py-2 text-sm" data-testid="ic-readonly"><Eye className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{t("ic.readOnly")}</p>}
           <p role="note" className="mb-4 flex items-start gap-2 rounded-xl border bg-card px-4 py-2 text-sm" data-testid="ic-rules"><FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />{t("ic.rules")}</p>
+          {d.counsel && (
+            <p role="status" className="mb-4 rounded-xl border bg-card px-4 py-2 text-sm" data-testid="ic-counsel">
+              <b>{t("ic.counsel.title", { market: d.counsel.market })}</b>: {t(`commissions.policyPage.counselStatus.${d.counsel.status}`)} · {d.counsel.realBlocked > 0 ? t("ic.counsel.blocked", { count: d.counsel.realBlocked }) : t("ic.counsel.open")} <Link to="/commission-policy" className="font-semibold underline">{t("ic.counsel.link")}</Link>
+            </p>
+          )}
           {d.pendingProposal && (
             <p role="status" className="mb-4 rounded-xl border border-warning/60 bg-warning-soft px-4 py-2 text-sm text-warning" data-testid="ic-pending">
               <b>{t("ic.pending")}</b>: {Object.entries(d.pendingProposal.modes).map(([k, v]) => `${k} → ${v}`).join(", ")} <Link to="/growth/config" className="font-semibold underline">{t("ic.pendingOpen")}</Link>

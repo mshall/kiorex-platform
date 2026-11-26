@@ -18,6 +18,7 @@ import { PspConfigService } from './psp-config.service';
 import { depositLines as composeLines, splitDeposit } from './deposit-allocation';
 import { postLedgerTx } from './pay-ledger';
 import { COMMISSION_NETTING_PORT, type CommissionNettingPort } from '../common/commission-netting-port';
+import { PAYOUT_ROUTE_GATE_PORT, type PayoutRouteGatePort } from '../common/payout-route-gate-port';
 import { PayReconcileService } from './pay-reconcile.service';
 import { unavailable } from '../common/errors';
 import { PSP_EVENT_TYPES } from '../common/providers/vendors/psp-event';
@@ -48,7 +49,7 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
   /** Set by the unified layer: called (fire and forget) when a payment reaches CAPTURED or FAILED. */
   afterFinal?: (paymentId: string) => void;
   private orderHandlers = new Map<string, (p: { paymentId: string; orderRef: string; amountMinor: number }) => Promise<void>>();
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort, @Optional() @Inject(CORPORATE_BENEFIT_PORT) private readonly corporate?: CorporateBenefitPort, @Optional() @Inject(PAYMENT_SIGNALS_PORT) private readonly signals?: PaymentSignalsPort, @Optional() private readonly pspConfig?: PspConfigService, @Optional() private readonly recon?: PayReconcileService, @Optional() @Inject(COMMISSION_NETTING_PORT) private readonly netting?: CommissionNettingPort) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService, private readonly kiorly: KiorlyClient, private readonly flags: FlagsService, @Optional() @Inject(REWARDS_PORT) private readonly rewards?: RewardsPort, @Optional() @Inject(SPONSORED_PAY_PORT) private readonly sponsored?: SponsoredPayPort, @Optional() @Inject(CORPORATE_BENEFIT_PORT) private readonly corporate?: CorporateBenefitPort, @Optional() @Inject(PAYMENT_SIGNALS_PORT) private readonly signals?: PaymentSignalsPort, @Optional() private readonly pspConfig?: PspConfigService, @Optional() private readonly recon?: PayReconcileService, @Optional() @Inject(COMMISSION_NETTING_PORT) private readonly netting?: CommissionNettingPort, @Optional() @Inject(PAYOUT_ROUTE_GATE_PORT) private readonly routeGate?: PayoutRouteGatePort) {}
 
   /** What the Pay ledger holds for a deposit: the card money still held plus the credit part posted into HELD (GRW-P2-B2). Equals amountMinor - refundedMinor when no credit was used. */
   private heldMinor(p: { amountMinor: number; refundedMinor: number; rewardPostedMinor?: number; sponsoredPostedMinor?: number; corporatePostedMinor?: number }): number { return p.amountMinor - p.refundedMinor + (p.rewardPostedMinor ?? 0) + (p.sponsoredPostedMinor ?? 0) + (p.corporatePostedMinor ?? 0); } // GRW-P2-S: plus the sponsored part posted into HELD (only when postToPayLedger)
@@ -666,8 +667,16 @@ export class PayService implements OnModuleInit, OnModuleDestroy {
     const period = isoWeek(now);
     const released = await this.prisma.paymentIntent.findMany({ where: { purpose: 'DEPOSIT', status: { in: ['CAPTURED', 'PARTIALLY_REFUNDED'] }, releasedAt: { not: null }, payoutId: null, OR: [{ disputeState: null }, { disputeState: 'WON' }] } }); // PAY-READY: a deposit under dispute (or lost) is never paid out // vertical partner payouts are NEEDS_HUMAN (merchant-of-record decision)
     // GRW-P2-S payout gate: a deposit whose sponsored part sits in the Pay ledger is paid out only after the Clinic has written the DEBIT (the sponsored amount is funded from the clinic's wallet). Until then the whole deposit waits for the next run.
-    const due: PaymentIntent[] = []; const heldBack: { paymentId: string; holdMinor: number }[] = [];
+    const due: PaymentIntent[] = []; const heldBack: { paymentId: string; holdMinor: number; reason?: string }[] = [];
+    const gateMemo = new Map<string, string | null>();
     for (const p of released) {
+      // COM-3 counsel gate: in real mode a deposit whose payout / settlement route is not approved for the market waits (nothing is lost; it is paid out in the first run after counsel approves the route)
+      if (this.routeGate) {
+        const gk = `${p.clinicId}|${p.psp}`;
+        if (!gateMemo.has(gk)) gateMemo.set(gk, await this.routeGate.blockedReason(p.clinicId, p.psp));
+        const why = gateMemo.get(gk);
+        if (why) { heldBack.push({ paymentId: p.id, holdMinor: this.heldMinor(p), reason: why }); continue; }
+      }
       const hold = p.sponsoredPostedMinor > 0 ? (this.sponsored && p.bookingId ? await this.sponsored.payoutHoldMinor(p.bookingId, p.sponsoredPostedMinor) : p.sponsoredPostedMinor) : 0;
       if (hold > 0) heldBack.push({ paymentId: p.id, holdMinor: hold }); else due.push(p);
     }

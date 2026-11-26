@@ -3474,6 +3474,8 @@ model CommissionClaim {
   rateSource              String? // COM-2: OVERRIDE | DEFAULT | null (rate not set) at the time the claim was reported; never rewritten
   ratePolicyId            String?
   rateSnapshot            Json?
+  /// COM-3: how the patient paid the service this charge belongs to, as the product reports it: ONLINE (deposit / card through the Pay layer) or CASH (paid at the visit; Kiorex never holds cash). null = not reported.
+  tender                  String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 

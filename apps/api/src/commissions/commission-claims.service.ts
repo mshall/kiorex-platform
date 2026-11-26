@@ -56,6 +56,7 @@ export class CommissionClaimsService {
         feeBasisMinor: typeof data.feeBasisMinor === 'number' ? data.feeBasisMinor : (prev?.feeBasisMinor ?? null),
         sponsoredDiscountMinor: typeof data.sponsoredDiscountMinor === 'number' ? data.sponsoredDiscountMinor : (prev?.sponsoredDiscountMinor ?? null),
         basisPolicyVersion: str(data.basisPolicyVersion) ?? prev?.basisPolicyVersion ?? null,
+        tender: ['CASH', 'ONLINE'].includes(String(data.tender ?? '').toUpperCase()) ? String(data.tender).toUpperCase() : (prev?.tender ?? null),
         attendedAt: date(data.attendedAt) ?? prev?.attendedAt ?? null,
         confirmedAt: status === 'CONFIRMED' ? (date(data.confirmedAt) ?? prev?.confirmedAt ?? at) : (OUT.has(status) || status === 'PENDING' || status === 'DISPUTED' ? (status === 'DISPUTED' ? prev?.confirmedAt ?? null : null) : (date(data.confirmedAt) ?? prev?.confirmedAt ?? null)),
         disputeDeadline: date(data.disputeDeadline) ?? prev?.disputeDeadline ?? null,

@@ -18,7 +18,7 @@ export interface IcRow {
 export interface IcOverview {
   generatedAt: string; market: string; canManage: boolean;
   summary: { total: number; real: number; mock: number; unobservable: number; drift: number; notReady: number };
-  approvedModes: Record<string, "mock" | "real">; pendingProposal: { id: string; status: string; modes: Record<string, string>; createdBy: string; createdAt: string } | null;
+  counsel?: { market: string; status: string; reviewedOn: string | null; realBlocked: number; page: string } | null; approvedModes: Record<string, "mock" | "real">; pendingProposal: { id: string; status: string; modes: Record<string, string>; createdBy: string; createdAt: string } | null;
   integrations: IcRow[]; rules: { secrets: string; switching: string; checks: string };
 }
 export const useIntegrationsCenter = () => useQuery({ queryKey: ["integrations-center"], queryFn: () => rawApi<IcOverview>("GET", B) });

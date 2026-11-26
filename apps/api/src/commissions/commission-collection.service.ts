@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { cfg } from '../common/config';
 import { badRequest, conflict, notFound } from '../common/errors';
 import { newId } from '../common/ids';
@@ -12,6 +12,7 @@ import { CommissionClaimsService } from './commission-claims.service';
 import { COMMISSION_COLLECTOR, type CommissionCollectorPort } from './commission-collector';
 import { type CollectionSettings, afterFailure, duePeriod, eligibleForRun, netSplit, parseSettings, startingMode, type FallbackReason } from './commission-collect';
 import { CommissionConfigService } from './commission-config.service';
+import { CommissionPolicyService } from './commission-policy.service';
 import { commissionNet, commissionReceived } from './commission-ledger';
 
 const OPEN_RUN = ['PLANNED', 'COLLECTING', 'RETRYING', 'INVOICE_OPEN'];
@@ -32,6 +33,7 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
     private readonly outbox: OutboxService,
     private readonly kiorly: KiorlyClient,
     @Inject(COMMISSION_COLLECTOR) private readonly collector: CommissionCollectorPort,
+    @Optional() private readonly policy?: CommissionPolicyService,
   ) {}
 
   onModuleInit() {
@@ -61,19 +63,25 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
     if (existing) return { orgRef, status: 'EXISTS', runId: existing.id, periodKey: due.periodKey };
 
     const rows = await this.prisma.commissionClaim.findMany({ where: { orgRef, collectionStatus: 'UNCOLLECTED', chargeStatus: 'CONFIRMED' }, orderBy: { confirmedAt: 'asc' } });
-    const eligible = rows.filter((c) => c.currency === sample.currency && eligibleForRun(c, due.cutoff));
+    const currency = eff.rate?.currency ?? sample.currency; // COM-3: a currency configured on the rate decides which claims are collected together
+    const eligible = rows.filter((c) => c.currency === currency && eligibleForRun(c, due.cutoff, eff.rate?.disputeWindowDays ?? null));
     const total = eligible.reduce((s, c) => s + c.amountMinor, 0);
     if (!eligible.length) return { orgRef, status: 'NOTHING_DUE', periodKey: due.periodKey };
     if (total < (settings.minCollectMinor ?? 0)) return { orgRef, status: 'BELOW_MINIMUM', periodKey: due.periodKey, claimsMinor: total, detail: 'rolls to the next period, nothing is lost' };
 
     const provider = (await this.config.providerOf(orgRef))?.provider ?? null;
     const saved = provider ? await this.prisma.commissionSavedMethod.findFirst({ where: { orgRef, provider, status: 'ACTIVE' } }) : null;
-    const start = startingMode(settings, { provider, hasSavedMethod: !!saved, payableMinor: 0 });
+    const start = startingMode(settings, { provider, hasSavedMethod: !!saved, payableMinor: 0, savedMethodAllowed: eff.rate?.savedMethodChargeAllowed ?? null });
+    // COM-3 counsel gate: in REAL mode the mode the run would start with must be approved by counsel for this market (mock always passes). Blocked = no run, claims stay uncollected, nothing is lost, care is never touched.
+    if (this.policy) {
+      const g = await this.policy.gate(sample.market, 'COLLECTION_MODE', start.mode);
+      if (!g.allowed) { await this.noteBlocked(orgRef, due.periodKey, g.reason, start.mode); return { orgRef, status: 'COUNSEL_BLOCKED', periodKey: due.periodKey, claimsMinor: total, detail: `${g.reason}: ${start.mode} is not approved for real mode in ${sample.market}` }; }
+    }
     let runId: string;
     try {
       runId = await this.prisma.$transaction(async (tx) => {
         const id = newId('crn');
-        await tx.commissionRun.create({ data: { id, orgRef, market: sample.market, periodKey: due.periodKey, cutoffAt: due.cutoff, collectAt: due.collectAt, modeRequested: start.requested, mode: start.mode, fallbackReason: start.fallbackReason ?? null, provider, status: 'PLANNED', currency: sample.currency, claimsCount: eligible.length, claimsMinor: total, settingsJson: settings as object, idempotencyKey } });
+        await tx.commissionRun.create({ data: { id, orgRef, market: sample.market, periodKey: due.periodKey, cutoffAt: due.cutoff, collectAt: due.collectAt, modeRequested: start.requested, mode: start.mode, fallbackReason: start.fallbackReason ?? null, provider, status: 'PLANNED', currency, claimsCount: eligible.length, claimsMinor: total, settingsJson: settings as object, idempotencyKey } });
         const claimed = await tx.commissionClaim.updateMany({ where: { id: { in: eligible.map((c) => c.id) }, collectionStatus: 'UNCOLLECTED' }, data: { collectionStatus: 'IN_RUN', runId: id } });
         if (claimed.count !== eligible.length) throw conflict('CLAIM_RACE', 'Claims were taken by another run');
         await this.claims.timeline(tx, orgRef, id, 'RUN_PLANNED', { periodKey: due.periodKey, claims: eligible.length, claimsMinor: total, mode: start.mode, requested: start.requested, fallbackReason: start.fallbackReason ?? null, provider, by: actor }, 'RUN', actor);
@@ -87,6 +95,13 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
     await this.execute(runId, now);
     const run = await this.prisma.commissionRun.findUniqueOrThrow({ where: { id: runId } });
     return { orgRef, status: run.status, runId, periodKey: due.periodKey, claimsMinor: total };
+  }
+
+  /** One timeline row per (organisation, period, reason): the console shows why nothing ran; the 15-minute job does not repeat it. */
+  private async noteBlocked(orgRef: string, periodKey: string, reason: string, mode: string) {
+    const subjectId = `block:${orgRef}:${periodKey}:${reason}`;
+    const have = await this.prisma.commissionTimeline.findFirst({ where: { orgRef, subjectId, event: 'COUNSEL_BLOCKED' }, select: { id: true } });
+    if (!have) await this.prisma.commissionTimeline.create({ data: { orgRef, subjectType: 'RUN', subjectId, event: 'COUNSEL_BLOCKED', detail: { periodKey, reason, mode }, actor: 'system' } });
   }
 
   // ───────────────────────── execution ─────────────────────────
@@ -293,7 +308,7 @@ export class CommissionCollectionService implements OnModuleInit, CommissionNett
     const run = await this.prisma.commissionRun.findUnique({ where: { id: runId } });
     if (!run) return null;
     const [claims, attempts, tl] = await Promise.all([
-      this.prisma.commissionClaim.findMany({ where: { runId }, select: { chargeId: true, appointmentId: true, amountMinor: true, collectedMinor: true, collectionStatus: true, chargeStatus: true, decisionRef: true, feeBasisMinor: true, sponsoredDiscountMinor: true, basisPolicyVersion: true }, orderBy: { id: 'asc' } }),
+      this.prisma.commissionClaim.findMany({ where: { runId }, select: { chargeId: true, appointmentId: true, amountMinor: true, collectedMinor: true, collectionStatus: true, chargeStatus: true, decisionRef: true, feeBasisMinor: true, sponsoredDiscountMinor: true, basisPolicyVersion: true, disputeStatus: true, disputeDeadline: true, tender: true, rateSource: true, rateSnapshot: true }, orderBy: { id: 'asc' } }),
       this.prisma.commissionAttempt.findMany({ where: { runId }, orderBy: { createdAt: 'asc' }, select: { attemptNo: true, kind: true, provider: true, payoutRef: true, amountMinor: true, status: true, failureCode: true, scheduledFor: true, executedAt: true } }),
       this.prisma.commissionTimeline.findMany({ where: { subjectType: 'RUN', subjectId: runId }, orderBy: { at: 'asc' }, select: { at: true, event: true, actor: true } }),
     ]);

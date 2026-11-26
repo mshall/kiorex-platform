@@ -110,24 +110,27 @@ export function duePeriod(now: Date, s: CollectionSettings): { cutoff: Date; per
 export interface ClaimLite { id: string; amountMinor: number; decisionAmountMinor: number | null; chargeStatus: string; collectionStatus: string; confirmedAt: Date | null; disputeDeadline: Date | null; disputeStatus: string | null; currency: string }
 
 /** A claim enters the run of the period closing at `cutoff` only when confirmed, never disputed-open, past its dispute window, and not collected already. Earlier uncollected claims carry over. */
-export function eligibleForRun(c: ClaimLite, cutoff: Date): boolean {
+export function eligibleForRun(c: ClaimLite, cutoff: Date, disputeWindowDays: number | null = null): boolean {
   if (c.collectionStatus !== 'UNCOLLECTED') return false;
   if (c.chargeStatus !== 'CONFIRMED') return false;
   if (c.disputeStatus === 'OPEN') return false;
   if (!c.confirmedAt || c.confirmedAt.getTime() >= cutoff.getTime()) return false;
-  if (c.disputeDeadline && c.disputeDeadline.getTime() > cutoff.getTime()) return false;
+  // COM-3: a dispute window configured on the rate (days after confirmation) replaces the deadline the product reported; unset = the reported deadline
+  const deadline = disputeWindowDays !== null ? new Date(c.confirmedAt.getTime() + disputeWindowDays * DAY) : c.disputeDeadline;
+  if (deadline && deadline.getTime() > cutoff.getTime()) return false;
   return c.amountMinor > 0;
 }
 
 // ───────────────────────── mode and fallback ─────────────────────────
-export interface OrgFacts { provider: string | null; hasSavedMethod: boolean; payableMinor: number }
-export type FallbackReason = 'NO_PROVIDER_CHOSEN' | 'NO_SAVED_METHOD' | 'NOT_CONFIGURED' | 'NET_SHORTFALL' | 'RETRIES_EXHAUSTED' | 'RAIL_NOT_APPROVED';
+export interface OrgFacts { provider: string | null; hasSavedMethod: boolean; payableMinor: number; /** COM-3: false = a provider saved-method charge is not permitted for this organisation (undefined / true = permitted). */ savedMethodAllowed?: boolean | null }
+export type FallbackReason = 'NO_PROVIDER_CHOSEN' | 'NO_SAVED_METHOD' | 'NOT_CONFIGURED' | 'NET_SHORTFALL' | 'RETRIES_EXHAUSTED' | 'RAIL_NOT_APPROVED' | 'SAVED_METHOD_NOT_PERMITTED';
 
 /** The mode a run really starts with. The configured mode when its prerequisites hold; else the safe fallback INVOICE_AND_COLLECT with the reason (never a silent skip, never a write-off). */
 export function startingMode(s: CollectionSettings, f: OrgFacts): { mode: CollectionMode; requested: CollectionMode | null; fallbackReason?: FallbackReason } {
   const requested = s.mode;
   if (!requested) return { mode: 'INVOICE_AND_COLLECT', requested, fallbackReason: 'NOT_CONFIGURED' };
   if (requested === 'AUTO_CHARGE_SAVED_METHOD') {
+    if (f.savedMethodAllowed === false) return { mode: 'INVOICE_AND_COLLECT', requested, fallbackReason: 'SAVED_METHOD_NOT_PERMITTED' };
     if (!f.provider) return { mode: 'INVOICE_AND_COLLECT', requested, fallbackReason: 'NO_PROVIDER_CHOSEN' };
     if (!f.hasSavedMethod) return { mode: 'INVOICE_AND_COLLECT', requested, fallbackReason: 'NO_SAVED_METHOD' };
   }

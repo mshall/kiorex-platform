@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PSP_NAMES, PspConfigService } from '../pay/pay-public';
 import { type CollectionSettings, missingSettings, parseSettings, resolveSettings, settingsProblems } from './commission-collect';
 import { CommissionRateService } from './commission-rate.service';
-import type { RateProduct } from './commission-rate';
+import type { RateProduct, RateSpec } from './commission-rate';
 
 export type PolicyScope = 'MARKET' | 'ORG';
 const MARKET_RE = /^[A-Z]{2}$/;
@@ -59,17 +59,20 @@ export class CommissionConfigService {
   }
 
   /** The settings that apply to one organisation now: org override field by field over the market default; plus what is still missing. */
-  async effective(orgRef: string, market: string): Promise<{ settings: CollectionSettings; missing: string[]; marketPolicyId: string | null; orgPolicyId: string | null }> {
+  async effective(orgRef: string, market: string): Promise<{ settings: CollectionSettings; missing: string[]; marketPolicyId: string | null; orgPolicyId: string | null; rate: RateSpec | null }> {
     const [m, o] = await Promise.all([
       this.prisma.commissionPolicy.findFirst({ where: { scope: 'MARKET', scopeRef: market.toUpperCase(), status: 'ACTIVE' } }),
       this.prisma.commissionPolicy.findFirst({ where: { scope: 'ORG', scopeRef: orgRef, status: 'ACTIVE' } }),
     ]);
     const base = resolveSettings(m ? parseSettings(m.settings) : null, o ? parseSettings(o.settings) : null);
-    // COM-2: the collection mode set on the organisation's effective rate (override or product default) wins over the collection settings; null = follow the settings
+    // COM-2 / COM-3: whatever the organisation's effective rate (override or product default) sets wins over the collection settings, field by field; a null field follows the settings
     const link = await this.prisma.commissionOrgRateLink.findUnique({ where: { orgRef }, select: { product: true } });
     const rate = await this.rates.effectiveAt(orgRef, (link?.product as RateProduct | undefined) ?? 'CLINIC', new Date());
-    const settings = rate.spec?.mode ? { ...base, mode: rate.spec.mode } : base;
-    return { settings, missing: missingSettings(settings), marketPolicyId: m?.id ?? null, orgPolicyId: o?.id ?? null };
+    const r = rate.spec;
+    const settings: CollectionSettings = r ? {
+      ...base, mode: r.mode ?? base.mode, graceDays: r.graceDays ?? base.graceDays, retryDays: r.retryDays ?? base.retryDays, minCollectMinor: r.minCollectMinor ?? base.minCollectMinor, invoiceDueDays: r.invoiceDueDays ?? base.invoiceDueDays,
+    } : base;
+    return { settings, missing: missingSettings(settings), marketPolicyId: m?.id ?? null, orgPolicyId: o?.id ?? null, rate: r };
   }
 
   /** Providers an organisation may choose for a market: the enabled ones in order of preference (mock mode: all, exactly like the deposit path). */
