@@ -8,3 +8,4 @@ export { CommissionRateService } from './commission-rate.service';
 export * from './commission-rate';
 export { CommissionPolicyService } from './commission-policy.service';
 export * from './commission-policy';
+export { installCommissionDefaults, SEEDED_DEFAULT, RECOMMENDED_RATES, RECOMMENDED_MARKET_SETTINGS, RECOMMENDED_DISCLOSURE, DEFAULTS_VERSION, defaultsSeedEnabled } from './commission-defaults';

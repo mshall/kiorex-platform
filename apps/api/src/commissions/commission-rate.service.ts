@@ -18,11 +18,12 @@ export const RATE_PUSH_EVENT = 'kiorly.commission_rate';
 type Row = Awaited<ReturnType<PrismaService['commissionRatePolicy']['findFirstOrThrow']>>;
 const lite = (r: Row): RateRowLite => ({ id: r.id, scope: r.scope as RateScope, kind: r.kind as RateKind, version: r.version, status: r.status, spec: r.spec, effectiveFrom: r.effectiveFrom, reason: r.reason });
 const specOut = (r: EffectiveRate) => (r.spec ? { ...r.spec } : null);
-const effOut = (e: EffectiveRate) => ({ state: e.state, source: e.source, policyId: e.policyId, version: e.version, effectiveFrom: e.effectiveFrom, reason: e.reason, spec: specOut(e) });
+/** `provenance` (COM-4): SEEDED_DEFAULT when the row in force came from the shipped recommended defaults, null when an operator entered it (or when no rate is set). Ops and audit views only; the provider view never carries it. */
+const effOut = (e: EffectiveRate, rows: readonly Row[] = []) => ({ state: e.state, source: e.source, policyId: e.policyId, version: e.version, effectiveFrom: e.effectiveFrom, reason: e.reason, spec: specOut(e), provenance: rows.find((r) => r.id === e.policyId)?.provenance ?? null });
 
 /**
  * COM-2 commission rates per organisation type (default) and per organisation (override). Maker-checker (a DIFFERENT super admin decides), append-only, effective-dated, audited.
- * No numeric rate is shipped: with no active default and no override the organisation's state is NOT_SET (no charge, visibly "rate not set").
+ * COM-4: recommended starting defaults are installed by the versioned seed (commission-defaults.ts, provenance SEEDED_DEFAULT); with no active default and no override (seed skipped) the state is NOT_SET (no charge, visibly "rate not set").
  * The provider (organisation) side only ever sees `partnerView`: the effective rate, the default, whether an override applies, and the history of effective rows (never who proposed or decided).
  */
 @Injectable()
@@ -107,7 +108,7 @@ export class CommissionRateService implements OnModuleInit {
       const eff = resolveRate(rows.map(lite), [], now);
       const pending = rows.find((r) => r.status === 'PENDING') ?? null;
       const future = rows.filter((r) => r.status === 'ACTIVE' && r.effectiveFrom > now).sort((a, b) => a.effectiveFrom.getTime() - b.effectiveFrom.getTime())[0] ?? null;
-      out.push({ product, effective: effOut(eff), pending, upcoming: future, history: rows });
+      out.push({ product, effective: effOut(eff, rows), pending, upcoming: future, history: rows });
     }
     return out;
   }
@@ -127,7 +128,7 @@ export class CommissionRateService implements OnModuleInit {
     return {
       orgRef, product: prod, linked: !!link, linkedAt: link?.linkedAt ?? null, inheritedDefaultVersion: link?.defaultVersion ?? null,
       mode: effective.spec?.mode ?? null,
-      state: effective.state, effective: effOut(effective), default: effOut(defaultOnly), override: overrideNow ? effOut(overrideNow) : null, inheriting: effective.source !== 'OVERRIDE',
+      state: effective.state, effective: effOut(effective, [...orgRows, ...defaults]), default: effOut(defaultOnly, defaults), override: overrideNow ? effOut(overrideNow, orgRows) : null, inheriting: effective.source !== 'OVERRIDE',
       pending: orgRows.find((r) => r.status === 'PENDING') ?? null, upcoming, history: orgRows,
     };
   }

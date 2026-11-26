@@ -37,7 +37,7 @@ export const COUNSEL_DEFAULT: CounselSignoff = { status: 'NOT_REVIEWED', reviewe
 
 export interface BilingualText { en: string; ar: string }
 export interface CommissionDisclosure { rateDisclosure: BilingualText; termsSummary: BilingualText; showOverrideReason: boolean }
-/** No wording is shipped: every text is empty and the reason of an override is hidden. */
+/** Code fallback when no version is in force: every text is empty and the reason of an override is hidden. (COM-4 installs AR/EN wording only as DRAFTs pending counsel review, never as a version in force.) */
 export const DISCLOSURE_DEFAULT: CommissionDisclosure = { rateDisclosure: { en: '', ar: '' }, termsSummary: { en: '', ar: '' }, showOverrideReason: false };
 
 export const MAX_TEXT = 4000;

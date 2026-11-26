@@ -12,6 +12,7 @@
   },
   "include": [
     "prisma/seed.ts",
+    "prisma/commission-defaults-seed.ts",
     "prisma/demo/seed-demo.ts",
     "prisma/demo/provider-sync.ts"
   ],

@@ -79,7 +79,7 @@ export function validateGrowthConfig(kind: string, payload: unknown): { valid: t
   return errors.length ? { valid: false, errors } : { valid: true, value: payload as Record<string, unknown> };
 }
 
-const checksumOf = (payload: unknown) => sha256Hex(growthCanonicalJson(payload));
+export const checksumOf = (payload: unknown) => sha256Hex(growthCanonicalJson(payload));
 const isSuper = (a: ConfigActor) => a.roles.includes('super_admin');
 
 /**

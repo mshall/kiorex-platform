@@ -93,7 +93,7 @@ export class CommissionPolicyService {
   }
 
   private rowOut(r: Awaited<ReturnType<GrowthConfigService['get']>>) {
-    return { id: r.id, kind: r.kind, version: r.version, status: r.status, payload: r.payload, effectiveFrom: r.effectiveFrom, effectiveTo: r.effectiveTo, createdBy: r.createdBy, createdAt: r.createdAt, approvedBy: r.approvedBy, approvedAt: r.approvedAt, reason: r.reason };
+    return { id: r.id, kind: r.kind, version: r.version, status: r.status, payload: r.payload, effectiveFrom: r.effectiveFrom, effectiveTo: r.effectiveTo, createdBy: r.createdBy, createdAt: r.createdAt, approvedBy: r.approvedBy, approvedAt: r.approvedAt, reason: r.reason, ticket: r.ticket, provenance: r.ticket === 'SEEDED_DEFAULT' ? 'SEEDED_DEFAULT' : null };
   }
 
   /** The whole page for one market: counsel record, disclosure, every real-mode gate and the history of both kinds (newest first). */

@@ -8,6 +8,7 @@ Start with the [README](../README.md), then pick a document.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Bounded contexts, money ledger, booking consistency, flags |
 | [RUNBOOK.md](RUNBOOK.md) | Local run, env, seeds, mock providers, home-visit operations |
 | [API.md](API.md) | Generated route reference |
+| [COMMISSION_DEFAULTS.md](COMMISSION_DEFAULTS.md) | Recommended commission defaults (COM-4): values, rationale, how to change them in Ops, seed, env keys, LG-COM-20 recommendation |
 | [GROWTH.md](GROWTH.md) | Growth and acquisition engine data model, SQL functions, flags, default config (Wave 1) |
 | [SEO.md](SEO.md) | Public site: hybrid SSR role, canonical/hreflang, robots, sitemaps, caching, fallbacks, CWV, build and tests (GRW-P1-E) |
 | [ATTRIBUTION.md](ATTRIBUTION.md) | Growth attribution core: pure decision function, decisions, versioned config, touch and events, evidence (GRW-P1-B) |

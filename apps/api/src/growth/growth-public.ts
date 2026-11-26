@@ -6,7 +6,7 @@ export { GROWTH_DEFAULT_PAYLOADS, DEFAULT_RETENTION, PROPOSED_DEFAULT_MARKER } f
 export { decide, maxWindowMs, FirstTouchNotForCommissionError, PROVIDER_OWNED_KINDS, type Decision, type DecisionBooking, type DecisionPolicy, type DecisionTouch } from './attribution/decide';
 export { AttributionService, type StoredDecision, type DecideForBookingInput } from './attribution/attribution.service';
 export { AttributionPolicyResolver, toDecisionPolicy, type AttributionPolicyPayload } from './attribution/policy';
-export { GrowthConfigService, validateGrowthConfig, LOCAL_CONFIG_KINDS, MONEY_POLICY_KINDS, MONEY_POLICY_LEAD_MS, type ResolvedConfig, type ConfigActor, type ConfigScope } from './config/growth-config.service';
+export { GrowthConfigService, checksumOf as growthChecksum, validateGrowthConfig, LOCAL_CONFIG_KINDS, MONEY_POLICY_KINDS, MONEY_POLICY_LEAD_MS, type ResolvedConfig, type ConfigActor, type ConfigScope } from './config/growth-config.service';
 export { GrowthEventsService, type ServerFact } from './events/growth-events.service';
 export { SlugService, type SlugResolution } from './slugs/slug.service';
 export { slugify, candidateSlug, SLUG_PATTERN } from './slugs/slug';

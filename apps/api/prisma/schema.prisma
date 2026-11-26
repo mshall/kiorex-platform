@@ -3494,6 +3494,8 @@ model CommissionPolicy {
   status       String    @default("PENDING") // PENDING ACTIVE REJECTED SUPERSEDED
   settings     Json
   note         String?
+  provenance   String? // null = entered by an operator; SEEDED_DEFAULT = installed by the shipped recommended defaults (COM-4)
+  seedVersion  Int?
   proposedBy   String
   proposedAt   DateTime  @default(now())
   decidedBy    String?
@@ -3505,7 +3507,7 @@ model CommissionPolicy {
 }
 
 /// COM-2 commission RATES, append-only versions. scope DEFAULT (scopeRef = product) is the platform default per organisation type; scope ORG (scopeRef = orgRef) is one organisation's override or
-/// an INHERIT row that ends it. Maker-checker (the database CHECK repeats it), effective-dated (an ACTIVE row applies from effectiveFrom; older rows keep applying to older instants). No numeric default is shipped.
+/// an INHERIT row that ends it. Maker-checker (the database CHECK repeats it), effective-dated (an ACTIVE row applies from effectiveFrom; older rows keep applying to older instants). COM-4: recommended starting defaults are installed by the versioned seed with provenance SEEDED_DEFAULT (an operator row has provenance null).
 model CommissionRatePolicy {
   id            String    @id // crp_<id>
   scope         String // DEFAULT | ORG
@@ -3518,6 +3520,8 @@ model CommissionRatePolicy {
   effectiveFrom DateTime
   requestedFrom DateTime? // what was asked when approval moved the start to the approval time
   reason        String? // required for ORG rows
+  provenance    String? // null = entered by an operator through Ops; SEEDED_DEFAULT = installed by the shipped recommended defaults (COM-4, Docs/COMMISSION_DEFAULTS.md)
+  seedVersion   Int? // version of the shipped defaults set that installed it
   proposedBy    String
   proposedAt    DateTime  @default(now())
   decidedBy     String?

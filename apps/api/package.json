@@ -20,6 +20,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "ts-node --transpile-only prisma/seed.ts",
     "seo:audit": "ts-node --transpile-only scripts/seo-audit.ts",
+    "db:seed:commission-defaults": "ts-node --transpile-only prisma/commission-defaults-seed.ts",
     "db:seed:demo": "DEMO_SEED_ALLOWED=true ts-node --transpile-only prisma/demo/seed-demo.ts",
     "db:test:prepare": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/kiorex_platform_test?schema=public prisma migrate deploy",
     "openapi:export": "nest build && node dist/openapi-export.js",
