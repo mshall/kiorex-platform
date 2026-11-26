@@ -63,12 +63,13 @@ export class GrowthAdminService {
   async configHealth(market: string) {
     const out = [];
     for (const kind of EDITABLE) {
-      const r = await this.config.resolve(kind, { market });
+      // a kind with no ACTIVE version and no shipped default (FRAUD_RULES: the numbers are never invented; MARKET_PROFILE: the registry answers) is "not set", not an error: one such kind must not take the whole overview down
+      const r = await this.config.resolve(kind, { market }).catch((e: unknown) => { if (e instanceof ApiError && e.code === 'GROWTH_CONFIG_NOT_FOUND') return null; throw e; });
       const [pending, scheduled] = await Promise.all([
         this.prisma.growthConfigVersion.count({ where: { kind, status: 'PENDING_APPROVAL' } }),
         this.prisma.growthConfigVersion.count({ where: { kind, status: 'APPROVED', effectiveFrom: { gt: new Date() } } }),
       ]);
-      out.push({ kind, source: r.source, version: r.version, scope: r.scope, scopeId: r.scopeId, effectiveFrom: r.effectiveFrom?.toISOString() ?? null, pending, scheduled });
+      out.push(r ? { kind, source: r.source as string, version: r.version as number | null, scope: r.scope as string | null, scopeId: r.scopeId as string | null, effectiveFrom: r.effectiveFrom?.toISOString() ?? null, pending, scheduled } : { kind, source: 'NOT_SET', version: null, scope: null, scopeId: null, effectiveFrom: null, pending, scheduled });
     }
     return out;
   }

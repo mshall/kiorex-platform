@@ -3,7 +3,8 @@
 #   docker build -f apps/api/Dockerfile -t kiorex-api .
 #
 # NOTE (24 Nov 2026): deploy.yml has always referenced apps/api/Dockerfile but the file was not in the repository. This one is modelled on the Kiorly Clinic
-# image (migrate on boot, DB secret from Secrets Manager) and is PROPOSED: review it before the first deploy (no deploy is allowed until the founder says so).
+# image (migrate on boot, DB secret from Secrets Manager). BUILT AND BOOTED 27 Nov 2026 against a private Postgres (see Docs/DOCKER_AND_FRONTEND_BUILDS.md); still never deployed (no deploy until the founder says so).
+# Build args (browser-side, baked into the patient SPA shell this image serves; see the doc): VITE_OIDC_AUTHORITY (the exact Passport issuer, https), VITE_OIDC_CLIENT_ID, VITE_MAP_PROVIDER.
 FROM node:26-bookworm-slim AS deps
 WORKDIR /repo
 RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -20,6 +21,11 @@ COPY apps/api ./apps/api
 COPY apps/web ./apps/web
 COPY apps/widget ./apps/widget
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public"
+ARG VITE_OIDC_AUTHORITY=""
+ARG VITE_OIDC_CLIENT_ID="kiorex-web"
+ARG VITE_MAP_PROVIDER="mock"
+ENV VITE_OIDC_AUTHORITY=$VITE_OIDC_AUTHORITY VITE_OIDC_CLIENT_ID=$VITE_OIDC_CLIENT_ID VITE_MAP_PROVIDER=$VITE_MAP_PROVIDER
+RUN [ -n "$VITE_OIDC_AUTHORITY" ] || echo "WARNING: VITE_OIDC_AUTHORITY is empty: the patient SPA in this image cannot sign anyone in (pass --build-arg VITE_OIDC_AUTHORITY=https://<passport issuer>)"
 # API (prisma generate + nest build), patient SPA (dist/), public site client + SSR bundle (dist-public/)
 RUN npm run build -w apps/api && npm run build:site -w apps/web && npm run build -w apps/widget
 

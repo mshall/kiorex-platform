@@ -5,12 +5,14 @@ import { AppModule } from './app.module';
 import { buildOpenApi, setupApp } from './app.setup';
 import { cfg } from './common/config';
 import { installProcessSafetyNet } from './common/outbound-http';
+import { installJobScheduler } from './common/job-scheduler';
 import { logProviderStartup } from './common/providers/startup';
 import { verifyLeadSigningStartup } from './partner-leads/partner-leads-public';
 import { applyHttpHardening, assertProductionSecrets, corsOptions, swaggerEnabled } from './common/security';
 
 async function bootstrap() {
   installProcessSafetyNet();
+  installJobScheduler(); // before the app is created: wraps the services' setInterval timers (run on start, tick log, late-tick warning); JOBS_ENABLED=false installs nothing
   logProviderStartup(); // fail-fast: <KIND>_MODE=real without URL/credentials aborts startup (names only, never values)
   assertProductionSecrets(); // fail-fast: production never runs on the published dev secrets (names only)
   const lead = verifyLeadSigningStartup(); // fail-fast in production without PARTNER_LEAD_SIGNING_SECRET (variable name only, never the value)
@@ -27,4 +29,5 @@ async function bootstrap() {
   });
   console.log(`Kiorex API listening on :${cfg().port}/api/v1`);
 }
-void bootstrap();
+// a failed start (missing production secret, bad provider mode, port in use, DB down) must END the process non-zero: the container then restarts and the health check never turns green
+bootstrap().catch((e) => { console.error(`FATAL: the API failed to start: ${(e as Error)?.message ?? e}`); process.exit(1); });

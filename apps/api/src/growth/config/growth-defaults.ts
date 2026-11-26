@@ -4,6 +4,8 @@ import { LOYALTY_RULES_DEFAULT } from '../loyalty/loyalty-config';
 import { POLICY_DEFAULTS } from '../policy/policy-defaults';
 import { COUNSEL_DEFAULT, COUNSEL_KIND, DISCLOSURE_DEFAULT, DISCLOSURE_KIND } from '../../commissions/commission-policy-public';
 import { MESSAGING_CHANNELS_DEFAULT } from '../../messaging/messaging-public';
+import { CORPORATE_POLICY_DEFAULTS } from '../corporate/corporate-config';
+import { SEO_AUTOMATION_DEFAULTS } from '../seo-automation/seo-automation-config';
 
 /**
  * PROPOSED_DEFAULT payloads for the growth configuration kinds (GROWTH_ARCHITECTURE_DECISIONS section 6.3 and 16, work-packages file section 7:
@@ -19,6 +21,9 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalCon
   // COM-3: no sign-off, no wording, reason hidden: real-money modes stay blocked until counsel's record is approved
   [COUNSEL_KIND]: JSON.parse(JSON.stringify(COUNSEL_DEFAULT)), [DISCLOSURE_KIND]: JSON.parse(JSON.stringify(DISCLOSURE_DEFAULT)),
   ...POLICY_DEFAULTS, // configurability sweep: the shipped numbers of every policy kind
+  // contracts 1.13.0 lists these two kinds, so the config health read model and the console iterate them: they need a PROPOSED_DEFAULT like every other kind (the services keep reading their own ACTIVE rows)
+  CORPORATE_POLICY: CORPORATE_POLICY_DEFAULTS() as unknown as Record<string, unknown>,
+  SEO_AUTOMATION: SEO_AUTOMATION_DEFAULTS() as unknown as Record<string, unknown>,
   // GRW-P3-C: no market literal here; MARKET_PROFILE has no default (the code fallback of the registry answers for EG, SA and AE)
   LTV_POLICY: { ...LTV_POLICY_DEFAULT },
   // MSG-REAL: no secret, no sender id, no provider choice: mode (mock|real) stays in the environment; this is the behaviour envelope an operator then tunes per market
