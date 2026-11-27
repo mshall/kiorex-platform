@@ -10,7 +10,7 @@ import { signIn } from "./helpers";
  * a lane running its own Vite on another port cannot use the Passport redirect, so it injects the session of the same real login.
  * Screenshots: _docs/test-flow/growth-p3/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p3") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p as string)) as string | undefined;
 const API = process.env.KIOREX_API_URL ?? "http://localhost:4000";
 const RUN = Date.now().toString(36); const KEY = `pw-exp-${RUN}`;

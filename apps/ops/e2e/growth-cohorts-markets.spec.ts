@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
  * no horizontal page overflow, axe serious and critical clean (colour contrast included), keyboard-only step walk, the wizard never offers a way to go live. The cohort fixture is 140 synthetic patients written to the private database
  * and recomputed through the real rollup endpoint; the wizard plan ZY is the one suite 38 made. Sign-in: the injected session of a real Passport login (PW_SESSION_JSON). Screenshots: _docs/test-flow/growth-p3/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p3") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };

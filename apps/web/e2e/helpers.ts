@@ -6,6 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const API = process.env.KIOREX_API_URL ?? "http://localhost:4000";
+/** The Passport (dev IdP) and its database. Defaults are the shared dev stack; a PRIVATE stack (e2e/scripts/reg-stack.sh) sets PW_PASSPORT_URL=http://localhost:4810, PW_ACCOUNT_DB=reg_kiorex_account and starts the web with VITE_OIDC_AUTHORITY=<same url>. */
+export const PASSPORT_URL = process.env.PW_PASSPORT_URL ?? "http://localhost:4400";
+export const ACCOUNT_DB = process.env.PW_ACCOUNT_DB ?? "kiorex_account";
+export const PASSPORT_HOST_RE = new RegExp(PASSPORT_URL.replace(/^https?:\/\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 export const PATIENT_PHONE = "+201000000001"; // seeded test patient (INTEGRATION.md); dev IdP accepts OTP 000000 outside production
 export const OPS_PHONE = "+201000000099"; // seeded ops super admin
 export const DEV_OTP = "000000";
@@ -14,7 +18,7 @@ const AUTH_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".au
 /** The dev IdP allows 5 OTP sends per phone per hour; re-running the suite would trip it. Clears only the counters (never sessions). Best effort. */
 export function resetOtpLimits() {
   try {
-    execFileSync(process.env.PSQL ?? "/Users/postgres/bin/psql", ["-h", "127.0.0.1", "-p", "5433", "-U", "postgres", "-d", "kiorex_account", "-c", "TRUNCATE otp_challenges, otp_send_log, otp_lockouts"], { env: { ...process.env, PGPASSWORD: "postgres" }, stdio: "ignore" });
+    execFileSync(process.env.PSQL ?? "/Users/postgres/bin/psql", ["-h", "127.0.0.1", "-p", "5433", "-U", "postgres", "-d", ACCOUNT_DB, "-c", "TRUNCATE otp_challenges, otp_send_log, otp_lockouts"], { env: { ...process.env, PGPASSWORD: "postgres" }, stdio: "ignore" });
   } catch { /* psql not available: the cached sign-in below usually avoids needing it */ }
 }
 
@@ -59,7 +63,7 @@ export async function signIn(page: Page, to = "/", phone: string = PATIENT_PHONE
   resetOtpLimits();
   await page.goto("/");
   await page.getByTestId("sign-in").click();
-  await page.waitForURL(/localhost:4400/);
+  await page.waitForURL(PASSPORT_HOST_RE);
   await uiLogin(page, phone, /localhost:5180/);
   const fresh = await readOidc(page);
   if (fresh) writeCache(cacheName, fresh);
@@ -79,7 +83,7 @@ export async function opsToken(browser: Browser): Promise<string> {
   const ctx = await browser.newContext({ baseURL: "http://localhost:5181" });
   const page = await ctx.newPage();
   await page.goto("/flags");
-  await page.waitForURL(/localhost:4400/);
+  await page.waitForURL(PASSPORT_HOST_RE);
   await uiLogin(page, OPS_PHONE, /localhost:5181/);
   const fresh = await readOidc(page);
   await ctx.close();

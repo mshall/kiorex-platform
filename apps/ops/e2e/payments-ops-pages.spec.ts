@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
  * For each page, in Arabic RTL and English, at 320, 768, 1440 and 2560 px: the main landmark renders, no horizontal overflow, axe serious and critical violations are zero (contrast included),
  * no uncaught page error. The connection page must never show a secret VALUE (only references), and the corporate pages stay readable at 2560 px.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/pay-ready");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "pay-ready") : path.resolve(process.cwd(), "../../../_docs/test-flow/pay-ready"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
 const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };

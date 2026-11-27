@@ -3,7 +3,9 @@ import { API, apiHeaders, bearer, kiorlyWebhook, recordShareSignature, signIn } 
 
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
 
-type Links = { kiorlyPatientId: string; clinicId: string }[];
+// /me/kiorly-links also lists CONFLICT_REVIEW rows; a Kiorly delivery only maps to a LINKED one (the first row of a long-lived dev patient is not always linked)
+type Links = { kiorlyPatientId: string; clinicId: string; status?: string }[];
+const linked = (l: Links) => l.filter((x) => (x.status ?? "LINKED") === "LINKED");
 
 test.describe.serial("records vault, consent centre, prescriptions, follow-ups (real stack)", () => {
   test("upload → view → download → delete, with Arabic RTL", async ({ page }) => {
@@ -38,7 +40,8 @@ test.describe.serial("records vault, consent centre, prescriptions, follow-ups (
     const token = await bearer(page);
     const links = (await (await request.get(`${API}/api/v1/me/kiorly-links`, { headers: apiHeaders(token) })).json()) as Links;
     test.skip(links.length === 0, "Seed patient has no linked Kiorly record");
-    const link = links[0];
+    const link = linked(links)[0];
+    test.skip(!link, "Seed patient has no LINKED Kiorly record");
 
     // grant per-scope consent through the UI
     const sw = page.getByTestId("share-PRESCRIPTIONS");
@@ -90,11 +93,11 @@ test("visit summary delivery shows in the vault (signature verified)", async ({ 
   await signIn(page, "/records");
   const token = await bearer(page);
   const links = (await (await request.get(`${API}/api/v1/me/kiorly-links`, { headers: apiHeaders(token) })).json()) as Links;
-  test.skip(links.length === 0, "Seed patient has no linked Kiorly record");
+  test.skip(linked(links).length === 0, "Seed patient has no LINKED Kiorly record");
   const sw = await request.put(`${API}/api/v1/me/record-sharing/VISIT_SUMMARY`, { headers: apiHeaders(token), data: { granted: true } });
   expect(sw.ok()).toBeTruthy();
-  const summary = { encounterId: `e2e-vs-${Date.now()}`, clinicId: links[0].clinicId, signedAt: new Date().toISOString(), soap: { s: "e2e" } };
-  const r = await kiorlyWebhook(request, "VISIT_SUMMARY_SHARED", { patientId: links[0].kiorlyPatientId, summary, signature: recordShareSignature(summary) });
+  const summary = { encounterId: `e2e-vs-${Date.now()}`, clinicId: linked(links)[0]!.clinicId, signedAt: new Date().toISOString(), soap: { s: "e2e" } };
+  const r = await kiorlyWebhook(request, "VISIT_SUMMARY_SHARED", { patientId: linked(links)[0]!.kiorlyPatientId, summary, signature: recordShareSignature(summary) });
   expect(r.status).toBeLessThan(300);
   await page.reload();
   const item = page.getByTestId("vault-item").filter({ has: page.locator('[data-kind="VISIT_SUMMARY"]') }).first();

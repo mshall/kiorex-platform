@@ -32,7 +32,8 @@ test("services hub, market selector, WhatsApp entry point and booking channel ba
   await expect(page.getByTestId("svc-pharmacy")).toBeVisible();
   await expect(page.getByTestId("svc-locked").first()).toBeVisible();
   await expect(page.getByTestId("whatsapp-card")).toBeVisible();
-  await expect(page.getByTestId("market-select")).toHaveValue("EG");
+  // one market live (Egypt): the country selector is hidden by founder decision (23 Nov 2026); the API stays multi-market
+  await expect(page.getByTestId("market-select")).toHaveCount(0);
   await expect(page.getByTestId("market-not-live")).toHaveCount(0);
   await page.goto("/appointments");
   await page.waitForLoadState("networkidle");

@@ -26,6 +26,15 @@ pkill -f "vite"                               # :5180 must be free
 node apps/web/e2e/verticals/stack.mjs up && (cd apps/web && npx playwright test -c playwright.verticals.config.ts); node apps/web/e2e/verticals/stack.mjs down
 ```
 
+### Running the default suite against a PRIVATE stack (27 Nov 2026)
+`npx playwright test` (fixed port 5180) used to assume the shared dev stack (Passport :4400, API :4000, database `kiorex_account`). Everything is now parameterised, so a run never has to touch the shared stack: start a private stack (`e2e/scripts/reg-stack.sh up`: Passport :4810, Kiorex :4813), then
+```bash
+KIOREX_API_URL=http://localhost:4813 VITE_OIDC_AUTHORITY=http://localhost:4810 npx vite --port 5180 --strictPort &      # patient web (5180 must be free)
+(cd ../ops && KIOREX_API_URL=http://localhost:4813 VITE_OIDC_AUTHORITY=http://localhost:4810 npx vite --port 5181 --strictPort &)   # ops web (the fixtures sign in as ops)
+KIOREX_API_URL=http://localhost:4813 PW_PASSPORT_URL=http://localhost:4810 PW_ACCOUNT_DB=reg_kiorex_account SHOTS_DIR=/tmp/pw-shots npx playwright test
+```
+`PW_PASSPORT_URL` and `PW_ACCOUNT_DB` replace the hard-coded `:4400` / `kiorex_account` (OTP counters are cleared in that database only); `SHOTS_DIR` sends the screenshots somewhere other than the tracked `_docs/test-flow/**` (a run used to rewrite 71 tracked PNGs). The default run excludes the specs that have their own config, server and port (`deep-links`, `home`, `verticals`, `ui-review`, loyalty, preference centre, sponsored label, real-stack: see `testIgnore`); they are run with their `playwright.*.config.ts`. Two vault specs skip with a reason when the seed patient has no LINKED Kiorly record (the clone of an aged dev database may have only CONFLICT_REVIEW links).
+
 ## Rev 2.3 home visits / nurse / physiotherapy (KXMDS01, KXMHV01-10, KXMPR01, KXMPAY07)
 Wired to the real API (clients regenerated: `npm run gen:api -w apps/web`, 184 ops). AR/RTL, dark mode, loading / empty / error / awaiting-gate states everywhere.
 - Care-type tabs (Doctors · Physiotherapy · Home nursing) on home, landing and search (`GET /care-types`; a category awaiting its gate shows locked, never hidden).

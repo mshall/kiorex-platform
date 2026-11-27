@@ -7,7 +7,7 @@ import { signIn } from "./helpers";
  * GRW-P2-B3 patient web: invite screen, rewards, invite landing, and the Account entry gated by bootstrap `features.referral`. Real browser, real Passport sign-in, the real web app; the happy path is answered by page.route fixtures (shapes verified against the committed GRW-P2-B1/B2 controllers) because patient_referral/rewards are launch-locked and the shared dev DB must not get gate evidence; the flag-OFF and bootstrap-absent paths run against the REAL API. AR and EN, light and dark,
  * 320 to 1440 px, keyboard, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p2/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); mkdirSync(SHOTS, { recursive: true });
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p2") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots; mkdirSync(SHOTS, { recursive: true });
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => !!p && existsSync(p));
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 async function axeSerious(page: Page) {

@@ -8,7 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
-const KEY = "oidc.user:http://localhost:4400:kiorex-web";
+const KEY = `oidc.user:${process.env.PW_PASSPORT_URL ?? "http://localhost:4400"}:kiorex-web`;
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const USER = JSON.stringify({ access_token: `${b64({ alg: "none" })}.${b64({ sub: "p_1" })}.x`, token_type: "Bearer", scope: "openid profile", expires_at: Math.floor(Date.now() / 1000) + 3600, profile: { sub: "p_1", name: "Amira" } });
 const ME = { tier: "SILVER", tierSince: "2027-02-01T00:00:00Z", window: { months: 12, completed: 3 }, next: { tier: "GOLD", minCompletedBookings: 6, remaining: 3 }, points: { balance: 45, expiringSoon: { points: 10, at: "2027-11-24T00:00:00Z" } }, conversion: { open: true, pointsRequired: 30, valueMinor: 5000, currency: "EGP", blocksLeftThisYear: 2, canConvert: true }, notMoney: true };

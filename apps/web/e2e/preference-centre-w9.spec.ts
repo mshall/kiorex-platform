@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
  * Wave 9 (GC-5): the patient web preference centre (signed out: cookie state and choices) in a real browser, Arabic RTL and English, 320 and 1440 px: renders, no horizontal overflow, axe serious
  * and critical violations zero, controls at least 44 px, the cookie dialog opens from the keyboard. Private stack (e2e/scripts/w9a3-stack.sh). Screenshots: _docs/test-flow/growth-w9/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-w9");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-w9") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-w9"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
 test.beforeAll(() => { expect(AXE, "axe-core must be installed").toBeTruthy(); mkdirSync(SHOTS, { recursive: true }); });
 

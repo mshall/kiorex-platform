@@ -8,7 +8,7 @@ import { OPS_B, OPS_FINANCE, resetOtp, rolesOf, setRoles, signInAs } from "./gro
  * GRW-P2-A against the REAL local stack: Campaign Management, Promotional Campaigns and Approvals in the ops console, with the seeded ops super admin (A) and a second super admin (B: the seeded demo ops admin
  * lifted to super_admin for the run and restored afterwards), Arabic RTL and English, light and dark, 320 to 1440 px, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p2/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p2") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p as string)) as string | undefined;
 const RUN = Date.now().toString(36);
 const KEY = `pw-${RUN}`;

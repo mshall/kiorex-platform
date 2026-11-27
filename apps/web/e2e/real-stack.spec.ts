@@ -13,7 +13,7 @@ import { expect, test, type Page } from "@playwright/test";
 const SESSION = process.env.KX_REAL_SESSION; const URL_ = process.env.KX_REAL_WEB_URL;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 const run = SESSION && URL_ && existsSync(SESSION) ? test.describe : test.describe.skip;
-const KEY = "oidc.user:http://localhost:4400:kiorex-web";
+const KEY = `oidc.user:${process.env.PW_PASSPORT_URL ?? "http://localhost:4400"}:kiorex-web`;
 
 async function signedIn(page: Page, lang: "en" | "ar") {
   const s = JSON.parse(readFileSync(SESSION!, "utf8")) as { access_token: string; id_token: string; sub: string; expires_at: number };

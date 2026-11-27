@@ -9,7 +9,7 @@ import { signIn } from "./helpers";
  * (a lane running its own Vite on another port cannot use the Passport redirect). `KX_CROSS_URL` points the run at a private ops instance. The funnel answer is a fixture (page.route) so the figures are deterministic;
  * the real endpoint is exercised by test/growth-cross-product.int.spec.ts and e2e 39. Screenshots: _docs/test-flow/growth-p4/.
  */
-const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p4");
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p4") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p4"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
