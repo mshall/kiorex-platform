@@ -606,6 +606,21 @@
 | POST | `/api/v1/admin/messaging/channels/email/domain-check` | MSG-REAL SPF / DKIM / DMARC check of the sending domain against DNS |
 | POST | `/api/v1/admin/messaging/channels/whatsapp/templates/sync` | MSG-REAL pull template statuses and ids from Meta (read only) |
 | POST | `/api/v1/admin/messaging/channels/whatsapp/templates/submit` | MSG-REAL submit templates to Meta for approval (dry run unless confirm=true) |
+| GET | `/api/v1/admin/kiorly-markets` | Kiorly markets (Clinic Market table) with readiness and the read-only Kiorex state of the same country; canChange tells the console whether the caller may change anything |
+| POST | `/api/v1/admin/kiorly-markets` | Initiate a country launch (draft market) |
+| GET | `/api/v1/admin/kiorly-markets/country-defaults` | Per-country starting values for the initiate-country-launch form |
+| GET | `/api/v1/admin/kiorly-markets/{id}` | One market with readiness, legal and commercial summaries |
+| GET | `/api/v1/admin/kiorly-markets/{id}/audit` | Append-only market audit trail (newest first, paged with ?before) |
+| GET | `/api/v1/admin/kiorly-markets/{id}/change-requests` | Second-approver requests of the market |
+| POST | `/api/v1/admin/kiorly-markets/{id}/launch` |  |
+| POST | `/api/v1/admin/kiorly-markets/{id}/pause` |  |
+| POST | `/api/v1/admin/kiorly-markets/{id}/disable` |  |
+| POST | `/api/v1/admin/kiorly-markets/{id}/enable` |  |
+| PUT | `/api/v1/admin/kiorly-markets/{id}/tax-pack` | Tax pack prerequisite (invoice VAT, subscription VAT, default visit fee) |
+| PUT | `/api/v1/admin/kiorly-markets/{id}/legal-config` | Legal prerequisite (cross-border approval, legal pilot exception) |
+| PATCH | `/api/v1/admin/kiorly-markets/{id}/second-approver` | Turn the optional second-approver rule on or off |
+| POST | `/api/v1/admin/kiorly-markets/{id}/change-requests/{requestId}/approve` |  |
+| POST | `/api/v1/admin/kiorly-markets/{id}/change-requests/{requestId}/reject` |  |
 | GET | `/api/v1/admin/payments/connection-check` | Payments connection check: PSP readiness, secret references (never values), webhook URLs, signature self-test; `live=true` adds one read-only authenticated probe per enabled PSP (real mode only) |
 | GET | `/api/v1/admin/payments/settings` | Resolved payment settings per PSP and market (env < console), with problems |
 | PUT | `/api/v1/admin/payments/settings/{psp}` | Change settings of one PSP (enabled, order, fees, 3DS, capture mode, refund window, timeouts, retries, tolerance, sandbox/live, settlement format); audited; secrets are refused |

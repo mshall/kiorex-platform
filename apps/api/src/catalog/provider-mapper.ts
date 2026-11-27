@@ -34,6 +34,17 @@ export function canonicalSpecialty(raw: string): string | null {
   return aliased;
 }
 
+/**
+ * Founder decision A (27 Nov 2026): the ISO country market an organisation belongs to for life, as published by its Clinic (additive `market` field). Only a two-letter
+ * code counts; anything else (absent, malformed, hostile) is `undefined`, and the projection then keeps its existing market (or the default for a new row).
+ */
+export function publishedMarketOf(dto: any): string | undefined {
+  const raw = dto?.market;
+  if (typeof raw !== 'string') return undefined;
+  const cc = raw.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(cc) ? cc : undefined;
+}
+
 /** Map Kiorly PublishedProviderDto (GET /marketplace/v1/providers) into a Provider projection row. */
 export function mapProviderDto(dto: any) {
   const p = dto.provider ?? {};
@@ -51,7 +62,9 @@ export function mapProviderDto(dto: any) {
   const serviceLocations = [...new Set(locs.length ? locs : ['IN_CLINIC'])];
   const coverageDistricts = [...new Set((Array.isArray(dto.coverageDistricts) ? dto.coverageDistricts : Array.isArray(p.coverageDistricts) ? p.coverageDistricts : []).map(normalizeDistrict).filter((x: string | null): x is string => !!x))];
   const surcharges = fees.map((f: any) => (f.homeSurcharge === undefined || f.homeSurcharge === null ? NaN : Math.round(Number(f.homeSurcharge) * 100))).filter((n) => Number.isFinite(n));
+  const market = publishedMarketOf(dto);
   const row = {
+    ...(market ? { market } : {}),
     profession,
     edition: ['CLINIC', 'NURSE'].includes(String(dto.edition ?? '').toUpperCase()) ? String(dto.edition).toUpperCase() : null,
     careType: careTypeOf(profession),

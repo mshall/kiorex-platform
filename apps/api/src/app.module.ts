@@ -16,6 +16,7 @@ import { PublicSiteModule } from './public-site/public-site-public';
 import { WidgetModule } from './widget/widget-public';
 import { AnalyticsModule } from './analytics/analytics-public';
 import { MarketModule } from './market/market-public';
+import { KiorlyMarketsModule } from './kiorly-markets/kiorly-markets-public';
 import { PolicyModule } from './policy/policy-public';
 import { MessagingModule } from './messaging/messaging-public';
 import { KiorlyModule } from './kiorly/kiorly-public';
@@ -41,6 +42,6 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 
 /** Modular monolith: order matters for APP_GUARD (auth before flag guard). Modules reach each other only via *-public.ts. */
 @Module({
-  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, CommissionsModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, LeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AttributionModelsModule, ExperimentsModule, SponsoredPromotionsModule, FraudModule, SeoAutomationModule, AutomationModule, RecommendationsModule, CohortsModule, MarketOnboardingModule, CorporateModule, LoyaltyModule, PaymentSignalsModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
+  imports: [PrismaModule, OutboxModule, MessagingModule, MarketModule, KiorlyMarketsModule, PolicyModule, AnalyticsModule, AuthModule, ControlPlaneModule, KiorlyModule, PatientModule, AddressModule, CatalogModule, EngagementModule, PayModule, CommissionsModule, BookingModule, TrustModule, AiGatewayModule, WebhooksModule, OpsModule, OnboardingImportModule, PartnerOnboardingModule, PartnerLeadsModule, LeadsModule, RecordsModule, WaitlistModule, ChannelsModule, PharmacyModule, LabModule, PartnersModule, TelemedicineModule, HomeCareModule, GrowthModule, CampaignsModule, ReferralModule, RewardsModule, LifecycleModule, IntegrationsModule, AttributionModelsModule, ExperimentsModule, SponsoredPromotionsModule, FraudModule, SeoAutomationModule, AutomationModule, RecommendationsModule, CohortsModule, MarketOnboardingModule, CorporateModule, LoyaltyModule, PaymentSignalsModule, AssistantModule, PublicSiteModule, WidgetModule, HealthModule],
 })
 export class AppModule {}

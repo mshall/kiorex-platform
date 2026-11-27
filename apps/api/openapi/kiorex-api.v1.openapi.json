@@ -717,6 +717,597 @@
         ]
       }
     },
+    "/api/v1/admin/kiorly-markets": {
+      "get": {
+        "operationId": "KiorlyMarketsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Kiorly markets (Clinic Market table) with readiness and the read-only Kiorex state of the same country; canChange tells the console whether the caller may change anything",
+        "tags": [
+          "ops"
+        ]
+      },
+      "post": {
+        "operationId": "KiorlyMarketsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketCreateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Initiate a country launch (draft market)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/country-defaults": {
+      "get": {
+        "operationId": "KiorlyMarketsController_defaults",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Per-country starting values for the initiate-country-launch form",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}": {
+      "get": {
+        "operationId": "KiorlyMarketsController_one",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "One market with readiness, legal and commercial summaries",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/audit": {
+      "get": {
+        "operationId": "KiorlyMarketsController_audit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Append-only market audit trail (newest first, paged with ?before)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/change-requests": {
+      "get": {
+        "operationId": "KiorlyMarketsController_requests",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPLIED",
+                "REJECTED",
+                "CANCELLED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Second-approver requests of the market",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/launch": {
+      "post": {
+        "operationId": "KiorlyMarketsController_launch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketTransitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/pause": {
+      "post": {
+        "operationId": "KiorlyMarketsController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketTransitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/disable": {
+      "post": {
+        "operationId": "KiorlyMarketsController_disable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketTransitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/enable": {
+      "post": {
+        "operationId": "KiorlyMarketsController_enable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketTransitionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/tax-pack": {
+      "put": {
+        "operationId": "KiorlyMarketsController_taxPack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketTaxPackBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tax pack prerequisite (invoice VAT, subscription VAT, default visit fee)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/legal-config": {
+      "put": {
+        "operationId": "KiorlyMarketsController_legal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketLegalBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Legal prerequisite (cross-border approval, legal pilot exception)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/second-approver": {
+      "patch": {
+        "operationId": "KiorlyMarketsController_second",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketSecondApproverBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Turn the optional second-approver rule on or off",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/change-requests/{requestId}/approve": {
+      "post": {
+        "operationId": "KiorlyMarketsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketRequestDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-markets/{id}/change-requests/{requestId}/reject": {
+      "post": {
+        "operationId": "KiorlyMarketsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketRequestDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/admin/policy": {
       "get": {
         "operationId": "PolicyController_describe",
@@ -2369,6 +2960,14 @@
           },
           {
             "name": "profession",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
             "required": false,
             "in": "query",
             "schema": {
@@ -22704,6 +23303,190 @@
           "capabilities"
         ]
       },
+      "MarketCreateBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "approvalRef": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "approvalLink": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "nameAr": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "defaultCurrency": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "defaultTimezone": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "defaultLocale": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "defaultPhoneRegion": {
+            "type": "string",
+            "maxLength": 8
+          },
+          "weekendDays": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "enabledLanguages": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "dataRegion": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "hostCell": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "MarketTransitionBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "approvalRef": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "approvalLink": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "days": {
+            "type": "object"
+          }
+        }
+      },
+      "MarketTaxPackBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "approvalRef": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "approvalLink": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "invoiceVatPercent": {
+            "type": "number"
+          },
+          "saasVatPercent": {
+            "type": "number"
+          },
+          "defaultVisitFee": {
+            "type": "number"
+          },
+          "trnRequired": {
+            "type": "boolean"
+          },
+          "trnFormat": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "invoiceVatPercent",
+          "saasVatPercent",
+          "defaultVisitFee"
+        ]
+      },
+      "MarketLegalBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "approvalRef": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "approvalLink": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "crossBorderTransfer": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "pilotException": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "MarketSecondApproverBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "approvalRef": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "approvalLink": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "requireSecondApprover": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requireSecondApprover"
+        ]
+      },
+      "MarketRequestDecisionBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
       "PolicyOverrideDto": {
         "type": "object",
         "properties": {
@@ -28494,6 +29277,9 @@
           "skipped": {
             "type": "number"
           },
+          "refused": {
+            "type": "number"
+          },
           "pages": {
             "type": "number"
           }
@@ -28501,6 +29287,7 @@
         "required": [
           "upserted",
           "skipped",
+          "refused",
           "pages"
         ]
       },
