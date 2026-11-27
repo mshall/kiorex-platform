@@ -2,6 +2,7 @@ import { GROWTH_CONFIG_KINDS } from '@kiorex/contracts';
 import { createCtx, TestCtx } from './harness';
 import { DAY } from './growth-helpers';
 import { GROWTH_DEFAULT_PAYLOADS } from '../src/growth/growth-public';
+import { ANNOUNCEMENT_KINDS, MONEY_POLICY_KINDS } from '../src/growth/config/growth-config.service';
 
 type Auth = { Authorization: string };
 const CFG = '/api/v1/ops/growth/config';
@@ -24,8 +25,8 @@ describe('growth maker-checker over every config kind (GRW-GC-4)', () => {
     expect(kinds.length).toBeGreaterThanOrEqual(10);
   });
 
-  const MONEY = ['ATTRIBUTION_POLICY', 'COMMISSION', 'SPONSORED_PROMOTION_POLICY'];
-  const ANNOUNCE = ['CAMPAIGN_POLICY', 'REFERRAL_RULES', 'REWARD_RULES', 'LIFECYCLE_POLICY', 'ASSISTANT_POLICY'];
+  // read from the service so a kind that the contract (vendored 1.13.x) adds to the announcement or money lists is driven with the announcement it needs, not skipped or failed by a stale copy of the list
+  const MONEY = MONEY_POLICY_KINDS; const ANNOUNCE = ANNOUNCEMENT_KINDS;
   for (const kind of kinds) {
     it(`${kind}: author cannot approve (also with a second token of the same user), outsiders cannot, a different super admin can`, async () => {
       const effectiveFrom = new Date(Date.now() + (MONEY.includes(kind) ? 8 * DAY : 60_000)).toISOString();

@@ -212,8 +212,9 @@ describe('Kiorex Pay with real PSP adapters (PAY-READY)', () => {
     it('imports a Paymob CSV once (idempotent on the file hash), matches captures and reports typed mismatches; the mismatch report is CSV and formula-safe', async () => {
       const ops = await c.as('sub_ops', { roles: ['ops_admin'] });
       const id = await book(); await checkout(id).expect(200); const p = await intent(id);
-      await paymobHook(paymobTxn(p.id, { amount_cents: 50000, order: { id: Number(p.pspRef) } })).expect(200);
-      const day = new Date().toISOString().slice(0, 10);
+      const now = new Date(); // the fixture's created_at is a fixed past date; reconciliation looks at today's captures, so the capture must happen today (not a time bomb)
+      await paymobHook(paymobTxn(p.id, { amount_cents: 50000, created_at: now.toISOString().replace('Z', ''), order: { id: Number(p.pspRef) } })).expect(200);
+      const day = now.toISOString().slice(0, 10);
       const csv = `Order ID,Type,Status,Amount,Fees,Settlement Date,Payout ID\n${p.pspRef},Sale,Success,400.00,12.00,${day},PO-1\n=HYPERLINK("x"),Sale,Success,10.00,0,${day},PO-1\n`; // the file says 400, we captured 500
       const r1 = await c.http().post(`${BASE}/admin/payments/settlement/import`).set(ops).send({ psp: 'paymob', filename: 's.csv', content: csv }).expect(200);
       expect(r1.body).toMatchObject({ imported: 2, duplicate: false }); expect((await c.http().post(`${BASE}/admin/payments/settlement/import`).set(ops).send({ psp: 'paymob', filename: 's.csv', content: csv }).expect(200)).body.duplicate).toBe(true);
