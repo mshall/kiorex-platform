@@ -1,18 +1,18 @@
 import { expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { DEV_OTP } from "./helpers";
-import { totpCode } from "./totp";
+import { totpCode, localTotpSeed } from "./totp";
 
 /** Seeded demo ops personas (TEST_DATA.md). 9001 is a plain ops_admin; the test lifts it to super_admin for the maker-checker run and puts it back afterwards. */
-export const OPS_B = { phone: "+201000009001", totp: "REMOVED-OLD-DEMO-TOTP-SECRET" };
-export const OPS_FINANCE = { phone: "+201000009002", totp: "REMOVED-OLD-DEMO-TOTP-SECRET" };
+export const OPS_B = { phone: "+201000009001", get totp() { return localTotpSeed("+201000009001"); } };
+export const OPS_FINANCE = { phone: "+201000009002", get totp() { return localTotpSeed("+201000009002"); } };
 
 const psql = (sql: string) => execFileSync(process.env.PSQL ?? "/Users/postgres/bin/psql", ["-h", "127.0.0.1", "-p", "5433", "-U", "postgres", "-d", "kiorex_account", "-t", "-A", "-c", sql], { env: { ...process.env, PGPASSWORD: "postgres" } }).toString().trim();
 export const rolesOf = (phone: string) => psql(`SELECT roles FROM accounts WHERE phone='${phone}'`);
 export const setRoles = (phone: string, roles: string[]) => psql(`UPDATE accounts SET roles='${JSON.stringify(roles)}' WHERE phone='${phone}'`);
 export const resetOtp = () => { try { psql("TRUNCATE otp_challenges, otp_send_log, otp_lockouts"); } catch { /* best effort */ } };
 
-export const OPS_A = { phone: "+201000000099", totp: process.env.OPS_TOTP_SEED ?? "REMOVED-OLD-DEMO-TOTP-SECRET" };
+export const OPS_A = { phone: "+201000000099", get totp() { return localTotpSeed("+201000000099"); } };
 
 /**
  * Real Passport sign-in (phone, OTP 000000, TOTP) for a persona. Always fresh: the token carries the roles of the moment. The dev IdP accepts each TOTP step once, and

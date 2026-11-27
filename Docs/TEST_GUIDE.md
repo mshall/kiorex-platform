@@ -64,12 +64,12 @@ The patient web (:5180) and the ops console (:5181) have no login form of their 
 
 | Phone | Role | TOTP seed (Base32, DEV ONLY) |
 |---|---|---|
-| `+201000000099` | Ops **super admin** (flags, gates, two-person approvals) | `REMOVED-OLD-DEMO-TOTP-SECRET` |
-| `+201000009001` | Ops admin (everything except changing flags) | `REMOVED-OLD-DEMO-TOTP-SECRET` |
-| `+201000009002` | Ops finance (role claim only; API treats it as `ops_admin`) | `REMOVED-OLD-DEMO-TOTP-SECRET` |
+| `+201000000099` | Ops **super admin** (flags, gates, two-person approvals) | `<local seed +201000000099>` |
+| `+201000009001` | Ops admin (everything except changing flags) | `<local seed +201000009001>` |
+| `+201000009002` | Ops finance (role claim only; API treats it as `ops_admin`) | `<local seed +201000009002>` |
 | `+201000009003` | Ops support (claim only) | none seeded: it enrols a new authenticator on first sign-in (the page shows the setup key) |
 
-The Passport dev panel computes the current code for you (the dev IdP knows the seed). To do it by hand: any authenticator app with the seed, or `node -e "console.log(require('otplib').generateSync({secret:'REMOVED-OLD-DEMO-TOTP-SECRET',strategy:'totp'}))"` from `kiorex-account/`. A code can be used once: if "wrong code" appears right after a quick sign-in, wait for the next 30-second code.
+TOTP seeds are LOCAL and random (never committed): `cd kiorex-account && npm run dev:totp-secrets` prints them (file `kiorex-account/.local/totp-secrets.json`, git-ignored; `-- --rotate` makes new ones). Any authenticator app with the seed works, or `cd kiorex-account && node -e "console.log(require('otplib').generateSync({secret:'<paste the seed>',strategy:'totp'}))"`. A code can be used once: if "wrong code" appears right after a quick sign-in, wait for the next 30-second code.
 
 ## Flows
 

@@ -6,6 +6,7 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { buildSample } from "../../api/src/onboarding-import/sample/sample-data";
 import { loginWithPhone } from "../../../../e2e/src/passport";
+import { localTotpSeed } from "./totp";
 
 /**
  * Org onboarding through the REAL console on the real stack: ops_admin (+201000009001) prepares in one browser context - creates the batch,
@@ -33,7 +34,7 @@ function resetOtpLimits() {
 test("import a messy SQL dump + 20 patient files through the console: resolve, request, second person approves, commit, roll back", async ({ browser }) => {
   test.setTimeout(240_000);
   resetOtpLimits();
-  const prep = await login("+201000009001", { otp: "000000", totpSecret: "REMOVED-OLD-DEMO-TOTP-SECRET" });
+  const prep = await login("+201000009001", { otp: "000000", totpSecret: localTotpSeed("+201000009001") });
   const sup = await login("+201000000099", { otp: "000000" });
   const s = buildSample(); const dir = path.join(os.tmpdir(), `onb-sample-${Date.now()}`); mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, "clinicpro_dump.sql"), s.sql); for (const f of s.files) writeFileSync(path.join(dir, f.name), f.bytes);

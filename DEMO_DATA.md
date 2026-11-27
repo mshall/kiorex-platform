@@ -50,8 +50,8 @@ Patients sign in at `http://localhost:5180` (web) or `:8081` (Expo): "Sign in" -
 | `+201000001011` | Youssef Ramadan | Dr Khaled `mk14`, Dr Medhat `mk25`; lab `…_8` CANCELLED |
 | `+201000001012` | Rana Khaled / رنا خالد | cancelled+refunded (`mk15`), `mk22`; agency client with Nurse-lab consent revoked |
 | `+201000001013` | Nabila Hamdy / نبيلة حمدي | agency home-care client: care plan `kx_cp_demo_1` (10 visits, 4 done) |
-| `+201000000099` | Ops Super Admin | ops console `http://localhost:5181`: OTP `000000` + TOTP `REMOVED-OLD-DEMO-TOTP-SECRET` (DEV ONLY); the only role that can change flags / gates |
-| `+201000009001` / `9002` / `9003` | Ops Admin / Finance / Support | OTP + TOTP `REMOVED-OLD-DEMO-TOTP-SECRET` / `REMOVED-OLD-DEMO-TOTP-SECRET` / enrol on first sign-in; read-only ops (not `super_admin`) |
+| `+201000000099` | Ops Super Admin | ops console `http://localhost:5181`: OTP `000000` + TOTP `<local seed +201000000099>` (DEV ONLY); the only role that can change flags / gates |
+| `+201000009001` / `9002` / `9003` | Ops Admin / Finance / Support | OTP + TOTP `<local seed +201000009001>` / `<local seed +201000009002>` / enrol on first sign-in; read-only ops (not `super_admin`) |
 | `+201000000001` / `0002` | Amira / Hassan | e2e fixtures, do not edit |
 
 Dependants (Yassin, Laila, Salma, Adam, ...) have no login; they appear under their guardian ("Family").
@@ -103,7 +103,7 @@ Dependants (Yassin, Laila, Salma, Adam, ...) have no login; they appear under th
 
 **K12. Care plan (Nabila `…1013`, Mahmoud `…1005`).** 1) `/care-plans`: Nabila's plan `kx_cp_demo_1`: 10 visits, 4 done, 6 upcoming. 2) Mahmoud: request pending `kx_cp_demo_2`; the agency owner accepts it in Kiorly (clinic doc C9) and it turns CONFIRMED with visits.
 
-**K13. Ops console basics (super admin).** 1) `http://localhost:5181` -> Passport: `+201000000099`, `000000`, then the TOTP for `REMOVED-OLD-DEMO-TOTP-SECRET`. *Expected:* lands on Flags (the index route). 2) Providers: the list (22 rows) and the sync from Kiorly. 3) Bookings: search `demo_bk_mk05`; the timeline events. 4) Finance: payments, refunds, ledger, payouts. 5) Moderation, Outbox (events with retries), Messaging log, Orders (pharmacy / lab), Fees, Operations (partner registrations).
+**K13. Ops console basics (super admin).** 1) `http://localhost:5181` -> Passport: `+201000000099`, `000000`, then the TOTP for `<local seed +201000000099>`. *Expected:* lands on Flags (the index route). 2) Providers: the list (22 rows) and the sync from Kiorly. 3) Bookings: search `demo_bk_mk05`; the timeline events. 4) Finance: payments, refunds, ledger, payouts. 5) Moderation, Outbox (events with retries), Messaging log, Orders (pharmacy / lab), Fees, Operations (partner registrations).
 
 **K14. Safety console and held deposits (super admin or admin).** 1) Safety: the SOS (resolved), timer expired (acknowledged), unsafe abort raised / escalated (SLO breach 95 s) / resolved. 2) Held deposits: the two held (35 min, 46 h); the older one is past the review window. Release one to the nurse, refund the other (two-person rules apply to money-path flags). 3) Home gate: the home-visit gate metric ("at least 50 providers per cluster" is NOT met by demo data, so the metric never satisfies a gate).
 
