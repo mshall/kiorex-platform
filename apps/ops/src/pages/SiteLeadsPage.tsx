@@ -21,7 +21,7 @@ export default function SiteLeadsPage() {
   const { t, i18n } = useTranslation(); const lang = i18n.language;
   const [sp, setSp] = useSearchParams();
   const f: LeadFilters = useMemo(() => ({ ...Object.fromEntries(PARAMS.map((k) => [k, sp.get(k) ?? ""])), page: Number(sp.get("page") ?? 1) || 1, pageSize: 25 }), [sp]);
-  const set = (k: string, v: string) => setSp((prev) => { const n = new URLSearchParams(prev); if (v) n.set(k, v); else n.delete(k); if (k !== "page") n.delete("page"); return n; }, { replace: true }); // from the latest address, never from a stale render
+  const set = (k: string, v: string) => setSp((prev) => { const n = new URLSearchParams(prev); if (v) n.set(k, v); else n.delete(k); if (k !== "page") n.delete("page"); return n; }, { replace: true });
   const q = useSiteLeads(f); const sum = useSiteLeadSummary(); const settings = useSiteLeadSettings(); const owners = useSiteLeadOwners();
   const cfg = settings.data?.config; const [busy, setBusy] = useState(false);
   const pages = q.data ? Math.max(1, Math.ceil(q.data.total / q.data.pageSize)) : 1;

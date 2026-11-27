@@ -68,7 +68,7 @@ async function setup(page: Page, roles: string[]) {
   return { leads, calls, config: () => cfg };
 }
 /** Clears the filters and waits until the address no longer carries them (the next change builds on the address). */
-const reset = async (page: Page) => { await page.getByRole("button", { name: "Reset filters" }).click(); await expect(page).toHaveURL(/\/leads$/); };
+const reset = async (page: Page) => { await page.getByRole("button", { name: "Reset filters" }).click(); await expect(page).toHaveURL(/\/leads$/); await expect(page.locator("[aria-pressed=true]")).toHaveCount(0); /* the page has re-rendered with no filter */ };
 // The table header cell colours belong to the console-wide DataTable (shared, reviewed with the console design), not to these pages: they are left out of the contrast rule.
 const axe = async (page: Page, label: string) => { const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).exclude("[data-testid=data-table] thead").analyze(); expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`), label).toEqual([]); };
 
@@ -84,9 +84,9 @@ for (const [name, base, edition] of [["Kiorex super admin", KIOREX, "kiorex"], [
       await reset(page); await expect(rows).toHaveCount(3);
       await page.getByTestId("leads-count-CONTACTED").click(); await expect(rows).toHaveCount(1); await expect(page).toHaveURL(/status=CONTACTED/); await reset(page);
       await page.getByTestId("leads-filter-test").selectOption("exclude"); await expect(rows).toHaveCount(2); await page.getByTestId("leads-filter-test").selectOption("only"); await expect(rows).toHaveCount(1); await expect(rows.first()).toContainText("Test");
-      await reset(page); await page.getByTestId("leads-filter-dup").check(); await expect(rows).toHaveCount(1); await expect(rows.first()).toContainText("Duplicate");
+      await reset(page); await page.getByTestId("leads-filter-dup").click(); /* controlled by the address, so the state flips a moment after the click */ await expect(rows).toHaveCount(1); await expect(rows.first()).toContainText("Duplicate");
       await reset(page); await page.getByTestId("leads-filter-q").fill("KL-LAB"); await expect(rows).toHaveCount(1);
-      await page.getByTestId("leads-filter-mode").selectOption("CONNECTED"); await expect(rows).toHaveCount(0); await page.getByTestId("leads-filter-from").fill("2026-11-27"); await expect(page.getByTestId("leads-filter-from")).toHaveValue("2026-11-27");
+      await page.getByTestId("leads-filter-mode").selectOption("CONNECTED"); await expect(page.getByText("No join requests match these filters.")).toBeVisible(); /* the empty state is one row */ await page.getByTestId("leads-filter-from").fill("2026-11-27"); await expect(page.getByTestId("leads-filter-from")).toHaveValue("2026-11-27");
       await expect(page.getByTestId("leads-filter-market")).toHaveCount(0); // one market: no market selector
       if (edition === "kiorly") await expect(page).toHaveTitle("Kiorly Admin");
     });
