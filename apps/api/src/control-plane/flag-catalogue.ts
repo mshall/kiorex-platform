@@ -126,6 +126,8 @@ export const FLAG_CATALOGUE: FlagDef[] = [
   g('growth.seo_automation', 'kiorex', 'MODULE', GM, ['growth.ssr_public_pages'], 'The SEO quality gate, internal-link planner and Core Web Vitals budget checks stop running; pages keep their last published robots state (auto-noindex additionally needs SEO_AUTOMATION.autoNoindex)'),
   g('growth.market_onboarding', 'kiorex', 'MODULE', ['GLOBAL'], [], 'The ops market onboarding console is read-only; market.<cc>.live stays the human gate'),
   g('clinic.sponsored_promotions', 'kiorly-clinic', 'MODULE', GMO, ['clinic.provider_credit_v2'], 'The provider-sponsored promotion editor, reserve and review routes are hidden and refuse; discounts already reserved are settled normally'),
+  // ── contracts 1.13.2: the Clinic has enforced this key since the Pay screens; same key, scopes, class, dependencies, gate and whenOff text as kiorex-contracts flags/catalogue.json
+  g('clinic.pay_collections', 'kiorly-clinic', 'LAUNCH_LOCKED', GMO, [], 'The Pay screens and the staff Pay routes (matching, links, status) are hidden and refuse; public payment links already issued keep working; invoices and payments are unchanged', { launchLocked: true, gateHint: 'Finance and counsel review of the Kiorly Pay screens (mock providers only until LG-COM-18 funds-flow sign-off)' }),
   // ── Kiorly Nurse (edition of Kiorly Clinic, KX-23 / ADR-031): served in the kiorly-clinic snapshot
   g('nurse.edition', 'kiorly-nurse', 'MODULE', GM, [], 'No new Nurse sign-ups; existing tenants read-only with export', { edition: 'NURSE' }),
   g('nurse.individual_tenants', 'kiorly-nurse', 'COMMERCIAL', GM, ['nurse.edition'], 'Solo plans hidden at sign-up; existing solos keep working', { edition: 'NURSE' }),
