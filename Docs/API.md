@@ -103,6 +103,7 @@
 | GET | `/api/v1/control/v1/flags/snapshot` | Signed flag snapshot per product (ETag, poll every 30 s) |
 | GET | `/api/v1/flags/effective` | Effective state of every Kiorex flag (for web/mobile to hide entry points) |
 | GET | `/api/v1/admin/flags` | Every flag of every product with effective value, source, class, deps, last change (OP-07) |
+| GET | `/api/v1/admin/organisations/release-cohorts` | Read-only: organisations that carry a release cohort (G-COHORT); optional ?cohort= filter |
 | PUT | `/api/v1/admin/flags/{key}/values` | Toggle OFF/ON at global/market/org scope; reason+ticket required; optional expiry/schedule; two-person rule for money-path (OP-08/10) |
 | PUT | `/api/v1/admin/flags/{key}/gate` | Record launch gate evidence (OP-09). STOP flag: only a human may call this. |
 | GET | `/api/v1/admin/gates` | Launch-gate board: every gate id (GHV1, GHV2, GPR1, GKN1, GKN2 ...), the flags it unlocks and the human-recorded evidence per flag |
@@ -758,7 +759,7 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| GET | `/api/v1/partner/commissions/settlement-statement` | Settlement statement of the signed partner's own organisation and period (same figures and shape as the ops route; Clinic: tenant in X-Kiorly-Org-Ref; Pharmacy and Lab: the partner registration; optional `X-Kiorly-Query-Signature` over the sorted query, see `PARTNER_STATEMENT_CLIENT_CHANGES.md`) |
+| GET | `/api/v1/partner/commissions/settlement-statement` | Settlement statement of the signed partner's own organisation and period (same figures and shape as the ops route; Clinic: tenant in X-Kiorly-Org-Ref; Pharmacy and Lab: the partner registration) |
 | GET | `/api/v1/partner/commissions/settlement-statement/export` | CSV of the same statement (audited) |
 
 ## partner-connections

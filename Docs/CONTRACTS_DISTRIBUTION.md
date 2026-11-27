@@ -27,3 +27,6 @@ with `@kiorex:registry=https://npm.pkg.github.com`, change the dependency to `"@
 
 ## @kiorex/pay-contract (Kiorly Pay shared adapter contract)
 Same recipe, second package: repo `kiorex-pay-contract` (sibling of `kiorex-contracts`), vendored as `vendor/kiorex-pay-contract-<version>.tgz` in this repo and in the Clinic (`clinics-management/vendor/`), `file:` dependency in each `apps/api/package.json`, nothing published to any registry. Update: bump the version, `npm test && npm run pack:local` in the package repo, then `scripts/vendor-into.sh` for each consumer and commit the tarball, `package.json` and lockfile together.
+
+## Current vendored version
+`vendor/kiorex-contracts-1.13.1.tgz` (27 Nov 2026; tag `v1.13.1` local, NOT published): 1.13.1 adds `CARD_GATEWAY` and `BANK_IPN` to the `INTEGRATION_MODES` config schema, so the platform no longer patches the schema locally.
