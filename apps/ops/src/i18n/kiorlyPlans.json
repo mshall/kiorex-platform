@@ -1,0 +1,126 @@
+{
+ "en": {
+  "nav": { "kiorlyPlans": "Plans" },
+  "kiorlyPlans": {
+   "title": "Plans",
+   "hint": "The subscription plans shown on the Kiorly landing page. A change here appears there within about a minute, with no release.",
+   "readOnly": "You can read the plans. Only a super admin can change them.",
+   "loadError": "Could not load the plans.",
+   "saved": "Saved. The landing page shows it within about a minute.",
+   "clinic": {
+     "title": "Clinic plans",
+     "intro": "Plans and prices are owned by the Clinic. A price change is a new version with its own start time; subscribers move at renewal after notice (see the preview).",
+     "unavailable": "The Clinic is not reachable right now, so its plans cannot be shown or changed. Nothing was lost; try again in a moment.",
+     "empty": "The Clinic has no plans.",
+     "public": "Shown on the landing page",
+     "hidden": "Hidden from the landing page",
+     "order": "Order",
+     "edit": "Edit plan",
+     "newPrice": "New price version",
+     "noPrices": "No price set. The landing page shows \"Pricing to be announced\" for this plan.",
+     "col": { "market": "Market", "interval": "Billing", "unit": "Per", "amount": "Price", "included": "Clinicians included", "extra": "Extra clinician", "version": "Version", "from": "Starts", "to": "Ends", "state": "State" },
+     "state": { "active": "Active now", "scheduled": "Scheduled", "past": "Replaced" },
+     "interval": { "MONTHLY": "Month", "ANNUAL": "Year" },
+     "unit": { "PER_TENANT": "Clinic", "PER_CLINICIAN": "Clinician" },
+     "cohort": "Cohort price (not on the landing page)"
+   },
+   "plan": { "title": "Edit plan", "nameEn": "Name (English)", "nameAr": "Name (Arabic)", "public": "Show on the landing page", "order": "Order (lower first)", "save": "Save plan" },
+   "price": {
+     "title": "New price version",
+     "intro": "The new version replaces the current one for this market, interval and unit from the start time. Leave the start time empty to start now.",
+     "market": "Market", "pick": "Choose a market", "currency": "Currency", "interval": "Billing period", "unit": "Price per", "amount": "Amount", "included": "Clinicians included", "extra": "Extra clinician amount (optional)", "validFrom": "Starts at (optional)",
+     "preview": "Preview the impact", "publish": "Publish the price", "working": "Working...", "cancel": "Cancel",
+     "previewTitle": "Impact",
+     "previewBody": "{{count}} subscriber(s) would move to this price at their next renewal after notice. Change in monthly recurring revenue: {{delta}}.",
+     "previewNone": "No existing subscriber is affected.",
+     "confirm": "Preview first, then publish."
+   },
+   "content": {
+     "title": "Pharmacy and Lab plans",
+     "intro": "Their editions exist in the products, but neither product has a price set or a screen to set one yet. Here you edit only the wording on the landing page; these plans show \"Pricing to be announced\".",
+     "isDefault": "Showing the wording that ships with the product. Saving creates your own version.",
+     "version": "Version {{version}}, saved by {{by}}",
+     "pharmacy": "Pharmacy", "lab": "Lab",
+     "visible": "Show on the landing page",
+     "nameEn": "Name (English)", "nameAr": "Name (Arabic)", "summaryEn": "Summary (English)", "summaryAr": "Summary (Arabic)",
+     "limitsEn": "Limits, one per line (English)", "limitsAr": "Limits, one per line (Arabic)", "featuresEn": "Features, one per line (English)", "featuresAr": "Features, one per line (Arabic)",
+     "save": "Save wording", "reset": "Back to the saved version", "restore": "Use the product wording", "working": "Saving...",
+     "unsaved": "You have unsaved changes.",
+     "issue": { "name": "Both names are required.", "lines": "English and Arabic need the same number of lines.", "markup": "No markup: remove the angle brackets.", "length": "A line is at most 200 characters.", "count": "At most 14 lines." }
+   },
+   "errors": {
+     "generic": "The change could not be made. Try again.",
+     "CLINIC_UNAVAILABLE": "The Clinic is not reachable right now. Nothing was changed.",
+     "CLINIC_400": "The Clinic refused the values. Check the amount, currency and market.",
+     "CLINIC_404": "The plan no longer exists.",
+     "MARKET_ADMIN_SCOPE_REQUIRED": "The Kiorex platform is not allowed to manage plans in the Clinic.",
+     "PLAN_CONTENT_STALE": "Someone saved the wording first. Reload the page and apply your change again.",
+     "INVALID_PLAN_CONTENT": "The wording is not valid. Check the marked fields.",
+     "NOTHING_TO_CHANGE": "Nothing to change.",
+     "field": { "market": "Choose a market.", "currency": "Three letters, for example EGP.", "amount": "Digits with at most two decimals.", "included": "A whole number of at least 1.", "extra": "Digits with at most two decimals.", "validFrom": "Not a valid date and time." }
+   }
+  }
+ },
+ "ar": {
+  "nav": { "kiorlyPlans": "الباقات" },
+  "kiorlyPlans": {
+   "title": "الباقات",
+   "hint": "باقات الاشتراك المعروضة في الصفحة الرئيسية لكيورلي. التغيير هنا يظهر هناك خلال دقيقة تقريبا دون إصدار جديد.",
+   "readOnly": "يمكنك قراءة الباقات. التعديل للمشرف العام فقط.",
+   "loadError": "تعذر تحميل الباقات.",
+   "saved": "تم الحفظ. تظهر الصفحة الرئيسية التغيير خلال دقيقة تقريبا.",
+   "clinic": {
+     "title": "باقات العيادة",
+     "intro": "الباقات والأسعار مملوكة للعيادة. تغيير السعر نسخة جديدة لها وقت بدء، وينتقل المشتركون عند التجديد بعد الإشعار (راجع المعاينة).",
+     "unavailable": "لا يمكن الوصول إلى العيادة الآن، لذلك لا تظهر باقاتها ولا يمكن تعديلها. لم يضع شيء؛ حاول بعد قليل.",
+     "empty": "لا توجد باقات في العيادة.",
+     "public": "معروضة في الصفحة الرئيسية",
+     "hidden": "مخفية من الصفحة الرئيسية",
+     "order": "الترتيب",
+     "edit": "تعديل الباقة",
+     "newPrice": "نسخة سعر جديدة",
+     "noPrices": "لم يحدد سعر. تعرض الصفحة الرئيسية «الأسعار تعلن قريبا» لهذه الباقة.",
+     "col": { "market": "السوق", "interval": "الفوترة", "unit": "لكل", "amount": "السعر", "included": "الأطباء المشمولون", "extra": "طبيب إضافي", "version": "النسخة", "from": "يبدأ", "to": "ينتهي", "state": "الحالة" },
+     "state": { "active": "ساري الآن", "scheduled": "مجدول", "past": "استبدل" },
+     "interval": { "MONTHLY": "شهر", "ANNUAL": "سنة" },
+     "unit": { "PER_TENANT": "العيادة", "PER_CLINICIAN": "الطبيب" },
+     "cohort": "سعر مجموعة (لا يظهر في الصفحة الرئيسية)"
+   },
+   "plan": { "title": "تعديل الباقة", "nameEn": "الاسم (بالإنجليزية)", "nameAr": "الاسم (بالعربية)", "public": "عرض في الصفحة الرئيسية", "order": "الترتيب (الأقل أولا)", "save": "حفظ الباقة" },
+   "price": {
+     "title": "نسخة سعر جديدة",
+     "intro": "تحل النسخة الجديدة محل الحالية لهذا السوق والفترة والوحدة منذ وقت البدء. اترك وقت البدء فارغا للبدء الآن.",
+     "market": "السوق", "pick": "اختر سوقا", "currency": "العملة", "interval": "فترة الفوترة", "unit": "السعر لكل", "amount": "المبلغ", "included": "الأطباء المشمولون", "extra": "مبلغ الطبيب الإضافي (اختياري)", "validFrom": "يبدأ في (اختياري)",
+     "preview": "معاينة الأثر", "publish": "نشر السعر", "working": "جار التنفيذ...", "cancel": "إلغاء",
+     "previewTitle": "الأثر",
+     "previewBody": "سينتقل {{count}} مشترك إلى هذا السعر عند تجديدهم القادم بعد الإشعار. التغير في الإيراد الشهري المتكرر: {{delta}}.",
+     "previewNone": "لا يتأثر أي مشترك حالي.",
+     "confirm": "عاين أولا ثم انشر."
+   },
+   "content": {
+     "title": "باقات الصيدلية والمعمل",
+     "intro": "إصداراتها موجودة في المنتجين، لكن لا يوجد سعر محدد ولا شاشة لتحديده في أي منهما بعد. هنا تعدل صياغة الصفحة الرئيسية فقط؛ تعرض هذه الباقات «الأسعار تعلن قريبا».",
+     "isDefault": "تظهر الصياغة المرفقة بالمنتج. الحفظ ينشئ نسختك الخاصة.",
+     "version": "النسخة {{version}}، حفظها {{by}}",
+     "pharmacy": "الصيدلية", "lab": "المعمل",
+     "visible": "عرض في الصفحة الرئيسية",
+     "nameEn": "الاسم (بالإنجليزية)", "nameAr": "الاسم (بالعربية)", "summaryEn": "الملخص (بالإنجليزية)", "summaryAr": "الملخص (بالعربية)",
+     "limitsEn": "الحدود، سطر لكل بند (بالإنجليزية)", "limitsAr": "الحدود، سطر لكل بند (بالعربية)", "featuresEn": "المزايا، سطر لكل ميزة (بالإنجليزية)", "featuresAr": "المزايا، سطر لكل ميزة (بالعربية)",
+     "save": "حفظ الصياغة", "reset": "العودة إلى النسخة المحفوظة", "restore": "استخدام صياغة المنتج", "working": "جار الحفظ...",
+     "unsaved": "لديك تغييرات غير محفوظة.",
+     "issue": { "name": "الاسمان مطلوبان.", "lines": "يجب أن يتساوى عدد الأسطر بالإنجليزية والعربية.", "markup": "بدون وسوم: أزل الأقواس الزاوية.", "length": "السطر لا يزيد على 200 حرف.", "count": "حتى 14 سطرا." }
+   },
+   "errors": {
+     "generic": "تعذر إجراء التغيير. حاول مرة أخرى.",
+     "CLINIC_UNAVAILABLE": "لا يمكن الوصول إلى العيادة الآن. لم يتغير شيء.",
+     "CLINIC_400": "رفضت العيادة القيم. راجع المبلغ والعملة والسوق.",
+     "CLINIC_404": "لم تعد الباقة موجودة.",
+     "MARKET_ADMIN_SCOPE_REQUIRED": "لا يسمح لمنصة كيوريكس بإدارة الباقات في العيادة.",
+     "PLAN_CONTENT_STALE": "حفظ شخص آخر الصياغة أولا. أعد تحميل الصفحة ثم كرر تغييرك.",
+     "INVALID_PLAN_CONTENT": "الصياغة غير صالحة. راجع الحقول المعلمة.",
+     "NOTHING_TO_CHANGE": "لا يوجد ما يتغير.",
+     "field": { "market": "اختر سوقا.", "currency": "ثلاثة أحرف، مثل EGP.", "amount": "أرقام بحد أقصى منزلتين عشريتين.", "included": "عدد صحيح لا يقل عن 1.", "extra": "أرقام بحد أقصى منزلتين عشريتين.", "validFrom": "تاريخ ووقت غير صالحين." }
+   }
+  }
+ }
+}

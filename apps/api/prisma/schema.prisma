@@ -3759,6 +3759,15 @@ model LeadEvent {
 }
 
 /// Versioned admin-managed configuration of the join flow (picklists, required fields, notification switches). One row per key ("config").
+/// Site text of the Pharmacy and Lab plan editions shown on the Kiorly site (no prices). One versioned document, edited by the super admin in the Kiorly admin, audited.
+model SitePlanSetting {
+  key       String   @id
+  value     Json
+  version   Int      @default(1)
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
 model LeadSetting {
   key       String   @id
   value     Json

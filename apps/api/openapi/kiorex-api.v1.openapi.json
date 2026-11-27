@@ -10474,6 +10474,148 @@
         ]
       }
     },
+    "/api/v1/public/plans": {
+      "get": {
+        "operationId": "SitePlansPublicController_list",
+        "parameters": [
+          {
+            "name": "market",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public: the subscription plans of Clinic, Pharmacy and Lab for the Kiorly site (contract kiorly.public-plans.v1). Clinic comes live from the Clinic catalogue for ?market=CC (default EG); a plan without an active price says priceStatus TO_BE_ANNOUNCED and carries no number",
+        "tags": [
+          "public-site"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans": {
+      "get": {
+        "operationId": "SitePlansAdminController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab site text with its version, and canChange for the caller",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/clinic/{planId}": {
+      "patch": {
+        "operationId": "SitePlansAdminController_patch",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Super admin: change a Clinic plan name, public flag or order (forwarded to the Clinic, audited here)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/clinic/{planId}/prices": {
+      "post": {
+        "operationId": "SitePlansAdminController_price",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Super admin: publish a new effective-dated price version for a Clinic plan and market, or { preview: true } for the impact on subscribers without publishing",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/content": {
+      "put": {
+        "operationId": "SitePlansAdminController_save",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Super admin: save the site text of the Pharmacy and Lab editions. Send { version, config }; 409 PLAN_CONTENT_STALE when someone saved first. Carries no price",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",

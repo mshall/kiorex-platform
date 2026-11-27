@@ -46,6 +46,9 @@ export class FakeKiorly {
   markets: any[] = []; marketAudit = new Map<string, any[]>(); marketWrites: { method: string; path: string; body: any }[] = [];
   /** 'scope' = 403 MARKET_ADMIN_SCOPE_REQUIRED, '5xx' = the Clinic is down. */
   marketsMode: undefined | 'scope' | '5xx';
+  /** Kiorly admin plans: the Clinic's public catalogue (GET /api/v1/public/plans, unsigned) and its signed /plans routes, simulated in memory. 'down' = the Clinic answers 503 to both. */
+  plansPublic: any = { market: { code: 'EG', currency: 'EGP' }, plans: [] }; planWrites: { method: string; path: string; body: any }[] = []; publicPlanHits = 0;
+  plansAdmin: { markets: any[]; plans: any[] } = { markets: [], plans: [] }; plansMode: undefined | 'down' | 'scope';
   getBookingMode: Mode;
   cancelMode: Mode;
   autoConfirm = true;
@@ -64,6 +67,7 @@ export class FakeKiorly {
   reset() {
     this.delayMs = 0; this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.commissionRates = []; this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
     this.markets = []; this.marketAudit.clear(); this.marketWrites = []; this.marketsMode = undefined;
+    this.plansPublic = { market: { code: 'EG', currency: 'EGP' }, plans: [] }; this.planWrites = []; this.publicPlanHits = 0; this.plansAdmin = { markets: [], plans: [] }; this.plansMode = undefined;
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
     this.promotionMode = undefined; this.promotionReservations.clear(); this.promotionReviews = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
@@ -106,6 +110,12 @@ export class FakeKiorly {
     for await (const c of req) chunks.push(c as Buffer);
     const raw = Buffer.concat(chunks);
     const url = new URL(req.url!, 'http://x');
+    if (req.method === 'GET' && url.pathname === '/api/v1/public/plans') { // the Clinic's unauthenticated public catalogue (no signature)
+      this.publicPlanHits++;
+      if (this.plansMode === 'down') return this.send(res, 503, { message: 'down' });
+      const cc = (url.searchParams.get('market') ?? '').toUpperCase();
+      return cc === this.plansPublic.market.code ? this.send(res, 200, this.plansPublic) : this.send(res, 404, { message: `Market ${cc} not found` });
+    }
     const v = verifyKiorlyRequest({ headers: req.headers as any, method: req.method!, path: url.pathname, body: raw, secret: 'kx_dev_secret_change_me' });
     if (!v.ok || req.headers['x-kiorly-client-key'] !== 'kx_dev_client') { this.bad++; return this.send(res, 401, { code: 'BAD_HMAC', reason: (v as any).reason }); }
     const path = url.pathname.replace('/marketplace/v1', '');
@@ -116,6 +126,24 @@ export class FakeKiorly {
     const send = (s: number, b: any) => this.send(res, s, b);
     const hang = () => new Promise<void>(() => undefined);
 
+    if (path === '/plans' || path.startsWith('/plans/')) {
+      if (this.plansMode === 'down') return send(503, { message: 'down' });
+      if (this.plansMode === 'scope') return send(403, { code: 'MARKET_ADMIN_SCOPE_REQUIRED', message: 'This client may not manage plans' });
+      if (m === 'GET' && path === '/plans') return send(200, this.plansAdmin);
+      if (!body?.actor?.id) return send(403, { code: 'ACTOR_REQUIRED', message: 'actor' });
+      this.planWrites.push({ method: m, path, body });
+      const parts = path.split('/').filter(Boolean);
+      const plan = this.plansAdmin.plans.find((x) => x.id === parts[1]);
+      if (!plan) return send(404, { code: 'PLAN_NOT_FOUND', message: 'Plan not found' });
+      if (m === 'PATCH') { Object.assign(plan, Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'actor'))); return send(200, plan); }
+      if (m === 'POST' && parts[2] === 'prices') {
+        if (!body.marketId || !this.plansAdmin.markets.some((x) => x.id === body.marketId)) return send(400, { code: 'UNKNOWN_MARKET', message: 'Unknown marketId' });
+        if (!(Number(body.amount) >= 0)) return send(400, { code: 'AMOUNT_INVALID', message: 'amount invalid' });
+        if (body.preview) return send(200, { preview: true, priceVersion: 1, supersedes: false, impact: { tenantsAffected: 0, mrrDelta: '0.00' } });
+        const row = { id: `pp_${plan.prices.length + 1}`, planId: plan.id, marketId: body.marketId, currency: body.currency, interval: body.interval, unit: body.unit, amount: String(body.amount), includedClinicians: body.includedClinicians ?? 1, extraClinicianAmount: null, cohortKey: null, priceVersion: plan.prices.length + 1, validFrom: body.validFrom ?? new Date().toISOString(), validTo: null };
+        plan.prices.push(row); return send(200, { ...row, impact: null });
+      }
+    }
     if (path === '/markets' || path.startsWith('/markets/')) return this.handleMarkets(m, path, body, send);
     if (m === 'GET' && path === '/providers') {
       const since = url.searchParams.get('updatedSince');

@@ -712,6 +712,10 @@
 | POST | `/api/v1/admin/messaging/log/{id}/simulate` | OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling |
 | POST | `/api/v1/admin/messaging/delivery-tick` |  |
 | GET | `/api/v1/admin/audit-log` |  |
+| GET | `/api/v1/admin/kiorly-plans` | Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab site text with its version, and canChange for the caller |
+| PATCH | `/api/v1/admin/kiorly-plans/clinic/{planId}` | Super admin: change a Clinic plan name, public flag or order (forwarded to the Clinic, audited here) |
+| POST | `/api/v1/admin/kiorly-plans/clinic/{planId}/prices` | Super admin: publish a new effective-dated price version for a Clinic plan and market, or { preview: true } for the impact on subscribers without publishing |
+| PUT | `/api/v1/admin/kiorly-plans/content` | Super admin: save the site text of the Pharmacy and Lab editions. Send { version, config }; 409 PLAN_CONTENT_STALE when someone saved first. Carries no price |
 | GET | `/api/v1/admin/partners` | OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked |
 | POST | `/api/v1/admin/partners/{kind}` | OP: register a partner (pharmacy|lab) |
 | PUT | `/api/v1/admin/partners/{kind}/{id}` | OP: update base URL / keys / active of a partner registration |
@@ -872,6 +876,12 @@
 | GET | `/api/v1/admin/policy` | OP: business policies resolved for a market (default EG), with source and overrides |
 | PUT | `/api/v1/admin/policy/{key}` | SA: set a policy override at GLOBAL, MARKET or ORG scope (validated, audited) |
 | DELETE | `/api/v1/admin/policy/{key}` | SA: remove an override (falls back to the next level / PROPOSED_DEFAULT) |
+
+## public-site
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/public/plans` | Public: the subscription plans of Clinic, Pharmacy and Lab for the Kiorly site (contract kiorly.public-plans.v1). Clinic comes live from the Clinic catalogue for ?market=CC (default EG); a plan without an active price says priceStatus TO_BE_ANNOUNCED and carries no number |
 
 ## records
 

@@ -253,3 +253,13 @@ What Clinic, Pharmacy and Lab show of the commission policy above. They hold **n
 | Disclosure texts, counsel status chip | provider web | texts shown only when Kiorex set wording (EN and / or AR; the other language, marked, when only one is written); the chip shows the status only, never reviewer, document or conditions | hidden / not shown |
 
 Roles that see the statement: Clinic finance, owner, group admin (and administrators when `kiorexCommissions.adminView` is on); Pharmacy owner, branch manager, chain operations; Lab owner, lab director, branch manager, finance.
+
+## Site plans (landing page) (28 Nov 2026)
+
+| Setting | Where | Meaning | Default |
+|---|---|---|---|
+| Clinic plan names, order, public flag and effective-dated price versions | Clinic `Plan` / `PlanPrice` (edited in the Kiorly admin `/kiorly-plans`, `super_admin`; ops reads) | the Clinic plans the landing page shows; a plan without an active price shows "Pricing to be announced" | the Clinic catalogue (seeded EG list prices exist; see founder question in `KIORLY_ADMIN.md`) |
+| Pharmacy and Lab edition wording (visible, name, summary, limits, features, EN and AR) | platform table `SitePlanSetting` key `content` (edited in the same screen, `super_admin`, versioned, audited, no price key accepted) | the wording of the two products' editions; **never a price** (their `PlanPrice` tables are empty and have no editing surface yet) | the editions as defined in code (`LITE`, `PRO`, `CHAIN`) |
+| `PLANS_PUBLIC_ORIGINS` | Kiorex API env (optional) | extra origins allowed to READ `GET /api/v1/public/plans` (route-scoped CORS, GET only, no credentials) | falls back to `LEADS_PUBLIC_ORIGINS` (the site origin from the registry) |
+| `KIORLY_PLANS_ENDPOINT` | Kiorly site build (from the registry, `kiorex.api` + `/api/v1/public/plans`) | where the landing page reads the plans at load; unset = static "plans are being finalised" text only | emitted by `env:emit --env <env>` |
+| Public cache | code | platform memory 60 s (stale copy up to 24 h when the Clinic is down), `max-age=60` for browsers | not a setting |
