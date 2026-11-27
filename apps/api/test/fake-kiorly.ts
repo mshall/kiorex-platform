@@ -70,7 +70,7 @@ export class FakeKiorly {
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
 
-  private handleMarkets(m: string, path: string, url: URL, body: any, send: (s: number, b: any) => void) {
+  private handleMarkets(m: string, path: string, body: any, send: (s: number, b: any) => void) {
     if (this.marketsMode === 'scope') return send(403, { code: 'MARKET_ADMIN_SCOPE_REQUIRED', message: 'This client may not manage markets' });
     if (this.marketsMode === '5xx') return send(503, { message: 'down' });
     const parts = path.split('/').filter(Boolean).slice(1); // after 'markets'
@@ -116,7 +116,7 @@ export class FakeKiorly {
     const send = (s: number, b: any) => this.send(res, s, b);
     const hang = () => new Promise<void>(() => undefined);
 
-    if (path === '/markets' || path.startsWith('/markets/')) return this.handleMarkets(m, path, url, body, send);
+    if (path === '/markets' || path.startsWith('/markets/')) return this.handleMarkets(m, path, body, send);
     if (m === 'GET' && path === '/providers') {
       const since = url.searchParams.get('updatedSince');
       const items = this.providers.filter((p) => !since || p.updatedAt >= since);
