@@ -1,4 +1,9 @@
 {
+  "edition": {
+    "kiorlyTitle": "Kiorly Admin",
+    "kiorlyDescription": "Kiorly admin console for the provider products",
+    "console": "Kiorly admin"
+  },
   "nav": {
     "main": "Main navigation",
     "console": "Ops console",

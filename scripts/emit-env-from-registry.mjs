@@ -65,6 +65,7 @@ export function build(envId) {
   const api = m['kiorex.api'] ?? fail(`kiorex.api has no env block in ${envId}`);
   const mkt = m['kiorex.marketplace'] ?? {};
   const admin = m['kiorex.admin'] ?? {};
+  const kiorlyAdmin = m['kiorly.admin'] ?? {};
   const clinics = m['kiorly.clinics'] ?? {};
   const linkSvc = reg.services.find((s) => s.domain === 'link'); // the short-link domain service (looked up by domain, never by a typed host)
   const linkHost = linkSvc ? hostOf(reg, linkSvc.id, envId) : null;
@@ -79,7 +80,7 @@ export function build(envId) {
     ...(api.WIDGET_HOST ? { WIDGET_EMBED_HOST: `https://${api.WIDGET_HOST}`, WIDGET_PRODUCTION_HOST: api.WIDGET_HOST } : {}),
   };
   const webEnv = { VITE_OIDC_AUTHORITY: mkt.VITE_OIDC_AUTHORITY, ...(clinics.APP_WEB_URL ? { VITE_KIORLY_CLINICS_URL: clinics.APP_WEB_URL } : {}) };
-  const opsEnv = { VITE_OIDC_AUTHORITY: admin.VITE_OIDC_AUTHORITY, ...(mkt.SITE_CANONICAL_HOST ? { VITE_SITE_CANONICAL_HOST: mkt.SITE_CANONICAL_HOST } : {}) };
+  const opsEnv = { VITE_OIDC_AUTHORITY: admin.VITE_OIDC_AUTHORITY, ...(mkt.SITE_CANONICAL_HOST ? { VITE_SITE_CANONICAL_HOST: mkt.SITE_CANONICAL_HOST } : {}), ...(kiorlyAdmin.VITE_KIORLY_ADMIN_HOSTS ? { VITE_KIORLY_ADMIN_HOSTS: kiorlyAdmin.VITE_KIORLY_ADMIN_HOSTS } : {}) };
   const issuerEnv = reg.oidc.issuer_env[envId];
   const redirects = emitJson('redirects', issuerEnv ?? envId).filter((r) => r.env === envId);
   return {

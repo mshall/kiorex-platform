@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +11,8 @@ import { LoadingState } from "@/components/states";
 import { ApiError } from "@/api/errors";
 import { BookingTimelinePage, FinancePage, LiquidityPage, ModerationPage, OutboxPage, ProvidersPage } from "@/pages/SimplePages";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
+import { EditionHead } from "@/components/EditionHead";
+import { KIORLY_HOME_ROUTE, isKiorly, pathInEdition } from "@/lib/edition";
 
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const IntegrationsCenterPage = lazy(() => import("@/pages/IntegrationsCenterPage"));
@@ -87,13 +89,20 @@ const GrowthLoyaltyPage = lazy(() => import("@/pages/growth/loyalty/Page"));
 export const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } } });
 const client = makeQueryClient();
 
+/** Kiorly admin: a view that belongs to the Kiorex super admin is not routed here (the API still enforces roles on every call). */
+function EditionGate({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  if (isKiorly && !pathInEdition("kiorly", pathname)) return <Navigate to={KIORLY_HOME_ROUTE} replace />;
+  return <>{children}</>;
+}
+
 export function AppRoutes() {
   return (
     <Suspense fallback={<LoadingState />}>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
-        <Route element={<RequireOps><OpsLayout /></RequireOps>}>
-          <Route index element={<Navigate to="/flags" replace />} />
+        <Route element={<RequireOps><EditionGate><OpsLayout /></EditionGate></RequireOps>}>
+          <Route index element={<Navigate to={isKiorly ? KIORLY_HOME_ROUTE : "/flags"} replace />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="bookings" element={<BookingTimelinePage />} />
           <Route path="outbox" element={<OutboxPage />} />
@@ -169,7 +178,7 @@ export function AppRoutes() {
           <Route path="growth/corporate" element={<GrowthCorporatePage />} />
           <Route path="growth/corporate/accounts/:id" element={<GrowthCorporateAccountPage />} />
           <Route path="growth/loyalty" element={<GrowthLoyaltyPage />} />
-          <Route path="*" element={<Navigate to="/flags" replace />} />
+          <Route path="*" element={<Navigate to={isKiorly ? KIORLY_HOME_ROUTE : "/flags"} replace />} />
         </Route>
       </Routes>
     </Suspense>
@@ -180,7 +189,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={client}>
-        <AuthProvider><TooltipProvider><BrowserRouter><AppRoutes /></BrowserRouter><Toaster position="top-center" /></TooltipProvider></AuthProvider>
+        <AuthProvider><TooltipProvider><EditionHead /><BrowserRouter><AppRoutes /></BrowserRouter><Toaster position="top-center" /></TooltipProvider></AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
