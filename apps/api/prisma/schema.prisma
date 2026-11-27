@@ -3684,3 +3684,85 @@ model DemoMarker {
   @@id([tableName, rowId])
   @@index([dataClass, tableName])
 }
+
+/// Join requests from the public Kiorly site (provider onboarding leads). Personal and licence data is field-encrypted (AES-256-GCM, common/crypto); phone and email also carry a keyed blind index for duplicate detection.
+model Lead {
+  id                 String   @id // ld_<id>
+  ref                String   @unique // KL-XXXXXXXX, shown to the applicant
+  status             String   @default("NEW") // NEW | CONTACTED | QUALIFIED | ONBOARDING | WON | LOST
+  mode               String // STANDALONE | CONNECTED
+  providerType       String
+  legalName          String
+  tradeName          String?
+  contactNameEnc     String
+  contactRole        String?
+  phoneEnc           String
+  phoneHash          String
+  emailEnc           String?
+  emailHash          String?
+  country            String   @default("EG")
+  governorate        String?
+  city               String?
+  market             String   @default("EG")
+  branches           Int?
+  staffCount         Int?
+  specialties        String[]
+  services           String?
+  currentSoftware    String?
+  licencesEnc        String? // encrypted JSON { facilityLicence, professionalLicence, commercialRegister, taxCard }: self-declared, never validated against any authority
+  modules            String[]
+  goLive             String?
+  locale             String   @default("en")
+  contactChannel     String?
+  contactTime        String?
+  noteEnc            String?
+  extra              Json     @default("{}") // answers specific to the provider type (whitelisted keys, no personal data)
+  consentTextVersion String
+  consentAt          DateTime
+  sourceEnv          String?
+  idempotencyKey     String   @unique
+  payloadHash        String
+  ipHash             String?
+  ownerSub           String?
+  ownerName          String?
+  lostReason         String?
+  tags               String[]
+  isTest             Boolean  @default(false)
+  duplicateOfId      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  events             LeadEvent[]
+
+  @@index([status, createdAt])
+  @@index([providerType])
+  @@index([market])
+  @@index([mode])
+  @@index([ownerSub])
+  @@index([phoneHash])
+  @@index([emailHash])
+  @@index([isTest])
+  @@index([createdAt])
+}
+
+/// Audit trail of one lead: CREATED | STATUS | ASSIGN | NOTE | TAG | DUPLICATE | NOTIFY. `data` never holds contact details.
+model LeadEvent {
+  id        String   @id // le_<id>
+  leadId    String
+  kind      String
+  actor     String // ops sub, or "public"
+  actorName String?
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+/// Versioned admin-managed configuration of the join flow (picklists, required fields, notification switches). One row per key ("config").
+model LeadSetting {
+  key       String   @id
+  value     Json
+  version   Int      @default(1)
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}

@@ -579,6 +579,13 @@
 | GET | `/api/v1/admin/lab/bookings` | OP: lab bookings (status filter) |
 | POST | `/api/v1/admin/lab/bookings/{id}/resubmit` | OP: re-send a PAID booking to Kiorly Lab (idempotent) |
 
+## leads
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/public/leads/config` | Public: the join form picklists (provider types, specialties, markets and governorates, modules, ...), the required fields and the fields per provider type |
+| POST | `/api/v1/public/leads` | Public: submit a join request. Requires Idempotency-Key (8-64 chars). 201 { reference }; a replay of the same key and body answers the same reference; 400 VALIDATION_FAILED { fields }; 429 RATE_LIMITED |
+
 ## market
 
 | Method | Path | Summary |
@@ -702,6 +709,21 @@
 | POST | `/api/v1/admin/safety/alerts/{id}/escalate` |  |
 | POST | `/api/v1/admin/safety/alerts/{id}/resolve` |  |
 | POST | `/api/v1/admin/safety/sweep` | Retry undelivered alerts and auto-escalate alerts unacknowledged for 10 minutes |
+
+## ops-leads
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/v1/admin/leads` | OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), page, pageSize |
+| GET | `/api/v1/admin/leads/summary` | OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests |
+| GET | `/api/v1/admin/leads/owners` | OP: team members a request can be assigned to |
+| GET | `/api/v1/admin/leads/settings` | OP: the join-flow configuration (picklists, required fields, test markers, notification switches) and its version |
+| PUT | `/api/v1/admin/leads/settings` | OP (super admin): save the configuration. Send { version, config }; 409 LEAD_CONFIG_STALE when someone saved first. Not a money, legal or safety setting: versioned and audited, no second approver |
+| GET | `/api/v1/admin/leads/export.csv` | OP: CSV export of the filtered requests (decrypted contact details, audited; max 5000 rows) |
+| POST | `/api/v1/admin/leads/test/remove` | OP (super admin): delete the requests tagged as test data. { confirm: false } (default) counts only |
+| GET | `/api/v1/admin/leads/{id}` | OP: one request with decrypted contact details, trail and possible duplicates (the read is audited) |
+| PATCH | `/api/v1/admin/leads/{id}` | OP: change status (allowed transitions only), lost reason, owner, tags; isTest is super admin only |
+| POST | `/api/v1/admin/leads/{id}/notes` | OP: add an internal note |
 
 ## ops-onboarding
 

@@ -26,7 +26,7 @@ export const isKiorly = OPS_EDITION === "kiorly";
  */
 export const KIORLY_ROUTES = [
   "/providers", "/orders", "/fees", "/commissions", "/commission-policy", "/finance", "/reconciliation", "/pay-ops", "/payments-connection",
-  "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/flags", "/operations", "/outbox",
+  "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/flags", "/operations", "/outbox",
 ] as const;
 export const KIORLY_HOME_ROUTE = "/providers";
 

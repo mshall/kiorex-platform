@@ -33,6 +33,9 @@ const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
 const PartnerOnboardingPage = lazy(() => import("@/pages/PartnerOnboardingPage"));
 const PartnerLeadsPage = lazy(() => import("@/pages/PartnerLeadsPage"));
+const SiteLeadsPage = lazy(() => import("@/pages/SiteLeadsPage"));
+const SiteLeadDetailPage = lazy(() => import("@/pages/SiteLeadDetailPage"));
+const SiteLeadSettingsPage = lazy(() => import("@/pages/SiteLeadSettingsPage"));
 const PartnerOnboardingDetailPage = lazy(() => import("@/pages/PartnerOnboardingDetailPage"));
 const GrowthAnalyticsV1Page = lazy(() => import("@/pages/growth-analytics/GrowthAnalyticsPage"));
 const AcquisitionPage = lazy(() => import("@/pages/growth-analytics/AcquisitionPage"));
@@ -129,6 +132,9 @@ export function AppRoutes() {
           <Route path="partner-onboarding" element={<PartnerOnboardingPage />} />
           <Route path="partner-onboarding/:id" element={<PartnerOnboardingDetailPage />} />
           <Route path="partner-leads" element={<PartnerLeadsPage />} />
+          <Route path="leads" element={<SiteLeadsPage />} />
+          <Route path="leads/settings" element={<SiteLeadSettingsPage />} />
+          <Route path="leads/:id" element={<SiteLeadDetailPage />} />
           <Route path="growth-analytics" element={<GrowthAnalyticsV1Page />} />
           <Route path="acquisition" element={<AcquisitionPage />} />
           <Route path="growth" element={<GrowthExecutivePage />} />

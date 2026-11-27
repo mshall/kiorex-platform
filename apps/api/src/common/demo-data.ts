@@ -70,6 +70,9 @@ export const DEMO_TARGETS: DemoTarget[] = [
   // consent rows (ids demo_cr_*, demo subs) stay as inert audit rows; this tool never disables a trigger or weakens an audit control.
   { table: 'PatientProfile', seededWhere: DEMO_SUBS },
   // the dev-only gate evidence the dev seeds record is labelled DEV-ONLY-NOT-A-REAL-GATE; it is dummy by definition and must not outlive the demo data
+  // Kiorly site join requests tagged as test data (reserved e-mail domain or name prefix, or a super admin's tag): removable like any demo row; the trail rows go with their lead
+  { table: 'LeadEvent', childOf: { parent: 'Lead', fk: 'leadId' } },
+  { table: 'Lead', seededWhere: `"isTest" = true` },
   { table: 'FlagGateEvidence', key: `"flagKey" || ':' || "gateId"`, seededWhere: `starts_with("gateId", 'DEV-ONLY-NOT-A-REAL-GATE')` },
 ];
 

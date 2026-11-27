@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from './common/errors';
 export const API_PREFIX = 'api/v1';
 /** Public growth and widget endpoints take small JSON only (events, touches, consent, referral, assignments): 32 KiB, enforced while streaming (also without Content-Length). Vault uploads keep the global 8 MB. */
 export const GROWTH_PUBLIC_BODY_LIMIT_BYTES = 32 * 1024;
+export const LEADS_PUBLIC_BODY_LIMIT_BYTES = 16 * 1024;
 export const GROWTH_PUBLIC_BODY_PREFIXES: readonly string[] = [`/${API_PREFIX}/growth/v1`, `/${API_PREFIX}/widget/v1`];
 
 export function setupApp(app: INestApplication) {
@@ -30,6 +31,13 @@ export function setupApp(app: INestApplication) {
         next(err);
       });
   }
+  // public join requests (Kiorly site): 16 KiB JSON, parsed BEFORE the global 8 MB parser; oversize is a 413 whether or not Content-Length is declared
+  use?.call(app, `/${API_PREFIX}/public/leads`,
+    expressJson({ limit: LEADS_PUBLIC_BODY_LIMIT_BYTES, verify: (req: any, _res: unknown, buf: Buffer) => { req.rawBody = buf; } }),
+    (err: any, _req: unknown, res: any, next: (e?: unknown) => void) => {
+      if (err?.type === 'entity.too.large') { res.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' }); return; }
+      next(err);
+    });
   // vault uploads are JSON/base64 (<= VAULT_MAX_BYTES 5 MB => ~6.7 MB); rawBody (webhook HMAC) is preserved by Nest's parser options
   (app as unknown as { useBodyParser?: (t: string, o: object) => void }).useBodyParser?.('json', { limit: '8mb' });
   // MSG-REAL: Amazon SNS posts its notifications (SES bounces, complaints, subscription confirmations) as Content-Type text/plain; the raw body is needed for the credential / signature check

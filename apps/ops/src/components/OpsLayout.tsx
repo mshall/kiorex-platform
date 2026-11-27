@@ -1,12 +1,13 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, LogOut, MessagesSquare, Moon, Plug, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
+import { Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, Inbox, LogOut, MessagesSquare, Moon, Plug, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo, LogoMark } from "@/components/Logo";
 import { useAuth } from "@/auth/AuthProvider";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 import { useLeadsUnread } from "@/api/partnerLeads";
+import { useSiteLeadSummary } from "@/api/siteLeads";
 import { GrowthNav } from "@/components/growth/GrowthNav";
 import { KiorlyLogo, KiorlyMark } from "@/components/KiorlyLogo";
 import { KIORLY_ROUTES, isKiorly } from "@/lib/edition";
@@ -18,9 +19,16 @@ function LeadsBadge({ className }: { className?: string }) {
   return <span className={cn("kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground", className)} data-testid="nav-leads-badge" role="status" aria-label={t("leads.alerts.unread", { count: n })}>{n > 99 ? "99+" : n}</span>;
 }
 
+/** New (not yet contacted) join requests from the Kiorly site. */
+function SiteLeadsBadge() {
+  const { t } = useTranslation(); const n = useSiteLeadSummary().data?.byStatus.NEW ?? 0;
+  if (n < 1) return null;
+  return <span className="kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" data-testid="site-leads-badge" aria-label={t("siteLeads.newBadge", { count: n })}>{n > 99 ? "99+" : n}</span>;
+}
+
 const NAV = [
   { to: "/providers", icon: Building2, key: "providers" }, { to: "/bookings", icon: Route, key: "bookings" }, { to: "/outbox", icon: Activity, key: "outbox" },
-  { to: "/finance", icon: Banknote, key: "finance" }, { to: "/moderation", icon: ShieldCheck, key: "moderation" }, { to: "/liquidity", icon: Waves, key: "liquidity" }, { to: "/messaging", icon: MessagesSquare, key: "messaging" }, { to: "/integrations", icon: Plug, key: "integrationsCenter" }, { to: "/orders", icon: PackageCheck, key: "orders" }, { to: "/fees", icon: Receipt, key: "fees" }, { to: "/policy", icon: Scale, key: "policy" }, { to: "/operations", icon: Settings2, key: "operations" }, { to: "/safety", icon: Siren, key: "safety" }, { to: "/held-deposits", icon: HandCoins, key: "held" }, { to: "/payments-connection", icon: Plug, key: "payConn" }, { to: "/reconciliation", icon: Scale, key: "recon" }, { to: "/pay-ops", icon: Scale, key: "payOps" }, { to: "/commissions", icon: Banknote, key: "commissions" }, { to: "/home-gate", icon: House, key: "homeGate" }, { to: "/flags", icon: Flag, key: "flags" }, { to: "/onboarding", icon: DatabaseZap, key: "onboarding" }, { to: "/partner-onboarding", icon: Handshake, key: "partnerOnboarding" }, { to: "/partner-leads", icon: UserPlus, key: "partnerLeads" }, { to: "/growth-analytics", icon: BarChart3, key: "growthAnalytics" }, { to: "/acquisition", icon: Crosshair, key: "acquisition" },
+  { to: "/finance", icon: Banknote, key: "finance" }, { to: "/moderation", icon: ShieldCheck, key: "moderation" }, { to: "/liquidity", icon: Waves, key: "liquidity" }, { to: "/messaging", icon: MessagesSquare, key: "messaging" }, { to: "/integrations", icon: Plug, key: "integrationsCenter" }, { to: "/orders", icon: PackageCheck, key: "orders" }, { to: "/fees", icon: Receipt, key: "fees" }, { to: "/policy", icon: Scale, key: "policy" }, { to: "/operations", icon: Settings2, key: "operations" }, { to: "/safety", icon: Siren, key: "safety" }, { to: "/held-deposits", icon: HandCoins, key: "held" }, { to: "/payments-connection", icon: Plug, key: "payConn" }, { to: "/reconciliation", icon: Scale, key: "recon" }, { to: "/pay-ops", icon: Scale, key: "payOps" }, { to: "/commissions", icon: Banknote, key: "commissions" }, { to: "/home-gate", icon: House, key: "homeGate" }, { to: "/flags", icon: Flag, key: "flags" }, { to: "/onboarding", icon: DatabaseZap, key: "onboarding" }, { to: "/partner-onboarding", icon: Handshake, key: "partnerOnboarding" }, { to: "/partner-leads", icon: UserPlus, key: "partnerLeads" }, { to: "/leads", icon: Inbox, key: "siteLeads" }, { to: "/growth-analytics", icon: BarChart3, key: "growthAnalytics" }, { to: "/acquisition", icon: Crosshair, key: "acquisition" },
 ] as const;
 
 /** The Kiorly admin offers only the provider-product views (lib/edition.ts); the Kiorex super admin offers everything. */
@@ -41,7 +49,7 @@ export function OpsLayout() {
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" data-testid="sidebar-nav">
           {VISIBLE_NAV.map(({ to, icon: Icon, key }) => (
             <NavLink key={to} to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-accent", isActive && "bg-accent text-accent-foreground ring-1 ring-pulse/40")}>
-              <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge /> : null}
+              <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge /> : key === "siteLeads" ? <SiteLeadsBadge /> : null}
             </NavLink>
           ))}
           {isKiorly ? null : <GrowthNav />}

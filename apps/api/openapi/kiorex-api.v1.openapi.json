@@ -9577,6 +9577,297 @@
         ]
       }
     },
+    "/api/v1/public/leads/config": {
+      "get": {
+        "operationId": "LeadsPublicController_config",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public: the join form picklists (provider types, specialties, markets and governorates, modules, ...), the required fields and the fields per provider type",
+        "tags": [
+          "leads"
+        ]
+      }
+    },
+    "/api/v1/public/leads": {
+      "post": {
+        "operationId": "LeadsPublicController_submit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public: submit a join request. Requires Idempotency-Key (8-64 chars). 201 { reference }; a replay of the same key and body answers the same reference; 400 VALIDATION_FAILED { fields }; 429 RATE_LIMITED",
+        "tags": [
+          "leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads": {
+      "get": {
+        "operationId": "LeadsAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), page, pageSize",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/summary": {
+      "get": {
+        "operationId": "LeadsAdminController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/owners": {
+      "get": {
+        "operationId": "LeadsAdminController_owners",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: team members a request can be assigned to",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/settings": {
+      "get": {
+        "operationId": "LeadsAdminController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: the join-flow configuration (picklists, required fields, test markers, notification switches) and its version",
+        "tags": [
+          "ops-leads"
+        ]
+      },
+      "put": {
+        "operationId": "LeadsAdminController_saveSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP (super admin): save the configuration. Send { version, config }; 409 LEAD_CONFIG_STALE when someone saved first. Not a money, legal or safety setting: versioned and audited, no second approver",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/export.csv": {
+      "get": {
+        "operationId": "LeadsAdminController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OP: CSV export of the filtered requests (decrypted contact details, audited; max 5000 rows)",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/test/remove": {
+      "post": {
+        "operationId": "LeadsAdminController_removeTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP (super admin): delete the requests tagged as test data. { confirm: false } (default) counts only",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/{id}": {
+      "get": {
+        "operationId": "LeadsAdminController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: one request with decrypted contact details, trail and possible duplicates (the read is audited)",
+        "tags": [
+          "ops-leads"
+        ]
+      },
+      "patch": {
+        "operationId": "LeadsAdminController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: change status (allowed transitions only), lost reason, owner, tags; isTest is super admin only",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/{id}/notes": {
+      "post": {
+        "operationId": "LeadsAdminController_note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: add an internal note",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
     "/api/v1/me/vault": {
       "get": {
         "operationId": "VaultController_list",

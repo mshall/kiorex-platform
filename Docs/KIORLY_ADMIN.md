@@ -6,7 +6,7 @@ Decision (27 Nov 2026, ADR-059 service `kiorly.admin`): **the Kiorly admin is th
 |---|---|---|
 | Hosts (registry) | `admin.test.kiorex.com`, ... | `admin.test.kiorly.com`, ... |
 | Brand | Kiorex logo, "Kiorex Ops" | Kiorly lockup (Arabic lockup in Arabic), mark on phones, tab title "Kiorly Admin", Kiorly favicon, `noindex` |
-| Views | everything | provider-product views: providers, onboarding, partner onboarding and leads, orders, fees, commissions and commission policy, finance, reconciliation, Kiorly Pay ops, payments connection, messaging, integrations, feature flags, operations, outbox |
+| Views | everything | provider-product views: providers, onboarding, partner onboarding and leads, **join requests from the Kiorly site (`/leads`, `/leads/:id`, `/leads/settings`; see `LEADS.md`)**, orders, fees, commissions and commission policy, finance, reconciliation, Kiorly Pay ops, payments connection, messaging, integrations, feature flags, operations, outbox |
 | Not offered (nor routed; a direct URL redirects to `/providers`) | | bookings, moderation, liquidity, safety, held deposits, home-visit gate, market policy, growth and acquisition |
 | Sign-in | Passport, client `kiorex-ops`, roles `ops_admin`, `super_admin`, `growth_admin`, `finance` | the same client and roles (an extra redirect URI is registered on `kiorex-ops`) |
 | API | same-origin `/api/*` | same-origin `/api/*` (the Kiorex API) |
@@ -27,6 +27,9 @@ The edition is a presentation choice, never a permission: the API enforces roles
 ## Tests
 
 `npx vitest run src/__tests__/edition.test.tsx` (resolution, view list, layout per edition, head, route gate) and `npx playwright test -c playwright.kiorly.config.ts` in `apps/ops` (its own Vite server on port 5281, an injected session and `/api` answered by the test; the Kiorly host is `admin.kiorly.localhost`, which Chrome resolves to loopback).
+
+## Join requests (28 Nov 2026)
+Both editions show the **Join requests** inbox, detail and settings (same pages, same API `/api/v1/admin/leads`, roles `ops_admin` and `super_admin`): filters (type, status, market, mode, date range, owner, test data, duplicates, text), assignment, status changes, notes, tags, CSV export, EN/AR. Settings (picklists, required fields, test markers, notification switches) are read by ops and saved by a super admin; test leads are removed by a super admin (count, then confirm). Tests: `npx playwright test -c playwright.leads.config.ts` (both hosts) and `src/__tests__/site-leads.test.tsx`.
 
 ## Open
 
