@@ -4,7 +4,7 @@ Gap G-HOST (`_docs/environments/PILOT_ENVIRONMENT_STRATEGY.md`): "whether signed
 
 ## Finding (verified in `@kiorex/contracts` 1.13.1, `src/hmac.ts`)
 The Kiorly request signature is HMAC-SHA256 over a canonical string of five parts only: `timestamp \n nonce \n METHOD \n path (query excluded, global prefix included) \n sha256(body)`.
-The `Host` header, the scheme and the port are **not** part of it. The partner-statement route adds an optional second HMAC over the query string (`X-Kiorly-Query-Signature`), also without the host. Inbound webhooks use `<timestamp>.<body>` and no host either. The API never reads the `Host` header for authentication (`grep` of `apps/api/src` finds no use).
+The `Host` header, the scheme and the port are **not** part of it. The partner-statement route adds an optional second HMAC over the query string (`X-Kiorly-Query-Signature`), also without the host. Inbound webhooks use `<timestamp>.<body>` and no host either. No authentication code in `apps/api/src` reads the `Host` header (the only readers are the widget embed controller, for its own self-origin).
 
 ## Recommendation: do not bind the Host header. Keep the current scheme and bind the environment through the secret.
 Reasons:
