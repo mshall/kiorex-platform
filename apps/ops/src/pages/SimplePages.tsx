@@ -46,8 +46,8 @@ export function BookingTimelinePage() {
   return (
     <div>
       <PageHeader title={t("bookings.title")} hint={t("bookings.hint")} />
-      <form className="mb-4 flex gap-3" onSubmit={(e) => { e.preventDefault(); setId(input.trim()); }} role="search">
-        <div><Label htmlFor="bid" className="sr-only">{t("bookings.id")}</Label><Input id="bid" value={input} onChange={(e) => setInput(e.target.value)} placeholder={t("bookings.id")} className="w-72" dir="ltr" /></div>
+      <form className="mb-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); setId(input.trim()); }} role="search">
+        <div><Label htmlFor="bid" className="sr-only">{t("bookings.id")}</Label><Input id="bid" value={input} onChange={(e) => setInput(e.target.value)} placeholder={t("bookings.id")} className="w-72 max-w-full" dir="ltr" /></div>
         <Button type="submit">{t("common.search")}</Button>
       </form>
       {!id ? <p className="text-muted-foreground">{t("bookings.prompt")}</p> : r.isLoading ? <CardSkeleton rows={1} /> : r.error ? <ErrorState error={r.error} onRetry={() => void r.refetch()} /> : (

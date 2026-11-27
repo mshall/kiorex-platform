@@ -36,6 +36,7 @@
     "noAccessBody": "This console is for Kiorex operations staff (ops_admin or super_admin)."
   },
   "common": {
+    "actions": "Actions",
     "skipToContent": "Skip to main content",
     "search": "Search",
     "all": "All",

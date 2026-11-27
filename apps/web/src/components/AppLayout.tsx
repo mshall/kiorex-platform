@@ -16,7 +16,7 @@ export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
   const next = i18n.language.startsWith("ar") ? "en" : "ar";
   return (
-    <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} aria-label={t("nav.switchLanguage")} data-testid="lang-toggle">
+    <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} aria-label={`${t("nav.switchLanguage")}: ${next === "ar" ? "العربية" : "English"}`} data-testid="lang-toggle">
       <Languages aria-hidden="true" />
       <span lang={next} className="hidden sm:inline">{next === "ar" ? "العربية" : "English"}</span>
     </Button>
@@ -70,7 +70,7 @@ export function AppLayout() {
       {/* The six-link nav plus sign out only fit from 1024 px in English (they overflowed 768 to 907 px signed in); below that the bottom tab bar carries the same destinations and Account carries sign out. */}
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-2 sm:gap-3">
-          <Link to="/" aria-label={t("nav.home")} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
+          <Link to="/" aria-label={`KIOREX, ${t("nav.home")}`} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>

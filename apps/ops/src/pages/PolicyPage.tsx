@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { formatDateTime } from "@/lib/format";
 
 const CURRENCY: Record<string, string> = { EG: "EGP", SA: "SAR", AE: "AED", KW: "KWD" };
-const sel = "h-11 rounded-xl border border-input bg-card px-3 text-sm";
+const sel = "h-11 max-w-full rounded-xl border border-input bg-card px-3 text-sm";
 const num = (v: unknown) => Number(v ?? 0);
 
 /** Plain-language summary of a resolved value (what the market actually gets). */
@@ -53,7 +53,7 @@ function Editor({ item, market, canEdit }: { item: PolicyItem; market: string; c
       )}
       {item.key === "pharmacy.partial_fulfilment" && (
         <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1"><Label htmlFor={`mode-${item.key}`}>{t("policy.mode")}</Label><select id={`mode-${item.key}`} className={sel} disabled={!canEdit} value={String(draft.mode)} onChange={(e) => ch("mode", e.target.value)} data-testid="partial-mode"><option value="PRO_RATA_REFUND">{t("policy.partialMode.PRO_RATA_REFUND")}</option><option value="MANUAL_REVIEW">{t("policy.partialMode.MANUAL_REVIEW")}</option></select></div>
+          <div className="min-w-0 max-w-full space-y-1"><Label htmlFor={`mode-${item.key}`}>{t("policy.mode")}</Label><select id={`mode-${item.key}`} className={sel} disabled={!canEdit} value={String(draft.mode)} onChange={(e) => ch("mode", e.target.value)} data-testid="partial-mode"><option value="PRO_RATA_REFUND">{t("policy.partialMode.PRO_RATA_REFUND")}</option><option value="MANUAL_REVIEW">{t("policy.partialMode.MANUAL_REVIEW")}</option></select></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!draft.refundDeliveryFeeIfNotDelivered} disabled={!canEdit} onChange={(e) => ch("refundDeliveryFeeIfNotDelivered", e.target.checked)} />{t("policy.feeRefunded")}</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!draft.releaseFulfilledToPharmacy} disabled={!canEdit} onChange={(e) => ch("releaseFulfilledToPharmacy", e.target.checked)} />{t("policy.released")}</label>
         </div>

@@ -65,6 +65,7 @@ function Preferences() {
   const save = (p: NotificationPref, patch: { enabled?: boolean; quietStart?: number; quietEnd?: number }) =>
     set.mutate({ channel: p.channel, ...patch }, { onSuccess: () => toast.success(t("notifications.prefSaved")), onError: () => toast.error(t("states.errorTitle")) });
   return (
+    <div>
     <ul className="space-y-3" data-testid="notification-prefs">
       {(q.data ?? []).map((p) => (
         <li key={p.channel} className="kx-card space-y-3 p-4">
@@ -85,8 +86,9 @@ function Preferences() {
           </div>
         </li>
       ))}
-      <p className="text-xs text-muted-foreground">{t("notifications.safetyNote")}</p>
     </ul>
+    <p className="mt-3 text-xs text-muted-foreground">{t("notifications.safetyNote")}</p>
+    </div>
   );
 }
 
