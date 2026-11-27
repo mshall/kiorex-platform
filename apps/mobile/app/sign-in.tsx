@@ -10,11 +10,7 @@ import { LanguageMenu } from "@/components/LanguageMenu";
 import { PulseLine } from "@/components/Pulse";
 import { Button, T } from "@/components/ui";
 import { layeredShadow, radii, space, useTheme } from "@/theme";
-import { config } from "@/lib/config";
 import { Icon } from "@/components/Icon";
-
-// DEV ONLY. The condition must stay an inline literal expression: Metro folds `__DEV__` and EXPO_PUBLIC_* per file, so a production bundle drops the require and with it ./dev/* (asserted by scripts/check-no-dev-test-users.mjs).
-const DevTestUsers = __DEV__ && process.env.EXPO_PUBLIC_DEV_TEST_USERS !== "false" ? (require("@/dev/DevTestUsers") as typeof import("@/dev/DevTestUsers")).DevTestUsers : null;
 
 /** Onboarding / sign-in (KX-03 §06, KX-04): one action — Continue with Kiorex Passport. */
 export default function SignIn() {
@@ -50,8 +46,6 @@ export default function SignIn() {
           </View>
         </View>
         <View style={{ paddingHorizontal: space[4], paddingTop: space[4], gap: space[3] }}>
-          {DevTestUsers ? <DevTestUsers busy={busy} onPick={(phone) => void login(phone)} /> : null}
-          {config.mock ? <T variant="caption" color={colors.muted} style={{ textAlign: "center" }}>{t("signIn.mockNote")}</T> : null}
           <T variant="caption" muted style={{ textAlign: "center" }}>{t("footer.emergency")}</T>
         </View>
       </ScrollView>

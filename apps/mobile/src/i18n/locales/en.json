@@ -434,8 +434,7 @@
     "browse": "Browse doctors first",
     "failed": "Sign-in didn't complete. Please try again.",
     "passportNote": "One Kiorex Passport for all Kiorex services. Sign in with your phone number — no password.",
-    "signingIn": "Signing you in…",
-    "mockNote": "Offline demo mode: no real sign-in."
+    "signingIn": "Signing you in…"
   },
   "settings": {
     "language": "Language",
