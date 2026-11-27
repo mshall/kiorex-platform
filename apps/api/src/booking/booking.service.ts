@@ -178,6 +178,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const p = await this.prisma.provider.findUnique({ where: { id: i.providerId } });
     if (!p) throw notFound('PROVIDER_NOT_FOUND', 'Provider not found');
     await this.markets.assertLive(p.market);
+    // Founder decision A (27 Nov 2026): a booking associates a patient with a provider of the SAME market only (the provider belongs to its country for life).
+    const patientMarket = (await this.prisma.patientProfile.findUnique({ where: { sub }, select: { market: true } }))?.market;
+    if (patientMarket && patientMarket !== p.market) throw forbidden('CROSS_MARKET_BOOKING', 'This provider belongs to another country market; a booking cannot cross markets', { providerMarket: p.market, patientMarket });
     await this.flags.assertEnabled('kiorex.marketplace', { market: p.market });
     if (p.tenantId && (await this.flags.evaluate('clinic.kiorex_listing', { market: p.market, orgId: p.tenantId })).reason === 'OFF_ORG') throw forbidden('FEATURE_DISABLED', 'Listing paused', { key: 'clinic.kiorex_listing', scope: 'ORG' });
     if (p.status !== 'LIVE') throw conflict('LISTING_NOT_LIVE', 'Unverified or paused listings are not bookable');
@@ -216,7 +219,7 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     await this.growth.onIntent(b, p.market, { ...g, platform: i.channel === 'WHATSAPP' ? 'whatsapp' : g.platform }); // SlotSelected + BookingInitiated (idempotent facts)
     await this.catalog.track('hold_created', { providerId: p.id, specialtyCode: p.specialty ?? undefined, careType: p.careType, serviceLocation: location, district: addressRow?.district });
     try {
-      const { data } = await this.kiorly.createHold({ clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, startsAt: start.toISOString(), endsAt: end.toISOString(), externalRef: b.holdExternalRef!, ...(visit ? { visitAddress: visit } : {}) });
+      const { data } = await this.kiorly.createHold({ clinicId: p.clinicId, clinicianId: p.clinicianId, typeId: i.typeId, startsAt: start.toISOString(), endsAt: end.toISOString(), externalRef: b.holdExternalRef!, market: p.market, ...(visit ? { visitAddress: visit } : {}) });
       await this.ev(id, 'KIORLY_CALL', { call: 'POST /holds', holdId: data.id });
       const exp = data.expiresAt ? new Date(data.expiresAt) : new Date(Date.now() + cfg().holdMinutes * 60_000);
       b = (await this.move(b, 'HELD', { holdId: data.id, holdExpiresAt: exp }, { holdId: data.id })) ?? b;
@@ -307,8 +310,9 @@ export class BookingService implements OnModuleInit, OnModuleDestroy {
     const claim = await this.prisma.bookingIntent.updateMany({ where: { id, status: 'HELD', OR: [{ callState: { not: 'IN_FLIGHT' } }, { updatedAt: { lt: new Date(Date.now() - this.confirmLeaseMs) } }] }, data: { callState: 'IN_FLIGHT', patientSnapshot: { ...((b.patientSnapshot as Record<string, unknown> | null) ?? {}), forDependant: identity.forDependant } as any } });
     if (claim.count === 0) return this.answerOtherConfirm(id); // another instance holds the claim: wait for its result, never send a second request to the Clinic
     const gx = await this.growth.forConfirm(id, { ...g, lt: (b.patientSnapshot as { growthLt?: string } | null)?.growthLt ?? g.lt }); // {} when growth.attribution is OFF: the request is then byte-identical to before
+    const provMarket = (await this.prisma.provider.findUnique({ where: { id: b.providerId }, select: { market: true } }))?.market; // the Clinic refuses a booking whose market is not its organisation's own (409 CROSS_MARKET_BOOKING)
     const body = {
-      clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,
+      ...(provMarket ? { market: provMarket } : {}), clinicId: b.clinicId, clinicianId: b.clinicianId, typeId: b.typeId, startsAt: b.startsAt.toISOString(), endsAt: b.endsAt.toISOString(), holdId: b.holdId ?? undefined, holdExternalRef: b.holdExternalRef ?? undefined,
       patient: { phone: identity.phone, firstNameEn: identity.firstNameEn, lastNameEn: identity.lastNameEn, gender: identity.gender, nationalId: identity.nationalId, email: identity.email },
       notes: c.notes, marketplaceConsentGranted: true, remindersConsentGranted: !!c.remindersConsent, attribution: { source: b.channel === 'WHATSAPP' ? 'kiorex_whatsapp' : 'kiorex' },
       ...(gx.acquisition ? { acquisition: gx.acquisition } : {}), ...(gx.lt ? { lt: gx.lt } : {}), // GRW-P1-C: signed acquisition block (contracts 1.10.0) and the verified provider-link token

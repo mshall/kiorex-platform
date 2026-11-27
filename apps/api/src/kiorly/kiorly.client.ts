@@ -92,7 +92,7 @@ export class KiorlyClient {
     return this.request<any>({ method: 'GET', path: `/clinics/${encodeURIComponent(clinicId)}/slots`, query: q, clinicId });
   }
   /** `visitAddress` is mandatory for HOME visit types (KX-09 §03). It is sent here and nowhere else; never logged. */
-  createHold(body: { clinicId: string; clinicianId: string; typeId: string; startsAt: string; endsAt?: string; externalRef: string; visitAddress?: VisitAddressPayload }) {
+  createHold(body: { clinicId: string; clinicianId: string; typeId: string; startsAt: string; endsAt?: string; externalRef: string; market?: string; visitAddress?: VisitAddressPayload }) {
     return this.request<any>({ method: 'POST', path: '/holds', body, clinicId: body.clinicId });
   }
   releaseHold(clinicId: string, holdId: string) {

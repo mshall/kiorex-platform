@@ -15,6 +15,8 @@ export interface SearchParams {
   acceptsDeposit?: boolean; nextAvailable?: 'today' | 'tomorrow' | 'week'; sort?: 'earliest' | 'distance' | 'rating' | 'fee'; lat?: number; lng?: number; maxDistanceKm?: number; page?: number; pageSize?: number;
   /** Rev 2.3 (KXMDS01/02): care type category, visit location filter and the patient's district (home search). */
   careType?: string; serviceLocation?: string; district?: string; profession?: string;
+  /** Founder decision A (27 Nov 2026): a provider appears ONLY in the market of its own country. ISO code of the market being browsed; absent = the platform default market. */
+  market?: string;
 }
 export interface Slot { startsAt: string; endsAt: string; serviceLocation?: ServiceLocation; district?: string | null }
 export interface SlotQuery { serviceLocation?: ServiceLocation; district?: string; lat?: number; lng?: number; fresh?: boolean }
@@ -59,17 +61,27 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   // ───────────── sync (KXM-DS-07) ─────────────
 
   /** Pull providers with updatedSince cursor; idempotent; never regresses a newer source version. */
-  async syncOnce(opts: { full?: boolean } = {}): Promise<{ upserted: number; skipped: number; pages: number }> {
+  async syncOnce(opts: { full?: boolean } = {}): Promise<{ upserted: number; skipped: number; refused: number; pages: number }> {
     const cursorRow = await this.prisma.kvState.findUnique({ where: { key: SYNC_CURSOR } });
     const since = opts.full ? undefined : (cursorRow?.value as any)?.updatedSince;
-    let page = 1, upserted = 0, skipped = 0, maxUpdated = since ? new Date(since) : new Date(0);
+    let page = 1, upserted = 0, skipped = 0, refused = 0, maxUpdated = since ? new Date(since) : new Date(0);
     const seen: string[] = [];
     for (;;) {
       const { data } = await this.kiorly.listProviders({ updatedSince: since, page, pageSize: 100 });
       for (const dto of data.items ?? []) {
         const row = mapProviderDto(dto);
         seen.push(row.id);
-        const existing = await this.prisma.provider.findUnique({ where: { id: row.id }, select: { sourceVersion: true, specialty: true } });
+        const existing = await this.prisma.provider.findUnique({ where: { id: row.id }, select: { sourceVersion: true, specialty: true, market: true } });
+        // Founder decision A (27 Nov 2026): an organisation belongs to its country for life. A listing that arrives under another market than the one it was projected under is
+        // refused (kept where it is) and audited; the market is never rewritten by a sync. A correction is the documented super-admin data fix.
+        if (existing && 'market' in row && row.market && existing.market !== row.market) {
+          refused++;
+          this.log.warn(`provider sync refused a market change id=${row.id} (${existing.market} -> ${row.market})`);
+          const recent = await this.prisma.auditLog.findFirst({ where: { action: 'provider.market_change_refused', resource: 'Provider', resourceId: row.id, createdAt: { gt: new Date(Date.now() - 24 * 3600_000) } }, select: { id: true } });
+          if (!recent) await this.prisma.auditLog.create({ data: { actor: 'system:provider-sync', action: 'provider.market_change_refused', resource: 'Provider', resourceId: row.id, metadata: { from: existing.market, to: row.market, clinicId: row.clinicId } } }).catch(() => undefined);
+          const ru = new Date(row.sourceVersion); if (ru > maxUpdated) maxUpdated = ru; // the cursor moves on: a refused listing is not fetched again every cycle
+          continue;
+        }
         if (existing && existing.sourceVersion > row.sourceVersion && existing.specialty === row.specialty) { skipped++; continue; }
         const { id, raw, ...rest } = row;
         await this.prisma.provider.upsert({ where: { id }, create: { id, raw, ...rest } as any, update: { raw, ...rest, syncedAt: new Date() } as any });
@@ -83,7 +95,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     }
     if (opts.full) await this.prisma.provider.updateMany({ where: { id: { notIn: seen }, status: { in: ['LIVE', 'PAUSED'] } }, data: { status: 'DELISTED' } });
     if (maxUpdated.getTime() > 0) await this.prisma.kvState.upsert({ where: { key: SYNC_CURSOR }, create: { key: SYNC_CURSOR, value: { updatedSince: new Date(maxUpdated.getTime() - 1000).toISOString() } }, update: { value: { updatedSince: new Date(maxUpdated.getTime() - 1000).toISOString() } } });
-    return { upserted, skipped, pages: page };
+    return { upserted, skipped, refused, pages: page };
   }
 
   invalidateSlots(clinicianId?: string) {
@@ -220,7 +232,7 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
   /** KXMHV02: 422 OUT_OF_COVERAGE with an explanation, the provider's covered districts and in-zone alternatives (never an address). */
   async outOfCoverage(p: Provider, district?: string | null, alternatives?: unknown): Promise<ApiError> {
     const d = normalizeDistrict(district) ?? undefined;
-    const suggested = d ? await this.prisma.provider.findMany({ where: { status: 'LIVE', careType: p.careType, id: { not: p.id }, serviceLocations: { has: 'HOME' }, coverageDistricts: { has: d } }, take: 3, select: { id: true, nameEn: true, nameAr: true, careType: true } }) : [];
+    const suggested = d ? await this.prisma.provider.findMany({ where: { status: 'LIVE', market: p.market, careType: p.careType, id: { not: p.id }, serviceLocations: { has: 'HOME' }, coverageDistricts: { has: d } }, take: 3, select: { id: true, nameEn: true, nameAr: true, careType: true } }) : [];
     return new ApiError(422, 'OUT_OF_COVERAGE', 'This provider does not visit your district', {
       district: d, coverageDistricts: p.coverageDistricts, alternatives: Array.isArray(alternatives) ? alternatives : [], suggestedProviders: suggested,
       explanation: { en: 'This provider does not visit your district yet. Pick another address or another provider.', ar: 'هذا المقدم لا يغطي منطقتك حاليًا. اختر عنوانًا آخر أو مقدمًا آخر.' },
@@ -286,8 +298,10 @@ export class CatalogService implements OnModuleInit, OnModuleDestroy {
     }
     const mapped = q.q ? mapSymptomToSpecialties(q.q) : [];
     const live = await this.markets.liveMarkets(); // market.<cc>.live gate: non-live countries are hidden from search
-    if (!live.length) return { items: [], total: 0, page, pageSize, sort: q.sort ?? 'earliest', specialties: [], marketsLive: [] as string[] };
-    const where: Prisma.Sql[] = [Prisma.sql`p.status = 'LIVE'`, Prisma.sql`p.market IN (${Prisma.join(live)})`];
+    const wanted = (q.market ?? cfg().defaultMarket ?? 'EG').toString().trim().toUpperCase();
+    if (q.market !== undefined && !/^[A-Z]{2}$/.test(wanted)) throw badRequest('INVALID_MARKET', 'market must be a two-letter country code');
+    if (!live.length || !live.includes(wanted)) return { items: [], total: 0, page, pageSize, sort: q.sort ?? 'earliest', specialties: [], marketsLive: live };
+    const where: Prisma.Sql[] = [Prisma.sql`p.status = 'LIVE'`, Prisma.sql`p.market = ${wanted}`]; // never another country's providers
     // ── Rev 2.3 (KXMDS01/02): care type, visit location, district. Disabled categories are never shown; an explicit request for one is 403 FEATURE_DISABLED.
     let careType: CareType | undefined;
     if (q.careType) {

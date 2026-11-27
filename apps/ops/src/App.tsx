@@ -36,6 +36,7 @@ const PartnerLeadsPage = lazy(() => import("@/pages/PartnerLeadsPage"));
 const SiteLeadsPage = lazy(() => import("@/pages/SiteLeadsPage"));
 const SiteLeadDetailPage = lazy(() => import("@/pages/SiteLeadDetailPage"));
 const SiteLeadSettingsPage = lazy(() => import("@/pages/SiteLeadSettingsPage"));
+const KiorlyMarketsPage = lazy(() => import("@/pages/KiorlyMarketsPage"));
 const PartnerOnboardingDetailPage = lazy(() => import("@/pages/PartnerOnboardingDetailPage"));
 const GrowthAnalyticsV1Page = lazy(() => import("@/pages/growth-analytics/GrowthAnalyticsPage"));
 const AcquisitionPage = lazy(() => import("@/pages/growth-analytics/AcquisitionPage"));
@@ -135,6 +136,7 @@ export function AppRoutes() {
           <Route path="leads" element={<SiteLeadsPage />} />
           <Route path="leads/settings" element={<SiteLeadSettingsPage />} />
           <Route path="leads/:id" element={<SiteLeadDetailPage />} />
+          <Route path="kiorly-markets" element={<KiorlyMarketsPage />} />
           <Route path="growth-analytics" element={<GrowthAnalyticsV1Page />} />
           <Route path="acquisition" element={<AcquisitionPage />} />
           <Route path="growth" element={<GrowthExecutivePage />} />

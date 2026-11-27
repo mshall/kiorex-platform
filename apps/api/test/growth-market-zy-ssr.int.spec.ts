@@ -53,8 +53,8 @@ describe('public site SSR for a live ZY', () => {
 
   it('before the gate the ZY page and sitemap do not exist; after it the page carries the ZY canonical, hreflang and JOD, and no default-market value', async () => {
     await planZy(); await publishAndApprove();
-    await seedProvider(c, { id: 'lst_zy1', clinicianId: 'dr_zy1', clinicId: 'cl_zy1', specialty: 'dermatology', nameEn: 'Dr Layla Haddad', nameAr: 'د. ليلى حداد', area: 'Abdoun', governorate: 'Amman', fee: 305 } as never);
-    await c.prisma.provider.update({ where: { id: 'lst_zy1' }, data: { market: 'ZY', currency: 'JOD', minFeeMinor: 30500, maxFeeMinor: 30500 } });
+    await seedProvider(c, { id: 'lst_zy1', clinicianId: 'dr_zy1', clinicId: 'cl_zy1', specialty: 'dermatology', nameEn: 'Dr Layla Haddad', nameAr: 'د. ليلى حداد', area: 'Abdoun', governorate: 'Amman', fee: 305, market: 'ZY' } as never); // the market comes from the Clinic and is fixed for life (founder decision A): it is seeded through the sync, never updated
+    await c.prisma.provider.update({ where: { id: 'lst_zy1' }, data: { currency: 'JOD', minFeeMinor: 30500, maxFeeMinor: 30500 } });
     await c.prisma.growthSlug.create({ data: { market: 'ZY', entityType: 'DOCTOR', entityId: 'lst_zy1', slug: 'layla-haddad' } });
     c.flags.invalidate();
     const off = await get(c, '/en/zy/doctor/layla-haddad'); expect(off.status).toBe(404);
@@ -73,15 +73,19 @@ describe('public site SSR for a live ZY', () => {
   it('the specialty subset chosen in the wizard is read by the catalogue and by search: ZY shows only dermatology and paediatrics, with its own names; EG keeps the whole catalogue', async () => {
     await planZy(); await publishAndApprove(); await gate();
     const mk = async (id: string, specialty: string, market: string) => {
-      await seedProvider(c, { id, clinicianId: `dr_${id}`, clinicId: `cl_${id}`, specialty, nameEn: `Dr ${id}`, nameAr: `د. ${id}`, area: 'Abdoun', governorate: 'Amman', fee: 305 } as never);
-      await c.prisma.provider.update({ where: { id }, data: { market, currency: market === 'ZY' ? 'JOD' : 'EGP' } });
+      await seedProvider(c, { id, clinicianId: `dr_${id}`, clinicId: `cl_${id}`, specialty, nameEn: `Dr ${id}`, nameAr: `د. ${id}`, area: 'Abdoun', governorate: 'Amman', fee: 305, market } as never);
+      await c.prisma.provider.update({ where: { id }, data: { currency: market === 'ZY' ? 'JOD' : 'EGP' } });
     };
     await mk('lst_zd', 'dermatology', 'ZY'); await mk('lst_zc', 'cardiology', 'ZY'); await mk('lst_ec', 'cardiology', 'EG'); await mk('lst_ed', 'dermatology', 'EG');
     c.get(MarketService).invalidateSpecialties(); c.flags.invalidate();
     const names = (b: { items: { id: string }[] }) => b.items.map((x) => x.id).sort();
-    const all = (await c.http().get('/api/v1/search/providers?pageSize=30').expect(200)).body;
-    expect(names(all)).toEqual(['lst_ec', 'lst_ed', 'lst_zd']); // ZY cardiology is outside the market's subset; EG is untouched
-    const zyCard = (await c.http().get('/api/v1/search/providers?specialty=cardiology').expect(200)).body; expect(names(zyCard)).toEqual(['lst_ec']);
+    // founder decision A: a provider appears ONLY in the market of its own country, so each market is searched on its own
+    const eg = (await c.http().get('/api/v1/search/providers?pageSize=30').expect(200)).body;
+    expect(names(eg)).toEqual(['lst_ec', 'lst_ed']); // the default market never lists a ZY provider; EG is untouched
+    const zyAll = (await c.http().get('/api/v1/search/providers?pageSize=30&market=ZY').expect(200)).body;
+    expect(names(zyAll)).toEqual(['lst_zd']); // ZY cardiology is outside the market's subset
+    expect(names((await c.http().get('/api/v1/search/providers?specialty=cardiology&market=ZY').expect(200)).body)).toEqual([]);
+    expect(names((await c.http().get('/api/v1/search/providers?specialty=cardiology').expect(200)).body)).toEqual(['lst_ec']);
     const cat = (await c.http().get('/api/v1/specialties').expect(200)).body as { code: string }[]; expect(cat.length).toBeGreaterThan(10);
     const zy = (await c.http().get('/api/v1/specialties?market=zy').expect(200)).body as { code: string; ar: string; en: string }[];
     expect(zy.map((x) => x.code).sort()).toEqual(['dermatology', 'paediatrics']); expect(zy.find((x) => x.code === 'dermatology')).toMatchObject({ ar: 'الجلدية', en: 'Dermatology' });

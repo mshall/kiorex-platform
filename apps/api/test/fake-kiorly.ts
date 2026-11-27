@@ -42,6 +42,10 @@ export class FakeKiorly {
   addresses = new Map<string, any>();
   /** Link registry (contracts 1.11.0): code -> record served at GET /referral-links[/:code]. Empty = every code is unknown (404 REFERRAL_LINK_NOT_FOUND). */
   referralLinks = new Map<string, { code: string; orgRef: string; clinicRef: string | null; ownerScope: string; channelKind: string; status: 'ACTIVE' | 'PAUSED' | 'REVOKED'; createdAt: string; updatedAt: string; revokedAt: string | null }>();
+  /** Kiorly admin market launch (ADR-060): the Clinic's signed /markets routes, simulated in memory. */
+  markets: any[] = []; marketAudit = new Map<string, any[]>(); marketWrites: { method: string; path: string; body: any }[] = [];
+  /** 'scope' = 403 MARKET_ADMIN_SCOPE_REQUIRED, '5xx' = the Clinic is down. */
+  marketsMode: undefined | 'scope' | '5xx';
   getBookingMode: Mode;
   cancelMode: Mode;
   autoConfirm = true;
@@ -59,11 +63,43 @@ export class FakeKiorly {
   async stop() { await new Promise((r) => this.server.close(r)); }
   reset() {
     this.delayMs = 0; this.providers = []; this.slots = []; this.slotsByClinician.clear(); this.bookings.clear(); this.holds.clear(); this.calls = []; this.deposits.clear(); this.payouts.clear(); this.commissionRates = []; this.reviewPushes = []; this.profileViews = []; this.consentPushes = []; this.unknownPatients.clear();
+    this.markets = []; this.marketAudit.clear(); this.marketWrites = []; this.marketsMode = undefined;
     this.slotsMode = undefined; this.carePlanMode = undefined; this.carePlanRequests.clear(); this.addresses.clear(); this.labStatusPushes = []; this.labStatusMode = undefined; this.referralLinks.clear();
     this.promotionMode = undefined; this.promotionReservations.clear(); this.promotionReviews = [];
     this.bookingMode = this.holdMode = this.getBookingMode = this.cancelMode = undefined; this.autoConfirm = true; this.exclusiveHolds = false; this.rejectReviews = []; this.depositRefundable = true; this.bad = 0;
   }
   callsTo(method: string, pathPart: string) { return this.calls.filter((c) => c.method === method && c.path.includes(pathPart)); }
+
+  private handleMarkets(m: string, path: string, url: URL, body: any, send: (s: number, b: any) => void) {
+    if (this.marketsMode === 'scope') return send(403, { code: 'MARKET_ADMIN_SCOPE_REQUIRED', message: 'This client may not manage markets' });
+    if (this.marketsMode === '5xx') return send(503, { message: 'down' });
+    const parts = path.split('/').filter(Boolean).slice(1); // after 'markets'
+    if (m !== 'GET') this.marketWrites.push({ method: m, path, body });
+    if (m === 'GET' && parts.length === 0) return send(200, this.markets);
+    if (m === 'GET' && parts[0] === 'country-defaults') return send(200, [{ code: 'SA', nameEn: 'Saudi Arabia', nameAr: 'السعودية', defaultCurrency: 'SAR', defaultTimezone: 'Asia/Riyadh', defaultLocale: 'ar-SA', defaultPhoneRegion: 'SA', weekendDays: [5, 6], enabledLanguages: ['ar', 'en'] }]);
+    if (m === 'POST' && parts.length === 0) {
+      if (!body?.actor?.id) return send(403, { code: 'ACTOR_REQUIRED', message: 'actor' });
+      if (this.markets.some((x) => x.code === body.code)) return send(409, { code: 'MARKET_EXISTS', message: 'exists' });
+      const row = { id: `mk_${body.code}`, code: body.code, nameEn: body.nameEn ?? body.code, nameAr: '', status: 'DRAFT', operationalStatus: 'ACTIVE', operability: 'draft', readiness: { taxPack: { ok: false }, crossBorder: { required: false, approved: true }, hostCellKnown: true, commercialConfigured: false, blockers: [{ code: 'TAX_PACK_MISSING', message: 'x' }], canLaunch: false } };
+      this.markets.push(row); return send(201, row);
+    }
+    const mk = this.markets.find((x) => x.id === parts[0]);
+    if (!mk) return send(404, { code: 'MARKET_NOT_FOUND', message: 'Market not found' });
+    if (m === 'GET' && parts.length === 1) return send(200, { market: mk, legal: { config: {}, crossBorderRequired: false, launchApproved: true, daysUntilExpiry: null }, commercial: { source: 'featureDefaults', config: {} } });
+    if (m === 'GET' && parts[1] === 'audit') return send(200, { items: this.marketAudit.get(mk.id) ?? [], nextBefore: null });
+    if (m === 'GET' && parts[1] === 'change-requests') return send(200, []);
+    if (!body?.actor?.id) return send(403, { code: 'ACTOR_REQUIRED', message: 'actor' });
+    if (!body.reason && ['launch', 'pause', 'disable', 'enable'].includes(parts[1]!)) return send(400, { code: 'REASON_REQUIRED', message: 'reason' });
+    if (parts[1] === 'launch') {
+      if (mk.status === 'LIVE') return send(409, { code: 'MARKET_ALREADY_LIVE', message: 'live' });
+      if (!mk.readiness.canLaunch) return send(400, { code: 'TAX_PACK_MISSING', message: 'tax' });
+      Object.assign(mk, { status: 'LIVE', operability: 'active' });
+      this.marketAudit.set(mk.id, [{ id: 'a1', action: 'LAUNCH', actorId: `kiorly-admin:${body.actor.id}`, reason: body.reason }, ...(this.marketAudit.get(mk.id) ?? [])]);
+      return send(200, mk);
+    }
+    if (parts[1] === 'tax-pack') { mk.readiness = { ...mk.readiness, taxPack: { ok: true }, blockers: [], canLaunch: true }; return send(200, mk); }
+    return send(200, mk);
+  }
 
   private async handle(req: IncomingMessage, res: ServerResponse) {
     const chunks: Buffer[] = [];
@@ -80,6 +116,7 @@ export class FakeKiorly {
     const send = (s: number, b: any) => this.send(res, s, b);
     const hang = () => new Promise<void>(() => undefined);
 
+    if (path === '/markets' || path.startsWith('/markets/')) return this.handleMarkets(m, path, url, body, send);
     if (m === 'GET' && path === '/providers') {
       const since = url.searchParams.get('updatedSince');
       const items = this.providers.filter((p) => !since || p.updatedAt >= since);
@@ -229,10 +266,10 @@ export class FakeKiorly {
   }
 
   /** A Kiorly PublishedProviderDto (shape of marketplace-provider-profile.service.ts). */
-  static provider(o: { profession?: string; edition?: string; serviceLocations?: string[]; coverageDistricts?: string[]; assignsClinician?: boolean; register?: string; homeSurcharge?: number; feeServiceLocation?: string; id?: string; clinicId?: string; clinicianId?: string; status?: string; specialty?: string; nameEn?: string; nameAr?: string; area?: string; governorate?: string; fee?: number; updatedAt?: string; tenantId?: string; lat?: number; lng?: number; gender?: string; languages?: string[]; depositAmount?: number; depositRequired?: boolean; typeId?: string }) {
+  static provider(o: { market?: string; profession?: string; edition?: string; serviceLocations?: string[]; coverageDistricts?: string[]; assignsClinician?: boolean; register?: string; homeSurcharge?: number; feeServiceLocation?: string; id?: string; clinicId?: string; clinicianId?: string; status?: string; specialty?: string; nameEn?: string; nameAr?: string; area?: string; governorate?: string; fee?: number; updatedAt?: string; tenantId?: string; lat?: number; lng?: number; gender?: string; languages?: string[]; depositAmount?: number; depositRequired?: boolean; typeId?: string }) {
     const id = o.id ?? 'lst_1';
     return {
-      ...(o.profession ? { profession: o.profession } : {}), ...(o.edition ? { edition: o.edition } : {}), ...(o.serviceLocations ? { serviceLocations: o.serviceLocations } : {}), ...(o.coverageDistricts ? { coverageDistricts: o.coverageDistricts } : {}),
+      ...(o.market ? { market: o.market } : {}), ...(o.profession ? { profession: o.profession } : {}), ...(o.edition ? { edition: o.edition } : {}), ...(o.serviceLocations ? { serviceLocations: o.serviceLocations } : {}), ...(o.coverageDistricts ? { coverageDistricts: o.coverageDistricts } : {}),
       ...(o.assignsClinician !== undefined ? { assignsClinician: o.assignsClinician } : {}), ...(o.register ? { verification: { register: o.register } } : {}),
       listingId: id, tenantId: o.tenantId ?? 'tn_1', clinicId: o.clinicId ?? 'cl_1', clinicianId: o.clinicianId ?? 'dr_1', status: o.status ?? 'LIVE', completenessPercent: 90, updatedAt: o.updatedAt ?? new Date().toISOString(),
       provider: { displayNameEn: o.nameEn ?? 'Dr Sara Hassan', displayNameAr: o.nameAr ?? 'د. سارة حسن', specialty: o.specialty ?? 'dermatology', languages: o.languages ?? ['ar', 'en'], gender: o.gender ?? 'FEMALE', governorate: o.governorate ?? 'Cairo', area: o.area ?? 'Maadi', cancellationPolicy: { hoursBefore: 'NEEDS_HUMAN' },

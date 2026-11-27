@@ -20,7 +20,7 @@ describe("edition resolution (same console on admin.<env>.kiorex.com and admin.<
     expect(resolveEdition({ VITE_OPS_EDITION: "nonsense" }, "x")).toBe("kiorex");
   });
   it("Kiorly views are the provider-product views; patient-side and growth views stay with the Kiorex super admin", () => {
-    for (const p of ["/providers", "/commissions/42", "/partner-leads", "/leads", "/leads/settings", "/flags"]) expect(pathInEdition("kiorly", p), p).toBe(true);
+    for (const p of ["/providers", "/commissions/42", "/partner-leads", "/leads", "/kiorly-markets", "/leads/settings", "/flags"]) expect(pathInEdition("kiorly", p), p).toBe(true);
     for (const p of ["/bookings", "/moderation", "/safety", "/held-deposits", "/home-gate", "/growth", "/growth/campaigns", "/acquisition", "/providersx"]) expect(pathInEdition("kiorly", p), p).toBe(false);
     expect(pathInEdition("kiorex", "/growth")).toBe(true);
     expect(new Set(KIORLY_ROUTES).size).toBe(KIORLY_ROUTES.length);
@@ -55,7 +55,7 @@ describe("layout per edition", () => {
     const { unmount } = renderOps(shell(OpsLayout), { route: "/providers" });
     const links = [...screen.getByTestId("sidebar-nav").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(links.length).toBeGreaterThan(5);
-    for (const href of links) expect(["/providers", "/orders", "/fees", "/commissions", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
+    for (const href of links) expect(["/providers", "/orders", "/fees", "/commissions", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
     expect(links).not.toContain("/bookings"); expect(links).not.toContain("/safety"); expect(links).not.toContain("/growth-analytics");
     expect(screen.queryByTestId("growth-nav")).toBeNull(); expect(screen.queryByTestId("mobile-growth-link")).toBeNull();
     const logo = screen.getByTestId("kiorly-logo"); expect(logo.querySelector("img")?.getAttribute("src")).toBe("/kiorly/kiorly-lockup.svg");

@@ -26,7 +26,7 @@ export class CatalogController {
     @Query('minRating') minRating?: string, @Query('acceptsDeposit') acceptsDeposit?: string, @Query('nextAvailable') nextAvailable?: string,
     @Query('sort') sort?: string, @Query('lat') lat?: string, @Query('lng') lng?: string, @Query('maxDistanceKm') maxDistanceKm?: string,
     @Query('page') page?: string, @Query('pageSize') pageSize?: string,
-    @Query('careType') careType?: string, @Query('serviceLocation') serviceLocation?: string, @Query('district') district?: string, @Query('profession') profession?: string,
+    @Query('careType') careType?: string, @Query('serviceLocation') serviceLocation?: string, @Query('district') district?: string, @Query('profession') profession?: string, @Query('market') market?: string,
   ) {
     if (sort && !['earliest', 'distance', 'rating', 'fee'].includes(sort)) throw badRequest('INVALID_SORT', 'sort must be earliest|distance|rating|fee');
     if (nextAvailable && !['today', 'tomorrow', 'week'].includes(nextAvailable)) throw badRequest('INVALID_NEXT_AVAILABLE', 'nextAvailable must be today|tomorrow|week');
@@ -34,7 +34,7 @@ export class CatalogController {
       q, specialty, governorate, area, gender, language, nextAvailable: nextAvailable as SearchParams['nextAvailable'], sort: sort as SearchParams['sort'],
       minFee: num(minFee), maxFee: num(maxFee), minRating: num(minRating), lat: num(lat), lng: num(lng), maxDistanceKm: num(maxDistanceKm), page: num(page), pageSize: num(pageSize),
       acceptsDeposit: acceptsDeposit === undefined ? undefined : acceptsDeposit === 'true',
-      careType, serviceLocation, district, profession,
+      careType, serviceLocation, district, profession, market,
     };
     return this.svc.search(p);
   }

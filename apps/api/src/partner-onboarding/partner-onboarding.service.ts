@@ -89,7 +89,12 @@ export class PartnerOnboardingService implements OnModuleInit, OnModuleDestroy {
     const orgHit = await limiter.hit(`org:${b.kind}:${b.orgRef}`, c.intakeOrgPerHour, 3_600_000); if (!orgHit.ok) throw tooMany(orgHit.retryAfterSec);
     const existing = await this.prisma.partnerConnection.findUnique({ where: { kind_orgRef: { kind: b.kind, orgRef: b.orgRef } } });
     const auth = await this.authenticateIntake(b, raw, h, existing, ip);
-    const market = (b.market ?? 'EG').toUpperCase().slice(0, 2);
+    // Founder decision A (27 Nov 2026): a provider belongs to its country for life. A re-submit may repeat the market it registered under (or omit it) but never change it.
+    const market = ((b.market ?? existing?.market ?? 'EG') as string).toUpperCase().slice(0, 2);
+    if (existing && b.market !== undefined && market !== existing.market) {
+      await this.audit('partner', 'market_change_refused', existing.id, { kind: existing.kind, from: existing.market, to: market });
+      throw conflict('MARKET_IMMUTABLE', 'An organisation belongs to its country for life; its market cannot be changed', { market: existing.market });
+    }
     let secretsEnc: string | undefined; const baseUrl = b.baseUrl;
     if (needsHandshakeCreds(b.kind)) secretsEnc = encryptField(JSON.stringify({ clientSecret: b.clientSecret, webhookSecret: b.webhookSecret }));
     const readiness = { ...(b.readiness ?? {}), locale: b.locale === 'ar' ? 'ar' : 'en' };

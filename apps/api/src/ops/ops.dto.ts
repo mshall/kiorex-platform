@@ -21,7 +21,7 @@ export class OpsProviderListDto {
   total!: number;
   @ApiProperty({ type: [OpsProviderDto] }) items!: OpsProviderDto[];
 }
-export class SyncResultDto { upserted!: number; skipped!: number; pages!: number }
+export class SyncResultDto { upserted!: number; skipped!: number; refused!: number; pages!: number }
 export class OpsBookingDto {
   id!: string;
   providerId!: string;
