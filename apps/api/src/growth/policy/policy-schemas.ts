@@ -2,9 +2,9 @@ import { GROWTH_CONFIG_SCHEMAS } from '@kiorex/contracts';
 import { DEFAULT_FRAUD_CONFIG, DEFAULT_MATCH_CONFIG, DEFAULT_ROUTING, FRAUD_BOUNDS, FRAUD_RULES, MATCH_FLOORS, ROUTING_FLOORS } from '@kiorex/pay-contract';
 
 /**
- * The policy kind schemas in force: the config-kind schemas exported by the vendored @kiorex/contracts 1.13.0 (GROWTH_CONFIG_SCHEMAS) plus the Kiorly Pay kinds (PAY_FRAUD_THRESHOLDS, PAY_MATCHING_POLICY, PAY_ROUTING_POLICY), whose bounds are the
+ * The policy kind schemas in force: the config-kind schemas exported by the vendored @kiorex/contracts 1.13.1 (GROWTH_CONFIG_SCHEMAS) plus the Kiorly Pay kinds (PAY_FRAUD_THRESHOLDS, PAY_MATCHING_POLICY, PAY_ROUTING_POLICY), whose bounds are the
  * SAFETY FLOORS of the shared contract (@kiorex/pay-contract): a stored version can tune a number inside its bounds and can never switch a detector off, make auto-matching laxer than the
- * floor, or turn the fraud scorer into an enforcement (there is no enforce mode). INTEGRATION_MODES additionally knows BANK_IPN (the bank / IPN rail) and CARD_GATEWAY (contracts 1.13.0 does not list it yet; a contracts follow-up should add both).
+ * floor, or turn the fraud scorer into an enforcement (there is no enforce mode).
  * No fee, price or percentage lives here: fees are NEEDS_HUMAN (finance) and stay per-PSP settings.
  */
 const int = (b: readonly [number, number], d: number, description: string) => ({ type: 'integer', minimum: b[0], maximum: b[1], default: d, description });
@@ -49,9 +49,5 @@ const POLICY_CONTRACT_KINDS = ['EXPERIMENT_POLICY', 'AUTOMATION_POLICY', 'ATTRIB
 const contractSchemas = GROWTH_CONFIG_SCHEMAS as unknown as Record<string, any>;
 const FROM_CONTRACTS: Record<string, any> = Object.fromEntries(POLICY_CONTRACT_KINDS.map((k) => [k, contractSchemas[k]]));
 
-const modes = JSON.parse(JSON.stringify(FROM_CONTRACTS.INTEGRATION_MODES));
-modes.properties.modes.properties.CARD_GATEWAY = { type: 'string', enum: ['mock', 'real'] };
-modes.properties.modes.properties.BANK_IPN = { type: 'string', enum: ['mock', 'real'] };
-
 export const PAY_POLICY_KINDS = ['PAY_FRAUD_THRESHOLDS', 'PAY_MATCHING_POLICY', 'PAY_ROUTING_POLICY'] as const;
-export const POLICY_SCHEMAS: Record<string, any> = { ...FROM_CONTRACTS, INTEGRATION_MODES: modes, PAY_FRAUD_THRESHOLDS, PAY_MATCHING_POLICY, PAY_ROUTING_POLICY };
+export const POLICY_SCHEMAS: Record<string, any> = { ...FROM_CONTRACTS, PAY_FRAUD_THRESHOLDS, PAY_MATCHING_POLICY, PAY_ROUTING_POLICY };
