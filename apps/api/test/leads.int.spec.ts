@@ -29,6 +29,18 @@ describe('Kiorly site join requests (leads)', () => {
     expect(JSON.stringify(r.body)).not.toMatch(/phoneEnc|secret|password/i);
   });
 
+  it('CORS: the site origin from LEADS_PUBLIC_ORIGINS gets the preflight answer and the allow headers on the public routes only; other origins get none; the admin routes are not opened to it', async () => {
+    process.env.LEADS_PUBLIC_ORIGINS = 'https://site.example';
+    try {
+      const pre = await c.http().options(PUB).set('Origin', 'https://site.example').set('Access-Control-Request-Method', 'POST').set('Access-Control-Request-Headers', 'content-type,idempotency-key').expect(204);
+      expect(pre.headers['access-control-allow-origin']).toBe('https://site.example'); expect(pre.headers['access-control-allow-headers']).toContain('idempotency-key');
+      const ok = await c.http().get(`${PUB}/config`).set('Origin', 'https://site.example').expect(200); expect(ok.headers['access-control-allow-origin']).toBe('https://site.example');
+      const posted = await post(body()).set('Origin', 'https://site.example').expect(201); expect(posted.headers['access-control-allow-origin']).toBe('https://site.example');
+      const evil = await c.http().options(PUB).set('Origin', 'https://evil.example').expect(204); expect(evil.headers['access-control-allow-origin']).toBeUndefined();
+      expect((await c.http().get(ADM).set(ops).set('Origin', 'https://site.example').expect(200)).headers['access-control-allow-origin']).toBeUndefined();
+    } finally { delete process.env.LEADS_PUBLIC_ORIGINS; }
+  });
+
   it('stores a full request: 201 with a reference; contact data, licences and the note are encrypted at rest; business fields are plain', async () => {
     const b = body({ email: 'enc-check@clinic-int.example.org' });
     const r = await post(b).expect(201);

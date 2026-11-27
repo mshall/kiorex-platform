@@ -11,7 +11,8 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader, StatCard, StatusChip, type Tone } from "@/components/kit";
 import { formatDateTime } from "@/lib/format";
 
-export const LEAD_TONE: Record<string, Tone> = { NEW: "brand", CONTACTED: "info", QUALIFIED: "info", ONBOARDING: "warning", WON: "success", LOST: "neutral" };
+/** Tones with enough contrast on the card background (the info and warning soft pairs of the console do not reach 4.5:1 for small text). */
+export const LEAD_TONE: Record<string, Tone> = { NEW: "brand", CONTACTED: "neutral", QUALIFIED: "brand", ONBOARDING: "neutral", WON: "success", LOST: "neutral" };
 const selectCls = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
 const PARAMS = ["status", "type", "mode", "market", "from", "to", "q", "owner", "test", "duplicates"] as const;
 
@@ -20,7 +21,7 @@ export default function SiteLeadsPage() {
   const { t, i18n } = useTranslation(); const lang = i18n.language;
   const [sp, setSp] = useSearchParams();
   const f: LeadFilters = useMemo(() => ({ ...Object.fromEntries(PARAMS.map((k) => [k, sp.get(k) ?? ""])), page: Number(sp.get("page") ?? 1) || 1, pageSize: 25 }), [sp]);
-  const set = (k: string, v: string) => { const n = new URLSearchParams(sp); if (v) n.set(k, v); else n.delete(k); if (k !== "page") n.delete("page"); setSp(n, { replace: true }); };
+  const set = (k: string, v: string) => setSp((prev) => { const n = new URLSearchParams(prev); if (v) n.set(k, v); else n.delete(k); if (k !== "page") n.delete("page"); return n; }, { replace: true }); // from the latest address, never from a stale render
   const q = useSiteLeads(f); const sum = useSiteLeadSummary(); const settings = useSiteLeadSettings(); const owners = useSiteLeadOwners();
   const cfg = settings.data?.config; const [busy, setBusy] = useState(false);
   const pages = q.data ? Math.max(1, Math.ceil(q.data.total / q.data.pageSize)) : 1;
@@ -60,12 +61,12 @@ export default function SiteLeadsPage() {
             { key: "ref", header: t("siteLeads.ref"), cell: (r) => <Link className="font-mono text-xs font-bold underline-offset-2 hover:underline" to={`/leads/${r.id}`} data-testid={`lead-link-${r.ref}`}>{r.ref}</Link> },
             { key: "org", header: t("siteLeads.org"), cell: (r) => <div className="min-w-40"><span className="font-semibold" dir="auto">{r.legalName}</span>{r.tradeName ? <span className="block text-xs text-muted-foreground" dir="auto">{r.tradeName}</span> : null}<span className="block text-xs text-muted-foreground" dir="auto">{[r.city, r.governorate].filter(Boolean).join(", ")}</span></div> },
             { key: "type", header: t("siteLeads.type"), cell: (r) => labelOf(cfg?.providerTypes, r.providerType, lang) },
-            { key: "mode", header: t("siteLeads.mode"), cell: (r) => <StatusChip tone={r.mode === "CONNECTED" ? "info" : "neutral"} dot={false}>{t(`siteLeads.mode${r.mode}`)}</StatusChip> },
+            { key: "mode", header: t("siteLeads.mode"), cell: (r) => <StatusChip tone={r.mode === "CONNECTED" ? "brand" : "neutral"} dot={false}>{t(`siteLeads.mode${r.mode}`)}</StatusChip> },
             { key: "c", header: t("siteLeads.contact"), cell: (r) => <div><span dir="auto">{r.contactName}</span><span className="block text-xs text-muted-foreground" dir="ltr">{r.phoneMasked}</span></div> },
             { key: "s", header: t("siteLeads.status"), cell: (r) => <StatusChip tone={LEAD_TONE[r.status] ?? "neutral"} data-testid={`lead-chip-${r.ref}`}>{statusLabel(cfg, r.status, lang)}</StatusChip> },
             { key: "o", header: t("siteLeads.owner"), cell: (r) => r.ownerName ?? <span className="text-xs text-muted-foreground">{t("siteLeads.unassignedOption")}</span> },
             { key: "d", header: t("siteLeads.created"), cell: (r) => <span className="whitespace-nowrap text-xs">{formatDateTime(r.createdAt, lang)}</span> },
-            { key: "f", header: t("siteLeads.flags"), cell: (r) => <span className="flex flex-wrap gap-1">{r.isTest ? <StatusChip tone="warning" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}{r.duplicateOfId ? <StatusChip tone="danger" dot={false}>{t("siteLeads.dupBadge")}</StatusChip> : null}</span> },
+            { key: "f", header: t("siteLeads.flags"), cell: (r) => <span className="flex flex-wrap gap-1">{r.isTest ? <StatusChip tone="neutral" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}{r.duplicateOfId ? <StatusChip tone="brand" dot={false}>{t("siteLeads.dupBadge")}</StatusChip> : null}</span> },
           ]} />
           <nav className="mt-3 flex items-center justify-between gap-3 text-sm" aria-label={t("siteLeads.pagination")}>
             <span className="text-muted-foreground" data-testid="leads-total">{t("siteLeads.total", { count: q.data!.total })}</span>

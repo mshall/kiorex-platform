@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { StrictOpsValidationPipe, strictDtoMiddleware } from './common/strict-dto';
 import { RejectNulBytesPipe } from './common/reject-nul-bytes.pipe';
+import { leadsPublicCors } from './leads/leads-public';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INTAKE_MAX_BODY_BYTES } from '@kiorex/contracts';
 import { json as expressJson } from 'express';
@@ -31,7 +32,8 @@ export function setupApp(app: INestApplication) {
         next(err);
       });
   }
-  // public join requests (Kiorly site): 16 KiB JSON, parsed BEFORE the global 8 MB parser; oversize is a 413 whether or not Content-Length is declared
+  // public join requests (Kiorly site): its own CORS rule (site origin from LEADS_PUBLIC_ORIGINS), then 16 KiB JSON, parsed BEFORE the global 8 MB parser; oversize is a 413 whether or not Content-Length is declared
+  use?.call(app, `/${API_PREFIX}/public/leads`, leadsPublicCors());
   use?.call(app, `/${API_PREFIX}/public/leads`,
     expressJson({ limit: LEADS_PUBLIC_BODY_LIMIT_BYTES, verify: (req: any, _res: unknown, buf: Buffer) => { req.rawBody = buf; } }),
     (err: any, _req: unknown, res: any, next: (e?: unknown) => void) => {

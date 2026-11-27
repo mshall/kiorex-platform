@@ -14,7 +14,8 @@ import { LEAD_TONE } from "./SiteLeadsPage";
 
 const selectCls = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const Row = ({ label, children }: { label: string; children: ReactNode }) => children === null || children === undefined || children === "" ? null : <div className="grid grid-cols-[9rem_1fr] gap-2 py-1"><dt className="text-xs font-semibold text-muted-foreground">{label}</dt><dd className="min-w-0 break-words text-sm" dir="auto">{children}</dd></div>;
-const Card = ({ title, children, id }: { title: string; children: ReactNode; id: string }) => <section aria-labelledby={id} className="rounded-xl border bg-card p-4 shadow-card"><h2 id={id} className="mb-2 text-sm font-bold">{title}</h2><dl>{children}</dl></section>;
+/** `intro` sits above the list (a description list may only contain terms and descriptions); an empty `children` renders no list at all. */
+const Card = ({ title, children, id, intro }: { title: string; children: ReactNode; id: string; intro?: ReactNode }) => <section aria-labelledby={id} className="rounded-xl border bg-card p-4 shadow-card"><h2 id={id} className="mb-2 text-sm font-bold">{title}</h2>{intro}{children ? <dl>{children}</dl> : null}</section>;
 
 function Trail({ d, cfg }: { d: LeadDetail; cfg: LeadConfig | undefined }) {
   const { t, i18n } = useTranslation(); const lang = i18n.language;
@@ -60,7 +61,7 @@ export default function SiteLeadDetailPage() {
       <Link to="/leads" className="mb-3 inline-flex items-center gap-1 text-sm font-medium underline-offset-2 hover:underline"><ArrowLeft className="h-4 w-4 rtl-flip" aria-hidden="true" />{t("siteLeads.back")}</Link>
       <PageHeader title={<span dir="auto">{d.legalName}</span>} hint={<span className="font-mono">{d.ref}</span>} badge={<>
         <StatusChip tone={LEAD_TONE[d.status] ?? "neutral"} data-testid="lead-status-chip">{statusLabel(cfg, d.status, lang)}</StatusChip>
-        {d.isTest ? <StatusChip tone="warning" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}{d.duplicateOfId ? <StatusChip tone="danger" dot={false}>{t("siteLeads.dupBadge")}</StatusChip> : null}
+        {d.isTest ? <StatusChip tone="neutral" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}{d.duplicateOfId ? <StatusChip tone="brand" dot={false}>{t("siteLeads.dupBadge")}</StatusChip> : null}
       </>} />
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
@@ -83,9 +84,8 @@ export default function SiteLeadDetailPage() {
             <Row label={t("siteLeads.modules")}>{d.modules.map((m) => labelOf(cfg?.modules, m, lang)).join(", ")}</Row><Row label={t("siteLeads.goLive")}>{labelOf(cfg?.goLive, d.goLive, lang)}</Row>
             <Row label={t("siteLeads.note")}><span className="whitespace-pre-wrap">{d.note}</span></Row>
           </Card>
-          <Card id="c-lic" title={t("siteLeads.sec.licences")}>
-            <p className="mb-2 text-xs text-muted-foreground">{t("siteLeads.licenceNote")}</p>
-            {lic.length === 0 ? <p className="text-sm text-muted-foreground">{t("siteLeads.noLicences")}</p> : lic.map(([k, v]) => <Row key={k} label={t(`siteLeads.lic.${k}`)}><span dir="ltr">{v}</span></Row>)}
+          <Card id="c-lic" title={t("siteLeads.sec.licences")} intro={<><p className="mb-2 text-xs text-muted-foreground">{t("siteLeads.licenceNote")}</p>{lic.length === 0 ? <p className="text-sm text-muted-foreground">{t("siteLeads.noLicences")}</p> : null}</>}>
+            {lic.length === 0 ? null : lic.map(([k, v]) => <Row key={k} label={t(`siteLeads.lic.${k}`)}><span dir="ltr">{v}</span></Row>)}
           </Card>
           <Card id="c-consent" title={t("siteLeads.sec.consent")}>
             <Row label={t("siteLeads.consentAt")}>{formatDateTime(d.consentAt, lang)}</Row><Row label={t("siteLeads.consentVersion")}>{d.consentTextVersion}</Row><Row label={t("siteLeads.source")}>{d.sourceEnv}</Row><Row label={t("siteLeads.created")}>{formatDateTime(d.createdAt, lang)}</Row>
