@@ -171,3 +171,9 @@ export class GateRecordedDto {
   @ApiProperty({ type: [String] }) flags!: string[];
   version!: number;
 }
+
+export class ReleaseCohortDto {
+  @ApiProperty({ description: 'Organisation reference (the id used by ORG-scope flags and commissions)' }) orgRef!: string;
+  @ApiProperty({ nullable: true, type: String, description: 'Lower-case release cohort token, e.g. pilot or ga' }) releaseCohort!: string | null;
+  @ApiProperty({ type: String, format: 'date-time' }) updatedAt!: string;
+}

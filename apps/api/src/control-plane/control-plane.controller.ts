@@ -8,7 +8,7 @@ import { FLAG_CATALOGUE } from './flag-catalogue';
 import { FlagGuard } from './flag.guard';
 import { FlagsService } from './flags.service';
 import { ProductKeyGuard } from './product-key.guard';
-import { AdminFlagDto, GateBoardDto, GateRecordedDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
+import { AdminFlagDto, GateBoardDto, GateRecordedDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, ReleaseCohortDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
 
 class SetFlagBody {
   @IsIn(['GLOBAL', 'MARKET', 'ORG', 'COHORT']) scope!: 'GLOBAL' | 'MARKET' | 'ORG' | 'COHORT';
@@ -93,6 +93,7 @@ export class ControlPlaneController {
     return this.flags.listAdmin({ market, product });
   }
 
+  @ApiOkResponse({ type: ReleaseCohortDto, isArray: true })
   @OpsOnly() @Get('admin/organisations/release-cohorts')
   @ApiOperation({ summary: 'Read-only: organisations that carry a release cohort (G-COHORT); optional ?cohort= filter' })
   @ApiQuery({ name: 'cohort', required: false })

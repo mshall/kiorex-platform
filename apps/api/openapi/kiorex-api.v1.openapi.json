@@ -1048,7 +1048,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseCohortDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Read-only: organisations that carry a release cohort (G-COHORT); optional ?cohort= filter",
@@ -23147,6 +23157,29 @@
           "moneyPath",
           "launchLocked",
           "reason"
+        ]
+      },
+      "ReleaseCohortDto": {
+        "type": "object",
+        "properties": {
+          "orgRef": {
+            "type": "string",
+            "description": "Organisation reference (the id used by ORG-scope flags and commissions)"
+          },
+          "releaseCohort": {
+            "type": "string",
+            "nullable": true,
+            "description": "Lower-case release cohort token, e.g. pilot or ga"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "orgRef",
+          "releaseCohort",
+          "updatedAt"
         ]
       },
       "SetFlagBody": {
