@@ -160,3 +160,20 @@ Steps: (1) staging first: store the secrets, set the params in the service task 
 ## Removing the dummy data later (27 Nov 2026)
 
 Demo rows are marked durably (`DemoMarker`, dataClass DEMO). `npm run demo-data:remove -- --dry-run` lists what would go; `-- --confirm` deletes exactly the marked rows and never a real one. Details and limits: [Docs/ENVIRONMENT_CONFIG.md](Docs/ENVIRONMENT_CONFIG.md) section 4.
+
+## Trimmed demo seed for DEPLOYED environments (kx-test and similar; added 27 Nov 2026)
+
+The full demo seed above needs a Kiorly Clinic (provider sync) and records DEV-ONLY gate evidence and dev product keys. A deployed environment has none of those and must not get them, so there is a second, trimmed seed.
+
+```bash
+cd apps/api
+DEMO_SEED_ALLOWED=true KIOREX_ENV=test npm run db:seed:demo:deployed          # ts-node, against DATABASE_URL
+node dist-seed/prisma/demo/seed-deployed.js                                    # the compiled seed image (Dockerfile.seed), same environment variables
+```
+
+- Refuses to run unless `DEMO_SEED_ALLOWED=true` AND `KIOREX_ENV` (or `KIORLY_ENV` / `ENV_TAG`) names a deployed non-production environment (`test`, `staging`, `qa`, `demo`, `sandbox`, `preview`); refuses production names, an undeclared environment (it would need local-dev assumptions), `local`/`dev`, a production-looking database name, and `SEED_DEV_GATES=true`.
+- Writes: 4 demo clinic organisations (`demo_dt_1..4`) with 8 LIVE providers (`demo_dp_1..8`, rows built through the same `mapProviderDto` the Clinic sync uses), the 12 Passport demo patients' profiles and consents, 15 bookings (completed, confirmed, pending, cancelled, no-show) with deposits, payments, ledger postings, a refund and payouts, 4 reviews, 12 commission claims applied through the real claim service (ONLINE, CASH, and CASH_TRANSFER with BANK_TRANSFER, INSTAPAY and CARD_TERMINAL; PENDING, CONFIRMED, DISPUTED, REVERSED, WAIVED), two collection runs (an open invoice and a settled run), and 8 pharmacy orders and 8 lab bookings built from the live partner catalogues (signed requests through the platform's own clients).
+- Does NOT write: flag gate evidence, product registrations or keys, partner registrations, secrets, localhost URLs. The `market.eg.live` gate therefore stays closed until a human records it (patient search shows "not live" until then, the ops console shows the data regardless).
+- Idempotent (deterministic ids, skip-if-exists; a claim is never replayed because a re-sent CREATED would re-activate a reversed claim). Every row is registered in `DemoMarker`. Removal: `npm run demo-data:remove -- --dry-run`, then `--confirm`. `CommissionTimeline` rows (append-only, trigger-protected) and `ConsentRecord` rows stay as inert history by design.
+- Tests: `src/common/demo-deployed-dataset.unit.spec.ts` (guard, dataset shape, forbidden markers, DemoMarker coverage) and `test/demo-deployed.int.spec.ts` (private database: shape, idempotency, no dev gates or keys, marker coverage and removal, visibility through the patient search and the ops commission API).
+- Running it on kx-test (no SSH): build `Dockerfile.seed` as `kx-test/platform:seed-<sha>`, push, then on the host through SSM: `docker run --rm --network kx-test_default --env-file /opt/kx/env/platform.env -e DEMO_SEED_ALLOWED=true -e KIOREX_ENV=test --entrypoint node <image> dist-seed/prisma/demo/seed-deployed.js` (see `infra/tofu/docs/DEPLOY_LOG_kx-test.md`).
