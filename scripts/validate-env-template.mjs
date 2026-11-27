@@ -11,13 +11,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 
 export const SECRET_NAME = /(SECRET|API_KEY|CLIENT_KEY|ENCRYPTION_KEY|PEPPER|PASSWORD|TOKEN|SERVICE_ACCOUNT_JSON|ORG_KEY_MASTER|DB_SECRET_ARN)/;
-export const HOST_NAMES = ['PUBLIC_BASE_URL', 'PUBLIC_APP_URL', 'WEB_BASE_URL', 'SITE_CANONICAL_HOST', 'CORS_ORIGINS', 'OIDC_ISSUER', 'KIORLY_BASE_URL', 'WIDGET_HOST', 'KX_ENV', 'KX_ENV_TAG'];
+export const HOST_NAMES = ['PUBLIC_BASE_URL', 'PUBLIC_APP_URL', 'WEB_BASE_URL', 'SITE_CANONICAL_HOST', 'CORS_ORIGINS', 'OIDC_ISSUER', 'KIORLY_BASE_URL', 'WIDGET_HOST', 'WIDGET_EMBED_HOST', 'WIDGET_PRODUCTION_HOST', 'RX_VERIFY_BASE_URL', 'CREATIVE_CDN_HOST', 'PROVIDER_LINK_BASE_URL', 'KX_ENV', 'KX_ENV_TAG'];
 export const REQUIRED = [...HOST_NAMES, 'NODE_ENV', 'JOBS_ENABLED', 'DB_SECRET_ARN', 'FIELD_ENCRYPTION_KEY', 'KIORLY_CLIENT_SECRET', 'KIORLY_WEBHOOK_SECRET', 'PSP_FAKE_WEBHOOK_SECRET',
   'WHATSAPP_WEBHOOK_SECRET', 'KIOREX_RECORD_SHARE_HMAC_SECRET', 'RX_VERIFY_HMAC_SECRET', 'PARTNER_LEAD_SIGNING_SECRET', 'SMS_MODE', 'EMAIL_MODE', 'WHATSAPP_MODE', 'PAYMENT_MODE'];
 const REF = /^secretref:\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z0-9-]+$/;
 const MOCK_MODE = new Set(['mock', 'fake', 'local']);
 /** Names set by the platform tooling and not read through process.env in src (registry identity, container entrypoint). */
-const TOOLING_NAMES = new Set(['KX_ENV', 'KX_ENV_TAG', 'KX_PLANE', 'KX_REGISTRY_HASH', 'WIDGET_EMBED_HOST', 'WIDGET_PRODUCTION_HOST']);
+const TOOLING_NAMES = new Set(['KX_ENV', 'KX_ENV_TAG', 'KX_PLANE', 'KX_REGISTRY_HASH']);
 
 export function parseEnv(text) {
   const out = new Map(); const dup = [];
@@ -56,6 +56,7 @@ export function validate({ template, containers, generated, known }) {
   }
   for (const n of REQUIRED) if (!vars.has(n)) errors.push(`${n}: required name missing`);
   if (vars.get('NODE_ENV') !== 'production') errors.push('NODE_ENV must be production (production-shaped boot checks apply to kx-test)');
+  if (vars.has('ALLOW_HOST_DEFAULTS')) errors.push('ALLOW_HOST_DEFAULTS must not be set (it re-enables the production host fallbacks; the API refuses to boot without the host variables instead)');
   if (vars.has('ALLOW_INSECURE_DEFAULT_SECRETS')) errors.push('ALLOW_INSECURE_DEFAULT_SECRETS must not be set');
   if (vars.get('SWAGGER_ENABLED') === 'true') errors.push('SWAGGER_ENABLED must not be true');
   if (vars.get('SITE_ENVIRONMENT') && vars.get('SITE_ENVIRONMENT') === 'production') errors.push('SITE_ENVIRONMENT=production would make the test site indexable');

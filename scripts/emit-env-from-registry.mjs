@@ -5,7 +5,7 @@
 //
 // Output per environment, in <out>/<env>/ (default .generated/env, git-ignored; never edit by hand, never commit):
 //   api.env              host variables of the API container: CORS_ORIGINS, OIDC_ISSUER, PUBLIC_BASE_URL, PUBLIC_APP_URL, WEB_BASE_URL, SITE_CANONICAL_HOST,
-//                        WIDGET_HOST, WIDGET_EMBED_HOST, KIORLY_BASE_URL, plus KX_ENV, KX_ENV_TAG, KX_PLANE, KX_REGISTRY_HASH
+//                        WIDGET_HOST, WIDGET_EMBED_HOST, WIDGET_PRODUCTION_HOST, RX_VERIFY_BASE_URL, CREATIVE_CDN_HOST, PROVIDER_LINK_BASE_URL, KIORLY_BASE_URL, plus KX_ENV, KX_ENV_TAG, KX_PLANE, KX_REGISTRY_HASH
 //   web.build.env        VITE_* values baked into the patient web build
 //   ops.build.env        VITE_* values baked into the ops console build
 //   oidc-redirects.json  redirect, post-logout and back-channel URIs per OIDC client (for the identity provider configuration)
@@ -41,7 +41,7 @@ function emitJson(kind, envId) {
   return JSON.parse(r.stdout.slice(0, r.stdout.lastIndexOf('registry OK')).trim());
 }
 
-const { load } = await import(pathToFileURL(TOOL).href);
+const { load, hostOf } = await import(pathToFileURL(TOOL).href);
 const reg = load(REGISTRY);
 const hash = createHash('sha256').update(fs.readFileSync(REGISTRY)).digest('hex').slice(0, 16);
 
@@ -71,6 +71,9 @@ export function build(envId) {
     ...api,
     ...(mkt.WEB_BASE_URL ? { WEB_BASE_URL: mkt.WEB_BASE_URL } : {}),
     ...(mkt.SITE_CANONICAL_HOST ? { SITE_CANONICAL_HOST: mkt.SITE_CANONICAL_HOST } : {}),
+    ...(mkt.SITE_CANONICAL_HOST ? { RX_VERIFY_BASE_URL: `${mkt.SITE_CANONICAL_HOST}/rx/verify` } : {}),
+    ...(hostOf(reg, 'kiorex.cdn', envId) ? { CREATIVE_CDN_HOST: hostOf(reg, 'kiorex.cdn', envId) } : {}),
+    ...(hostOf(reg, 'kiorly.link', envId) ? { PROVIDER_LINK_BASE_URL: `https://${hostOf(reg, 'kiorly.link', envId)}` } : {}),
     ...(api.WIDGET_HOST ? { WIDGET_EMBED_HOST: `https://${api.WIDGET_HOST}`, WIDGET_PRODUCTION_HOST: api.WIDGET_HOST } : {}),
   };
   const webEnv = { VITE_OIDC_AUTHORITY: mkt.VITE_OIDC_AUTHORITY, ...(clinics.APP_WEB_URL ? { VITE_KIORLY_CLINICS_URL: clinics.APP_WEB_URL } : {}) };

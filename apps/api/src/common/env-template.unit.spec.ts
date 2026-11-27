@@ -45,6 +45,11 @@ describe('kx-test env template', () => {
     expect(check(TEMPLATE, mk(['false', 'false'])).join()).toContain('exactly one container (found 0)');
     expect(check(TEMPLATE.replace('JOBS_ENABLED=false', 'JOBS_ENABLED=true'), mk(['false'])).join()).toContain('JOBS_ENABLED must default to false');
   });
+  it('never allows the host-fallback override and requires every host variable', () => {
+    expect(check(TEMPLATE + 'ALLOW_HOST_DEFAULTS=true\n').join()).toContain('ALLOW_HOST_DEFAULTS must not be set');
+    expect(check(TEMPLATE.replace(/^CREATIVE_CDN_HOST=.*\n/m, '')).join()).toContain('CREATIVE_CDN_HOST: required name missing');
+    expect(check(TEMPLATE.replace(/^PROVIDER_LINK_BASE_URL=.*$/m, 'PROVIDER_LINK_BASE_URL=https://x.example.com')).join()).toContain('PROVIDER_LINK_BASE_URL');
+  });
   it('never allows insecure-secret or public-indexing flags', () => {
     expect(check(TEMPLATE + 'ALLOW_INSECURE_DEFAULT_SECRETS=true\n').join()).toContain('ALLOW_INSECURE_DEFAULT_SECRETS must not be set');
     expect(check(TEMPLATE.replace('SITE_ENVIRONMENT=test', 'SITE_ENVIRONMENT=production')).join()).toContain('indexable');
@@ -61,6 +66,7 @@ const hasRegistry = existsSync(REGISTRY_TOOL);
       expect(api).toMatch(/^CORS_ORIGINS=https:\/\//m);
       expect(api).not.toMatch(/localhost|http:\/\//);
       expect(api).toContain(`KX_ENV=${e}`);
+      for (const n of ['RX_VERIFY_BASE_URL', 'CREATIVE_CDN_HOST', 'PROVIDER_LINK_BASE_URL', 'SITE_CANONICAL_HOST', 'PUBLIC_APP_URL', 'WIDGET_PRODUCTION_HOST', 'WIDGET_EMBED_HOST']) expect(api).toMatch(new RegExp(`^${n}=.+$`, 'm'));
       expect(JSON.parse(readFileSync(join(out, e, 'oidc-redirects.json'), 'utf8')).clients.length).toBeGreaterThan(0);
     }
     expect(readFileSync(join(out, 'test', 'api.env'), 'utf8')).toContain('.test.');

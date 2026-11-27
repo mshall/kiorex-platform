@@ -4,6 +4,7 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { buildOpenApi, setupApp } from './app.setup';
 import { cfg } from './common/config';
+import { assertHostConfig } from './common/hosts';
 import { installProcessSafetyNet } from './common/outbound-http';
 import { installJobScheduler } from './common/job-scheduler';
 import { logProviderStartup } from './common/providers/startup';
@@ -14,6 +15,7 @@ async function bootstrap() {
   installProcessSafetyNet();
   installJobScheduler(); // before the app is created: wraps the services' setInterval timers (run on start, tick log, late-tick warning); JOBS_ENABLED=false installs nothing
   logProviderStartup(); // fail-fast: <KIND>_MODE=real without URL/credentials aborts startup (names only, never values)
+  assertHostConfig(); // fail-fast outside local: every host variable must be set (names only in the log), unless ALLOW_HOST_DEFAULTS=true
   assertProductionSecrets(); // fail-fast: production never runs on the published dev secrets (names only)
   const lead = verifyLeadSigningStartup(); // fail-fast in production without PARTNER_LEAD_SIGNING_SECRET (variable name only, never the value)
   console.log(`lead signing: ${lead.status}`);
