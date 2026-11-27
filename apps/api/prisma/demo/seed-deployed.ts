@@ -244,10 +244,12 @@ async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error'] });
   try {
     const prisma = app.get(PrismaService);
+    const pharmacyClient = app.get(PharmacyClient, { strict: false }); const labClient = app.get(LabClient, { strict: false });
     await seedDeployed(prisma, {
       claims: app.get(CommissionClaimsService, { strict: false }),
-      pharmacy: app.get(PharmacyClient, { strict: false }),
-      lab: app.get(LabClient, { strict: false }),
+      // the partner clients answer { status, data }: hand the seed the bodies only
+      pharmacy: { pharmacies: async () => (await pharmacyClient.pharmacies()).data, catalogue: async (q) => (await pharmacyClient.catalogue(q)).data },
+      lab: { tests: async (q) => (await labClient.tests(q)).data },
     });
   } finally { await app.close(); }
 }
