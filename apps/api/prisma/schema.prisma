@@ -805,6 +805,18 @@ model ProductRegistration {
   lastPushError      String?
 }
 
+/// G-COHORT: per-organisation release attributes. `releaseCohort` (nullable, lower-case token such as pilot or ga) lets a tenant-level (ORG-scope) flag target a cohort.
+/// The platform has no organisation master table (organisations are Kiorly tenants, referenced by `orgRef` = the id used by ORG-scope flags and commissions),
+/// so this is the minimal side table. Null or no row = no cohort = no effect anywhere. Read-only in the Ops console API; set by migration or seed until a maker-checker kind is decided.
+model OrganisationAttribute {
+  orgRef        String   @id
+  releaseCohort String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([releaseCohort])
+}
+
 model ControlState {
   id        Int      @id @default(1)
   version   Int      @default(1)

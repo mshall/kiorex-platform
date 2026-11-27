@@ -29,7 +29,9 @@ const baseGateId = (id: string) => (id.startsWith(DEV_GATE_PREFIX) ? id.slice(DE
 const DEV_PRODUCT_SECRET = 'ff_dev_secret_change_me';
 const EMERGENCY_REVIEW_MS = 24 * 3600_000;
 
-interface Cache { at: number; version: number; map: Map<string, SnapshotFlag>; defs: Map<string, FlagDefinition> }
+/** Release cohorts are lower-case tokens (pilot, ga, ...). */
+export const COHORT_PATTERN = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+interface Cache { at: number; version: number; map: Map<string, SnapshotFlag>; defs: Map<string, FlagDefinition>; orgCohort: Map<string, string> }
 
 @Injectable()
 export class FlagsService implements OnModuleInit, OnModuleDestroy {
@@ -57,12 +59,15 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
 
   private async load(): Promise<Cache> {
     if (this.cache && Date.now() - this.cache.at < 1000) return this.cache;
-    const [defs, values, gates, state] = await Promise.all([
+    const [defs, values, gates, state, attrs] = await Promise.all([
       this.prisma.flagDefinition.findMany(),
       this.prisma.flagValue.findMany({ where: { value: 'OFF' } }),
       this.prisma.flagGateEvidence.findMany(),
       this.prisma.controlState.findUnique({ where: { id: 1 } }),
+      this.prisma.organisationAttribute.findMany({ where: { releaseCohort: { not: null } } }),
     ]);
+    const orgCohort = new Map<string, string>();
+    for (const a of attrs) if (a.releaseCohort) orgCohort.set(a.orgRef, a.releaseCohort.toLowerCase());
     const now = new Date();
     const gatesByFlag = new Map<string, Set<string>>();
     for (const g of gates) gatesByFlag.set(g.flagKey, (gatesByFlag.get(g.flagKey) ?? new Set()).add(baseGateId(g.gateId)));
@@ -78,11 +83,12 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
       if (!f) continue;
       if (v.scope === 'GLOBAL') f.values.global = 'OFF';
       else if (v.scope === 'MARKET') f.values.markets[v.scopeId.toUpperCase()] = 'OFF';
+      else if (v.scope === 'COHORT') (f.cohortOff ??= {})[v.scopeId.toLowerCase()] = 'OFF';
       else f.values.orgs[v.scopeId] = 'OFF';
       if (v.expiresAt && (!earliest.get(v.flagKey) || v.expiresAt < earliest.get(v.flagKey)!)) earliest.set(v.flagKey, v.expiresAt);
     }
     for (const [k, d] of earliest) map.get(k)!.expiresAt = d.toISOString();
-    this.cache = { at: Date.now(), version: state?.version ?? 1, map, defs: new Map(defs.map((d) => [d.key, d])) };
+    this.cache = { at: Date.now(), version: state?.version ?? 1, map, defs: new Map(defs.map((d) => [d.key, d])), orgCohort };
     return this.cache;
   }
 
@@ -97,7 +103,16 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async evaluate(key: string, ctx: EvalContext = {}): Promise<EvalResult> {
-    return evaluateFlag((await this.load()).map, key, ctx);
+    const c = await this.load();
+    // G-COHORT: when only the organisation is known, its cohort comes from the organisation attribute (no attribute = no cohort = no effect)
+    const cohort = ctx.cohort ?? (ctx.orgId ? c.orgCohort.get(ctx.orgId) : undefined);
+    return evaluateFlag(c.map, key, cohort ? { ...ctx, cohort } : ctx);
+  }
+
+  /** Read-only view for the Ops console: organisations that carry a release cohort. */
+  async listReleaseCohorts(cohort?: string) {
+    const rows = await this.prisma.organisationAttribute.findMany({ where: { releaseCohort: cohort ? cohort.trim().toLowerCase() : { not: null } }, orderBy: { orgRef: 'asc' }, take: 1000 });
+    return rows.map((r) => ({ orgRef: r.orgRef, releaseCohort: r.releaseCohort, updatedAt: r.updatedAt.toISOString() }));
   }
   async isEnabled(key: string, ctx: EvalContext = {}): Promise<boolean> {
     return (await this.evaluate(key, ctx)).effective;
@@ -165,11 +180,13 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
   async setValue(actor: string, i: SetValueInput): Promise<{ status: 'APPLIED' | 'PENDING_APPROVAL'; requestId?: string; version?: number }> {
     const d = await this.def(i.key);
     const scopeId = i.scope === 'GLOBAL' ? '' : (i.scopeId ?? '').trim();
-    if (!d.scopes.includes(i.scope)) throw badRequest('SCOPE_NOT_ALLOWED', `${i.key} cannot be set at ${i.scope} scope`, { allowed: d.scopes });
-    if (i.scope !== 'GLOBAL' && !scopeId) throw badRequest('SCOPE_ID_REQUIRED', 'scopeId required for market/org scope');
+    // COHORT is a value scope for tenant-level flags: allowed exactly where ORG is
+    if (!d.scopes.includes(i.scope === 'COHORT' ? 'ORG' : i.scope)) throw badRequest('SCOPE_NOT_ALLOWED', `${i.key} cannot be set at ${i.scope} scope`, { allowed: d.scopes });
+    if (i.scope !== 'GLOBAL' && !scopeId) throw badRequest('SCOPE_ID_REQUIRED', 'scopeId required for market/org/cohort scope');
+    if (i.scope === 'COHORT' && !COHORT_PATTERN.test(scopeId.toLowerCase())) throw badRequest('INVALID_COHORT', 'cohort must be a lower-case token (letters, digits, - or _)');
     if (!i.reason?.trim() || !i.ticket?.trim()) throw badRequest('REASON_AND_TICKET_REQUIRED', 'reason and ticket are required (KXM-OP-08)');
     if (i.expiresAt && i.expiresAt <= new Date()) throw badRequest('EXPIRY_IN_PAST', 'expiresAt must be in the future');
-    const sid = i.scope === 'MARKET' ? scopeId.toUpperCase() : scopeId;
+    const sid = i.scope === 'MARKET' ? scopeId.toUpperCase() : i.scope === 'COHORT' ? scopeId.toLowerCase() : scopeId;
     const twoPerson = i.value === 'OFF' && d.moneyPath && (i.scope === 'GLOBAL' || i.scope === 'MARKET');
     if (twoPerson && !i.emergency) {
       const req = await this.prisma.flagChangeRequest.create({ data: { flagKey: i.key, scope: i.scope, scopeId: sid, value: 'OFF', reason: i.reason, ticket: i.ticket, expiresAt: i.expiresAt ?? null, requestedBy: actor } });
@@ -333,7 +350,14 @@ export class FlagsService implements OnModuleInit, OnModuleDestroy {
     const state = await this.prisma.controlState.findUnique({ where: { id: 1 } });
     const flags = [...include].sort().map((k) => {
       const f = c.map.get(k)!;
-      return { key: f.key, class: f.class, scopes: f.scopes, dependsOn: f.dependsOn, launchLocked: f.launchLocked, gateSatisfied: f.gateSatisfied, values: f.values, ...(f.expiresAt ? { expiresAt: f.expiresAt } : {}) };
+      // G-COHORT: products know ORG scope only, so a cohort OFF is expanded to the member organisations (wire format unchanged; a cohort with no member adds nothing)
+      let values = f.values;
+      if (f.cohortOff) {
+        const orgs = { ...f.values.orgs };
+        for (const [org, co] of c.orgCohort) if (f.cohortOff[co] === 'OFF') orgs[org] = 'OFF';
+        values = { ...f.values, orgs };
+      }
+      return { key: f.key, class: f.class, scopes: f.scopes, dependsOn: f.dependsOn, launchLocked: f.launchLocked, gateSatisfied: f.gateSatisfied, values, ...(f.expiresAt ? { expiresAt: f.expiresAt } : {}) };
     });
     const generatedAt = (state?.updatedAt ?? new Date()).toISOString();
     const unsigned = { product, version: c.version, generatedAt, flags };

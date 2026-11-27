@@ -5,7 +5,7 @@ const OBJ = { type: 'object', additionalProperties: true } as const;
 export class FlagEffectiveDto {
   enabled!: boolean;
   @ApiProperty({ enum: ['ON', 'OFF_GLOBAL', 'OFF_MARKET', 'OFF_ORG', 'AWAITING_GATE', 'DEPENDENCY_OFF', 'UNKNOWN_FLAG'] }) reason!: string;
-  @ApiProperty({ required: false, enum: ['GLOBAL', 'MARKET', 'ORG', 'GATE', 'DEPENDENCY'] }) scope?: string;
+  @ApiProperty({ required: false, enum: ['GLOBAL', 'MARKET', 'ORG', 'COHORT', 'GATE', 'DEPENDENCY'] }) scope?: string;
 }
 export class EffectiveFlagsDto {
   @ApiProperty({ example: 'EG' }) market!: string;
@@ -39,7 +39,7 @@ export class FlagEffectiveMapDto {
   @ApiProperty({ type: 'object', additionalProperties: { type: 'boolean' }, description: 'market code -> effective' }) market!: Record<string, boolean>;
 }
 export class FlagSourceDto {
-  @ApiProperty({ enum: ['GLOBAL', 'MARKET', 'ORG', 'GATE', 'DEPENDENCY', 'DEFAULT'] }) scope!: string;
+  @ApiProperty({ enum: ['GLOBAL', 'MARKET', 'ORG', 'COHORT', 'GATE', 'DEPENDENCY', 'DEFAULT'] }) scope!: string;
   @ApiPropertyOptional() scopeId?: string;
   @ApiPropertyOptional({ nullable: true, type: String }) reason?: string | null;
   @ApiPropertyOptional({ nullable: true, type: String }) ticket?: string | null;

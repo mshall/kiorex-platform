@@ -3,7 +3,7 @@
  * effective only with gate evidence (ADR-024). Safety controls are NEVER flags (ADR-025, see safety-controls.ts).
  */
 export type FlagClass = 'MODULE' | 'COMMERCIAL' | 'INTEGRATION' | 'AI' | 'LAUNCH_LOCKED';
-export type FlagScope = 'GLOBAL' | 'MARKET' | 'ORG';
+export type FlagScope = 'GLOBAL' | 'MARKET' | 'ORG' | 'COHORT'; // COHORT (G-COHORT) is a value scope only, allowed for flags that list ORG; no catalogue entry lists it
 /** `kiorly-nurse` keys (KX-23) are catalogue entries of the NURSE edition; Nurse runs inside the Clinic runtime, so they are SERVED in the `kiorly-clinic` snapshot (kiorex-contracts 1.5.0 CHANGELOG, Assumptions). */
 export type FlagProduct = 'kiorly-clinic' | 'kiorly-nurse' | 'kiorex' | 'kiorex-account' | 'kiorly-pharmacy' | 'kiorly-lab' | 'all';
 

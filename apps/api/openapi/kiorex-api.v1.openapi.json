@@ -1033,6 +1033,30 @@
         ]
       }
     },
+    "/api/v1/admin/organisations/release-cohorts": {
+      "get": {
+        "operationId": "ControlPlaneController_releaseCohorts",
+        "parameters": [
+          {
+            "name": "cohort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read-only: organisations that carry a release cohort (G-COHORT); optional ?cohort= filter",
+        "tags": [
+          "control-plane"
+        ]
+      }
+    },
     "/api/v1/admin/flags/{key}/values": {
       "put": {
         "operationId": "ControlPlaneController_set",
@@ -22859,6 +22883,7 @@
               "GLOBAL",
               "MARKET",
               "ORG",
+              "COHORT",
               "GATE",
               "DEPENDENCY",
               "DEFAULT"
@@ -23132,7 +23157,8 @@
             "enum": [
               "GLOBAL",
               "MARKET",
-              "ORG"
+              "ORG",
+              "COHORT"
             ]
           },
           "scopeId": {
@@ -33650,30 +33676,36 @@
             "type": "string",
             "enum": [
               "ASSISTANT_POLICY",
+              "ATTRIBUTION_MODELS",
               "ATTRIBUTION_POLICY",
+              "AUTOMATION_POLICY",
               "CAMPAIGN_POLICY",
               "CONSENT_DEFAULTS",
+              "CORPORATE_POLICY",
+              "CROSS_PRODUCT_POLICY",
+              "EXPERIMENT_POLICY",
+              "FRAUD_RULES",
               "INTEGRATION",
+              "INTEGRATION_MODES",
+              "INTEGRATION_RUNTIME",
               "LIFECYCLE_POLICY",
+              "LIFECYCLE_STAGES",
+              "LOYALTY_RULES",
+              "LTV_POLICY",
               "MARKET_GROWTH",
+              "MARKET_PROFILE",
+              "RECOMMENDATION_POLICY",
+              "REFERRAL_FRAUD_THRESHOLDS",
               "REFERRAL_RULES",
+              "REWARD_GUARDS",
               "REWARD_RULES",
               "SEO",
+              "SEO_AUTOMATION",
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
               "LTV_POLICY",
               "LOYALTY_RULES",
               "MESSAGING_CHANNELS",
-              "EXPERIMENT_POLICY",
-              "AUTOMATION_POLICY",
-              "ATTRIBUTION_MODELS",
-              "RECOMMENDATION_POLICY",
-              "REWARD_GUARDS",
-              "LIFECYCLE_STAGES",
-              "CROSS_PRODUCT_POLICY",
-              "REFERRAL_FRAUD_THRESHOLDS",
-              "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES",
               "PAY_FRAUD_THRESHOLDS",
               "PAY_MATCHING_POLICY",
               "PAY_ROUTING_POLICY"
@@ -33775,30 +33807,36 @@
             "type": "string",
             "enum": [
               "ASSISTANT_POLICY",
+              "ATTRIBUTION_MODELS",
               "ATTRIBUTION_POLICY",
+              "AUTOMATION_POLICY",
               "CAMPAIGN_POLICY",
               "CONSENT_DEFAULTS",
+              "CORPORATE_POLICY",
+              "CROSS_PRODUCT_POLICY",
+              "EXPERIMENT_POLICY",
+              "FRAUD_RULES",
               "INTEGRATION",
+              "INTEGRATION_MODES",
+              "INTEGRATION_RUNTIME",
               "LIFECYCLE_POLICY",
+              "LIFECYCLE_STAGES",
+              "LOYALTY_RULES",
+              "LTV_POLICY",
               "MARKET_GROWTH",
+              "MARKET_PROFILE",
+              "RECOMMENDATION_POLICY",
+              "REFERRAL_FRAUD_THRESHOLDS",
               "REFERRAL_RULES",
+              "REWARD_GUARDS",
               "REWARD_RULES",
               "SEO",
+              "SEO_AUTOMATION",
               "SPONSORED_PROMOTION_POLICY",
               "WIDGET_POLICY",
               "LTV_POLICY",
               "LOYALTY_RULES",
               "MESSAGING_CHANNELS",
-              "EXPERIMENT_POLICY",
-              "AUTOMATION_POLICY",
-              "ATTRIBUTION_MODELS",
-              "RECOMMENDATION_POLICY",
-              "REWARD_GUARDS",
-              "LIFECYCLE_STAGES",
-              "CROSS_PRODUCT_POLICY",
-              "REFERRAL_FRAUD_THRESHOLDS",
-              "INTEGRATION_RUNTIME",
-              "INTEGRATION_MODES",
               "PAY_FRAUD_THRESHOLDS",
               "PAY_MATCHING_POLICY",
               "PAY_ROUTING_POLICY"

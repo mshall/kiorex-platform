@@ -15,12 +15,14 @@ export interface SnapshotFlag {
   gateSatisfied: boolean;
   values: { global?: 'OFF'; markets: Record<string, 'OFF'>; orgs: Record<string, 'OFF'> };
   expiresAt?: string;
+  /** Tenant-level flags only: cohorts the flag is OFF for (G-COHORT). Never serialised into the product snapshot; the service expands it to the member organisations there. */
+  cohortOff?: Record<string, 'OFF'>;
 }
-export interface EvalContext { market?: string; orgId?: string }
+export interface EvalContext { market?: string; orgId?: string; /** release cohort of the organisation (G-COHORT); FlagsService fills it from the organisation attribute when only orgId is given */ cohort?: string }
 export interface EvalResult {
   effective: boolean;
-  reason: 'ON' | 'OFF_GLOBAL' | 'OFF_MARKET' | 'OFF_ORG' | 'AWAITING_GATE' | 'DEPENDENCY_OFF' | 'UNKNOWN_FLAG';
-  scope?: OffScope | 'GATE' | 'DEPENDENCY';
+  reason: 'ON' | 'OFF_GLOBAL' | 'OFF_MARKET' | 'OFF_ORG' | 'OFF_COHORT' | 'AWAITING_GATE' | 'DEPENDENCY_OFF' | 'UNKNOWN_FLAG';
+  scope?: OffScope | 'COHORT' | 'GATE' | 'DEPENDENCY';
   blockedBy?: string;
 }
 
@@ -33,7 +35,12 @@ export function evaluateFlag(flags: Map<string, SnapshotFlag>, key: string, ctx:
     shapes.set(flags, shape);
   }
   const d = contractEvaluate(shape, key, { market: ctx.market, orgId: ctx.orgId });
-  if (d.enabled) return { effective: true, reason: flags.has(key) ? 'ON' : 'UNKNOWN_FLAG' };
+  if (d.enabled) {
+    // G-COHORT hook: a tenant-level flag switched OFF for a cohort is OFF for every organisation of that cohort (any-OFF-wins, never re-enables). No cohort given or none set = no effect.
+    const c = ctx.cohort?.trim().toLowerCase();
+    if (c && flags.get(key)?.cohortOff?.[c] === 'OFF') return { effective: false, reason: 'OFF_COHORT', scope: 'COHORT' };
+    return { effective: true, reason: flags.has(key) ? 'ON' : 'UNKNOWN_FLAG' };
+  }
   switch (d.reason) {
     case 'global_off': return { effective: false, reason: 'OFF_GLOBAL', scope: 'GLOBAL' };
     case 'market_off': return { effective: false, reason: 'OFF_MARKET', scope: 'MARKET' };

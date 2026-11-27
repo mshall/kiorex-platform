@@ -11,7 +11,7 @@ import { ProductKeyGuard } from './product-key.guard';
 import { AdminFlagDto, GateBoardDto, GateRecordedDto, EffectiveFlagsDto, FlagAuditDto, FlagChangeRequestDto, FlagDefinitionDto, FlagSnapshotDto, RequestDecisionDto, PropagationDto, ProductRegistrationDto, SetFlagResultDto, SweepResultDto, VersionDto } from './control-plane.dto';
 
 class SetFlagBody {
-  @IsIn(['GLOBAL', 'MARKET', 'ORG']) scope!: 'GLOBAL' | 'MARKET' | 'ORG';
+  @IsIn(['GLOBAL', 'MARKET', 'ORG', 'COHORT']) scope!: 'GLOBAL' | 'MARKET' | 'ORG' | 'COHORT';
   @IsOptional() @IsString() scopeId?: string;
   @IsIn(['ON', 'OFF']) value!: 'ON' | 'OFF';
   @IsString() @MaxLength(500) reason!: string;
@@ -91,6 +91,13 @@ export class ControlPlaneController {
   @ApiOperation({ summary: 'Every flag of every product with effective value, source, class, deps, last change (OP-07)' })
   list(@Query('market') market?: string, @Query('product') product?: string) {
     return this.flags.listAdmin({ market, product });
+  }
+
+  @OpsOnly() @Get('admin/organisations/release-cohorts')
+  @ApiOperation({ summary: 'Read-only: organisations that carry a release cohort (G-COHORT); optional ?cohort= filter' })
+  @ApiQuery({ name: 'cohort', required: false })
+  releaseCohorts(@Query('cohort') cohort?: string) {
+    return this.flags.listReleaseCohorts(cohort);
   }
 
   @ApiOkResponse({ type: SetFlagResultDto })
