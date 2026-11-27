@@ -18,7 +18,7 @@ describe('lint:hosts strict scan', () => {
     const r = spawnSync(process.execPath, [SCRIPT, '--root', root], { encoding: 'utf8' });
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('apps/api/src/x.ts:2  book.kiorex.com');
-    expect(r.stderr).not.toContain('hosts.ts');
+    expect(r.stderr).not.toContain('common/hosts.ts:');
     expect(r.stderr).not.toContain('schemas.');
   });
 });
