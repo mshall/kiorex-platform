@@ -56,6 +56,13 @@ export const DEMO_TARGETS: DemoTarget[] = [
   { table: 'CarePlanBooking', seededWhere: `starts_with("id", 'kx_cp_demo_')` },
   { table: 'BookingVisitAddress', childOf: { parent: 'BookingIntent', fk: 'bookingId' } },
   { table: 'BookingIntent', seededWhere: `starts_with("id", 'demo_bk_')` },
+  // deployed-environment demo seed (prisma/demo/seed-deployed.ts): providers written directly, and commission claims / runs / attempts for the demo organisations (demo_dt_*)
+  { table: 'Provider', seededWhere: `starts_with("id", 'demo_dp_')` },
+  { table: 'CommissionAttempt', seededWhere: `starts_with("id", 'cat_demo_')` },
+  { table: 'CommissionClaim', seededWhere: `starts_with("chargeId", 'demo_chg_')` },
+  { table: 'CommissionRun', seededWhere: `starts_with("id", 'crn_demo_')` },
+  { table: 'CommissionOrgRateLink', key: `"orgRef"`, seededWhere: `starts_with("orgRef", 'demo_dt_')` },
+  // CommissionTimeline is deliberately NOT a target: it is append-only (trigger commission_timeline_no_update blocks DELETE). Its demo rows (orgRef demo_dt_*) stay as inert history; this tool never disables a trigger.
   { table: 'PatientAddress', seededWhere: `starts_with("id", 'kx_ad_demo_')` },
   { table: 'KiorlyPatientLink', seededWhere: `${DEMO_SUBS} OR starts_with("id", 'demo_kl_')` },
   { table: 'Dependant', seededWhere: `starts_with("id", 'demo_dep_')` },

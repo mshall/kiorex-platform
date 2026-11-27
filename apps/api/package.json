@@ -27,6 +27,8 @@
     "openapi:export": "nest build && node dist/openapi-export.js",
     "build:seed": "tsc -p tsconfig.seed.json && node scripts/copy-seed-assets.mjs",
     "db:seed:demo:dist": "node dist-seed/prisma/demo/seed-demo.js",
+    "db:seed:demo:deployed": "DEMO_SEED_ALLOWED=true ts-node --transpile-only prisma/demo/seed-deployed.ts",
+    "db:seed:demo:deployed:dist": "node dist-seed/prisma/demo/seed-deployed.js",
     "db:seed:dist": "node dist-seed/prisma/seed.js",
     "db:sync:providers": "DEMO_SEED_ALLOWED=true ts-node --transpile-only prisma/demo/provider-sync.ts",
     "db:sync:providers:dist": "node dist-seed/prisma/demo/provider-sync.js"
