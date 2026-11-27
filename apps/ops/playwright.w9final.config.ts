@@ -7,8 +7,8 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const AUTH = process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4710";
 export default defineConfig({
-  testDir: "./e2e", testMatch: /(growth-ops-pages-w9|integrations-center|growth-automation)\.spec\.ts/, timeout: 120_000, expect: { timeout: 15_000 }, fullyParallel: false, workers: 1, reporter: [["list"]],
+  testDir: "./e2e", testMatch: /(growth-ops-pages-w9|integrations-center|growth-automation|payments-ops-pages)\.spec\.ts/, timeout: 120_000, expect: { timeout: 15_000 }, fullyParallel: false, workers: 1, reporter: [["list"]],
   use: { baseURL: "http://localhost:5721", trace: "retain-on-failure", screenshot: "only-on-failure", locale: "en-GB", timezoneId: "Africa/Cairo" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: { command: "npx vite --port 5721 --strictPort", url: "http://localhost:5721", reuseExistingServer: false, timeout: 90_000, env: { KIOREX_API_URL: "http://localhost:4713", VITE_OIDC_AUTHORITY: AUTH } },
+  webServer: { command: "npx vite --port 5721 --strictPort", url: "http://localhost:5721", reuseExistingServer: false, timeout: 90_000, env: { KIOREX_API_URL: process.env.PW_KIOREX_API ?? "http://localhost:4713", VITE_OIDC_AUTHORITY: AUTH } },
 });

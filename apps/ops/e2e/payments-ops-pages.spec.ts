@@ -9,7 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const SHOTS = path.resolve(process.cwd(), "../../../_docs/test-flow/pay-ready");
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
-const OIDC_KEY = "oidc.user:http://localhost:4400:kiorex-ops";
+const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 const PAGES = [{ key: "payments-connection", path: "/payments-connection" }, { key: "reconciliation", path: "/reconciliation" }, { key: "corporate", path: "/growth/corporate" }] as const;
 const VIEWPORTS = [{ w: 320, h: 800 }, { w: 768, h: 1024 }, { w: 1440, h: 900 }, { w: 2560, h: 1300 }] as const;
@@ -38,7 +38,8 @@ for (const pg of PAGES) for (const lang of ["ar", "en"]) for (const vp of VIEWPO
     await page.setViewportSize({ width: vp.w, height: vp.h });
     await open(page, pg.path, lang);
     expect(await page.evaluate(() => document.documentElement.getAttribute("dir"))).toBe(lang === "ar" ? "rtl" : "ltr");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "no horizontal overflow").toBe(true);
+    const wide = await page.evaluate(() => { const w = document.documentElement.clientWidth; return document.documentElement.scrollWidth <= w + 1 ? [] : [...document.querySelectorAll("body *")].filter((e) => e.getBoundingClientRect().right > w + 1).slice(0, 6).map((e) => `${e.tagName.toLowerCase()}.${String(e.className).slice(0, 60)} right=${Math.round(e.getBoundingClientRect().right)}`); });
+    expect(wide, `no horizontal overflow (elements wider than the viewport)`).toEqual([]);
     expect(await axeSerious(page)).toEqual([]);
     expect(errors).toEqual([]);
     await page.screenshot({ path: path.join(SHOTS, `${pg.key}-${lang}-${vp.w}.png`), fullPage: false });

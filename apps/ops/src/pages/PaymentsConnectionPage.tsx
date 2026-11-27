@@ -32,7 +32,7 @@ export default function PaymentsConnectionPage() {
               <div><dt className="text-xs text-muted-foreground">{t("payconn.mode")}</dt><dd><Badge variant={q.data.mode === "real" ? "default" : "secondary"} data-testid="pc-mode">{t(`payconn.modes.${q.data.mode}`)}</Badge></dd></div>
               <div><dt className="text-xs text-muted-foreground">{t("payconn.env")}</dt><dd>{t(`payconn.envs.${q.data.environment}`)}</dd></div>
               <div><dt className="text-xs text-muted-foreground">{t("payconn.overall")}</dt><dd><Badge variant={q.data.overall === "FAIL" ? "destructive" : q.data.overall === "OK" ? "success" : "warning"} data-testid="pc-overall">{t(`payconn.overalls.${q.data.overall}`)}</Badge></dd></div>
-              <div><dt className="text-xs text-muted-foreground">{t("payconn.base")}</dt><dd><code dir="ltr" className="text-xs">{q.data.publicBaseUrl}</code></dd></div>
+              <div><dt className="text-xs text-muted-foreground">{t("payconn.base")}</dt><dd><code dir="ltr" className="break-all text-xs">{q.data.publicBaseUrl}</code></dd></div>
             </dl>
             {q.data.startupProblems.length > 0 && <ul className="mt-3 list-disc ps-5 text-sm text-destructive">{q.data.startupProblems.map((p) => <li key={p}>{p}</li>)}</ul>}
           </section>
@@ -48,8 +48,8 @@ export default function PaymentsConnectionPage() {
               <p className="text-sm"><code dir="ltr" className="break-all" data-testid={`url-${p.psp}`}>{p.webhook.url}</code></p>
               <p className="text-xs text-muted-foreground">{p.webhook.scheme}</p><p className="text-xs text-muted-foreground">{t("payconn.register")}: {p.webhook.register}</p>
               <div className="mt-3"><DataTable caption={t("payconn.secrets", { name: t(`payconn.names.${p.psp}`) })} rows={p.secrets} rowKey={(x) => x.purpose} empty={t("payconn.none")} columns={[
-                { key: "r", header: t("payconn.secretRef"), cell: (x) => <code dir="ltr" className="text-xs">{x.ref}</code> },
-                { key: "e", header: t("payconn.envVar"), cell: (x) => <code dir="ltr" className="text-xs">{x.env}</code> },
+                { key: "r", header: t("payconn.secretRef"), cell: (x) => <code dir="ltr" className="break-all text-xs">{x.ref}</code> },
+                { key: "e", header: t("payconn.envVar"), cell: (x) => <code dir="ltr" className="break-all text-xs">{x.env}</code> },
                 { key: "p", header: t("payconn.present"), cell: (x) => <Badge variant={x.present ? "success" : "warning"}>{x.present ? t("payconn.yes") : t("payconn.no")}</Badge> },
               ]} /></div>
               {p.problems.length > 0 && <ul className="mt-3 list-disc ps-5 text-sm text-amber-700 dark:text-amber-300" data-testid={`problems-${p.psp}`}>{p.problems.map((x) => <li key={x}>{x}</li>)}</ul>}
