@@ -13,9 +13,9 @@ const TONE: Record<string, Tone> = { ACTIVE: "info", USED: "success", REVOKED: "
 const KINDS = ["CLINIC", "NURSE", "PHARMACY", "LAB"] as const;
 
 /** One-time enrolment codes: a partner product needs one to submit its first connection request (contracts 1.9.0). The code is shown once, here, right after creation. */
-export function EnrolmentCodesPanel() {
+export function EnrolmentCodesPanel({ prefill }: { prefill?: { kind?: (typeof KINDS)[number] | null; label?: string } } = {}) {
   const { t, i18n } = useTranslation(); const q = useEnrolments(); const create = useCreateEnrolment(); const revoke = useRevokeEnrolment();
-  const [kind, setKind] = useState<(typeof KINDS)[number]>("PHARMACY"); const [label, setLabel] = useState(""); const [orgRef, setOrgRef] = useState(""); const [days, setDays] = useState("7");
+  const [kind, setKind] = useState<(typeof KINDS)[number]>(prefill?.kind ?? "PHARMACY"); const [label, setLabel] = useState((prefill?.label ?? "").slice(0, 120)); const [orgRef, setOrgRef] = useState(""); const [days, setDays] = useState("7");
   const [shown, setShown] = useState<EnrolmentCreated | null>(null);
   const fail = (e: unknown) => toast.error(e instanceof ApiError ? t(`pob.err.${e.code}`, { defaultValue: e.message }) : String(e));
   const submit = () => create.mutate({ kind, label: label.trim(), ...(orgRef.trim() ? { orgRef: orgRef.trim() } : {}), ttlHours: Math.max(1, Math.min(14, Number(days) || 7)) * 24 }, { onSuccess: (r) => { setShown(r); setLabel(""); setOrgRef(""); }, onError: fail });

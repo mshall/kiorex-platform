@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -11,6 +11,7 @@ import { CardSkeleton, ErrorState } from "@/components/states";
 import { PageHeader, StatusChip } from "@/components/kit";
 import { formatDateTime } from "@/lib/format";
 import { LEAD_TONE } from "./SiteLeadsPage";
+import { canStartOnboarding, onboardingUrlForLead } from "@/lib/leadOnboarding";
 
 const selectCls = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const Row = ({ label, children }: { label: string; children: ReactNode }) => children === null || children === undefined || children === "" ? null : <div className="grid grid-cols-[9rem_1fr] gap-2 py-1"><dt className="text-xs font-semibold text-muted-foreground">{label}</dt><dd className="min-w-0 break-words text-sm" dir="auto">{children}</dd></div>;
@@ -46,7 +47,7 @@ function Trail({ d, cfg }: { d: LeadDetail; cfg: LeadConfig | undefined }) {
 
 /** One join request: contact and onboarding answers, status actions, owner, tags, notes and the audit trail. */
 export default function SiteLeadDetailPage() {
-  const { id = "" } = useParams(); const { t, i18n } = useTranslation(); const lang = i18n.language; const { user } = useAuth();
+  const { id = "" } = useParams(); const nav = useNavigate(); const { t, i18n } = useTranslation(); const lang = i18n.language; const { user } = useAuth();
   const q = useSiteLead(id); const settings = useSiteLeadSettings(); const owners = useSiteLeadOwners(); const upd = useSiteLeadUpdate(id);
   const [note, setNote] = useState(""); const [lostOpen, setLostOpen] = useState(false); const [reason, setReason] = useState(""); const [tag, setTag] = useState("");
   const cfg = settings.data?.config; const isSuper = !!user?.roles.includes("super_admin");
@@ -105,6 +106,9 @@ export default function SiteLeadDetailPage() {
               <div className="mt-3 flex flex-wrap items-end gap-2"><label className="text-xs font-medium">{t("siteLeads.lostReason")}<select className={`${selectCls} ms-2`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="lead-lost-reason"><option value="">{t("siteLeads.noReason")}</option>{cfg?.lostReasons.filter((r) => r.active).map((r) => <option key={r.key} value={r.key}>{labelOf(cfg.lostReasons, r.key, lang)}</option>)}</select></label>
                 <Button size="sm" variant="destructive" disabled={upd.isPending} onClick={() => upd.mutate({ status: "LOST", lostReason: reason || null }, { ...done("siteLeads.saved"), onSuccess: () => { setLostOpen(false); toast.success(t("siteLeads.saved")); } })} data-testid="lead-lost-confirm">{t("siteLeads.confirmLost")}</Button></div>
             ) : null}
+            {canStartOnboarding(d) ? (
+              <div className="mt-3 border-t pt-3"><Button size="sm" onClick={() => nav(onboardingUrlForLead(d.id))} data-testid="lead-start-onboarding">{t("siteLeads.startOnboarding")}</Button><p className="mt-1 text-xs text-muted-foreground">{t("siteLeads.startOnboardingHint")}</p></div>
+            ) : d.mode === "STANDALONE" && (d.status === "QUALIFIED" || d.status === "ONBOARDING") ? <p className="mt-3 border-t pt-3 text-xs text-muted-foreground" data-testid="lead-standalone-note">{t("siteLeads.standaloneNoOnboarding")}</p> : null}
             {d.lostReason ? <p className="mt-2 text-xs text-muted-foreground">{t("siteLeads.lostBecause", { reason: labelOf(cfg?.lostReasons, d.lostReason, lang) })}</p> : null}
           </section>
           <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-owner"><h2 id="a-owner" className="mb-2 text-sm font-bold">{t("siteLeads.owner")}</h2>

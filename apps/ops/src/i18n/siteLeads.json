@@ -211,7 +211,15 @@
         "ack": "Send the applicant an acknowledgement e-mail (only if they gave an address)",
         "team": "Alert team members who opted in to lead alerts (by e-mail)"
       },
-      "newBadge": "{{count}} new join requests"
+      "newBadge": "{{count}} new join requests",
+      "startOnboarding": "Start onboarding",
+      "startOnboardingHint": "Opens Partner onboarding with this request's details filled in. Nothing is created until you press Create code there.",
+      "standaloneNoOnboarding": "Standalone request: it does not connect to Kiorex, so there is no Kiorex connection request to prepare. The organisation is created inside the Kiorly product itself.",
+      "onboardingBanner": "From join request {{ref}}",
+      "onboardingBannerBody": "{{name}} ({{type}}, {{mode}}). Review the prefilled kind and label, then create the one-time code and hand it to the applicant.",
+      "onboardingBannerOpen": "Open the request",
+      "onboardingKindOther": "The provider type is not mapped to a product: choose the kind yourself.",
+      "onboardingLoadFailed": "The join request could not be loaded; fill the form by hand."
     }
   },
   "ar": {
@@ -426,7 +434,15 @@
         "ack": "إرسال بريد استلام لمقدم الطلب (إذا ذكر بريدا)",
         "team": "تنبيه أعضاء الفريق الذين فعّلوا تنبيهات الطلبات (بالبريد)"
       },
-      "newBadge": "{{count}} طلب انضمام جديد"
+      "newBadge": "{{count}} طلب انضمام جديد",
+      "startOnboarding": "ابدأ الانضمام",
+      "startOnboardingHint": "يفتح شاشة انضمام الشركاء وبيانات هذا الطلب معبأة. لا يتم إنشاء شيء حتى تضغط إنشاء الرمز هناك.",
+      "standaloneNoOnboarding": "طلب منفصل: لا يتصل بكيوريكس، فلا يوجد طلب اتصال بكيوريكس لتجهيزه. تُنشأ المنشأة داخل منتج كيورلي نفسه.",
+      "onboardingBanner": "من طلب الانضمام {{ref}}",
+      "onboardingBannerBody": "{{name}} ({{type}}، {{mode}}). راجع النوع والاسم المعبأين ثم أنشئ الرمز لمرة واحدة وسلّمه لمقدم الطلب.",
+      "onboardingBannerOpen": "افتح الطلب",
+      "onboardingKindOther": "نوع مقدم الخدمة غير مرتبط بمنتج: اختر النوع بنفسك.",
+      "onboardingLoadFailed": "تعذر تحميل طلب الانضمام، املأ النموذج يدويا."
     }
   }
 }
