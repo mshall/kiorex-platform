@@ -1,3 +1,4 @@
+import { bookingLinkBaseUrl, creativeCdnHost, siteCanonicalHost, widgetEmbedHost } from '../../common/hosts';
 import type { GrowthConfigKind } from '@kiorex/contracts';
 import { LTV_POLICY_DEFAULT } from '../cohorts/ltv-policy';
 import { LOYALTY_RULES_DEFAULT } from '../loyalty/loyalty-config';
@@ -45,7 +46,7 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalCon
     allowOfflineEvidence: false,
   },
   SEO: {
-    canonicalHost: 'https://kiorex.com',
+    canonicalHost: siteCanonicalHost(),
     locales: ['ar', 'en'],
     defaultLocale: 'ar',
     minLiveProviders: 3,
@@ -64,7 +65,7 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalCon
     sessionTokenTtlSeconds: 900,
     maxActiveHoldsPerPhone: 3,
     maxActiveHoldsPerIpHash: 5,
-    embedHost: 'https://book.kiorex.com',
+    embedHost: widgetEmbedHost(),
     sdkCacheSeconds: 31536000,
   },
   CONSENT_DEFAULTS: {
@@ -82,7 +83,7 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalCon
   CAMPAIGN_POLICY: {
     approvalAboveMinor: 2_000_000, budgetIncreaseApprovalPercent: 20, monthlyCeilingMinor: 50_000_000, dailyDefaultCapMinor: 1_000_000, budgetAlertThresholdsBp: [5000, 8000, 10000],
     allowedChannels: ['ORGANIC_SEARCH', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH', 'IN_APP', 'PARTNER', 'PAID_SEARCH', 'PAID_SOCIAL', 'PAID_VIDEO', 'OFFLINE', 'REFERRAL'], sensitiveChannels: ['WHATSAPP', 'SMS'],
-    utmNaming: { maxTokenLength: 40, campaignPrefixMarket: true }, creativeRules: { maxCreatives: 30, allowedHttpsHosts: ['cdn.kiorex.com'], assetKeyPrefix: 'growth/creatives/' }, autoExpiryGraceHours: 0, requireReasonOnPause: true,
+    utmNaming: { maxTokenLength: 40, campaignPrefixMarket: true }, creativeRules: { maxCreatives: 30, allowedHttpsHosts: [creativeCdnHost()], assetKeyPrefix: 'growth/creatives/' }, autoExpiryGraceHours: 0, requireReasonOnPause: true,
   },
   REFERRAL_RULES: {
     enabled: true, qualification: { requireAttended: true, holdDays: 7, requirePhoneVerified: true, lookbackDays: 30 }, caps: { perReferrer30Days: 5, perReferrerYear: 20 },
@@ -122,7 +123,7 @@ export const GROWTH_DEFAULT_PAYLOADS: Partial<Record<GrowthConfigKind | LocalCon
     phoneCode: '+20',
     locales: ['ar', 'en'],
     canonicalSegment: 'eg',
-    bookingLinkBaseUrl: 'https://kiorly.link',
+    bookingLinkBaseUrl: bookingLinkBaseUrl(),
     qrEnabled: true,
     marketingLicenceConfirmed: false,
     integrations: {},

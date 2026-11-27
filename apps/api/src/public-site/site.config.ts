@@ -1,3 +1,4 @@
+import { siteCanonicalHost } from '../common/hosts';
 import { DEFAULT_MARKET } from '../market/market-core-public';
 import { resolve } from 'node:path';
 
@@ -33,7 +34,7 @@ export const siteCfg = () => {
     /** Only an explicit `production` is indexable (robots allow, sitemaps referenced, no X-Robots-Tag noindex). */
     indexable: environment === 'production',
     /** Canonical host is configuration, never the request Host header (cache poisoning guard, ARCH section 5). */
-    canonicalHost: env('SITE_CANONICAL_HOST', 'https://kiorex.com').replace(/\/+$/, ''),
+    canonicalHost: siteCanonicalHost(),
     /** Compiled SSR bundle (CommonJS, self-contained) and the client assets of the public hydration entry. */
     ssrBundle: env('SITE_SSR_BUNDLE', resolve(webRoot(), 'dist-public/server/entry-server.cjs')),
     publicClientDir: env('SITE_PUBLIC_CLIENT_DIR', resolve(webRoot(), 'dist-public/client')),

@@ -16,3 +16,4 @@ dist-public/
 apps/api/src/prisma/generated/
 dist-w8a2/
 dist-release/
+.generated/

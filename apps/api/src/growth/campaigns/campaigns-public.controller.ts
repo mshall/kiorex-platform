@@ -1,3 +1,4 @@
+import { siteCanonicalHost } from '../../common/hosts';
 import { Controller, Get, Headers, Query, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/auth';
@@ -11,7 +12,7 @@ import { trackedLinks, type UtmConfig } from './campaign-utm';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 const UTM = /^[a-z0-9][a-z0-9_-]{1,63}$/;
-const site = () => process.env.SITE_CANONICAL_HOST?.replace(/\/+$/, '') || 'https://kiorex.com';
+const site = siteCanonicalHost;
 
 /**
  * GET /growth/v1/campaign/resolve (contract kiorex-growth.v1.openapi.json 1.1.0). Public. Returns where to send a visitor and the `utm_campaign` value to pass back on the touch.

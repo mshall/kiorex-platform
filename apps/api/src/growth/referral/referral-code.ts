@@ -1,3 +1,4 @@
+import { siteCanonicalHost } from '../../common/hosts';
 import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { randomInt } from 'node:crypto';
 import { REFERRAL_CODE_ALPHABET, REFERRAL_CODE_PATTERN } from '@kiorex/contracts';
@@ -32,7 +33,7 @@ export function normalizeReferralCode(raw: unknown): string | null {
   return REFERRAL_CODE_PATTERN.test(s) ? s : null;
 }
 
-const HOST = () => (process.env.SITE_CANONICAL_HOST?.replace(/\/+$/, '') || 'https://kiorex.com');
+const HOST = siteCanonicalHost;
 /** `https://kiorex.com/{locale}/{cc}/invite/<code>` (SSR page: noindex, shows the inviter only as "a friend"). */
 export function inviteUrl(code: string, o: { locale?: string; market?: string } = {}): string {
   const loc = o.locale === 'en' ? 'en' : 'ar';

@@ -1,3 +1,4 @@
+import { siteCanonicalHost } from '../../common/hosts';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { type CampaignState } from '@kiorex/contracts';
 import { FlagsService } from '../../control-plane/control-plane-public';
@@ -19,7 +20,7 @@ import { marketTimezone, nextDayBoundary } from './market-day';
 export interface Actor { sub: string; kind: 'USER' | 'SYSTEM' }
 export const SYSTEM = (name: string): Actor => ({ sub: `system:${name}`, kind: 'SYSTEM' });
 export const CAMPAIGN_EVENTS = ['CampaignCreated', 'CampaignStatusChanged', 'CampaignBudgetThresholdReached', 'CampaignApprovalDecided'] as const;
-const site = () => process.env.SITE_CANONICAL_HOST?.replace(/\/+$/, '') || 'https://kiorex.com';
+const site = siteCanonicalHost;
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
 export interface TransitionOptions { reasonCode?: string; reason?: string; pauseReason?: PauseReason; pausedUntil?: Date | null; now?: Date; tx?: Tx; skipCeiling?: boolean }

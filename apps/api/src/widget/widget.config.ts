@@ -1,3 +1,4 @@
+import { widgetProductionHost } from '../common/hosts';
 import { resolve } from 'node:path';
 
 /**
@@ -18,7 +19,7 @@ export const widgetCfg = () => {
   return {
     enabled: bool('WIDGET_ENABLED', true),
     /** Host (no scheme) the widget answers on; empty = any host (local development only). */
-    host: env('WIDGET_HOST', env('NODE_ENV') === 'production' ? 'book.kiorex.com' : '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, ''),
+    host: env('WIDGET_HOST', env('NODE_ENV') === 'production' ? widgetProductionHost() : '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, ''),
     dist: env('WIDGET_DIST', resolve(__dirname, '..', '..', '..', 'widget', 'dist')),
     nonProd,
     devOrigins: nonProd ? env('WIDGET_DEV_ORIGINS').split(',').map((s) => s.trim()).filter(Boolean) : [],

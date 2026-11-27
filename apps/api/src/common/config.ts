@@ -1,3 +1,4 @@
+import { appLinkBaseUrl, rxVerifyBaseUrl } from './hosts';
 import { PARTNER_DEV_DEFAULTS } from '@kiorex/contracts';
 import { providerEnv } from './providers/env';
 
@@ -61,7 +62,7 @@ export const cfg = () => ({
   payDevRoutesEnabled: env('NODE_ENV') !== 'production' && providerEnv('PAYMENT').mode !== 'real',
   /** SAFETY_DELIVERY_MODE=real pages the on-call phones below through the real SMS provider (ids + district only, never PHI). */
   safetyOncallPhones: env('SAFETY_ONCALL_PHONES').split(',').map((x) => x.trim()).filter(Boolean),
-  appLinkBase: env('PUBLIC_APP_URL', 'https://kiorex.com/app'),
+  appLinkBase: appLinkBaseUrl(),
   /** Same variable as WHATSAPP_WEBHOOK_SECRET in the provider contract: signs the normalised inbound-booking webhook AND verifies delivery-status webhooks. */
   whatsappWebhookSecret: env('WHATSAPP_WEBHOOK_SECRET', 'wa_dev_webhook_secret_change_me'),
   /** Kiorly marketplace API only accepts channel MARKETPLACE|CLINIC_LINK today; flip when Kiorly adds KIOREX_WHATSAPP. */
@@ -74,7 +75,7 @@ export const cfg = () => ({
   /** KX-11 record shares: HMAC secret shared with Kiorly (KIOREX_RECORD_SHARE_HMAC_SECRET there). */
   recordShareSecret: env('KIOREX_RECORD_SHARE_HMAC_SECRET', 'dev-record-share-secret'),
   rxVerifySecret: env('RX_VERIFY_HMAC_SECRET', 'rx_dev_verify_secret_change_me'),
-  rxVerifyBase: env('RX_VERIFY_BASE_URL', 'https://kiorex.com/rx/verify'),
+  rxVerifyBase: rxVerifyBaseUrl(),
   /**
    * Vertical partners (Kiorly Pharmacy / Lab): HMAC REST, same scheme as the marketplace client. The REAL source of truth is the
    * PartnerRegistration table (ops-configurable per partner); these env values are the fallback and the dev seed source. `*BaseUrl` is the

@@ -1,3 +1,4 @@
+import LINK_HOST_DEFAULTS from "../../config/link-hosts.default.json";
 // GRW-P1-H: deep link resolution for the Kiorex patient app. Pure and dependency free (unit tested with malicious inputs).
 // Contract: a link is matched against a CLOSED route table; the output is always an in-app path built from a fixed template plus validated
 // segments. Unknown or invalid links open Home. No URL-valued parameter is ever read, followed or forwarded (no open redirect), the link never
@@ -37,7 +38,7 @@ const CC_RE = /^[a-z]{2}$/;
 
 /** Hosts come from the build (EAS env), never from the link. */
 export function configuredHosts(env: string | undefined = process.env.EXPO_PUBLIC_LINK_HOSTS): string[] {
-  const list = (env ?? "kiorex.com,www.kiorex.com,kiorly.link").split(",").map((h) => h.trim().toLowerCase()).filter((h) => /^[a-z0-9.-]+(:\d{1,5})?$/.test(h));
+  const list = (env ?? LINK_HOST_DEFAULTS.linkHosts.join(",")).split(",").map((h) => h.trim().toLowerCase()).filter((h) => /^[a-z0-9.-]+(:\d{1,5})?$/.test(h));
   return list;
 }
 

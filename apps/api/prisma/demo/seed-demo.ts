@@ -20,6 +20,7 @@ import { OutboxService } from '../../src/outbox/outbox.service';
 import { encryptField } from '../../src/common/crypto';
 import { seedHome } from './seed-home';
 import { seedNurseLab } from './seed-nurse-lab';
+import { markDemoRows } from '../../src/common/demo-data';
 import { assertDemoSeedAllowed } from '../../src/common/demo-seed-guard';
 import { capture, pspFee, refundRequest, refundSettle, release, payout, type Posting } from '../../src/pay/ledger';
 
@@ -229,6 +230,8 @@ async function main() {
   const home = await seedHome(prisma, { at, sub, flags });
   console.log(`Kiorex home seed: ${home}`);
   console.log(`Kiorex nurse-lab (KNLAB01) seed: ${await seedNurseLab(prisma)}`);
+  // durable DEMO marker (DemoMarker): removal later selects ONLY these rows (npm run demo-data:remove -- --dry-run)
+  console.log(`Kiorex demo markers: ${JSON.stringify(await markDemoRows(prisma as never, { extraSubs: Object.values(SUB_MAP) }))}`);
   console.log(`Kiorex demo seed OK — ${PERSONAS.length} patient profiles, ${deps.length} dependants, ${bookingsSpec.length} bookings (${Object.entries(statusCounts).map(([k, v]) => `${k}:${v}`).join(' ')}), ${postN} ledger txs, ${completed.length} completed visits, ${recs.length} vault records, ${ph} pharmacy orders, ${lb} lab bookings`);
   await prisma.$disconnect();
 }

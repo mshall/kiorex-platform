@@ -1,3 +1,4 @@
+import { widgetEmbedHost } from '../common/hosts';
 import { DEFAULT_MARKET } from '../market/market-core-public';
 import { Injectable } from '@nestjs/common';
 import { ConfigReaders } from '../growth/growth-readers-public';
@@ -9,7 +10,7 @@ export interface WidgetPolicy {
 
 /** PROPOSED_DEFAULT of WIDGET_POLICY (contracts growth-config schema; identical to `growth-defaults.ts`, asserted by widget-policy.unit.spec.ts). */
 export const WIDGET_POLICY_DEFAULT: WidgetPolicy = {
-  maxOriginsPerOrg: 10, allowLocalhostOrigins: false, sessionTokenTtlSeconds: 900, maxActiveHoldsPerPhone: 3, maxActiveHoldsPerIpHash: 5, embedHost: 'https://book.kiorex.com', sdkCacheSeconds: 31536000,
+  maxOriginsPerOrg: 10, allowLocalhostOrigins: false, sessionTokenTtlSeconds: 900, maxActiveHoldsPerPhone: 3, maxActiveHoldsPerIpHash: 5, embedHost: widgetEmbedHost(), sdkCacheSeconds: 31536000,
 };
 
 /**

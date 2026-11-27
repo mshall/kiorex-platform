@@ -3658,3 +3658,17 @@ model CommissionExportAudit {
 
   @@index([actor, createdAt])
 }
+
+/// Durable marker of seeded DEMO / dummy rows (side table: no change to any business table, no FK so a marker survives and is cleaned with the row).
+/// `tableName` is the Prisma table, `rowId` the row's key (single-column id, or "a:b" for a composite key). Written by the demo seed (src/common/demo-data.ts)
+/// and read ONLY by `npm run demo-data:remove`, which deletes exactly the marked rows and never selects by id pattern. dataClass: DEMO (removable).
+model DemoMarker {
+  tableName String
+  rowId     String
+  dataClass String   @default("DEMO")
+  batch     String   @default("seed-demo")
+  createdAt DateTime @default(now())
+
+  @@id([tableName, rowId])
+  @@index([dataClass, tableName])
+}

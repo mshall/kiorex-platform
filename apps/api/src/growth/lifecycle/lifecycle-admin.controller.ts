@@ -1,3 +1,4 @@
+import { sampleLinkBase } from '../../common/hosts';
 import { DEFAULT_MARKET } from '../../market/market-core-public';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, Inject, Param, Post, Query, forwardRef } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -66,7 +67,7 @@ export class LifecycleAdminController {
 
   @Get('templates') @ApiOperation({ summary: 'GRW-P2-E template catalogue: class badge, purpose, copy review state, AR and EN preview with sample parameters' }) @ApiOkResponse(ARR)
   templates() {
-    const sample = { doctor: 'Dr. Sample', time: 'Mon 9:00', date: '1 Jan', minutes: 10, assignee: 'Sample', patient: 'Sample', count: 3, org: 'Sample', kindLabel: 'Clinic', link: 'https://kiorex.com', status: 'Updated' } as Record<string, unknown>;
+    const sample = { doctor: 'Dr. Sample', time: 'Mon 9:00', date: '1 Jan', minutes: 10, assignee: 'Sample', patient: 'Sample', count: 3, org: 'Sample', kindLabel: 'Clinic', link: sampleLinkBase(), status: 'Updated' } as Record<string, unknown>;
     return templateClassView().map((v) => ({ ...v, templateId: TEMPLATES[v.kind].templateId, en: render(TEMPLATES[v.kind].en, sample), ar: render(TEMPLATES[v.kind].ar, sample) }));
   }
 

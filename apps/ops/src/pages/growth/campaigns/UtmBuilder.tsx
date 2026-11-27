@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { FormField } from "@/components/kit";
+import { SITE_CANONICAL_HOST } from "@/lib/hosts";
 
 export interface UtmForm { source: string; medium: string; content: string; term: string; targetPath: string }
 const TOKEN = /^[a-z0-9][a-z0-9_-]{0,39}$/;
@@ -12,7 +13,7 @@ export function previewLinks(i: { market: string; key: string; channels: string[
   const utm: Record<string, string> = { utm_source: i.form.source || "kiorex", utm_medium: i.form.medium || MEDIUM[i.channels[0] ?? ""] || "campaign", utm_campaign: `${i.market.toLowerCase()}-${i.key || "key"}` };
   if (i.form.content) utm.utm_content = i.form.content; if (i.form.term) utm.utm_term = i.form.term;
   const path = `/${i.locale ?? "ar"}/${i.market.toLowerCase()}${i.form.targetPath || ""}`;
-  return { utm, url: `${(i.host ?? "https://kiorex.com").replace(/\/+$/, "")}${path}?${new URLSearchParams(utm).toString()}` };
+  return { utm, url: `${(i.host ?? SITE_CANONICAL_HOST).replace(/\/+$/, "")}${path}?${new URLSearchParams(utm).toString()}` };
 }
 export const utmErrors = (f: UtmForm): Partial<Record<keyof UtmForm, boolean>> => ({
   source: !!f.source && !TOKEN.test(f.source), medium: !!f.medium && !TOKEN.test(f.medium), content: !!f.content && !TOKEN.test(f.content), term: !!f.term && !TOKEN.test(f.term),

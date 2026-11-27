@@ -18,6 +18,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:deploy": "npm run db:deploy -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
+    "demo-data:remove": "npm run demo-data:remove -w apps/api --",
     "mobile:install": "npm install --prefix apps/mobile",
     "mobile:web": "npm --prefix apps/mobile run web",
     "mobile:test": "npm --prefix apps/mobile test",

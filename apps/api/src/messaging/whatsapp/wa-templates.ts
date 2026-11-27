@@ -1,3 +1,4 @@
+import { sampleLinkBase } from '../../common/hosts';
 import { metaTemplateSubmission, type MetaTemplateDefinition } from '../../common/providers/vendors/meta-whatsapp';
 import type { WhatsappSettings } from '../messaging-config';
 
@@ -28,9 +29,9 @@ export interface WaTemplateStatusStore {
 
 const EXAMPLES: Record<string, { en: string; ar: string }> = {
   doctor: { en: 'Dr. Sample', ar: 'د. نموذج' }, time: { en: 'Mon 12 Jan 10:00', ar: 'الاثنين 12 يناير 10:00' }, until: { en: '10:30', ar: '10:30' },
-  link: { en: 'https://kiorex.com/l/sample', ar: 'https://kiorex.com/l/sample' }, amount: { en: 'EGP 150', ar: '150 جنيه' }, patient: { en: 'Sample', ar: 'نموذج' },
+  link: { en: `${sampleLinkBase()}/l/sample`, ar: `${sampleLinkBase()}/l/sample` }, amount: { en: 'EGP 150', ar: '150 جنيه' }, patient: { en: 'Sample', ar: 'نموذج' },
   status: { en: 'on the way', ar: 'في الطريق' }, minutes: { en: '15', ar: '15' }, count: { en: '4', ar: '4' }, assignee: { en: 'Sample', ar: 'نموذج' },
-  alternatives: { en: 'https://kiorex.com/l/sample', ar: 'https://kiorex.com/l/sample' }, org: { en: 'Sample clinic', ar: 'عيادة نموذج' }, kindLabel: { en: 'clinic', ar: 'عيادة' },
+  alternatives: { en: `${sampleLinkBase()}/l/sample`, ar: `${sampleLinkBase()}/l/sample` }, org: { en: 'Sample clinic', ar: 'عيادة نموذج' }, kindLabel: { en: 'clinic', ar: 'عيادة' },
 };
 const placeholders = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))];
 export const metaNameFor = (key: string) => `kx_${key.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}_v1`.slice(0, 512);

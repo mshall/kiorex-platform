@@ -1,0 +1,8 @@
+{
+  "environment": "test",
+  "note": "One entry per running container of the kx-test API service. JOBS_ENABLED is true on exactly one of them (the validator fails otherwise).",
+  "containers": [
+    { "name": "api-primary", "env": { "JOBS_ENABLED": "true" } },
+    { "name": "api-replica", "env": { "JOBS_ENABLED": "false" } }
+  ]
+}

@@ -10,6 +10,7 @@ import { PulseDivider } from "@/components/PulseLine";
 import { useAuth } from "@/auth/AuthProvider";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
+import { KIORLY_CLINICS_URL, hostLabel } from "@/lib/hosts";
 
 const FEATURES = [{ icon: BadgeCheck, k: "verified" }, { icon: CalendarClock, k: "slots" }, { icon: MessageSquareText, k: "reviews" }, { icon: Wallet, k: "fees" }] as const;
 const STEPS = [{ icon: Search, k: "find" }, { icon: CalendarClock, k: "pick" }, { icon: ShieldCheck, k: "confirm" }] as const;
@@ -89,7 +90,7 @@ export default function LandingPage() {
       </section>
 
       <p className="text-center text-sm text-muted-foreground">
-        {t("landing.forClinics")} <a className="font-medium text-ocean underline underline-offset-4" href="https://kiorly.com" target="_blank" rel="noreferrer">kiorly.com</a>
+        {t("landing.forClinics")} <a className="font-medium text-ocean underline underline-offset-4" href={KIORLY_CLINICS_URL} target="_blank" rel="noreferrer">{hostLabel(KIORLY_CLINICS_URL)}</a>
       </p>
     </div>
   );

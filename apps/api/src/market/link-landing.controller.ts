@@ -1,3 +1,4 @@
+import { bookingLinkBaseUrl } from '../common/hosts';
 import { Controller, Get, Headers, Param, Query, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -27,7 +28,7 @@ export class LinkLandingController {
     const market = chooseMarket(normalizeCc(q.cc), live, (process.env.DEFAULT_MARKET ?? live[0] ?? '').toUpperCase());
     const c = cfg();
     const web = safeWebOrigin(c.webBaseUrl, c.isProd);
-    const linkBase = safeWebOrigin(process.env.PROVIDER_LINK_BASE_URL ?? 'https://kiorly.link', c.isProd);
+    const linkBase = safeWebOrigin(bookingLinkBaseUrl(), c.isProd);
     const webUrl = kind === 'appointment' ? `${web ?? ''}/appointments/${value}` : kind === 'provider' ? `${linkBase ?? ''}/q/${value}` : `${web ?? ''}/?ref=${value}`;
     if (!(await this.flags.isEnabled(GROWTH_FLAG.DEEP_LINKS, { market }))) { res.redirect(302, webUrl); return; } // flag OFF: links open the website
     const nonce = newNonce();

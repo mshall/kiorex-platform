@@ -1,0 +1,5 @@
+{
+  "_note": "Production fallback hosts for universal links and app links. A build overrides them with APP_LINK_HOST (native config) and EXPO_PUBLIC_LINK_HOSTS (runtime), both generated from _docs/registry/service-url-registry.yaml. This JSON is the only place the mobile app keeps host literals.",
+  "appLinkHost": "kiorex.com",
+  "linkHosts": ["kiorex.com", "www.kiorex.com", "kiorly.link"]
+}

@@ -8,6 +8,7 @@ import { FlagsService } from '../src/control-plane/flags.service';
 import { OutboxService } from '../src/outbox/outbox.service';
 import { PartnerRegistry } from '../src/partners/partners.service';
 import { defaultsSeedEnabled, installCommissionDefaults } from '../src/commissions/commission-defaults';
+import { markDemoRows } from '../src/common/demo-data';
 import { checksumOf } from '../src/growth/config/growth-config.service';
 
 async function main() {
@@ -48,6 +49,7 @@ async function main() {
   // COM-4: recommended commission defaults (rates per organisation type, market collection settings, AR/EN disclosure DRAFTS). Idempotent; never overwrites an operator row; never touches the counsel sign-off
   // (it stays NOT_REVIEWED, so real money stays blocked). Skip with COMMISSION_DEFAULTS_SEED=false. See Docs/COMMISSION_DEFAULTS.md.
   if (defaultsSeedEnabled()) console.log('commission defaults', JSON.stringify(await installCommissionDefaults(prisma as never, checksumOf)));
+  await markDemoRows(prisma as never, { batch: 'seed-base', only: ['FlagGateEvidence'] }); // the dev-only gate evidence above is dummy data: marked so it can be removed later
   console.log(`seeded ${await prisma.flagDefinition.count()} flag definitions, ${await prisma.productRegistration.count()} products`);
   await prisma.$disconnect();
 }

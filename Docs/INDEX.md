@@ -7,6 +7,7 @@ Start with the [README](../README.md), then pick a document.
 | [README.md](README.md) | Original docs hub (kept) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Bounded contexts, money ledger, booking consistency, flags |
 | [DOCKER_AND_FRONTEND_BUILDS.md](DOCKER_AND_FRONTEND_BUILDS.md) | API image build and boot, front-end build recipe (OIDC authority), in-process scheduler |
+| [ENVIRONMENT_CONFIG.md](ENVIRONMENT_CONFIG.md) | ADR-059: host config files, registry-generated CORS/OIDC/env, kx-test env template, demo data marker and removal |
 | [RUNBOOK.md](RUNBOOK.md) | Local run, env, seeds, mock providers, home-visit operations |
 | [API.md](API.md) | Generated route reference |
 | [COMMISSION_DEFAULTS.md](COMMISSION_DEFAULTS.md) | Recommended commission defaults (COM-4): values, rationale, how to change them in Ops, seed, env keys, LG-COM-20 recommendation |

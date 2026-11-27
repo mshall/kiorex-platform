@@ -23,7 +23,8 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  * NATIVE REBUILD REQUIRED: adding or changing associatedDomains / intentFilters needs a new native build (EAS or `expo prebuild`); it cannot ship over the air.
  * Verification is NEEDS_HUMAN: the Apple Team ID (APPLE_TEAM_ID) and the Play app-signing SHA-256 must be published in the well-known files (KX-19 section 04).
  */
-export const APP_LINK_HOST_DEFAULT = "kiorex.com";
+const LINK_HOST_DEFAULTS = JSON.parse(fs.readFileSync(`${__dirname}/config/link-hosts.default.json`, "utf8")) as { appLinkHost: string };
+export const APP_LINK_HOST_DEFAULT: string = LINK_HOST_DEFAULTS.appLinkHost;
 /** Android `pathPattern` globs (not regex): `.` any character, `*` repeat. */
 export const ANDROID_PATH_PATTERNS = ["/ar/..*/doctor/.*", "/en/..*/doctor/.*", "/ar/..*/clinic/.*", "/en/..*/clinic/.*", "/ar/..*/invite/.*", "/en/..*/invite/.*", "/invite/.*", "/r/.*", "/q/.*", "/appointment/.*", "/a/.*"] as const;
 
