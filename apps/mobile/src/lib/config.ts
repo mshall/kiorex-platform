@@ -1,8 +1,10 @@
 import { apiOrigin } from "./apiBase";
 
-/** Production builds must be pointed at real services by build-time env (EAS environment variables): a missing value fails the app start loudly instead of calling localhost. */
+/** Every release build (kx-test, pilot, production: anything that is not a dev-server build) must be pointed at real services by build-time env (a config/env profile or EAS environment variables):
+ *  a missing value fails the app start loudly instead of calling localhost or a relative URL. */
 function requiredInProduction(name: string, value: string | undefined, fallback?: string): string | undefined {
-  if (process.env.EXPO_PUBLIC_ENV === "production" && !value && process.env.EXPO_PUBLIC_MOCK !== "1") throw new Error(`${name} is required for production builds (set it as an EAS environment variable)`);
+  const release = process.env.EXPO_PUBLIC_ENV === "production" || !__DEV__;
+  if (release && !value && process.env.EXPO_PUBLIC_MOCK !== "1") throw new Error(`${name} is required for release builds (use a config/env profile: node scripts/with-env.mjs test -- ..., or set it as an EAS environment variable)`);
   return value ?? fallback;
 }
 

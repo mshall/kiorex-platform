@@ -3,7 +3,7 @@ import type { paths } from "./schema";
 import { toApiError } from "./errors";
 import { config } from "@/lib/config";
 import i18n from "@/i18n";
-import { CONTINUITY_HEADER, CONTINUITY_PATHS, currentCard } from "@/modules/continuity/api";
+import { CONTINUITY_HEADER, CONTINUITY_PATHS, currentCard } from "@/modules/continuity/card";
 
 type TokenGetter = () => Promise<string | null>;
 let getToken: TokenGetter = async () => null;

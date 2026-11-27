@@ -42,6 +42,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withAndroidDefaultStrings.js",
       "expo-secure-store",
       "expo-font",
       "expo-web-browser",

@@ -1,5 +1,9 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote", "requireCommit": false },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote",
+    "requireCommit": false
+  },
   "build": {
     "base": {
       "node": "24.11.0",
@@ -11,36 +15,98 @@
       "distribution": "internal",
       "environment": "development",
       "channel": "development",
-      "android": { "buildType": "apk", "gradleCommand": ":app:assembleDebug" },
-      "ios": { "simulator": false },
-      "env": { "APP_ENV": "development", "EXPO_PUBLIC_ENV": "development" }
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_ENV": "development"
+      }
     },
     "development-simulator": {
       "extends": "development",
-      "ios": { "simulator": true }
+      "ios": {
+        "simulator": true
+      }
     },
     "preview": {
       "extends": "base",
       "distribution": "internal",
       "environment": "preview",
       "channel": "preview",
-      "android": { "buildType": "apk", "gradleCommand": ":app:assembleRelease" },
-      "ios": { "buildConfiguration": "Release" },
-      "env": { "APP_ENV": "preview", "EXPO_PUBLIC_ENV": "staging" }
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_ENV": "test",
+        "EXPO_PUBLIC_API_URL": "https://api.test.kiorex.com/api/v1",
+        "EXPO_PUBLIC_OIDC_ISSUER": "https://passport.test.kiorex.com",
+        "EXPO_PUBLIC_OIDC_CLIENT_ID": "kiorex-mobile",
+        "APP_LINK_HOST": "test.kiorex.com",
+        "EXPO_PUBLIC_LINK_HOSTS": "test.kiorex.com"
+      }
     },
     "production": {
       "extends": "base",
       "autoIncrement": true,
       "environment": "production",
       "channel": "production",
-      "android": { "buildType": "app-bundle", "gradleCommand": ":app:bundleRelease" },
-      "ios": { "buildConfiguration": "Release" },
-      "env": { "APP_ENV": "production", "EXPO_PUBLIC_ENV": "production" }
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.kiorex.com/api/v1",
+        "EXPO_PUBLIC_OIDC_ISSUER": "https://passport.kiorex.com",
+        "EXPO_PUBLIC_OIDC_CLIENT_ID": "kiorex-mobile",
+        "APP_LINK_HOST": "kiorex.com",
+        "EXPO_PUBLIC_LINK_HOSTS": "kiorex.com"
+      }
+    },
+    "kx-test": {
+      "extends": "preview",
+      "channel": "kx-test"
+    },
+    "kx-test-simulator": {
+      "extends": "kx-test",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "pilot": {
+      "extends": "production",
+      "channel": "pilot",
+      "env": {
+        "APP_ENV": "pilot",
+        "EXPO_PUBLIC_ENV": "pilot",
+        "EXPO_PUBLIC_API_URL": "https://api.pilot.kiorex.com/api/v1",
+        "EXPO_PUBLIC_OIDC_ISSUER": "https://passport.kiorex.com",
+        "EXPO_PUBLIC_OIDC_CLIENT_ID": "kiorex-mobile",
+        "APP_LINK_HOST": "pilot.kiorex.com",
+        "EXPO_PUBLIC_LINK_HOSTS": "pilot.kiorex.com"
+      }
     }
   },
   "submit": {
     "production": {
-      "android": { "track": "internal", "releaseStatus": "draft" },
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
       "ios": {}
     }
   }

@@ -9,6 +9,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  *   GOOGLE_SERVICE_INFO_PLIST     path to the Firebase iOS config    (EAS "file" env var; locally ./config/firebase/GoogleService-Info.plist)
  *   EAS_PROJECT_ID                EAS project id (push tokens + OTA updates)
  *   EAS_UPDATES_URL               optional, https://u.expo.dev/<project id>
+ *   APP_LINK_HOST                 universal/app link host (compile time), per environment profile in config/env/<profile>.env (generated from the URL registry); the checked-in default is production
  *   APP_ID_SUFFIX                 optional ".dev" / ".preview" so builds install side by side (add the id to the Firebase project too)
  *   APP_NAME_SUFFIX               optional " (Dev)"
  *   EAS_BUILD_PROFILE             set by EAS: development | preview | production
@@ -50,7 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const idSuffix = process.env.APP_ID_SUFFIX ?? "";
   const androidFile = pick("GOOGLE_SERVICES_JSON", "./config/firebase/google-services.json");
   const iosFile = pick("GOOGLE_SERVICE_INFO_PLIST", "./config/firebase/GoogleService-Info.plist");
-  if (profile === "production" && !process.env.SKIP_FIREBASE_CHECK) {
+  if (["production", "pilot"].includes(profile) && !process.env.SKIP_FIREBASE_CHECK) {
     const missing = [!androidFile && "GOOGLE_SERVICES_JSON", !iosFile && "GOOGLE_SERVICE_INFO_PLIST"].filter(Boolean);
     if (missing.length) throw new Error(`Production build needs Firebase config files: set ${missing.join(" and ")} (EAS file env vars). See config/firebase/README.md.`);
   }

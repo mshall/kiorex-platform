@@ -12,14 +12,7 @@ export interface ContinuityCard { id: string; kind: ContinuityKind; toProduct: "
 export interface ContinuityCards { enabled: boolean; consent: boolean; cards: ContinuityCard[] }
 
 const BASE = "/api/v1/growth/v1/continuity";
-export const CONTINUITY_HEADER = "X-Kx-Continuity";
-export const CONTINUITY_PATHS: readonly string[] = ["/api/v1/pharmacy/orders", "/api/v1/lab/bookings", "/api/v1/care-plans"];
-const TTL_MS = 30 * 60_000;
-let remembered: { id: string; at: number } | null = null; // this app session only; never written to disk
-
-export const rememberCard = (id: string, now = Date.now()) => { remembered = { id, at: now }; };
-export const clearCard = () => { remembered = null; };
-export function currentCard(now = Date.now()): string | null { return remembered && now - remembered.at < TTL_MS && /^[A-Za-z0-9_-]{10,40}$/.test(remembered.id) ? remembered.id : null; }
+export { CONTINUITY_HEADER, CONTINUITY_PATHS, rememberCard, clearCard, currentCard } from "./card";
 
 export const useContinuityCards = (enabled = true) => useQuery({
   queryKey: ["continuity-cards"], enabled, staleTime: 60_000, retry: false,
