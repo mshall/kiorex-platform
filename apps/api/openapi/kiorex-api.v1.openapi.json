@@ -10341,7 +10341,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "UTF-8 CSV with a BOM, one row per request",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "OP: CSV export of the filtered requests (decrypted contact details, audited; max 5000 rows)",

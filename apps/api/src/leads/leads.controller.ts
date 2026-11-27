@@ -45,7 +45,7 @@ export class LeadsAdminController {
   @Put('settings') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP (super admin): save the configuration. Send { version, config }; 409 LEAD_CONFIG_STALE when someone saved first. Not a money, legal or safety setting: versioned and audited, no second approver' })
   saveSettings(@CurrentUser() u: AuthUser, @Body() b: { version?: number; config?: unknown }) { superOnly(u); return this.svc.saveConfig(u, b); }
 
-  @Get('export.csv') @Header('Content-Type', 'text/csv; charset=utf-8') @Header('Cache-Control', 'no-store') @ApiOperation({ summary: 'OP: CSV export of the filtered requests (decrypted contact details, audited; max 5000 rows)' })
+  @Get('export.csv') @Header('Content-Type', 'text/csv; charset=utf-8') @Header('Cache-Control', 'no-store') @ApiOkResponse({ description: 'UTF-8 CSV with a BOM, one row per request', content: { 'text/csv': { schema: { type: 'string' } } } }) @ApiOperation({ summary: 'OP: CSV export of the filtered requests (decrypted contact details, audited; max 5000 rows)' })
   async export(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>, @Res({ passthrough: true }) res: { setHeader(k: string, v: string): void }) {
     const r = await this.svc.exportCsv(u, q);
     res.setHeader('Content-Disposition', `attachment; filename="kiorly-join-requests-${new Date().toISOString().slice(0, 10)}.csv"`);
