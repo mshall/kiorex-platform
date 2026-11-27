@@ -11,7 +11,7 @@ import { API, signIn } from "./helpers";
  * unread nav badge, AR/EN (RTL), light/dark, 390 and 1440 widths and axe. Screenshots: _docs/test-flow/partner-leads/.
  */
 const SECRET = process.env.PARTNER_LEAD_SIGNING_SECRET ?? "kiorex-dev-lead-signing-secret";
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "partner-leads") : path.resolve(process.cwd(), "../../../_docs/test-flow/partner-leads"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "partner-leads") : path.resolve(process.cwd(), "../../../_docs/test-flow/partner-leads"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p as string)) as string | undefined;
 const RUN = Date.now().toString(36);
 

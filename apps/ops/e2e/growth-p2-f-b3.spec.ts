@@ -8,7 +8,7 @@ import { signIn } from "./helpers";
  * real console build; the Phase 2 data is answered by page.route fixtures (deterministic values for the assertions) and the first test below checks every fixture against the REAL committed API on :4000 (status 200 and the same keys); behaviour is covered by the API suites
  * `growth-integrations.int.spec.ts` and A1's referral and rewards suites). AR (RTL) and EN, light and dark, 320 to 1440 px, keyboard, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p2/.
  */
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p2") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots; mkdirSync(SHOTS, { recursive: true });
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p2") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p2"); mkdirSync(SHOTS, { recursive: true }); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => !!p && existsSync(p));
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 async function axeSerious(page: Page) {

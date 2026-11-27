@@ -10,7 +10,7 @@ const signIn = (page: Page, to: string) => signInAs(page, OPS_A, to);
  * Admin A is the seeded ops super admin; admin B is the seeded demo ops admin lifted to super_admin for this run (restored in afterAll), so the
  * maker-checker path is exercised by two real, different sessions. Screenshots: _docs/test-flow/growth/.
  */
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p as string)) as string | undefined;
 const RUN = Date.now().toString(36);
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };

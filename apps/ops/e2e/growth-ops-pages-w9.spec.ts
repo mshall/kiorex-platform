@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
  * API and database (e2e/scripts/w9a3-stack.sh), the dev Passport session injected as PW_SESSION_JSON. For each page, in Arabic RTL and English, at 320, 640x450, 1440 and 2560 px: the main landmark renders, no horizontal
  * overflow, axe serious and critical violations are zero (including contrast), no uncaught page error, and the 44 px touch-target rule for interactive controls inside main. Screenshots: _docs/test-flow/growth-w9/.
  */
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-w9") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-w9"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-w9") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-w9"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].find((p) => p && existsSync(p));
 const OIDC_KEY = `oidc.user:${process.env.PW_OIDC_AUTHORITY ?? "http://localhost:4400"}:kiorex-ops`; // PW_OIDC_AUTHORITY: the private Passport of the stack under test
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };

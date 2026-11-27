@@ -9,7 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
  * 44 px touch targets, reduced motion, keyboard-only building of a journey, the builder read-only at 320 px and editable at 1440 px, the closed vocabulary (no clinical option exists),
  * the server's validation in words, the inserted gate marker, approval creating a DRAFT only. Screenshots: _docs/test-flow/growth-p3/.
  */
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p3") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots;
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p3") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p3"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 // This spec WRITES fixtures (campaigns, spend rows, dev gate rows) through the API and the database it is pointed at: there is no default, so it can never touch the shared stack by accident.
 const API = process.env.KIOREX_API_URL ?? "";

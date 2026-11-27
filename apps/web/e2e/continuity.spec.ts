@@ -8,7 +8,7 @@ import { signIn } from "./helpers";
  * real API answers `enabled: false` until a human records the gate). 320 to 1440 px, AR and EN, light and dark, keyboard, axe serious and critical clean. Screenshots: _docs/test-flow/growth-p4/.
  * `KX_CONTINUITY_URL` points the run at a private web instance (default: the stack's web on :5180).
  */
-const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p4") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p4"); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots; mkdirSync(SHOTS, { recursive: true });
+const SHOTS = process.env.SHOTS_DIR ? path.join(process.env.SHOTS_DIR, "growth-p4") : path.resolve(process.cwd(), "../../../_docs/test-flow/growth-p4"); mkdirSync(SHOTS, { recursive: true }); // SHOTS_DIR: write elsewhere so a run never rewrites the tracked screenshots
 const AXE = [process.env.AXE_CORE_PATH, path.resolve(process.cwd(), "../../../kiorex-account/node_modules/axe-core/axe.min.js"), path.resolve(process.cwd(), "../../node_modules/axe-core/axe.min.js")].filter(Boolean).find((p) => existsSync(p!));
 const prefs = ([l, t]: string[]) => { try { localStorage.setItem("kx-lang", l!); localStorage.setItem("kx-theme", t!); } catch { /* storage unavailable */ } };
 async function axeSerious(page: Page) {
