@@ -42,6 +42,26 @@ The site fetches the live configuration at load (and keeps `kiorex-account/apps/
 ## Roles in the two consoles
 Today the Kiorly admin and the Kiorex super admin share the same Passport roles (`ops_admin`, `super_admin`), so "Kiorly ops" and "Kiorly super admin" are the same accounts as the Kiorex ones. A Kiorly-only role split is a Passport and API change (see `KIORLY_ADMIN.md` Open).
 
+## After a lead arrives: what exists and what is missing (traced 28 Nov 2026, verified live on kx-test by `e2e/kx-test/tests/10b-site-leads-matrix.spec.ts`)
+
+**Who sees it.** Every join request goes to ONE inbox, `Lead`, in the Kiorex platform database, and is shown in the two Ops console editions (Kiorex admin and Kiorly admin: the same build, the same API `/api/v1/admin/leads`). There is no separate Kiorly store and no routing: the roles are `ops_admin` and `super_admin` on both hosts, so "Kiorly ops" and "Kiorly super admin" are the same Passport accounts as the Kiorex ones (a Kiorly-only role is not built).
+
+| Action | ops_admin | super_admin |
+|---|---|---|
+| list (phone masked, e-mail not in the list), detail (decrypted, every read audited `lead.viewed`) | yes | yes |
+| change status, assign owner, tags, internal notes | yes | yes |
+| CSV export (decrypted, audited `lead.exported`) | yes | yes |
+| read settings | yes | yes |
+| save settings, remove test data, flip the test tag | no (403) | yes |
+
+**Interest types.** `mode` is `STANDALONE` (a Kiorly module on its own) or `CONNECTED` (module and Kiorex); `modules` says which Kiorly products (Clinic, Pharmacy, Lab, Nurse, staff app, hospitals and chains). Provider types: Clinic, Independent doctor, Chain, Hospital, Nurse, Physician, Laboratory, Pharmacy, Other, each with its own questions. One market is configured (Egypt); the market is stored and filterable, and nothing is routed or owned by market.
+
+**Notifications.** Real e-mail and WhatsApp are not configured (messaging hub in mock mode). On a new real lead the applicant gets an acknowledgement e-mail (mock) if they gave an address, and each console user who is an active alert recipient (switched on in Partner leads, "Alert recipients", with an e-mail address and the e-mail channel) gets a team e-mail (mock). A test lead sends nothing. Nobody is notified when a lead changes status, is assigned, or sits unattended: there is no assignment rule, no owner by default, no SLA or reminder.
+
+**Starting the onboarding.** Status `ONBOARDING` and `WON` are labels only: they trigger nothing and create nothing. There was no link from a lead to the organisation onboarding flows. Those flows are: Partner onboarding (a one-time enrolment code is created by ops for a Clinic, Nurse, Pharmacy or Lab product; the partner product then submits a signed connection request; ops check, a super admin approves, go-live) and Organisation onboarding (data import batches). A standalone Clinic organisation is created inside the Clinic itself (public signup, a WhatsApp code) and has nothing to do with Kiorex.
+Added 28 Nov 2026 (read-only, creates nothing): on the lead detail of a **connected** request that is **Qualified or Onboarding**, **Start onboarding** opens Partner onboarding with the kind (Clinic for Clinic, Doctor, Chain, Hospital, Physician; Nurse; Lab; Pharmacy; none for Other) and the label (legal name) filled. Only the request id travels in the URL. A standalone request shows an explanation instead (it has no Kiorex connection to prepare).
+Still a founder decision (not built): WON creating an onboarding request draft or an enrolment code automatically; a default or round-robin owner; an SLA timer and reminder for NEW requests; notifying the owner on assignment; a Kiorly-only role split; per-market routing once a second market launches.
+
 ## Tests
 `apps/api/src/leads/leads.unit.spec.ts` (validation, config, CSV), `apps/api/test/leads.int.spec.ts` (15 integration tests: intake, encryption at rest, idempotency incl. a race, rate limits, honeypot, size, duplicates, test data, access, filters, lifecycle, audit, CSV, settings, notifications), `apps/ops/src/__tests__/site-leads.test.tsx`, `apps/ops/e2e/site-leads.spec.ts` (`playwright.leads.config.ts`, both editions, EN and AR, axe), site tests in `kiorex-account/apps/kiorly-site`, and the deployed `e2e/kx-test/tests/10-site-leads.spec.ts`.
 
