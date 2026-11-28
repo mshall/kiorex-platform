@@ -5,6 +5,11 @@
     "console": "Kiorly admin"
   },
   "nav": {
+    "groupOperate": "Operations",
+    "groupMoney": "Money",
+    "groupGrowth": "Partners and growth",
+    "groupSystem": "System",
+    "groupMore": "More",
     "main": "Main navigation",
     "console": "Ops console",
     "providers": "Providers",

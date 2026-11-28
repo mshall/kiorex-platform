@@ -29,6 +29,14 @@ function SiteLeadsBadge() {
   return <span className="kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" data-testid="site-leads-badge" aria-label={t("siteLeads.newBadge", { count: n })}>{n > 99 ? "99+" : n}</span>;
 }
 
+function SideLink({ to, Icon, k, t }: { to: string; Icon: typeof LayoutDashboard; k: string; t: (key: string) => string }) {
+  return (
+    <NavLink to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-150 hover:bg-accent", isActive && "bg-accent text-accent-foreground ring-1 ring-pulse/40")}>
+      <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${k}`)}{k === "partnerLeads" ? <LeadsBadge /> : k === "siteLeads" ? <SiteLeadsBadge /> : null}
+    </NavLink>
+  );
+}
+
 const NAV = [
   { to: "/providers", icon: Building2, key: "providers" }, { to: "/bookings", icon: Route, key: "bookings" }, { to: "/outbox", icon: Activity, key: "outbox" },
   { to: "/finance", icon: Banknote, key: "finance" }, { to: "/moderation", icon: ShieldCheck, key: "moderation" }, { to: "/liquidity", icon: Waves, key: "liquidity" }, { to: "/messaging", icon: MessagesSquare, key: "messaging" }, { to: "/integrations", icon: Plug, key: "integrationsCenter" }, { to: "/orders", icon: PackageCheck, key: "orders" }, { to: "/fees", icon: Receipt, key: "fees" }, { to: "/policy", icon: Scale, key: "policy" }, { to: "/operations", icon: Settings2, key: "operations" }, { to: "/safety", icon: Siren, key: "safety" }, { to: "/held-deposits", icon: HandCoins, key: "held" }, { to: "/payments-connection", icon: Plug, key: "payConn" }, { to: "/reconciliation", icon: Scale, key: "recon" }, { to: "/pay-ops", icon: Scale, key: "payOps" }, { to: "/commissions", icon: Banknote, key: "commissions" }, { to: "/commission-policy", icon: Scale, key: "commissionPolicy" }, { to: "/home-gate", icon: House, key: "homeGate" }, { to: "/flags", icon: Flag, key: "flags" }, { to: "/onboarding", icon: DatabaseZap, key: "onboarding" }, { to: "/partner-onboarding", icon: Handshake, key: "partnerOnboarding" }, { to: "/partner-leads", icon: UserPlus, key: "partnerLeads" }, { to: "/leads", icon: Inbox, key: "siteLeads" }, { to: "/kiorly-markets", icon: Globe2, key: "kiorlyMarkets" }, { to: "/kiorly-plans", icon: Tags, key: "kiorlyPlans" }, { to: "/growth-analytics", icon: BarChart3, key: "growthAnalytics" }, { to: "/acquisition", icon: Crosshair, key: "acquisition" },
@@ -36,6 +44,15 @@ const NAV = [
 
 /** The Kiorly admin offers only the provider-product views (lib/edition.ts); the Kiorex super admin offers everything. */
 const EDITION_NAV = isKiorly ? NAV.filter((n) => (KIORLY_ROUTES as readonly string[]).includes(n.to)) : NAV;
+
+/** Sidebar sections (order of first appearance); a key not listed lands in "More" so a new route is never hidden. */
+const NAV_GROUP: Record<string, "Operate" | "Money" | "Growth" | "System"> = {
+  providers: "Operate", bookings: "Operate", outbox: "Operate", orders: "Operate", moderation: "Operate", safety: "Operate", held: "Operate", homeGate: "Operate", liquidity: "Operate", messaging: "Operate",
+  finance: "Money", fees: "Money", commissions: "Money", commissionPolicy: "Money", recon: "Money", payOps: "Money", payConn: "Money", policy: "Money",
+  partnerLeads: "Growth", siteLeads: "Growth", kiorlyPlans: "Growth", acquisition: "Growth", onboarding: "Growth", partnerOnboarding: "Growth", kiorlyMarkets: "Growth", kiorlyPrices: "Growth",
+  flags: "System", integrationsCenter: "System", operations: "System", growthAnalytics: "Growth",
+};
+const GROUP_ORDER = ["Operate", "Money", "Growth", "System", "More"] as const;
 
 export function OpsLayout() {
   const { t, i18n } = useTranslation();
@@ -56,11 +73,17 @@ export function OpsLayout() {
         {isKiorly ? <KiorlyLogo className="mb-2" height={44} arabic={i18n.language.startsWith("ar")} /> : <Logo className="mb-2" height={56} />}
         <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{isKiorly ? t("edition.console") : t("nav.console")}</p>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" data-testid="sidebar-nav">
-          {VISIBLE_NAV.map(({ to, icon: Icon, key }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-accent", isActive && "bg-accent text-accent-foreground ring-1 ring-pulse/40")}>
-              <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge /> : key === "siteLeads" ? <SiteLeadsBadge /> : null}
-            </NavLink>
-          ))}
+          {VISIBLE_NAV.filter((n) => n.key === "home").map(({ to, icon: Icon, key }) => <SideLink key={to} to={to} Icon={Icon} k={key} t={t} />)}
+          {GROUP_ORDER.map((g) => {
+            const items = VISIBLE_NAV.filter((n) => n.key !== "home" && (NAV_GROUP[n.key] ?? "More") === g);
+            if (items.length === 0) return null;
+            return (
+              <div key={g} role="group" aria-label={t(`nav.group${g}`)} className="mt-3 flex flex-col gap-1">
+                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground rtl:tracking-normal">{t(`nav.group${g}`)}</p>
+                {items.map(({ to, icon: Icon, key }) => <SideLink key={to} to={to} Icon={Icon} k={key} t={t} />)}
+              </div>
+            );
+          })}
           {showGrowth ? <GrowthNav /> : null}
         </nav>
         <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground"><ScrollText className="inline h-3 w-3" aria-hidden="true" /> {user?.name ?? user?.sub}<br />{user?.roles.join(", ")}</div>

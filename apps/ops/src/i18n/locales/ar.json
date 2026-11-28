@@ -5,6 +5,11 @@
     "console": "إدارة كيورلي"
   },
   "nav": {
+    "groupOperate": "العمليات",
+    "groupMoney": "المال",
+    "groupGrowth": "الشركاء والنمو",
+    "groupSystem": "النظام",
+    "groupMore": "المزيد",
     "main": "التنقل الرئيسي",
     "console": "لوحة العمليات",
     "providers": "مقدمو الخدمة",

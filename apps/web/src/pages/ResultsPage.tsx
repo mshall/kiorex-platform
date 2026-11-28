@@ -61,7 +61,7 @@ export default function ResultsPage() {
       {data?.noMarketLive && <div role="status" className="rounded-xl border border-warning/50 bg-warning-soft p-4 text-sm text-warning" data-testid="no-market-live">{t("market.noneLive")}</div>}
       {emergency ? <EmergencyBanner /> : (
         <>
-          <div className="sticky top-16 z-30 -mx-4 border-b bg-background/85 px-4 py-2.5 backdrop-blur-md md:rounded-xl md:border md:bg-card/85 md:px-3" data-testid="results-toolbar">
+          <div className="sticky top-16 z-30 -mx-4 border-b bg-background/85 px-4 py-2.5 backdrop-blur-md md:mx-0 md:rounded-xl md:border md:bg-card/85 md:px-3" data-testid="results-toolbar">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
               <p className="text-sm font-medium" aria-live="polite" data-testid="result-count">{data && !needsDistrict ? t("results.count", { count: data.total }) : " "}{isFetching && !isLoading && <span className="ms-2 inline-block h-2 w-2 animate-pulse rounded-full bg-pulse align-middle" aria-hidden="true" />}</p>
               <div className="flex flex-wrap items-center gap-2">
