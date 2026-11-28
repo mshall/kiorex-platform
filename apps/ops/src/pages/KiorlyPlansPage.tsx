@@ -150,7 +150,7 @@ export default function KiorlyPlansPage() {
     <div>
       <PageHeader title={t("kiorlyPlans.title")} hint={t("kiorlyPlans.hint")} icon={<Tags />} />
       {!canChange && q.data ? <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm" data-testid="read-only-note">{t("kiorlyPlans.readOnly")}</p> : null}
-      {q.data?.capabilities ? <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm" data-testid="price-rule-note">{t(q.data.capabilities.canApprove ? "kiorlyPrices.rule.superAdmin" : "kiorlyPrices.rule.ops")}</p> : null}
+      {q.data?.capabilities?.canApprove ? <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm" data-testid="price-rule-note">{t("kiorlyPrices.rule.superAdmin")}</p> : null}
       <ClinicSection canChange={canChange} />
       <ProductPricesSection product="PHARMACY" markets={q.data?.clinic.markets ?? []} />
       <ProductPricesSection product="LAB" markets={q.data?.clinic.markets ?? []} />

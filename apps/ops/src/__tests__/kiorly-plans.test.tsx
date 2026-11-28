@@ -51,7 +51,7 @@ describe("Kiorly admin: Plans screen", () => {
     mount();
     await screen.findByTestId("clinic-plan-PRO");
     expect(screen.getByTestId("read-only-note")).toBeInTheDocument();
-    expect(screen.getByTestId("price-rule-note")).toHaveTextContent(/propose a new price version/i);
+    expect(screen.getByTestId("read-only-note")).toHaveTextContent(/propose prices/i); expect(screen.queryByTestId("price-rule-note")).toBeNull();
     for (const id of ["edit-PRO", "content-save", "approve-kpp_1", "reject-kpp_1"]) expect(screen.queryByTestId(id)).toBeNull();
     expect(screen.getByTestId("new-price-PRO")).toBeInTheDocument();
     expect(screen.getByTestId("withdraw-kpp_1")).toBeInTheDocument(); // it is their own proposal

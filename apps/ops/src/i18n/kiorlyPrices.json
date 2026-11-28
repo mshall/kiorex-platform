@@ -7,7 +7,6 @@
     "LAB": "Lab"
    },
    "rule": {
-    "ops": "You can read prices and propose a new price version. A super admin other than you approves it before it is published.",
     "superAdmin": "You can propose a price version and approve or reject the proposals of other people. You never approve your own: a different super admin does."
    },
    "market": "Market",
@@ -145,7 +144,6 @@
     "LAB": "المعمل"
    },
    "rule": {
-    "ops": "يمكنك قراءة الأسعار واقتراح نسخة سعر جديدة. يوافق عليها مشرف عام غيرك قبل نشرها.",
     "superAdmin": "يمكنك اقتراح نسخة سعر والموافقة على مقترحات الآخرين أو رفضها. لا توافق أبدا على اقتراحك: يوافق مشرف عام آخر."
    },
    "market": "السوق",
