@@ -34,7 +34,7 @@ Both editions show the **Join requests** inbox, detail and settings (same pages,
 ## Open
 
 - Whether the Kiorly admin should later get Kiorly-specific views (for example per-organisation subscription management) that do not exist in the Kiorex console: product decision; the view list in `edition.ts` is the one place to extend.
-- A role split (a Kiorly-only ops role that cannot reach Kiorex-only data) would be an API and Passport change; today the same ops roles see the same data on both hosts.
+- DONE 28 Nov 2026 (ADR-062): the role split exists, see "Kiorly-only roles and role dashboards" below. Still open: row filters by organisation type and market (phase 2), only if Kiorly ops must also see finance or orders.
 
 
 ## Market launch (Kiorly markets) in the Kiorly edition (ADR-060, 27 Nov 2026)
@@ -81,3 +81,40 @@ Single source of truth per product: **the product holds the price rows** (Clinic
 Code: `apps/api/src/site-plans/` (catalogue and validation, service, controllers, CORS), Clinic `apps/api/src/marketplace/kiorly-admin-plans.controller.ts`, ops `pages/KiorlyPlansPage.tsx`, `api/kiorlyPlans.ts`, `lib/kiorlyPlansLogic.ts`, `i18n/kiorlyPlans.json`. Tests: `apps/api/test/site-plans.int.spec.ts` and `src/site-plans/site-plans.unit.spec.ts` (public contract, roles, actor and whitelist, Clinic refusals and outage, CORS, versioned content), `apps/ops/src/__tests__/kiorly-plans.test.tsx` (screen, roles, preview before publish, EN/AR), Clinic `kiorly-admin-plans.integration.test.ts`, site `test/plans.test.ts` and the "live plans" Playwright block.
 
 Open (founder): the seeded Clinic EG prices (Lite 499, Pro 1299 per clinician, Clinic 3499, annual variants) are NOT final and were not edited: correct them in the Plans screen (propose, a second super admin approves); the catalogue check flags the annual rows at or below the monthly price. Any Pharmacy or Lab price is a founder decision: the tables start empty and stay empty until a price is proposed and approved. Closing the Clinic web console's direct price form is open. Tests: `apps/api/test/plan-price-proposals.int.spec.ts`, `src/site-plans/price-checks.unit.spec.ts`, `product-plans.client.unit.spec.ts`, ops `kiorly-plans.test.tsx`, product `plan-prices.e2e.test.ts` (Pharmacy, Lab), Clinic `kiorly-admin-plans.integration.test.ts`, live `e2e/kx-test/tests/16-plan-prices-maker-checker.spec.ts`.
+
+Open (founder): the seeded Clinic EG prices (Lite 499, Pro 1299 per clinician, Clinic 3499, annual variants) are the catalogue's own rows; whether they are final or only test price points (KX-12 says test) is a founder decision, and so is any Pharmacy or Lab price. Price changes are effective-dated and versioned but not maker-checker (the Clinic's existing rule for plan prices); say so if a second approver is wanted.
+
+
+## Kiorly-only roles and role dashboards (28 Nov 2026, ADR-062)
+
+**Roles.** `kiorly_ops` (read, review, onboarding actions) and `kiorly_admin` (changes within Kiorly scope). Granted only by a `super_admin` in Passport (Ops, Kiorly roles), audited, MFA mandatory like `ops_admin`; never together with Kiorex roles (the grant refuses an account that holds roles other than `patient`, the API refuses a mixed token with `403 FORBIDDEN_MIXED_ROLES`). They may NOT act as maker or checker of the commission flow, launch a Kiorly market, or approve a price (all `super_admin`).
+
+**API: deny by default.** `apps/api/src/auth/kiorly-roles.ts` holds `KIORLY_ALLOW` (method, route, level `ops` or `admin`). For a token with a Kiorly role this list REPLACES the `@Roles` check; an unlisted route, or a route without `@Roles`, answers `403 FORBIDDEN_ROLE`. Level `admin` routes (kiorly_admin only): join-request CSV export, partner reject, go-live, pause, resume and credential rotation, enrolment codes, verification decisions (plus the plan-price routes of the plans work as listed there).
+
+| Area | kiorly_ops | kiorly_admin |
+|---|---|---|
+| Providers (directory) | read | read |
+| Join requests (`/admin/leads`) | read, status, owner, tags, notes | + CSV export |
+| Partner leads | read, mark seen, status, notes | same |
+| Partner onboarding | read, checks, review documents, verify licence, confirm fees, request changes, request approval | + reject, go-live, pause, resume, apply rotation, enrolment codes, verification decisions |
+| Onboarding import batches | read (list, one, audit) only: tasks and patient lookup carry patient data and stay refused | same |
+| Commission policy and rates | read | read |
+| Fee statements | read | read |
+| Kiorly markets | read | read |
+| Plans | read (price proposals as listed by the plans work) | same |
+| Orders, finance, reconciliation, payments, messaging, integrations, flags, operations, outbox, bookings, moderation, growth, audit log, partners registry | refused | refused |
+
+**Console.** Each role lands on its own dashboard at `/home`; the menu and the route gate come from `apps/ops/src/lib/roleAccess.ts`; a refused address shows the no-access page; the Kiorex console refuses a Kiorly-only sign-in, the Kiorly console offers only the allowed views.
+
+| Role | Dashboard (existing admin APIs only: counts and links) |
+|---|---|
+| `super_admin` | approvals waiting (commission policy, rates, settings, feature flags, market change requests, partner approvals; plans price approvals show "not enabled yet" until that flow's API exposes proposals), Passport decisions (MFA policy, sign-in limits, Kiorly roles) as links, audit highlights, system health (outbox) and links |
+| `ops_admin` | moderation and complaints, safety and held deposits, outbox, provider onboarding queue, join requests |
+| `finance` | commission claims by state, aging and disputes, reconciliation findings and payment matching queue, latest settlement runs, shortcuts to statements |
+| `growth_admin` | growth KPIs (decisions, provider-led share, open fraud signals, widgets, landing pages) and funnel |
+| `kiorly_ops` | join requests with ages (oldest first), provider onboarding queue, onboarding drafts, partner leads and verification updates, plans, markets (read only), commission policy (read only); no patient identifiers anywhere |
+| `kiorly_admin` | the same plus change shortcuts |
+
+A card whose API refuses the role (403) says it is not part of the role's work; an API error says it could not load; a list that cannot be read shows "unknown", never a made-up zero. Numbers use Western digits in Arabic.
+
+Tests: `apps/api/test/kiorly-roles.int.spec.ts` (generated from the route table), `apps/api/test/ops-role-matrix.int.spec.ts`, `apps/ops/src/__tests__/role-dashboards.test.tsx`; live: `e2e/kx-test/tests/17-role-dashboards.spec.ts`.
