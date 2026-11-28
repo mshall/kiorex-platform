@@ -97,3 +97,16 @@ test("keyboard: skip link, header, hero CTAs are reachable in order with a visib
   const active = await page.evaluate(() => document.activeElement?.getAttribute("data-testid") ?? document.activeElement?.textContent?.trim());
   expect(active).toBeTruthy();
 });
+
+for (const w of [360, 390]) for (const lang of ["en", "ar"] as const) {
+  test(`no horizontal overflow at ${w}px (${lang}), landing and entry`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: 800 });
+    await prep(page, lang);
+    for (const path of ["/", "/join"]) {
+      await page.goto(path); await page.waitForTimeout(1200);
+      const bad = await page.evaluate((vw) => [...document.querySelectorAll("body *")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > vw + 1 || r.left < -1) && getComputedStyle(e).position !== "fixed" && !e.matches("svg[data-kx-logo]") /* the logo box carries clear space around its ink, by spec; the scroll-width check below covers real overflow */; }).slice(0, 4).map((e) => `${e.tagName}.${String((e as HTMLElement).className).slice(0, 40)}`), w);
+      expect(bad, `${path} elements past the viewport edge`).toEqual([]);
+      await noOverflow(page);
+    }
+  });
+}

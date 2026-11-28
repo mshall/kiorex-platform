@@ -16,7 +16,7 @@ test("landing matrix", async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: w, height: w < 500 ? 844 : 900 }, colorScheme: theme as "light" | "dark", locale: lang });
     const page = await ctx.newPage(); await prep(page, lang, theme);
     await page.goto("/"); await page.waitForTimeout(2600);
-    await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 90)); } window.scrollTo(0, 0); });
+    await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 300) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 160)); } window.scrollTo(0, 0); });
     await page.waitForTimeout(700);
     await page.screenshot({ path: `${DIR}/${w}-${lang}-${theme}.png`, fullPage: true });
     await ctx.close();

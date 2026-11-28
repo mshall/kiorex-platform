@@ -10,7 +10,7 @@ export function PhoneMockup({ className }: { className?: string }) {
   const bar = "rounded-full bg-muted-foreground/20";
   return (
     <div className={cn("relative mx-auto w-full max-w-[22rem]", className)} role="img" aria-label={t("lp.hero.illustration")} data-testid="phone-mockup">
-      <div className="kx-orb absolute -inset-6 -z-10 rounded-full bg-linear-to-br from-primary/25 via-accent to-ocean/25 blur-2xl" aria-hidden="true" />
+      <div className="kx-orb absolute -inset-2 -z-10 sm:-inset-6 rounded-full bg-linear-to-br from-primary/25 via-accent to-ocean/25 blur-2xl" aria-hidden="true" />
       <div className="kx-phone mx-auto aspect-[9/16.5] w-[16.5rem] rounded-[2.4rem] border-[7px] border-foreground/90 bg-background p-3 sm:w-[17.5rem]" aria-hidden="true">
         <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-foreground/15" />
         <div className="flex items-center justify-between px-1">

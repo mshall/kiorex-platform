@@ -93,7 +93,7 @@ export function AppLayout() {
               <Button variant="outline" size="sm" className="hidden lg:inline-flex" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" className="px-2 sm:border sm:px-3" onClick={() => nav("/signin")} data-testid="sign-in"><LogIn className="rtl-flip hidden sm:block" aria-hidden="true" /><span>{t("nav.signIn")}</span></Button>
+                <Button variant="ghost" size="sm" className="px-2 sm:border sm:px-3" onClick={() => nav("/signin")} data-testid="sign-in"><LogIn className="rtl-flip min-[420px]:hidden sm:block" aria-hidden="true" /><span className="max-[419px]:sr-only">{t("nav.signIn")}</span></Button>
                 <Button size="sm" className="px-2.5 sm:px-3" onClick={() => nav("/join")} data-testid="join-us"><UserPlus className="rtl-flip hidden sm:block" aria-hidden="true" /><span>{t("lp.nav.joinUs")}</span></Button>
               </>
             ))}

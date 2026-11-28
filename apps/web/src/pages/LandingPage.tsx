@@ -36,7 +36,7 @@ export default function LandingPage() {
   return (
     <div className="space-y-20 md:space-y-28" data-testid="landing">
       {/* HERO: text and logo share the page gutter (no inset card), so the logo, the headline and the claims start on one edge in LTR and RTL. */}
-      <section aria-labelledby="hero-title" className="grid items-center gap-12 pt-2 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
+      <section aria-labelledby="hero-title" className="grid items-center gap-12 overflow-x-clip pt-2 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
         <div className="min-w-0 space-y-7">
           {known && (
             <p className={cn("kx-rise inline-flex items-start gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium", live ? "border-success/40 bg-success-soft text-foreground" : "border-warning/40 bg-warning-soft text-foreground")} style={{ ["--i" as string]: 0 }} data-testid="hero-status">

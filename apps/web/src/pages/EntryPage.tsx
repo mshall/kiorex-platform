@@ -48,7 +48,7 @@ export default function EntryPage({ initial }: { initial: Mode }) {
 
   return (
     <div className="mx-auto grid max-w-5xl items-start gap-8 py-4 md:py-10 lg:grid-cols-[1fr_0.9fr]">
-      <section className="kx-card space-y-6 p-6 md:p-8" aria-labelledby="entry-title" data-testid="entry">
+      <section className="kx-card min-w-0 space-y-6 p-5 sm:p-6 md:p-8" aria-labelledby="entry-title" data-testid="entry">
         <div role="tablist" aria-label={t("entry.signinTab") + " / " + t("entry.joinTab")} className="flex gap-1 rounded-2xl bg-muted p-1">
           {tab("signin", t("entry.signinTab"), LogIn)}{tab("register", t("entry.joinTab"), UserPlus)}
         </div>
@@ -67,7 +67,7 @@ export default function EntryPage({ initial }: { initial: Mode }) {
           {status === "signedIn" ? (
             <div className="space-y-3"><p className="text-sm">{t("entry.alreadyIn")}</p><Button asChild size="lg"><Link to={returnTo}>{t("nav.home")}</Link></Button></div>
           ) : (
-            <Button size="lg" className="w-full sm:w-auto" onClick={() => void go()} disabled={busy} data-testid="entry-continue">
+            <Button size="lg" className="h-auto w-full whitespace-normal py-3 text-center sm:w-auto" onClick={() => void go()} disabled={busy} data-testid="entry-continue">
               {busy ? t("welcome.saving") : join ? t("entry.continueJoin") : t("entry.continue")}<ArrowRight className="rtl-flip" aria-hidden="true" />
             </Button>
           )}
@@ -76,7 +76,7 @@ export default function EntryPage({ initial }: { initial: Mode }) {
         </div>
       </section>
 
-      <aside className="space-y-4" aria-label={t("entry.how")}>
+      <aside className="min-w-0 space-y-4" aria-label={t("entry.how")}>
         <section className="kx-card space-y-4 p-6">
           <h2 className="text-lg">{t("entry.how")}</h2>
           <ol className="space-y-3">
