@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, OpsOnly, Public, type AuthUser } from '../common/auth';
 import { ApiError } from '../common/errors';
 import { LeadsService } from './leads.service';
+import { LeadOnboardingService } from './lead-onboarding.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 export const LEADS_PUBLIC_MAX_BODY = 16 * 1024;
@@ -64,4 +65,42 @@ export class LeadsAdminController {
 
   @Post(':id/notes') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: add an internal note' })
   note(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { text?: string }) { return this.svc.addNote(u, id, b?.text ?? ''); }
+}
+
+/**
+ * DRAFT onboarding requests created by won join requests. ops_admin and super_admin review, edit and submit; ONLY a super_admin approves or rejects, and never the person who submitted it
+ * (the same two-person rule as Partner onboarding, repeated by a database CHECK). Nothing here creates an organisation, an enrolment code or a Passport identity.
+ */
+@ApiTags('ops-leads')
+@OpsOnly()
+@Controller('admin/lead-onboarding')
+export class LeadOnboardingController {
+  constructor(private readonly svc: LeadOnboardingService) {}
+
+  @Get() @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: onboarding drafts, newest first; filters status, assignee (sub or none), mode, test (only|exclude), page, pageSize' })
+  list(@Query() q: Record<string, string>) { return this.svc.list(q); }
+
+  @Post('by-lead/:leadId') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: create the draft of a WON join request when it does not exist yet (idempotent: one per join request; 409 LEAD_NOT_READY for any other status)' })
+  create(@CurrentUser() u: AuthUser, @Param('leadId') leadId: string) { return this.svc.createForLead(u, leadId); }
+
+  @Get(':id') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: one draft with its blockers; contact details are read through the join request (audited there)' })
+  get(@Param('id') id: string) { return this.svc.get(id); }
+
+  @Patch(':id') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: edit a DRAFT: product kind, assignee (notified once, mock), note' })
+  patch(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { kind?: string | null; assigneeSub?: string | null; note?: string | null }) { return this.svc.update(u, id, b ?? {}); }
+
+  @Post(':id/submit') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: submit the draft for approval (needs a product kind and an active join request)' })
+  submit(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.submit(u, id); }
+
+  @Post(':id/approve') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'SA: approve a submitted draft (never the submitter). Records the decision only: nothing is activated or created' })
+  approve(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { note?: string }) { superOnly(u); return this.svc.approve(u, id, b?.note); }
+
+  @Post(':id/reject') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'SA: reject a submitted draft with a reason (never the submitter)' })
+  reject(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { reason?: string }) { superOnly(u); return this.svc.reject(u, id, b?.reason ?? ''); }
+
+  @Post(':id/cancel') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: cancel a draft or submitted request' })
+  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { reason?: string }) { return this.svc.cancel(u, id, b?.reason); }
+
+  @Post(':id/reopen') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: back to DRAFT after a rejection or cancellation (the same single row)' })
+  reopen(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.reopen(u, id); }
 }

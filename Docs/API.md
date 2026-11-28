@@ -743,6 +743,15 @@
 | GET | `/api/v1/admin/leads/{id}` | OP: one request with decrypted contact details, trail and possible duplicates (the read is audited) |
 | PATCH | `/api/v1/admin/leads/{id}` | OP: change status (allowed transitions only), lost reason, owner, tags; isTest is super admin only |
 | POST | `/api/v1/admin/leads/{id}/notes` | OP: add an internal note |
+| GET | `/api/v1/admin/lead-onboarding` | OP: onboarding drafts, newest first; filters status, assignee (sub or none), mode, test (only|exclude), page, pageSize |
+| POST | `/api/v1/admin/lead-onboarding/by-lead/{leadId}` | OP: create the draft of a WON join request when it does not exist yet (idempotent: one per join request; 409 LEAD_NOT_READY for any other status) |
+| GET | `/api/v1/admin/lead-onboarding/{id}` | OP: one draft with its blockers; contact details are read through the join request (audited there) |
+| PATCH | `/api/v1/admin/lead-onboarding/{id}` | OP: edit a DRAFT: product kind, assignee (notified once, mock), note |
+| POST | `/api/v1/admin/lead-onboarding/{id}/submit` | OP: submit the draft for approval (needs a product kind and an active join request) |
+| POST | `/api/v1/admin/lead-onboarding/{id}/approve` | SA: approve a submitted draft (never the submitter). Records the decision only: nothing is activated or created |
+| POST | `/api/v1/admin/lead-onboarding/{id}/reject` | SA: reject a submitted draft with a reason (never the submitter) |
+| POST | `/api/v1/admin/lead-onboarding/{id}/cancel` | OP: cancel a draft or submitted request |
+| POST | `/api/v1/admin/lead-onboarding/{id}/reopen` | OP: back to DRAFT after a rejection or cancellation (the same single row) |
 
 ## ops-onboarding
 

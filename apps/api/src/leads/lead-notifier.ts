@@ -14,6 +14,7 @@ import type { LeadConfig } from './lead-config';
 export interface NewLeadNotice { id: string; ref: string; providerType: string; mode: string; locale: 'ar' | 'en'; email?: string }
 
 export const ACK_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_ack';
+export const ONBOARDING_ASSIGNED_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_onboarding_assigned';
 export const TEAM_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_team_alert';
 
 export const ackMessage = (n: NewLeadNotice) => n.locale === 'ar'
@@ -49,6 +50,25 @@ export class LeadNotifier {
       }
     } catch (e) { this.log.warn(`notification failed lead=${n.id}: ${(e as Error).message}`); }
     return { ack, team };
+  }
+
+  /**
+   * The assignee of a new onboarding draft gets ONE e-mail through the same hub (mock unless MESSAGING_MODE says otherwise): only the console user's own consent and channel
+   * choice (lead alerts on, an e-mail address, the e-mail channel, seen in the last 90 days) are used; the body carries the reference and the type only. Never throws.
+   */
+  async onOnboardingAssigned(n: { leadId: string; requestId: string; ref: string; assigneeSub: string; providerType: string; mode: string }): Promise<{ sent: boolean }> {
+    try {
+      const s = await this.prisma.opsStaffContact.findFirst({ where: { sub: n.assigneeSub, leadAlerts: true, email: { not: null }, channels: { has: 'EMAIL' }, lastSeenAt: { gte: new Date(Date.now() - 90 * 86_400_000) } } });
+      if (!s) { await this.event(n.leadId, 'NOTIFY', { to: 'assignee', channel: 'EMAIL', sent: 0, reason: 'no_opt_in' }); return { sent: false }; }
+      const ar = s.locale === 'ar';
+      const r = await this.hub.send({
+        channel: 'EMAIL', to: s.email!, sub: s.sub, templateId: ONBOARDING_ASSIGNED_TEMPLATE_ID, locale: ar ? 'ar' : 'en', messageClass: 'TRANSACTIONAL',
+        subject: ar ? `طلب انضمام مسند إليك ${n.ref}` : `Onboarding request assigned to you ${n.ref}`,
+        body: ar ? `أصبح طلب الانضمام ${n.ref} (${n.providerType}، ${n.mode}) مسودة انضمام مسندة إليك. افتح لوحة الإدارة، طلبات الانضمام.` : `Join request ${n.ref} (${n.providerType}, ${n.mode}) has an onboarding draft assigned to you. Open the admin console, Join requests.`,
+      });
+      await this.event(n.leadId, 'NOTIFY', { to: 'assignee', channel: 'EMAIL', sent: r.ok ? 1 : 0, requestId: n.requestId });
+      return { sent: r.ok };
+    } catch (e) { this.log.warn(`assignment notice failed lead=${n.leadId}: ${(e as Error).message}`); return { sent: false }; }
   }
 
   private event(leadId: string, kind: string, data: Record<string, unknown>) {

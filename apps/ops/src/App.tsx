@@ -34,6 +34,8 @@ const FlagsPage = lazy(() => import("@/pages/FlagsPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const OnboardingBatchPage = lazy(() => import("@/pages/OnboardingBatchPage"));
 const PartnerOnboardingPage = lazy(() => import("@/pages/PartnerOnboardingPage"));
+const LeadOnboardingListPage = lazy(() => import("@/pages/LeadOnboardingPages").then((m) => ({ default: m.LeadOnboardingListPage })));
+const LeadOnboardingDetailPage = lazy(() => import("@/pages/LeadOnboardingPages").then((m) => ({ default: m.LeadOnboardingDetailPage })));
 const PartnerLeadsPage = lazy(() => import("@/pages/PartnerLeadsPage"));
 const SiteLeadsPage = lazy(() => import("@/pages/SiteLeadsPage"));
 const SiteLeadDetailPage = lazy(() => import("@/pages/SiteLeadDetailPage"));
@@ -140,6 +142,8 @@ export function AppRoutes() {
           <Route path="partner-leads" element={<PartnerLeadsPage />} />
           <Route path="leads" element={<SiteLeadsPage />} />
           <Route path="leads/settings" element={<SiteLeadSettingsPage />} />
+          <Route path="leads/onboarding" element={<LeadOnboardingListPage />} />
+          <Route path="leads/onboarding/:id" element={<LeadOnboardingDetailPage />} />
           <Route path="leads/:id" element={<SiteLeadDetailPage />} />
           <Route path="kiorly-markets" element={<KiorlyMarketsPage />} />
           <Route path="kiorly-plans" element={<KiorlyPlansPage />} />

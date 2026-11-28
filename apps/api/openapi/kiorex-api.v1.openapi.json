@@ -10474,6 +10474,283 @@
         ]
       }
     },
+    "/api/v1/admin/lead-onboarding": {
+      "get": {
+        "operationId": "LeadOnboardingController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: onboarding drafts, newest first; filters status, assignee (sub or none), mode, test (only|exclude), page, pageSize",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/by-lead/{leadId}": {
+      "post": {
+        "operationId": "LeadOnboardingController_create",
+        "parameters": [
+          {
+            "name": "leadId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: create the draft of a WON join request when it does not exist yet (idempotent: one per join request; 409 LEAD_NOT_READY for any other status)",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}": {
+      "get": {
+        "operationId": "LeadOnboardingController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: one draft with its blockers; contact details are read through the join request (audited there)",
+        "tags": [
+          "ops-leads"
+        ]
+      },
+      "patch": {
+        "operationId": "LeadOnboardingController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: edit a DRAFT: product kind, assignee (notified once, mock), note",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}/submit": {
+      "post": {
+        "operationId": "LeadOnboardingController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: submit the draft for approval (needs a product kind and an active join request)",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}/approve": {
+      "post": {
+        "operationId": "LeadOnboardingController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "SA: approve a submitted draft (never the submitter). Records the decision only: nothing is activated or created",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}/reject": {
+      "post": {
+        "operationId": "LeadOnboardingController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "SA: reject a submitted draft with a reason (never the submitter)",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}/cancel": {
+      "post": {
+        "operationId": "LeadOnboardingController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: cancel a draft or submitted request",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
+    "/api/v1/admin/lead-onboarding/{id}/reopen": {
+      "post": {
+        "operationId": "LeadOnboardingController_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "OP: back to DRAFT after a rejection or cancellation (the same single row)",
+        "tags": [
+          "ops-leads"
+        ]
+      }
+    },
     "/api/v1/public/plans": {
       "get": {
         "operationId": "SitePlansPublicController_list",

@@ -3732,6 +3732,7 @@ model Lead {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   events             LeadEvent[]
+  onboardingRequest  LeadOnboardingRequest?
 
   @@index([status, createdAt])
   @@index([providerType])
@@ -3756,6 +3757,38 @@ model LeadEvent {
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId, createdAt])
+}
+
+/// DRAFT onboarding request created when a join request becomes WON (founder decision 28 Nov 2026). Exactly one per lead (unique leadId = the idempotency key).
+/// It carries NO contact data (only the lead reference). It never creates an organisation, an enrolment code or a Passport identity: an ops_admin or super_admin reviews and submits it,
+/// and a DIFFERENT super_admin approves it (the same two-person rule as Partner onboarding). Deleted with its lead (test data removal).
+model LeadOnboardingRequest {
+  id           String    @id // lor_<id>
+  leadId       String    @unique
+  status       String    @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED | CANCELLED
+  kind         String? // CLINIC | NURSE | PHARMACY | LAB (null when no product fits the provider type: the reviewer chooses)
+  legalName    String
+  providerType String
+  mode         String // STANDALONE | CONNECTED
+  modules      String[]
+  market       String
+  contactRef   String // the lead reference KL-XXXXXXXX: the only link to the contact, which is read through the lead (decrypted, audited)
+  assigneeSub  String?
+  assigneeName String?
+  note         String? // ops note, no personal data
+  isTest       Boolean   @default(false)
+  createdBy    String // ops sub or "system:lead-won"
+  submittedBy  String?
+  submittedAt  DateTime?
+  decidedBy    String?
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([assigneeSub])
 }
 
 /// Versioned admin-managed configuration of the join flow (picklists, required fields, notification switches). One row per key ("config").

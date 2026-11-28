@@ -12,6 +12,7 @@ import { PageHeader, StatusChip } from "@/components/kit";
 import { formatDateTime } from "@/lib/format";
 import { LEAD_TONE } from "./SiteLeadsPage";
 import { canStartOnboarding, onboardingUrlForLead } from "@/lib/leadOnboarding";
+import { useCreateLeadOnboarding } from "@/api/leadOnboarding";
 
 const selectCls = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const Row = ({ label, children }: { label: string; children: ReactNode }) => children === null || children === undefined || children === "" ? null : <div className="grid grid-cols-[9rem_1fr] gap-2 py-1"><dt className="text-xs font-semibold text-muted-foreground">{label}</dt><dd className="min-w-0 break-words text-sm" dir="auto">{children}</dd></div>;
@@ -30,6 +31,7 @@ function Trail({ d, cfg }: { d: LeadDetail; cfg: LeadConfig | undefined }) {
       case "TAG": return x.test !== undefined ? t(x.test ? "siteLeads.ev.testOn" : "siteLeads.ev.testOff") : t("siteLeads.ev.tags", { add: ((x.add as unknown as string[]) ?? []).join(", "), remove: ((x.remove as unknown as string[]) ?? []).join(", ") });
       case "DUPLICATE": return t("siteLeads.ev.duplicate", { ref: String(x.newRef) });
       case "NOTIFY": return t("siteLeads.ev.notify", { to: String(x.to) });
+      case "ONBOARDING": return t("siteLeads.ev.onboarding", { action: t(`siteLeads.onbAction.${String(x.action)}`, { defaultValue: String(x.action) }) });
       default: return e.kind;
     }
   };
@@ -48,7 +50,7 @@ function Trail({ d, cfg }: { d: LeadDetail; cfg: LeadConfig | undefined }) {
 /** One join request: contact and onboarding answers, status actions, owner, tags, notes and the audit trail. */
 export default function SiteLeadDetailPage() {
   const { id = "" } = useParams(); const nav = useNavigate(); const { t, i18n } = useTranslation(); const lang = i18n.language; const { user } = useAuth();
-  const q = useSiteLead(id); const settings = useSiteLeadSettings(); const owners = useSiteLeadOwners(); const upd = useSiteLeadUpdate(id);
+  const q = useSiteLead(id); const settings = useSiteLeadSettings(); const owners = useSiteLeadOwners(); const upd = useSiteLeadUpdate(id); const mk = useCreateLeadOnboarding(id);
   const [note, setNote] = useState(""); const [lostOpen, setLostOpen] = useState(false); const [reason, setReason] = useState(""); const [tag, setTag] = useState("");
   const cfg = settings.data?.config; const isSuper = !!user?.roles.includes("super_admin");
   const done = (m: string) => ({ onSuccess: () => toast.success(t(m)), onError: (e: unknown) => toast.error((e as { code?: string })?.code === "INVALID_TRANSITION" ? t("siteLeads.badTransition") : t("siteLeads.failed")) });
@@ -110,6 +112,16 @@ export default function SiteLeadDetailPage() {
               <div className="mt-3 border-t pt-3"><Button size="sm" onClick={() => nav(onboardingUrlForLead(d.id))} data-testid="lead-start-onboarding">{t("siteLeads.startOnboarding")}</Button><p className="mt-1 text-xs text-muted-foreground">{t("siteLeads.startOnboardingHint")}</p></div>
             ) : d.mode === "STANDALONE" && (d.status === "QUALIFIED" || d.status === "ONBOARDING") ? <p className="mt-3 border-t pt-3 text-xs text-muted-foreground" data-testid="lead-standalone-note">{t("siteLeads.standaloneNoOnboarding")}</p> : null}
             {d.lostReason ? <p className="mt-2 text-xs text-muted-foreground">{t("siteLeads.lostBecause", { reason: labelOf(cfg?.lostReasons, d.lostReason, lang) })}</p> : null}
+          </section>
+          <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-onb" data-testid="lead-onboarding-panel"><h2 id="a-onb" className="mb-2 text-sm font-bold">{t("siteLeads.onboardingPanel")}</h2>
+            {d.onboardingRequest ? (
+              <div className="space-y-2"><p className="text-sm" data-testid="lead-onboarding-status">{t("siteLeads.onboardingLinkStatus", { status: t(`leadOnboarding.st.${d.onboardingRequest.status}`) })}</p>
+                <Button size="sm" variant="outline" asChild><Link to={`/leads/onboarding/${d.onboardingRequest.id}`} data-testid="lead-onboarding-open">{t("siteLeads.onboardingOpen")}</Link></Button></div>
+            ) : (
+              <div className="space-y-2"><p className="text-xs text-muted-foreground" data-testid="lead-onboarding-none">{t("siteLeads.onboardingNone")}</p>
+                {(d.onboardingDraftOn ?? []).includes(d.status) ? <Button size="sm" variant="outline" disabled={mk.isPending} onClick={() => mk.mutate(undefined, { onSuccess: () => toast.success(t("siteLeads.onboardingCreated")), onError: () => toast.error(t("siteLeads.onboardingFailed")) })} data-testid="lead-onboarding-create">{t("siteLeads.onboardingCreate")}</Button> : null}</div>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">{t("siteLeads.onboardingNote")}</p>
           </section>
           <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-owner"><h2 id="a-owner" className="mb-2 text-sm font-bold">{t("siteLeads.owner")}</h2>
             <div className="flex flex-wrap items-center gap-2">

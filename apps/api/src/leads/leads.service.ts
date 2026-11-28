@@ -12,6 +12,8 @@ import { LeadConfigService } from './lead-config.service';
 import { LEAD_STATUSES, LEAD_TRANSITIONS, LICENCE_FIELDS, REQUIRABLE_FIELDS, TYPE_FIELDS, type LeadConfig, type LeadStatus } from './lead-config';
 import { toCsv } from './lead-csv';
 import { LeadNotifier } from './lead-notifier';
+import { LeadOnboardingService } from './lead-onboarding.service';
+import { draftStatuses } from './lead-onboarding';
 import { looksLikeTest, parseSubmission, payloadHashOf, type ParsedLead } from './lead-validation';
 
 const lim = (name: string, def: number) => { const n = Number(process.env[name]); return Number.isFinite(n) && n > 0 ? n : def; };
@@ -33,7 +35,7 @@ interface Filters { status?: string; type?: string; market?: string; mode?: stri
 export class LeadsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('leads');
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly config: LeadConfigService, private readonly notifier: LeadNotifier) {
+  constructor(private readonly prisma: PrismaService, private readonly config: LeadConfigService, private readonly notifier: LeadNotifier, private readonly onboarding: LeadOnboardingService) {
     limiter = process.env.RATE_LIMIT_STORE === 'memory' ? new SlidingWindowLimiter() : new PgRateLimiter(prisma as never);
   }
   onModuleInit() {
@@ -195,7 +197,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
       currentSoftware: r.currentSoftware, licences: this.licences(r), goLive: r.goLive, contactChannel: r.contactChannel, contactTime: r.contactTime, note: this.dec(r.noteEnc), answers: r.extra,
       answerFields: Object.keys(spec.answers), consentTextVersion: r.consentTextVersion, consentAt: r.consentAt, sourceEnv: r.sourceEnv, lostReason: r.lostReason,
       duplicates: dups, events: events.map((e) => ({ id: e.id, kind: e.kind, actor: e.actor, actorName: e.actorName, data: e.data, createdAt: e.createdAt })),
-      allowedTransitions: LEAD_TRANSITIONS[r.status as LeadStatus] ?? [],
+      allowedTransitions: LEAD_TRANSITIONS[r.status as LeadStatus] ?? [], onboardingRequest: await this.onboarding.summaryForLead(r.id), onboardingDraftOn: draftStatuses(),
     };
   }
 
@@ -252,6 +254,8 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
       await this.prisma.lead.update({ where: { id }, data: data as never });
       for (const e of events) await this.prisma.leadEvent.create({ data: { id: newId('le'), leadId: id, kind: e.kind, actor: u.sub, actorName: u.name ?? null, data: e.data as never } });
       await this.prisma.auditLog.create({ data: { actor: u.sub, action: 'lead.updated', resource: 'Lead', resourceId: id, metadata: { kinds: events.map((e) => e.kind), status: data.status } as never } });
+      // WON (optionally ONBOARDING, LEAD_ONBOARDING_DRAFT_ON) creates exactly one DRAFT onboarding request (idempotent per lead). It never activates anything; LOST never gets here.
+      if (typeof data.status === 'string' && draftStatuses().includes(data.status as never)) await this.onboarding.ensureForLead(u, await this.row(id));
     }
     return this.detail(u, id);
   }

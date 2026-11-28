@@ -22,6 +22,7 @@ export interface LeadDetail extends LeadSummaryRow {
   phone: string | null; email: string | null; contactRole: string | null; country: string; branches: number | null; staffCount: number | null; specialties: string[]; services: string | null; currentSoftware: string | null;
   licences: Record<string, string>; goLive: string | null; contactChannel: string | null; contactTime: string | null; note: string | null; answers: Record<string, unknown>; consentTextVersion: string; consentAt: string;
   sourceEnv: string | null; lostReason: string | null; duplicates: Array<{ id: string; ref: string; status: string; legalName: string; createdAt: string }>; events: LeadEventRow[]; allowedTransitions: SiteLeadStatus[];
+  onboardingRequest: { id: string; status: string; kind: string | null; assigneeSub: string | null; assigneeName: string | null } | null; onboardingDraftOn: string[];
 }
 export interface LeadFilters { status?: string; type?: string; mode?: string; market?: string; from?: string; to?: string; q?: string; owner?: string; test?: string; duplicates?: string; page?: number; pageSize?: number }
 

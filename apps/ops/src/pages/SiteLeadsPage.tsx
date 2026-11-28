@@ -31,6 +31,7 @@ export default function SiteLeadsPage() {
     <div>
       <PageHeader title={t("siteLeads.title")} hint={t("siteLeads.hint")} actions={<>
         <Button variant="outline" size="sm" onClick={() => void exportCsv()} disabled={busy} data-testid="leads-export"><Download aria-hidden="true" />{t("siteLeads.export")}</Button>
+        <Button variant="outline" size="sm" asChild><Link to="/leads/onboarding" data-testid="leads-onboarding-link">{t("siteLeads.onboardingsLink")}</Link></Button>
         <Button variant="outline" size="sm" asChild><Link to="/leads/settings" data-testid="leads-settings-link"><Settings2 aria-hidden="true" />{t("siteLeads.settings")}</Link></Button>
       </>} />
       <section aria-label={t("siteLeads.summary")} className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8" data-testid="leads-summary">

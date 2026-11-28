@@ -128,7 +128,8 @@
         "NOTE": "Note",
         "TAG": "Tags",
         "DUPLICATE": "Duplicate",
-        "NOTIFY": "Notification"
+        "NOTIFY": "Notification",
+        "ONBOARDING": "Onboarding request"
       },
       "ev": {
         "created": "Request received from the site",
@@ -139,7 +140,8 @@
         "testOff": "Test tag removed",
         "tags": "Tags +{{add}} -{{remove}}",
         "duplicate": "A later request {{ref}} matches this one",
-        "notify": "Message to {{to}} (mock mode unless messaging is real)"
+        "notify": "Message to {{to}} (mock mode unless messaging is real)",
+        "onboarding": "Onboarding request: {{action}}"
       },
       "set": {
         "title": "Join flow settings",
@@ -219,7 +221,99 @@
       "onboardingBannerBody": "{{name}} ({{type}}, {{mode}}). Review the prefilled kind and label, then create the one-time code and hand it to the applicant.",
       "onboardingBannerOpen": "Open the request",
       "onboardingKindOther": "The provider type is not mapped to a product: choose the kind yourself.",
-      "onboardingLoadFailed": "The join request could not be loaded; fill the form by hand."
+      "onboardingLoadFailed": "The join request could not be loaded; fill the form by hand.",
+      "onboardingPanel": "Onboarding request",
+      "onboardingOpen": "Open the draft",
+      "onboardingNone": "No draft yet. A draft onboarding request is created automatically when this request becomes Won.",
+      "onboardingCreate": "Create the draft now",
+      "onboardingCreated": "The onboarding draft is ready",
+      "onboardingFailed": "Could not create the draft",
+      "onboardingNote": "A draft is only a work item: it never creates an organisation, a code or a Passport identity.",
+      "onboardingLinkStatus": "Draft status: {{status}}",
+      "onboardingsLink": "Onboarding drafts",
+      "onbAction": {
+        "DRAFT_CREATED": "draft created",
+        "UPDATED": "draft edited",
+        "SUBMITTED": "submitted for approval",
+        "APPROVED": "approved",
+        "REJECTED": "rejected",
+        "CANCELLED": "cancelled",
+        "REOPENED": "reopened as a draft"
+      }
+    },
+    "leadOnboarding": {
+      "title": "Onboarding drafts",
+      "hint": "Created automatically when a join request becomes Won. A draft is reviewed and submitted by the team and approved by a different super admin. It never activates an organisation.",
+      "backToLeads": "Join requests",
+      "backToLead": "Join request {{ref}}",
+      "filters": "Filters",
+      "all": "All",
+      "status": "Status",
+      "assignee": "Assignee",
+      "unassigned": "Unassigned",
+      "mode": "Mode",
+      "request": "Request",
+      "type": "Provider type",
+      "kind": "Product",
+      "kindMissing": "Not chosen",
+      "kindHint": "No product fits this provider type: choose one before submitting.",
+      "created": "Created",
+      "none": "No onboarding drafts",
+      "kinds": {
+        "CLINIC": "Kiorly Clinic",
+        "NURSE": "Kiorly Nurse",
+        "PHARMACY": "Kiorly Pharmacy",
+        "LAB": "Kiorly Lab"
+      },
+      "st": {
+        "DRAFT": "Draft",
+        "SUBMITTED": "Waiting for approval",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled"
+      },
+      "explainer": "This is a draft prepared from a won join request. Submitting it asks a second person to approve. Approving only records the decision: no organisation, enrolment code or Passport identity is created. Contact details stay in the join request.",
+      "fields": "Details",
+      "modules": "Modules",
+      "market": "Market",
+      "leadStatus": "Join request status",
+      "bySystem": "automatic",
+      "submitted": "Submitted",
+      "decided": "Decision",
+      "decisionNote": "Decision note",
+      "note": "Note for the team (no personal data)",
+      "saveNote": "Save the note",
+      "actions": "Actions",
+      "submit": "Submit for approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel the request",
+      "reopen": "Reopen as draft",
+      "reason": "Reason",
+      "confirm": "Confirm",
+      "twoPerson": "You submitted this request: a different super admin must decide.",
+      "awaitingSuper": "Waiting for a super admin to approve or reject.",
+      "blocker": {
+        "KIND_REQUIRED": "Choose the product first.",
+        "LEAD_NOT_ACTIVE": "The join request is no longer Won or in onboarding."
+      },
+      "approvedConnected": "Approved. To connect this provider to Kiorex, continue in Partner onboarding (the one-time code is still created there by a person).",
+      "approvedStandalone": "Approved. This is a standalone provider: the organisation is created inside the Kiorly product by the operator, nothing is connected to Kiorex.",
+      "openPartnerOnboarding": "Open Partner onboarding",
+      "saved": "Saved",
+      "submittedOk": "Submitted for approval",
+      "approvedOk": "Approved",
+      "rejectedOk": "Rejected",
+      "cancelledOk": "Cancelled",
+      "reopenedOk": "Reopened as a draft",
+      "failed": "The action failed",
+      "err": {
+        "TWO_PERSON_RULE": "A different person than the one who submitted it must decide.",
+        "SUBMIT_BLOCKED": "The request cannot be submitted yet.",
+        "INVALID_STATE": "The request changed in the meantime. Reload the page.",
+        "SUPER_ADMIN_ONLY": "Only a super admin can do this.",
+        "REASON_REQUIRED": "A reason is required."
+      }
     }
   },
   "ar": {
@@ -351,7 +445,8 @@
         "NOTE": "ملاحظة",
         "TAG": "الوسوم",
         "DUPLICATE": "تكرار",
-        "NOTIFY": "إشعار"
+        "NOTIFY": "إشعار",
+        "ONBOARDING": "طلب الانضمام"
       },
       "ev": {
         "created": "تم استلام الطلب من الموقع",
@@ -362,7 +457,8 @@
         "testOff": "تمت إزالة الوسم التجريبي",
         "tags": "وسوم +{{add}} -{{remove}}",
         "duplicate": "الطلب اللاحق {{ref}} يطابق هذا الطلب",
-        "notify": "رسالة إلى {{to}} (تجريبية ما لم تكن الرسائل حقيقية)"
+        "notify": "رسالة إلى {{to}} (تجريبية ما لم تكن الرسائل حقيقية)",
+        "onboarding": "طلب الانضمام: {{action}}"
       },
       "set": {
         "title": "إعدادات مسار الانضمام",
@@ -442,7 +538,99 @@
       "onboardingBannerBody": "{{name}} ({{type}}، {{mode}}). راجع النوع والاسم المعبأين ثم أنشئ الرمز لمرة واحدة وسلّمه لمقدم الطلب.",
       "onboardingBannerOpen": "افتح الطلب",
       "onboardingKindOther": "نوع مقدم الخدمة غير مرتبط بمنتج: اختر النوع بنفسك.",
-      "onboardingLoadFailed": "تعذر تحميل طلب الانضمام، املأ النموذج يدويا."
+      "onboardingLoadFailed": "تعذر تحميل طلب الانضمام، املأ النموذج يدويا.",
+      "onboardingPanel": "طلب الانضمام",
+      "onboardingOpen": "افتح المسودة",
+      "onboardingNone": "لا توجد مسودة بعد. تُنشأ مسودة طلب انضمام تلقائيا عندما يصبح هذا الطلب ناجحا.",
+      "onboardingCreate": "أنشئ المسودة الآن",
+      "onboardingCreated": "مسودة الانضمام جاهزة",
+      "onboardingFailed": "تعذر إنشاء المسودة",
+      "onboardingNote": "المسودة بند عمل فقط: لا تنشئ منشأة ولا رمزا ولا هوية جواز كيوريكس.",
+      "onboardingLinkStatus": "حالة المسودة: {{status}}",
+      "onboardingsLink": "مسودات الانضمام",
+      "onbAction": {
+        "DRAFT_CREATED": "أنشئت المسودة",
+        "UPDATED": "عدلت المسودة",
+        "SUBMITTED": "قدمت للموافقة",
+        "APPROVED": "تمت الموافقة",
+        "REJECTED": "تم الرفض",
+        "CANCELLED": "تم الإلغاء",
+        "REOPENED": "أعيد فتحها كمسودة"
+      }
+    },
+    "leadOnboarding": {
+      "title": "مسودات الانضمام",
+      "hint": "تُنشأ تلقائيا عندما يصبح طلب الانضمام ناجحا. يراجعها الفريق ويقدمها، ويوافق عليها مدير عام مختلف. ولا تفعّل أي منشأة أبدا.",
+      "backToLeads": "طلبات الانضمام",
+      "backToLead": "طلب الانضمام {{ref}}",
+      "filters": "عوامل التصفية",
+      "all": "الكل",
+      "status": "الحالة",
+      "assignee": "المسؤول",
+      "unassigned": "غير مسند",
+      "mode": "الوضع",
+      "request": "الطلب",
+      "type": "نوع مقدم الخدمة",
+      "kind": "المنتج",
+      "kindMissing": "لم يُختر",
+      "kindHint": "لا يوجد منتج يناسب هذا النوع: اختر واحدا قبل التقديم.",
+      "created": "تاريخ الإنشاء",
+      "none": "لا توجد مسودات انضمام",
+      "kinds": {
+        "CLINIC": "كيورلي كلينيك",
+        "NURSE": "كيورلي نيرس",
+        "PHARMACY": "كيورلي صيدلية",
+        "LAB": "كيورلي معمل"
+      },
+      "st": {
+        "DRAFT": "مسودة",
+        "SUBMITTED": "بانتظار الموافقة",
+        "APPROVED": "تمت الموافقة",
+        "REJECTED": "مرفوض",
+        "CANCELLED": "ملغى"
+      },
+      "explainer": "هذه مسودة أعدت من طلب انضمام ناجح. تقديمها يطلب موافقة شخص ثان. والموافقة تسجل القرار فقط: لا تُنشأ منشأة ولا رمز تسجيل ولا هوية جواز كيوريكس. وتبقى بيانات التواصل في طلب الانضمام.",
+      "fields": "التفاصيل",
+      "modules": "الوحدات",
+      "market": "السوق",
+      "leadStatus": "حالة طلب الانضمام",
+      "bySystem": "تلقائي",
+      "submitted": "تم التقديم",
+      "decided": "القرار",
+      "decisionNote": "ملاحظة القرار",
+      "note": "ملاحظة للفريق (بدون بيانات شخصية)",
+      "saveNote": "احفظ الملاحظة",
+      "actions": "الإجراءات",
+      "submit": "قدّم للموافقة",
+      "approve": "وافق",
+      "reject": "ارفض",
+      "cancel": "ألغ الطلب",
+      "reopen": "أعد فتحه كمسودة",
+      "reason": "السبب",
+      "confirm": "تأكيد",
+      "twoPerson": "أنت من قدّم هذا الطلب: يجب أن يقرر مدير عام آخر.",
+      "awaitingSuper": "بانتظار مدير عام للموافقة أو الرفض.",
+      "blocker": {
+        "KIND_REQUIRED": "اختر المنتج أولا.",
+        "LEAD_NOT_ACTIVE": "لم يعد طلب الانضمام ناجحا أو قيد الانضمام."
+      },
+      "approvedConnected": "تمت الموافقة. لربط هذا المنشأة بكيوريكس تابع في انضمام الشركاء (ويظل رمز الاستخدام الواحد يُنشأ هناك بيد شخص).",
+      "approvedStandalone": "تمت الموافقة. هذه منشأة منفصلة: يُنشئ المشغل المنشأة داخل منتج كيورلي ولا شيء يتصل بكيوريكس.",
+      "openPartnerOnboarding": "افتح انضمام الشركاء",
+      "saved": "تم الحفظ",
+      "submittedOk": "تم التقديم للموافقة",
+      "approvedOk": "تمت الموافقة",
+      "rejectedOk": "تم الرفض",
+      "cancelledOk": "تم الإلغاء",
+      "reopenedOk": "أعيد فتحه كمسودة",
+      "failed": "فشل الإجراء",
+      "err": {
+        "TWO_PERSON_RULE": "يجب أن يقرر شخص مختلف عمّن قدّم الطلب.",
+        "SUBMIT_BLOCKED": "لا يمكن تقديم الطلب بعد.",
+        "INVALID_STATE": "تغير الطلب في هذه الأثناء. أعد تحميل الصفحة.",
+        "SUPER_ADMIN_ONLY": "هذا الإجراء للمدير العام فقط.",
+        "REASON_REQUIRED": "السبب مطلوب."
+      }
     }
   }
 }
