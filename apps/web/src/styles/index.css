@@ -213,6 +213,8 @@
   select:hover { border-color: hsl(var(--primary) / 0.5); }
 
 /* ───────── Landing redesign (28 Nov 2026) ───────── */
+/* Bottom sheet entrance (consent banner): transform + opacity only, off for reduced motion */
+.kx-sheet-up { animation: kx-sheet-up var(--kx-dur-slow) var(--kx-ease-decelerate) both; animation-delay: 400ms; }
 /* Scroll reveal: content is visible without JS/IO; the hook adds data-in. Reduced motion: always visible. */
 .kx-reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms var(--kx-ease-decelerate), transform 600ms var(--kx-ease-decelerate); transition-delay: calc(var(--i, 0) * 80ms); }
 .kx-reveal[data-in='true'] { opacity: 1; transform: none; }

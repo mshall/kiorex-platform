@@ -42,20 +42,20 @@ export function ConsentBanner() {
   return (
     <>
       {!open && (
-        <section role="region" aria-label={t("consent.banner.regionLabel")} data-testid="consent-banner" className="fixed inset-x-0 bottom-0 z-40 border-t bg-card shadow-lg" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <div className="container flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
+        <section role="region" aria-label={t("consent.banner.regionLabel")} data-testid="consent-banner" className="kx-sheet-up fixed inset-x-0 bottom-0 z-40 border-t bg-card shadow-lg" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <div className="container flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:py-4">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-primary" aria-hidden="true"><ShieldCheck className="h-5 w-5" /></span>
+              <span className="mt-0.5 hidden h-9 w-9 shrink-0 items-center sm:flex justify-center rounded-xl bg-accent text-primary" aria-hidden="true"><ShieldCheck className="h-5 w-5" /></span>
               <div className="min-w-0">
                 <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">{t("consent.banner.title")}{draft && <StatusChip tone="warning" data-testid="consent-draft">{t("consent.banner.draft")}</StatusChip>}</h2>
-                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t("consent.banner.body")}</p>
+                <p className="mt-1 max-w-3xl text-[13px] leading-snug text-muted-foreground sm:text-sm">{t("consent.banner.body")}</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 md:shrink-0">
+            <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap md:shrink-0">
               {/* equal weight: identical variant and size, so neither answer is visually steered */}
-              <Button variant="outline" className="min-h-11 min-w-28" onClick={() => void choose(false, false, "reject")} data-testid="consent-reject">{t("consent.banner.reject")}</Button>
-              <Button variant="outline" className="min-h-11 min-w-28" onClick={() => void choose(true, false, "accept")} data-testid="consent-accept">{t("consent.banner.accept")}</Button>
-              <Button variant="ghost" className="min-h-11" onClick={() => { setAnalytics(consent?.analytics ?? false); setMarketing(consent?.marketing ?? false); setOpen(true); }} data-testid="consent-customise">{t("consent.banner.customise")}</Button>
+              <Button variant="outline" className="min-h-11 sm:min-w-28" onClick={() => void choose(false, false, "reject")} data-testid="consent-reject">{t("consent.banner.reject")}</Button>
+              <Button variant="outline" className="min-h-11 sm:min-w-28" onClick={() => void choose(true, false, "accept")} data-testid="consent-accept">{t("consent.banner.accept")}</Button>
+              <Button variant="ghost" className="col-span-2 min-h-10 sm:col-span-1 sm:min-h-11" onClick={() => { setAnalytics(consent?.analytics ?? false); setMarketing(consent?.marketing ?? false); setOpen(true); }} data-testid="consent-customise">{t("consent.banner.customise")}</Button>
             </div>
           </div>
         </section>

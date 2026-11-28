@@ -9,7 +9,7 @@ import { useBookingTimeline, useFinance, useLiquidity, useModerate, useModeratio
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader, StatTile } from "@/components/PageHeader";
-import { formatDateTime, formatEgp } from "@/lib/format";
+import { formatDateTime, formatEgp, humanizeCode } from "@/lib/format";
 import { useAuth } from "@/auth/AuthProvider";
 import { isSuperAdmin } from "@/auth/RequireOps";
 
@@ -31,7 +31,7 @@ export function ProvidersPage() {
       {r.isLoading ? <CardSkeleton rows={2} /> : r.error ? <ErrorState error={r.error} onRetry={() => void r.refetch()} /> : (
         <DataTable caption={t("providers.title")} rows={r.data!.items} rowKey={(p) => p.id} empty={t("common.empty")} columns={[
           { key: "n", header: t("providers.name"), cell: (p) => <span className="font-medium">{i18n.language.startsWith("ar") ? p.nameAr : p.nameEn}</span> },
-          { key: "c", header: t("providers.clinic"), cell: (p) => p.clinicName }, { key: "s", header: t("providers.specialty"), cell: (p) => p.specialty ?? "—" }, { key: "a", header: t("providers.area"), cell: (p) => p.area ?? "—" },
+          { key: "c", header: t("providers.clinic"), cell: (p) => p.clinicName }, { key: "s", header: t("providers.specialty"), cell: (p) => humanizeCode(p.specialty) }, { key: "a", header: t("providers.area"), cell: (p) => p.area ?? "—" },
           { key: "l", header: t("providers.listing"), cell: (p) => <Badge variant={tone(p.listingStatus)}>{p.listingStatus}</Badge> }, { key: "u", header: t("providers.updated"), className: "whitespace-nowrap", cell: (p) => formatDateTime(p.updatedAt, i18n.language) },
         ]} />
       )}
