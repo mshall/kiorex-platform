@@ -1,0 +1,278 @@
+{
+ "en": {
+  "kiorlyPrices": {
+   "product": {
+    "CLINIC": "Clinic",
+    "PHARMACY": "Pharmacy",
+    "LAB": "Lab"
+   },
+   "rule": {
+    "ops": "You can read prices and propose a new price version. A super admin other than you approves it before it is published.",
+    "superAdmin": "You can propose a price version and approve or reject the proposals of other people. You never approve your own: a different super admin does."
+   },
+   "market": "Market",
+   "currency": "Currency",
+   "interval": "Billing period",
+   "unit": "Price per",
+   "amount": "Amount",
+   "included": "Clinicians included",
+   "extra": "Extra clinician amount (optional)",
+   "validFrom": "Starts at (optional)",
+   "note": "Note for the approver (optional)",
+   "cancel": "Cancel",
+   "working": "Working...",
+   "proposed": "Proposed. It is published only after a different super admin approves it.",
+   "field": {
+    "market": "Two letters, for example EG.",
+    "currency": "Three letters, for example EGP.",
+    "amount": "Digits with at most two decimals.",
+    "included": "A whole number of at least 1.",
+    "extra": "Digits with at most two decimals.",
+    "validFrom": "Not a valid date and time."
+   },
+   "propose": {
+    "button": "Propose a price",
+    "title": "Propose a price",
+    "intro": "A proposal publishes nothing. Preview the impact, then propose; a different super admin approves it, and the price starts at the time you set (empty means from the moment it is approved).",
+    "confirm": "Preview first, then propose.",
+    "submit": "Propose this price"
+   },
+   "preview": {
+    "button": "Preview the impact",
+    "title": "Impact",
+    "clinic": "{{count}} subscriber(s) would move to this price at their next renewal after notice. Change in monthly recurring revenue: {{delta}}.",
+    "product": "{{count}} organisation(s) are on this edition in this market and would pay this price at their next renewal.",
+    "none": "No existing subscriber is affected.",
+    "version": "It would be version {{version}}.",
+    "replaces": "It replaces {{amount}} {{currency}}."
+   },
+   "warn": {
+    "title": "Check before you decide",
+    "advisory": "These are warnings only. They do not block the price.",
+    "ANNUAL_NOT_ABOVE_MONTHLY": "The yearly price ({{annual}} {{currency}}) is not above the monthly price ({{monthly}} {{currency}}) of the same plan. Is the yearly price per year or per month?",
+    "ANNUAL_ABOVE_TWELVE_MONTHS": "The yearly price ({{annual}} {{currency}}) is more than twelve months of the monthly price ({{monthly}} {{currency}}).",
+    "HIGHER_PLAN_CHEAPER": "{{plan}} would cost {{amount}} {{currency}}, less than the lower plan {{other}} ({{otherAmount}} {{currency}}).",
+    "LOWER_PLAN_DEARER": "{{plan}} would cost {{amount}} {{currency}}, more than the higher plan {{other}} ({{otherAmount}} {{currency}}).",
+    "BIG_CHANGE": "The price changes by {{percent}} percent ({{from}} to {{to}} {{currency}}).",
+    "ZERO_AMOUNT": "The price is zero.",
+    "CURRENCY_CHANGED": "The currency changes from {{from}} to {{to}} for this plan and market.",
+    "FREE_EDITION_PRICED": "Lite is the free edition: billing never charges it, so this price would only be shown on the landing page."
+   },
+   "section": {
+    "pharmacy": "Pharmacy prices",
+    "lab": "Lab prices",
+    "productIntro": "The product holds the prices (editions Lite, Pro, Chain). Nothing is set until a price is proposed and approved; until then the landing page says \"Pricing to be announced\".",
+    "unavailable": "The {{product}} is not reachable right now, so its prices cannot be shown. Nothing was lost; try again in a moment.",
+    "notConfigured": "The price connection to the {{product}} is not set up yet, so its prices cannot be shown or proposed.",
+    "orgs": "{{count}} organisation(s) on this edition",
+    "noOrgs": "no organisation on this edition yet",
+    "liteNote": "Lite is the free edition: billing never charges it."
+   },
+   "proposals": {
+    "title": "Price proposals",
+    "intro": "Every proposal stays here, also when it was rejected or withdrawn. A proposal is published only when a super admin other than the proposer approves it.",
+    "empty": "No proposals.",
+    "filter": {
+     "ALL": "All",
+     "PENDING": "Waiting",
+     "APPROVED": "Approved",
+     "REJECTED": "Rejected",
+     "WITHDRAWN": "Withdrawn"
+    },
+    "status": {
+     "PENDING": "Waiting for approval",
+     "APPROVED": "Approved and published",
+     "REJECTED": "Rejected",
+     "WITHDRAWN": "Withdrawn"
+    },
+    "col": {
+     "product": "Product",
+     "plan": "Plan",
+     "market": "Market",
+     "interval": "Billing",
+     "amount": "Price",
+     "starts": "Starts",
+     "by": "Proposed by",
+     "status": "Status",
+     "actions": "Actions"
+    },
+    "decidedBy": "Decided by {{who}}",
+    "version": "Version {{version}}",
+    "lastError": "Last publish attempt failed: {{code}}",
+    "warnings": "{{count}} warning(s)",
+    "ownHint": "Your own proposal: a different super admin decides it.",
+    "approved": "Approved and published.",
+    "rejected": "Rejected. It stays in the history.",
+    "withdrawn": "Withdrawn. It stays in the history."
+   },
+   "decide": {
+    "approveTitle": "Approve and publish this price",
+    "approveBody": "The {{product}} {{plan}} price of {{amount}} {{currency}} will be published now (effective-dated, never edited later, audited).",
+    "approveButton": "Approve",
+    "rejectTitle": "Reject this price",
+    "rejectBody": "The {{product}} {{plan}} price of {{amount}} {{currency}} will not be published. The proposal stays in the history.",
+    "rejectButton": "Reject",
+    "withdrawButton": "Withdraw",
+    "note": "Note (optional)"
+   },
+   "errors": {
+    "generic": "The change could not be made. Try again.",
+    "PROPOSAL_PENDING": "A proposal for this plan, market and period is already waiting: decide or withdraw it first.",
+    "TWO_PERSON_RULE": "A different super admin must decide this proposal. You can withdraw your own.",
+    "ALREADY_DECIDED": "This proposal was already decided.",
+    "NOT_YOUR_PROPOSAL": "Only the person who proposed it can withdraw it.",
+    "PRODUCT_UNAVAILABLE": "The product is not reachable right now. Nothing was changed.",
+    "PRODUCT_PRICES_NOT_CONFIGURED": "The price connection to this product is not set up.",
+    "PRODUCT_PRICES_UNAVAILABLE": "This product does not offer prices yet.",
+    "PRODUCT_PRICES_REJECTED": "The product did not accept the connection.",
+    "PRICE_NOT_AFTER_LATEST": "The price must start after the newest version of this plan, market and period. Choose a later start.",
+    "PRICE_VERSION_CONFLICT": "Another version was published at the same time. Preview again.",
+    "PLAN_NOT_FOUND": "That plan does not exist.",
+    "UNKNOWN_MARKET": "The Clinic does not know that market.",
+    "INVALID_AMOUNT": "The amount is not valid.",
+    "INVALID_CURRENCY": "The currency is not valid.",
+    "INVALID_MARKET": "The market is not valid.",
+    "INVALID_VALID_FROM": "The start is not a valid date.",
+    "APPROVAL_REQUIRED": "A price is published only from an approved proposal."
+   }
+  }
+ },
+ "ar": {
+  "kiorlyPrices": {
+   "product": {
+    "CLINIC": "العيادة",
+    "PHARMACY": "الصيدلية",
+    "LAB": "المعمل"
+   },
+   "rule": {
+    "ops": "يمكنك قراءة الأسعار واقتراح نسخة سعر جديدة. يوافق عليها مشرف عام غيرك قبل نشرها.",
+    "superAdmin": "يمكنك اقتراح نسخة سعر والموافقة على مقترحات الآخرين أو رفضها. لا توافق أبدا على اقتراحك: يوافق مشرف عام آخر."
+   },
+   "market": "السوق",
+   "currency": "العملة",
+   "interval": "فترة الفوترة",
+   "unit": "السعر لكل",
+   "amount": "المبلغ",
+   "included": "الأطباء المشمولون",
+   "extra": "مبلغ الطبيب الإضافي (اختياري)",
+   "validFrom": "يبدأ في (اختياري)",
+   "note": "ملاحظة لمن سيوافق (اختياري)",
+   "cancel": "إلغاء",
+   "working": "جار التنفيذ...",
+   "proposed": "تم الاقتراح. لا ينشر السعر إلا بعد موافقة مشرف عام آخر.",
+   "field": {
+    "market": "حرفان، مثل EG.",
+    "currency": "ثلاثة أحرف، مثل EGP.",
+    "amount": "أرقام بحد أقصى خانتين عشريتين.",
+    "included": "عدد صحيح لا يقل عن 1.",
+    "extra": "أرقام بحد أقصى خانتين عشريتين.",
+    "validFrom": "ليس تاريخا ووقتا صحيحين."
+   },
+   "propose": {
+    "button": "اقتراح سعر",
+    "title": "اقتراح سعر",
+    "intro": "الاقتراح لا ينشر شيئا. عاين الأثر ثم اقترح؛ يوافق عليه مشرف عام آخر، ويبدأ السعر في الوقت الذي تحدده (الفارغ يعني من لحظة الموافقة).",
+    "confirm": "عاين أولا ثم اقترح.",
+    "submit": "اقتراح هذا السعر"
+   },
+   "preview": {
+    "button": "معاينة الأثر",
+    "title": "الأثر",
+    "clinic": "سينتقل {{count}} مشترك إلى هذا السعر عند تجديدهم القادم بعد الإشعار. التغير في الإيراد الشهري المتكرر: {{delta}}.",
+    "product": "يوجد {{count}} منشأة على هذه الباقة في هذا السوق وستدفع هذا السعر عند تجديدها القادم.",
+    "none": "لا يتأثر أي مشترك حالي.",
+    "version": "ستكون النسخة {{version}}.",
+    "replaces": "تحل محل {{amount}} {{currency}}."
+   },
+   "warn": {
+    "title": "راجع قبل أن تقرر",
+    "advisory": "هذه تنبيهات فقط ولا تمنع نشر السعر.",
+    "ANNUAL_NOT_ABOVE_MONTHLY": "السعر السنوي ({{annual}} {{currency}}) ليس أعلى من السعر الشهري ({{monthly}} {{currency}}) للباقة نفسها. هل السعر السنوي عن السنة أم عن الشهر؟",
+    "ANNUAL_ABOVE_TWELVE_MONTHS": "السعر السنوي ({{annual}} {{currency}}) أعلى من اثني عشر شهرا من السعر الشهري ({{monthly}} {{currency}}).",
+    "HIGHER_PLAN_CHEAPER": "ستكلف {{plan}} مبلغ {{amount}} {{currency}}، أقل من الباقة الأدنى {{other}} ({{otherAmount}} {{currency}}).",
+    "LOWER_PLAN_DEARER": "ستكلف {{plan}} مبلغ {{amount}} {{currency}}، أكثر من الباقة الأعلى {{other}} ({{otherAmount}} {{currency}}).",
+    "BIG_CHANGE": "يتغير السعر بنسبة {{percent}} في المئة (من {{from}} إلى {{to}} {{currency}}).",
+    "ZERO_AMOUNT": "السعر صفر.",
+    "CURRENCY_CHANGED": "تتغير العملة من {{from}} إلى {{to}} لهذه الباقة وهذا السوق.",
+    "FREE_EDITION_PRICED": "لايت هي الباقة المجانية: لا تحاسب الفوترة عليها أبدا، فسيظهر هذا السعر في الصفحة الرئيسية فقط."
+   },
+   "section": {
+    "pharmacy": "أسعار الصيدلية",
+    "lab": "أسعار المعمل",
+    "productIntro": "المنتج هو من يحتفظ بالأسعار (باقات لايت وبرو وسلسلة). لا يحدد شيء حتى يقترح سعر ويوافق عليه؛ وإلى ذلك الحين تعرض الصفحة الرئيسية «الأسعار تعلن قريبا».",
+    "unavailable": "لا يمكن الوصول إلى {{product}} الآن، لذلك لا تظهر أسعارها. لم يضع شيء؛ حاول بعد قليل.",
+    "notConfigured": "لم يتم إعداد الاتصال بأسعار {{product}} بعد، لذلك لا يمكن عرض أسعارها أو اقتراحها.",
+    "orgs": "{{count}} منشأة على هذه الباقة",
+    "noOrgs": "لا توجد منشأة على هذه الباقة بعد",
+    "liteNote": "لايت هي الباقة المجانية: لا تحاسب الفوترة عليها."
+   },
+   "proposals": {
+    "title": "مقترحات الأسعار",
+    "intro": "يبقى كل مقترح هنا، حتى لو رفض أو سحب. لا ينشر المقترح إلا إذا وافق عليه مشرف عام غير صاحب الاقتراح.",
+    "empty": "لا توجد مقترحات.",
+    "filter": {
+     "ALL": "الكل",
+     "PENDING": "بانتظار القرار",
+     "APPROVED": "موافق عليها",
+     "REJECTED": "مرفوضة",
+     "WITHDRAWN": "مسحوبة"
+    },
+    "status": {
+     "PENDING": "بانتظار الموافقة",
+     "APPROVED": "وافق عليه ونشر",
+     "REJECTED": "مرفوض",
+     "WITHDRAWN": "مسحوب"
+    },
+    "col": {
+     "product": "المنتج",
+     "plan": "الباقة",
+     "market": "السوق",
+     "interval": "الفوترة",
+     "amount": "السعر",
+     "starts": "يبدأ",
+     "by": "اقترحه",
+     "status": "الحالة",
+     "actions": "الإجراءات"
+    },
+    "decidedBy": "قرره {{who}}",
+    "version": "النسخة {{version}}",
+    "lastError": "فشلت آخر محاولة نشر: {{code}}",
+    "warnings": "{{count}} تنبيه",
+    "ownHint": "اقتراحك أنت: يقرره مشرف عام آخر.",
+    "approved": "تمت الموافقة والنشر.",
+    "rejected": "تم الرفض. يبقى في السجل.",
+    "withdrawn": "تم السحب. يبقى في السجل."
+   },
+   "decide": {
+    "approveTitle": "الموافقة على هذا السعر ونشره",
+    "approveBody": "سيتم الآن نشر سعر {{product}} {{plan}} البالغ {{amount}} {{currency}} (بتاريخ بدء، ولا يعدل لاحقا، ويسجل في السجل).",
+    "approveButton": "موافقة",
+    "rejectTitle": "رفض هذا السعر",
+    "rejectBody": "لن ينشر سعر {{product}} {{plan}} البالغ {{amount}} {{currency}}. يبقى المقترح في السجل.",
+    "rejectButton": "رفض",
+    "withdrawButton": "سحب",
+    "note": "ملاحظة (اختياري)"
+   },
+   "errors": {
+    "generic": "تعذر إجراء التغيير. حاول مرة أخرى.",
+    "PROPOSAL_PENDING": "يوجد مقترح لهذه الباقة وهذا السوق وهذه الفترة بانتظار القرار: اتخذ قرارا فيه أو اسحبه أولا.",
+    "TWO_PERSON_RULE": "يجب أن يقرر هذا المقترح مشرف عام آخر. يمكنك سحب مقترحك.",
+    "ALREADY_DECIDED": "تم اتخاذ قرار بشأن هذا المقترح من قبل.",
+    "NOT_YOUR_PROPOSAL": "لا يسحب المقترح إلا من اقترحه.",
+    "PRODUCT_UNAVAILABLE": "لا يمكن الوصول إلى المنتج الآن. لم يتغير شيء.",
+    "PRODUCT_PRICES_NOT_CONFIGURED": "لم يتم إعداد الاتصال بأسعار هذا المنتج.",
+    "PRODUCT_PRICES_UNAVAILABLE": "هذا المنتج لا يوفر الأسعار بعد.",
+    "PRODUCT_PRICES_REJECTED": "لم يقبل المنتج الاتصال.",
+    "PRICE_NOT_AFTER_LATEST": "يجب أن يبدأ السعر بعد أحدث نسخة لهذه الباقة وهذا السوق وهذه الفترة. اختر بداية أحدث.",
+    "PRICE_VERSION_CONFLICT": "نشرت نسخة أخرى في الوقت نفسه. عاين من جديد.",
+    "PLAN_NOT_FOUND": "هذه الباقة غير موجودة.",
+    "UNKNOWN_MARKET": "العيادة لا تعرف هذا السوق.",
+    "INVALID_AMOUNT": "المبلغ غير صحيح.",
+    "INVALID_CURRENCY": "العملة غير صحيحة.",
+    "INVALID_MARKET": "السوق غير صحيح.",
+    "INVALID_VALID_FROM": "البداية ليست تاريخا صحيحا.",
+    "APPROVAL_REQUIRED": "لا ينشر السعر إلا من مقترح تمت الموافقة عليه."
+   }
+  }
+ }
+}

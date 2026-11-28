@@ -92,6 +92,9 @@ export const cfg = () => ({
   /** KNLAB01: Kiorex's registration at the Lab with the KIORLY_NURSE client source (same host as the lab by default). */
   labNurseClientKey: env('KIORLY_LAB_NURSE_CLIENT_KEY', PARTNER_DEV_DEFAULTS.labNurse.clientKey),
   labNurseClientSecret: env('KIORLY_LAB_NURSE_CLIENT_SECRET', PARTNER_DEV_DEFAULTS.labNurse.clientSecret),
+  /** Kiorly plan prices (Pharmacy and Lab): one platform-level signed credential, NOT tenant bound (the products' KIOREX_PLANS_ADMIN_CLIENT_KEY/SECRET). Unset = the product price screens say unavailable and the landing page shows no Pharmacy or Lab price. */
+  plansAdminClientKey: env('KIORLY_PLANS_ADMIN_CLIENT_KEY', ''),
+  plansAdminClientSecret: env('KIORLY_PLANS_ADMIN_CLIENT_SECRET', ''),
   partnerTimeoutMs: num('PARTNER_TIMEOUT_MS', 8000),
   /** NEEDS_HUMAN (KX-12): marketplace take rates in basis points. 0 = unset. KX-03 §08 lists 4% / 8% only as "test points" — never final. */
   pharmacyTakeRateBps: num('PHARMACY_TAKE_RATE_BPS', 0),

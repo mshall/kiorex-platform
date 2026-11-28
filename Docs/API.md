@@ -712,9 +712,15 @@
 | POST | `/api/v1/admin/messaging/log/{id}/simulate` | OP (mock mode): move a message to DELIVERED / READ / FAILED to exercise delivery handling |
 | POST | `/api/v1/admin/messaging/delivery-tick` |  |
 | GET | `/api/v1/admin/audit-log` |  |
-| GET | `/api/v1/admin/kiorly-plans` | Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab site text with its version, and canChange for the caller |
+| GET | `/api/v1/admin/kiorly-plans` | Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab price versions, the site text with its version, the price proposals, the checks on the published catalogue, and what the caller may do |
 | PATCH | `/api/v1/admin/kiorly-plans/clinic/{planId}` | Super admin: change a Clinic plan name, public flag or order (forwarded to the Clinic, audited here) |
-| POST | `/api/v1/admin/kiorly-plans/clinic/{planId}/prices` | Super admin: publish a new effective-dated price version for a Clinic plan and market, or { preview: true } for the impact on subscribers without publishing |
+| POST | `/api/v1/admin/kiorly-plans/clinic/{planId}/prices` | Kept for the earlier console: previews a Clinic price ({ preview: true }) and refuses a direct publish with 409 PROPOSAL_REQUIRED (a price is proposed, then approved by a second super admin) |
+| POST | `/api/v1/admin/kiorly-plans/prices/preview` | Preview a price version for the Clinic, the Pharmacy or the Lab: impact on subscribers, the version it would create, and advisory warnings (annual against monthly, plan order, big change). Writes nothing |
+| GET | `/api/v1/admin/kiorly-plans/proposals` | Price proposals, newest first, optionally ?status=PENDING|APPROVED|REJECTED|WITHDRAWN and ?product=CLINIC|PHARMACY|LAB; rejected and withdrawn ones stay in the history |
+| POST | `/api/v1/admin/kiorly-plans/proposals` | Propose a price version (Kiorly ops or a super admin). Nothing is published until a different super admin approves it |
+| POST | `/api/v1/admin/kiorly-plans/proposals/{id}/approve` | A super admin other than the proposer approves and publishes the price through the product (effective-dated, append-only, audited) |
+| POST | `/api/v1/admin/kiorly-plans/proposals/{id}/reject` | A super admin other than the proposer rejects a proposal; it stays in the history |
+| POST | `/api/v1/admin/kiorly-plans/proposals/{id}/withdraw` | The proposer withdraws a pending proposal; it stays in the history |
 | PUT | `/api/v1/admin/kiorly-plans/content` | Super admin: save the site text of the Pharmacy and Lab editions. Send { version, config }; 409 PLAN_CONTENT_STALE when someone saved first. Carries no price |
 | GET | `/api/v1/admin/partners` | OP: partner registrations (Kiorly Pharmacy / Lab); secrets masked |
 | POST | `/api/v1/admin/partners/{kind}` | OP: register a partner (pharmacy|lab) |

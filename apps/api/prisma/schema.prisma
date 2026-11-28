@@ -3801,6 +3801,43 @@ model SitePlanSetting {
   updatedAt DateTime @updatedAt
 }
 
+/// Kiorly plan price PROPOSALS (maker-checker): Kiorly ops (ops_admin) or a super admin proposes a price version for the Clinic, the Pharmacy or the Lab; a DIFFERENT super admin approves
+/// (the platform then publishes it through the product's signed plans route) or rejects it; the proposer may withdraw. The prices themselves live in the product (single source of truth);
+/// this table is the workflow and the audit trail. Append-only: a row is never deleted, a decided row never changes (database trigger + CHECKs repeat the two-person rule).
+model KiorlyPlanPriceProposal {
+  id                    String    @id // kpp_<id>
+  product               String // CLINIC | PHARMACY | LAB
+  planRef               String // Clinic plan id, or the Pharmacy/Lab edition
+  planKey               String // PRO, CLINIC, LITE ... (display)
+  marketCode            String
+  marketRef             String? // Clinic market id
+  interval              String // MONTHLY | ANNUAL
+  unit                  String    @default("PER_TENANT") // PER_TENANT | PER_CLINICIAN
+  currency              String
+  amount                String // decimal text, at most 2 decimals
+  includedClinicians    Int?
+  extraClinicianAmount  String?
+  effectiveFrom         DateTime
+  requestedFrom         DateTime? // what was asked when approval moved the start to the approval time
+  note                  String?
+  status                String    @default("PENDING") // PENDING APPROVED REJECTED WITHDRAWN
+  warnings              Json // advisory checks at proposal time (never block)
+  preview               Json // the product's impact preview at proposal time
+  proposedBy            String
+  proposedByEmail       String?
+  proposedAt            DateTime  @default(now())
+  decidedBy             String?
+  decidedAt             DateTime?
+  decisionNote          String?
+  publishedVersion      Int?
+  publishedValidFrom    DateTime? // start fixed at the first publish attempt (a retry reuses it)
+  lastError             String?
+  lastAttemptAt         DateTime?
+
+  @@index([product, status])
+  @@index([planRef, marketCode, interval, status])
+}
+
 model LeadSetting {
   key       String   @id
   value     Json

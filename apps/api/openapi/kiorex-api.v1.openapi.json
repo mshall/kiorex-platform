@@ -10800,7 +10800,7 @@
             }
           }
         },
-        "summary": "Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab site text with its version, and canChange for the caller",
+        "summary": "Plans overview: Clinic plans with every price version and the Clinic markets, the Pharmacy and Lab price versions, the site text with its version, the price proposals, the checks on the published catalogue, and what the caller may do",
         "tags": [
           "ops"
         ]
@@ -10864,7 +10864,187 @@
             }
           }
         },
-        "summary": "Super admin: publish a new effective-dated price version for a Clinic plan and market, or { preview: true } for the impact on subscribers without publishing",
+        "summary": "Kept for the earlier console: previews a Clinic price ({ preview: true }) and refuses a direct publish with 409 PROPOSAL_REQUIRED (a price is proposed, then approved by a second super admin)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/prices/preview": {
+      "post": {
+        "operationId": "SitePlansAdminController_preview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Preview a price version for the Clinic, the Pharmacy or the Lab: impact on subscribers, the version it would create, and advisory warnings (annual against monthly, plan order, big change). Writes nothing",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/proposals": {
+      "get": {
+        "operationId": "SitePlansAdminController_proposals",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "product",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Price proposals, newest first, optionally ?status=PENDING|APPROVED|REJECTED|WITHDRAWN and ?product=CLINIC|PHARMACY|LAB; rejected and withdrawn ones stay in the history",
+        "tags": [
+          "ops"
+        ]
+      },
+      "post": {
+        "operationId": "SitePlansAdminController_propose",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "Propose a price version (Kiorly ops or a super admin). Nothing is published until a different super admin approves it",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/proposals/{id}/approve": {
+      "post": {
+        "operationId": "SitePlansAdminController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "A super admin other than the proposer approves and publishes the price through the product (effective-dated, append-only, audited)",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/proposals/{id}/reject": {
+      "post": {
+        "operationId": "SitePlansAdminController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "A super admin other than the proposer rejects a proposal; it stays in the history",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/admin/kiorly-plans/proposals/{id}/withdraw": {
+      "post": {
+        "operationId": "SitePlansAdminController_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "summary": "The proposer withdraws a pending proposal; it stays in the history",
         "tags": [
           "ops"
         ]

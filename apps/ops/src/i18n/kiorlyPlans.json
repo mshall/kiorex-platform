@@ -4,12 +4,12 @@
   "kiorlyPlans": {
    "title": "Plans",
    "hint": "The subscription plans shown on the Kiorly landing page. A change here appears there within about a minute, with no release.",
-   "readOnly": "You can read the plans. Only a super admin can change them.",
+   "readOnly": "You can read the plans and propose prices. Only a super admin changes plan names and wording, and a super admin other than the proposer approves a price.",
    "loadError": "Could not load the plans.",
    "saved": "Saved. The landing page shows it within about a minute.",
    "clinic": {
      "title": "Clinic plans",
-     "intro": "Plans and prices are owned by the Clinic. A price change is a new version with its own start time; subscribers move at renewal after notice (see the preview).",
+     "intro": "Plans and prices are owned by the Clinic. A price change is proposed as a new version with its own start time; a different super admin approves it, and subscribers move at renewal after notice (see the preview).",
      "unavailable": "The Clinic is not reachable right now, so its plans cannot be shown or changed. Nothing was lost; try again in a moment.",
      "empty": "The Clinic has no plans.",
      "public": "Shown on the landing page",
@@ -37,7 +37,7 @@
    },
    "content": {
      "title": "Pharmacy and Lab plans",
-     "intro": "Their editions exist in the products, but neither product has a price set or a screen to set one yet. Here you edit only the wording on the landing page; these plans show \"Pricing to be announced\".",
+     "intro": "Here you edit only the wording on the landing page. Prices are not part of the wording: they are proposed and approved in the price sections above.",
      "isDefault": "Showing the wording that ships with the product. Saving creates your own version.",
      "version": "Version {{version}}, saved by {{by}}",
      "pharmacy": "Pharmacy", "lab": "Lab",
@@ -66,12 +66,12 @@
   "kiorlyPlans": {
    "title": "الباقات",
    "hint": "باقات الاشتراك المعروضة في الصفحة الرئيسية لكيورلي. التغيير هنا يظهر هناك خلال دقيقة تقريبا دون إصدار جديد.",
-   "readOnly": "يمكنك قراءة الباقات. التعديل للمشرف العام فقط.",
+   "readOnly": "يمكنك قراءة الباقات واقتراح الأسعار. لا يغير أسماء الباقات وصياغتها إلا المشرف العام، ويوافق على السعر مشرف عام غير صاحب الاقتراح.",
    "loadError": "تعذر تحميل الباقات.",
    "saved": "تم الحفظ. تظهر الصفحة الرئيسية التغيير خلال دقيقة تقريبا.",
    "clinic": {
      "title": "باقات العيادة",
-     "intro": "الباقات والأسعار مملوكة للعيادة. تغيير السعر نسخة جديدة لها وقت بدء، وينتقل المشتركون عند التجديد بعد الإشعار (راجع المعاينة).",
+     "intro": "الباقات والأسعار مملوكة للعيادة. يقترح تغيير السعر كنسخة جديدة لها وقت بدء، ويوافق عليه مشرف عام آخر، وينتقل المشتركون عند التجديد بعد الإشعار (راجع المعاينة).",
      "unavailable": "لا يمكن الوصول إلى العيادة الآن، لذلك لا تظهر باقاتها ولا يمكن تعديلها. لم يضع شيء؛ حاول بعد قليل.",
      "empty": "لا توجد باقات في العيادة.",
      "public": "معروضة في الصفحة الرئيسية",
@@ -99,7 +99,7 @@
    },
    "content": {
      "title": "باقات الصيدلية والمعمل",
-     "intro": "إصداراتها موجودة في المنتجين، لكن لا يوجد سعر محدد ولا شاشة لتحديده في أي منهما بعد. هنا تعدل صياغة الصفحة الرئيسية فقط؛ تعرض هذه الباقات «الأسعار تعلن قريبا».",
+     "intro": "هنا تعدل صياغة الصفحة الرئيسية فقط. الأسعار ليست جزءا من الصياغة: تقترح وتعتمد في أقسام الأسعار أعلاه.",
      "isDefault": "تظهر الصياغة المرفقة بالمنتج. الحفظ ينشئ نسختك الخاصة.",
      "version": "النسخة {{version}}، حفظها {{by}}",
      "pharmacy": "الصيدلية", "lab": "المعمل",

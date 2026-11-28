@@ -5,7 +5,8 @@ import { outboundFetch } from '../common/outbound-http';
 import type { AuthUser } from '../common/auth';
 import { KiorlyClient, KiorlyHttpError, KiorlyTransientError } from '../kiorly/kiorly-public';
 import { PrismaService } from '../prisma/prisma.service';
-import { contentToPublic, DEFAULT_CONTENT, mapClinicPlans, validateContent, type ContentConfig, type PublicModule, type PublicPlan, type PublicPlansResponse } from './site-plans.catalog';
+import { ProductPlansClient } from './product-plans.client';
+import { contentToPublic, DEFAULT_CONTENT, productPublicPrices, mapClinicPlans, validateContent, type ContentConfig, type PublicModule, type PublicPlan, type PublicPlansResponse } from './site-plans.catalog';
 
 const KEY = 'content';
 const FRESH_MS = 60_000;
@@ -28,9 +29,9 @@ export class SitePlansService {
   private readonly log = new Logger('site-plans');
   private clinicCache = new Map<string, { at: number; value: ReturnType<typeof mapClinicPlans> }>();
   private contentCache?: { at: number; config: ContentConfig };
-  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient) {}
+  constructor(private readonly prisma: PrismaService, private readonly kiorly: KiorlyClient, private readonly products: ProductPlansClient) {}
 
-  invalidate() { this.clinicCache.clear(); this.contentCache = undefined; }
+  invalidate() { this.clinicCache.clear(); this.contentCache = undefined; this.products.invalidate(); }
 
   // ───────────── public ─────────────
 
@@ -74,11 +75,11 @@ export class SitePlansService {
 
   async publicPlans(marketRaw?: string): Promise<PublicPlansResponse> {
     const code = this.marketCode(marketRaw);
-    const [clinic, content] = await Promise.all([this.clinicPublic(code), this.contentCached().catch(() => DEFAULT_CONTENT)]);
+    const [clinic, content, pharmacy, lab] = await Promise.all([this.clinicPublic(code), this.contentCached().catch(() => DEFAULT_CONTENT), this.products.cachedOverview('PHARMACY'), this.products.cachedOverview('LAB')]);
     const modules: PublicModule[] = [
       { id: 'clinic', status: clinic ? 'OK' : 'UNAVAILABLE', plans: clinic?.plans ?? [] },
-      { id: 'pharmacy', status: 'OK', plans: contentToPublic('pharmacy', content) },
-      { id: 'lab', status: 'OK', plans: contentToPublic('lab', content) },
+      { id: 'pharmacy', status: 'OK', plans: contentToPublic('pharmacy', content, productPublicPrices(pharmacy, code)) },
+      { id: 'lab', status: 'OK', plans: contentToPublic('lab', content, productPublicPrices(lab, code)) },
     ];
     return { contract: 'kiorly.public-plans.v1', generatedAt: new Date().toISOString(), market: clinic?.market ?? null, modules };
   }
@@ -87,7 +88,8 @@ export class SitePlansService {
 
   canChange(u: AuthUser): boolean { return u.roles.includes('super_admin'); }
 
-  private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  /** The Clinic's signed plan routes (audited, role gated by the callers). Also used by the price proposals. */
+  async call<T>(method: string, path: string, body?: unknown): Promise<T> {
     try {
       return (await this.kiorly.request<T>({ method, path, body })).data;
     } catch (e) {
@@ -136,11 +138,12 @@ export class SitePlansService {
     return this.audit(u, 'clinic_plan', id, { fields: Object.keys(clean) }, () => this.call('PATCH', `/plans/${id}`, { ...clean, actor: this.actor(u) }));
   }
 
+  /** Direct publishing is gone (maker-checker): only the preview stays on this route; a price is proposed and a second super admin approves it. */
   publishClinicPrice(u: AuthUser, rawId: string, body: unknown) {
     const id = this.id(rawId);
     const clean = this.pick(body, PRICE_FIELDS);
-    const preview = clean.preview === true;
-    return this.audit(u, preview ? 'clinic_price_preview' : 'clinic_price', id, { marketId: clean.marketId ?? null, interval: clean.interval ?? null, unit: clean.unit ?? null, amount: clean.amount ?? null, currency: clean.currency ?? null, validFrom: clean.validFrom ?? null }, () => this.call('POST', `/plans/${id}/prices`, { ...clean, actor: this.actor(u) }));
+    if (clean.preview !== true) throw conflict('PROPOSAL_REQUIRED', 'A price is proposed first and approved by a second super admin; it is not published directly', { next: 'POST /admin/kiorly-plans/proposals' });
+    return this.audit(u, 'clinic_price_preview', id, { marketId: clean.marketId ?? null, interval: clean.interval ?? null, unit: clean.unit ?? null, amount: clean.amount ?? null, currency: clean.currency ?? null, validFrom: clean.validFrom ?? null }, () => this.call('POST', `/plans/${id}/prices`, { ...clean, actor: this.actor(u) }));
   }
 
   private actor(u: AuthUser) { return { id: u.sub, ...(u.email ? { email: u.email.slice(0, 200) } : {}) }; }

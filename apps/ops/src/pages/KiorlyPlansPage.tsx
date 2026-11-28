@@ -8,13 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CardSkeleton, ErrorState } from "@/components/states";
 import { PageHeader, StatusChip } from "@/components/kit";
-import { formatDateTime } from "@/lib/format";
 import { useAuth } from "@/auth/AuthProvider";
-import { usePatchPlan, usePlansOverview, usePublishPrice, useSaveContent, type ClinicMarket, type ClinicPlan, type ContentConfig, type ContentPlan, type PricePreview } from "@/api/kiorlyPlans";
-import { cleanContent, contentChanged, contentIssues, contentValid, emptyPriceForm, linesToList, listToLines, priceState, sortPrices, toPriceBody, validatePrice, type PriceForm } from "@/lib/kiorlyPlansLogic";
+import { usePatchPlan, usePlansOverview, useSaveContent, type ClinicPlan, type ContentConfig, type ContentPlan } from "@/api/kiorlyPlans";
+import { cleanContent, contentChanged, contentIssues, contentValid, formatWhen, linesToList, listToLines, priceState, sortPrices } from "@/lib/kiorlyPlansLogic";
+import { ProductPricesSection, ProposalsSection, ProposeDialog } from "@/pages/KiorlyPrices";
 import { errorCode } from "@/lib/kiorlyMarketsLogic";
-
-const selectCls = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
 
 function useErrText() {
   const { t } = useTranslation();
@@ -52,55 +50,10 @@ function PlanDialog({ plan, onClose, onDone }: { plan: ClinicPlan; onClose: () =
   );
 }
 
-function PriceDialog({ plan, markets, onClose, onDone }: { plan: ClinicPlan; markets: ClinicMarket[]; onClose: () => void; onDone: () => void }) {
-  const { t } = useTranslation(); const errText = useErrText(); const mut = usePublishPrice();
-  const [f, setF] = useState<PriceForm>(emptyPriceForm(markets.length === 1 ? markets[0] : undefined));
-  const [touched, setTouched] = useState(false); const [err, setErr] = useState<string | null>(null); const [pv, setPv] = useState<PricePreview | null>(null);
-  const bad = validatePrice(f);
-  const fe = (k: keyof typeof bad) => (touched && bad[k] ? <p className="text-xs text-destructive" role="alert">{t(`kiorlyPlans.errors.field.${k}`)}</p> : null);
-  const set = (patch: Partial<PriceForm>) => { setF({ ...f, ...patch }); setPv(null); };
-  const run = (preview: boolean) => {
-    if (mut.isPending) return;
-    setTouched(true);
-    if (Object.keys(validatePrice(f)).length) return;
-    setErr(null);
-    mut.mutate({ id: plan.id, body: toPriceBody(f, preview) }, { onSuccess: (r) => { if (preview) setPv(r as PricePreview); else onDone(); }, onError: (e) => setErr(errText(e)) });
-  };
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o && !mut.isPending) onClose(); }}>
-      <DialogContent className="max-w-xl" data-testid="price-dialog">
-        <DialogHeader><DialogTitle>{t("kiorlyPlans.price.title")}: {plan.nameEn}</DialogTitle><DialogDescription>{t("kiorlyPlans.price.intro")}</DialogDescription></DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div><Label htmlFor="pp-market">{t("kiorlyPlans.price.market")}</Label>
-              <select id="pp-market" className={selectCls} value={f.marketId} onChange={(e) => { const m = markets.find((x) => x.id === e.target.value); set({ marketId: e.target.value, currency: m?.defaultCurrency ?? f.currency }); }}>
-                <option value="">{t("kiorlyPlans.price.pick")}</option>{markets.map((m) => <option key={m.id} value={m.id}>{m.code} - {m.nameEn}</option>)}
-              </select>{fe("market")}</div>
-            <div><Label htmlFor="pp-cur">{t("kiorlyPlans.price.currency")}</Label><Input id="pp-cur" dir="ltr" maxLength={3} value={f.currency} onChange={(e) => set({ currency: e.target.value.toUpperCase() })} />{fe("currency")}</div>
-            <div><Label htmlFor="pp-int">{t("kiorlyPlans.price.interval")}</Label><select id="pp-int" className={selectCls} value={f.interval} onChange={(e) => set({ interval: e.target.value as PriceForm["interval"] })}><option value="MONTHLY">{t("kiorlyPlans.clinic.interval.MONTHLY")}</option><option value="ANNUAL">{t("kiorlyPlans.clinic.interval.ANNUAL")}</option></select></div>
-            <div><Label htmlFor="pp-unit">{t("kiorlyPlans.price.unit")}</Label><select id="pp-unit" className={selectCls} value={f.unit} onChange={(e) => set({ unit: e.target.value as PriceForm["unit"] })}><option value="PER_TENANT">{t("kiorlyPlans.clinic.unit.PER_TENANT")}</option><option value="PER_CLINICIAN">{t("kiorlyPlans.clinic.unit.PER_CLINICIAN")}</option></select></div>
-            <div><Label htmlFor="pp-amount">{t("kiorlyPlans.price.amount")}</Label><Input id="pp-amount" dir="ltr" inputMode="decimal" value={f.amount} onChange={(e) => set({ amount: e.target.value })} />{fe("amount")}</div>
-            <div><Label htmlFor="pp-inc">{t("kiorlyPlans.price.included")}</Label><Input id="pp-inc" dir="ltr" inputMode="numeric" value={f.includedClinicians} onChange={(e) => set({ includedClinicians: e.target.value })} />{fe("included")}</div>
-            <div><Label htmlFor="pp-extra">{t("kiorlyPlans.price.extra")}</Label><Input id="pp-extra" dir="ltr" inputMode="decimal" value={f.extraClinicianAmount} onChange={(e) => set({ extraClinicianAmount: e.target.value })} />{fe("extra")}</div>
-            <div><Label htmlFor="pp-from">{t("kiorlyPlans.price.validFrom")}</Label><Input id="pp-from" dir="ltr" type="datetime-local" value={f.validFrom} onChange={(e) => set({ validFrom: e.target.value })} />{fe("validFrom")}</div>
-          </div>
-          {pv ? <div className="rounded-md bg-muted px-3 py-2 text-sm" role="status" data-testid="price-preview"><b>{t("kiorlyPlans.price.previewTitle")}</b>: {pv.impact && pv.impact.tenantsAffected > 0 ? t("kiorlyPlans.price.previewBody", { count: pv.impact.tenantsAffected, delta: pv.impact.mrrDelta }) : t("kiorlyPlans.price.previewNone")}</div> : <p className="text-xs text-muted-foreground">{t("kiorlyPlans.price.confirm")}</p>}
-          {err ? <p role="alert" className="text-sm text-destructive" data-testid="price-error">{err}</p> : null}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="ghost" onClick={onClose} disabled={mut.isPending}>{t("kiorlyPlans.price.cancel")}</Button>
-            <Button variant="outline" onClick={() => run(true)} disabled={mut.isPending} data-testid="price-preview-btn">{t("kiorlyPlans.price.preview")}</Button>
-            <Button onClick={() => run(false)} disabled={mut.isPending || !pv} data-testid="price-publish">{mut.isPending ? t("kiorlyPlans.price.working") : t("kiorlyPlans.price.publish")}</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function ClinicSection({ canChange }: { canChange: boolean }) {
   const { t, i18n } = useTranslation(); const q = usePlansOverview();
   const [edit, setEdit] = useState<ClinicPlan | null>(null); const [price, setPrice] = useState<ClinicPlan | null>(null); const [note, setNote] = useState<string | null>(null);
-  const c = q.data?.clinic; const markets = c?.markets ?? [];
+  const c = q.data?.clinic; const markets = c?.markets ?? []; const caps = q.data?.capabilities;
   const mcode = (id: string) => markets.find((m) => m.id === id)?.code ?? id;
   const money = (p: { amount: string; currency: string }) => `${p.amount} ${p.currency}`;
   return (
@@ -118,7 +71,7 @@ function ClinicSection({ canChange }: { canChange: boolean }) {
                   <div><h3 className="font-semibold">{p.nameEn} <span className="text-muted-foreground">· {p.nameAr}</span> <span className="font-mono text-xs text-muted-foreground" dir="ltr">{p.key}</span></h3>
                     <StatusChip tone={p.isPublic ? "success" : "neutral"} data-testid={`public-${p.key}`}>{p.isPublic ? t("kiorlyPlans.clinic.public") : t("kiorlyPlans.clinic.hidden")}</StatusChip>
                     <span className="ms-2 text-xs text-muted-foreground">{t("kiorlyPlans.clinic.order")}: {p.sortOrder}</span></div>
-                  {canChange ? <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setEdit(p)} data-testid={`edit-${p.key}`}>{t("kiorlyPlans.clinic.edit")}</Button><Button size="sm" onClick={() => setPrice(p)} data-testid={`new-price-${p.key}`}>{t("kiorlyPlans.clinic.newPrice")}</Button></div> : null}
+                  <div className="flex gap-2">{canChange ? <Button size="sm" variant="outline" onClick={() => setEdit(p)} data-testid={`edit-${p.key}`}>{t("kiorlyPlans.clinic.edit")}</Button> : null}{caps?.canPropose ? <Button size="sm" onClick={() => setPrice(p)} data-testid={`new-price-${p.key}`}>{t("kiorlyPrices.propose.button")}</Button> : null}</div>
                 </div>
                 {rows.length === 0 ? <p className="mt-3 text-sm text-muted-foreground" data-testid={`no-price-${p.key}`}>{t("kiorlyPlans.clinic.noPrices")}</p> : (
                   <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead className="bg-muted/60"><tr>{["market", "interval", "unit", "amount", "included", "version", "from", "to", "state"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{t(`kiorlyPlans.clinic.col.${k}`)}</th>)}</tr></thead>
@@ -126,7 +79,7 @@ function ClinicSection({ canChange }: { canChange: boolean }) {
                       <tr key={r.id} className="border-t" data-testid={`price-${p.key}-${r.priceVersion}-${r.interval}`}>
                         <td className="px-2 py-1.5 font-mono" dir="ltr">{mcode(r.marketId)}</td><td className="px-2 py-1.5">{t(`kiorlyPlans.clinic.interval.${r.interval}`)}</td><td className="px-2 py-1.5">{t(`kiorlyPlans.clinic.unit.${r.unit}`)}</td>
                         <td className="px-2 py-1.5 font-mono" dir="ltr">{money(r)}{r.extraClinicianAmount ? ` (+${r.extraClinicianAmount})` : ""}</td><td className="px-2 py-1.5">{r.includedClinicians}</td><td className="px-2 py-1.5">{r.priceVersion}</td>
-                        <td className="px-2 py-1.5 text-xs" dir="ltr">{formatDateTime(r.validFrom, i18n.language)}</td><td className="px-2 py-1.5 text-xs" dir="ltr">{r.validTo ? formatDateTime(r.validTo, i18n.language) : "-"}</td>
+                        <td className="px-2 py-1.5 text-xs" dir="ltr">{formatWhen(r.validFrom, i18n.language)}</td><td className="px-2 py-1.5 text-xs" dir="ltr">{r.validTo ? formatWhen(r.validTo, i18n.language) : "-"}</td>
                         <td className="px-2 py-1.5"><StatusChip tone={st === "active" ? "success" : st === "scheduled" ? "info" : "neutral"}>{t(`kiorlyPlans.clinic.state.${st}`)}</StatusChip>{r.cohortKey ? <span className="block text-[11px] text-muted-foreground">{t("kiorlyPlans.clinic.cohort")}</span> : null}</td>
                       </tr>); })}</tbody></table></div>
                 )}
@@ -136,7 +89,7 @@ function ClinicSection({ canChange }: { canChange: boolean }) {
         </div>
       )}
       {edit ? <PlanDialog plan={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); setNote(t("kiorlyPlans.saved")); }} /> : null}
-      {price ? <PriceDialog plan={price} markets={markets} onClose={() => setPrice(null)} onDone={() => { setPrice(null); setNote(t("kiorlyPlans.saved")); }} /> : null}
+      {price ? <ProposeDialog product="CLINIC" planRef={price.id} planLabel={price.nameEn} markets={markets} onClose={() => setPrice(null)} onDone={() => { setPrice(null); setNote(t("kiorlyPrices.proposed")); }} /> : null}
     </section>
   );
 }
@@ -197,7 +150,11 @@ export default function KiorlyPlansPage() {
     <div>
       <PageHeader title={t("kiorlyPlans.title")} hint={t("kiorlyPlans.hint")} icon={<Tags />} />
       {!canChange && q.data ? <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm" data-testid="read-only-note">{t("kiorlyPlans.readOnly")}</p> : null}
+      {q.data?.capabilities ? <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm" data-testid="price-rule-note">{t(q.data.capabilities.canApprove ? "kiorlyPrices.rule.superAdmin" : "kiorlyPrices.rule.ops")}</p> : null}
       <ClinicSection canChange={canChange} />
+      <ProductPricesSection product="PHARMACY" markets={q.data?.clinic.markets ?? []} />
+      <ProductPricesSection product="LAB" markets={q.data?.clinic.markets ?? []} />
+      <ProposalsSection />
       <ContentEditor canChange={canChange} />
     </div>
   );

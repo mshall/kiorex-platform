@@ -170,7 +170,23 @@ export function validateContent(raw: unknown): { ok: true; config: ContentConfig
   return errors.length ? { ok: false, errors: errors.slice(0, 30) } : { ok: true, config };
 }
 
-/** The public plans of a Pharmacy or Lab edition list: no price exists to show, so every plan says so (the product's own PlanPrice table is empty, LG-SUB-1). */
-export function contentToPublic(module: ContentModule, c: ContentConfig): PublicPlan[] {
-  return c[module].plans.filter((p) => p.visible).map((p): PublicPlan => ({ id: p.id, name: p.name, summary: p.summary.en || p.summary.ar ? p.summary : null, limits: p.limits, features: p.features, priceStatus: 'TO_BE_ANNOUNCED', prices: [] }));
+/** Active prices (in force now) of a product's editions for one market, as the public contract carries them. Only what the product holds and has published; nothing else. */
+export function productPublicPrices(o: { prices: Array<{ edition: string; marketCode: string; interval: string; currency: string; amount: string; validFrom: string; validTo: string | null }> } | null, market: string, now: Date = new Date()): Map<string, PublicPrice[]> {
+  const out = new Map<string, PublicPrice[]>();
+  for (const x of o?.prices ?? []) {
+    if (x.marketCode !== market || !['MONTHLY', 'ANNUAL'].includes(x.interval) || money(x.amount) === null || !/^[A-Z]{3}$/.test(x.currency)) continue;
+    if (new Date(x.validFrom) > now || (x.validTo && new Date(x.validTo) <= now)) continue;
+    const list = out.get(x.edition.toLowerCase()) ?? [];
+    list.push({ interval: x.interval as PublicPrice['interval'], unit: 'PER_TENANT', amount: money(x.amount)!, currency: x.currency, includedClinicians: 0, extraClinicianAmount: null });
+    out.set(x.edition.toLowerCase(), list.sort((a, b) => (a.interval === b.interval ? 0 : a.interval === 'MONTHLY' ? -1 : 1)));
+  }
+  return out;
+}
+
+/** The public plans of a Pharmacy or Lab edition list. A price shows only when the product has published one that is in force now; otherwise the plan says so (the tables start empty, LG-SUB-1/6/7). */
+export function contentToPublic(module: ContentModule, c: ContentConfig, prices: Map<string, PublicPrice[]> = new Map()): PublicPlan[] {
+  return c[module].plans.filter((p) => p.visible).map((p): PublicPlan => {
+    const mine = prices.get(p.id) ?? [];
+    return { id: p.id, name: p.name, summary: p.summary.en || p.summary.ar ? p.summary : null, limits: p.limits, features: p.features, priceStatus: mine.length ? 'SET' : 'TO_BE_ANNOUNCED', prices: mine };
+  });
 }
