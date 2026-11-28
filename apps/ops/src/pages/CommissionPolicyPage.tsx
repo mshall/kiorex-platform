@@ -162,7 +162,7 @@ export default function CommissionPolicyPage() {
           <h3 className="mt-4 text-sm font-semibold">{t("commissions.policyPage.history")}</h3>
           <History rows={s.disclosure.history} caps={c} onDecide={(id, approve) => decide.mutate({ id, approve })} summary={(r) => ((r.payload as { rateDisclosure?: Text }).rateDisclosure?.en || (r.payload as { rateDisclosure?: Text }).rateDisclosure?.ar ? t("commissions.policyPage.disclosure.wordingEntered") : t("commissions.policyPage.disclosure.notSetShort"))} />
         </Wrap>
-        <Settlement canExport={!!c.export} />
+        {c.read && <Settlement canExport={!!c.export} />}
       </div>;
     })()}
   </div>;

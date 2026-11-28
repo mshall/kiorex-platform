@@ -1,7 +1,8 @@
 {
  "en": {
   "nav": {
-   "home": "Home"
+   "home": "Home",
+   "commissionPolicy": "Commission policy"
   },
   "auth": {
    "kiorlyOnlyTitle": "Use the Kiorly admin",
@@ -194,7 +195,8 @@
  },
  "ar": {
   "nav": {
-   "home": "الرئيسية"
+   "home": "الرئيسية",
+   "commissionPolicy": "سياسة العمولات"
   },
   "auth": {
    "kiorlyOnlyTitle": "استخدم لوحة كيورلي",

@@ -55,7 +55,7 @@ describe("layout per edition", () => {
     const { unmount } = renderOps(shell(OpsLayout), { route: "/providers" });
     const links = [...screen.getByTestId("sidebar-nav").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(links.length).toBeGreaterThan(5);
-    for (const href of links) expect(["/home", "/providers", "/orders", "/fees", "/commissions", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/kiorly-plans", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
+    for (const href of links) expect(["/home", "/providers", "/orders", "/fees", "/commissions", "/commission-policy", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/kiorly-plans", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
     expect(links).not.toContain("/bookings"); expect(links).not.toContain("/safety"); expect(links).not.toContain("/growth-analytics");
     expect(screen.queryByTestId("growth-nav")).toBeNull(); expect(screen.queryByTestId("mobile-growth-link")).toBeNull();
     const logo = screen.getByTestId("kiorly-logo"); expect(logo.querySelector("img")?.getAttribute("src")).toBe("/kiorly/kiorly-lockup.svg");
