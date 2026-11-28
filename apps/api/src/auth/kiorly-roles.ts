@@ -42,6 +42,9 @@ export const KIORLY_ALLOW: readonly KiorlyRoute[] = [
   g('admin/leads'), g('admin/leads/summary'), g('admin/leads/owners'), g('admin/leads/settings'), g('admin/leads/:id'),
   { m: 'PATCH', path: 'admin/leads/:id', level: 'ops', note: 'status, owner, tags (isTest stays super_admin inside the service)' }, p('admin/leads/:id/notes'),
   g('admin/leads/export.csv', 'admin', 'decrypted contact details of many requests'),
+  // DRAFT onboarding requests created by won join requests (reference only, no contact data, no patient identifier). Approve and reject stay super_admin (not listed).
+  g('admin/lead-onboarding'), g('admin/lead-onboarding/:id'), { m: 'PATCH', path: 'admin/lead-onboarding/:id', level: 'ops' }, p('admin/lead-onboarding/by-lead/:leadId'),
+  p('admin/lead-onboarding/:id/submit'), p('admin/lead-onboarding/:id/cancel'), p('admin/lead-onboarding/:id/reopen'),
   // partner leads ("Talk to us")
   g('admin/partner-leads'), g('admin/partner-leads/funnel'), g('admin/partner-leads/unread'), g('admin/partner-leads/alerts'), p('admin/partner-leads/seen'),
   { m: 'PATCH', path: 'admin/partner-leads/:id', level: 'ops' }, p('admin/partner-leads/:id/notes'),
