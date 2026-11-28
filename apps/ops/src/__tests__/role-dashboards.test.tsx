@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext, type AuthCtx } from "@/auth/AuthProvider";
 import { RequireOps } from "@/auth/RequireOps";
@@ -21,7 +21,7 @@ function mount(roles: string[], route = "/home", lang: "en" | "ar" = "en") {
   return render(
     <QueryClientProvider client={qc}><AuthContext.Provider value={ctx(roles)}><MemoryRouter initialEntries={[route]}>
       <RequireOps><Routes><Route element={<OpsLayout />}>
-        <Route path="/home" element={<RoleHomePage />} /><Route path="/orders" element={<p>orders page</p>} /><Route path="/leads" element={<p>leads page</p>} /><Route path="/providers" element={<p>providers page</p>} />
+        <Route index element={<Navigate to="/home" replace />} /><Route path="/home" element={<RoleHomePage />} /><Route path="/orders" element={<p>orders page</p>} /><Route path="/leads" element={<p>leads page</p>} /><Route path="/providers" element={<p>providers page</p>} />
         <Route path="*" element={<NoAccessPage />} />
       </Route></Routes></RequireOps>
     </MemoryRouter></AuthContext.Provider></QueryClientProvider>,
@@ -95,6 +95,13 @@ describe("role dashboards", () => {
     expect(screen.getByTestId("dash-aging")).toHaveTextContent("2"); expect(screen.getByTestId("dash-matching")).toHaveTextContent("1"); expect(screen.getByTestId("dash-runs")).toHaveTextContent("2026-11");
     const hrefs = [...screen.getByTestId("sidebar-nav").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(hrefs).toContain("/commissions"); expect(hrefs).not.toContain("/orders"); expect(hrefs).not.toContain("/flags");
+  });
+
+  it("the bare address (/) lands on the role home, never on the no-access page", async () => {
+    server.use(J("/admin/commissions/summary", { figures: {}, counts: {} }), J("/admin/commissions/aging", { buckets: {}, rows: [] }), J("/admin/commissions/disputes", []), J("/admin/commissions/reconciliation", []), J("/admin/commissions/runs", { items: [] }), J("/admin/payments/matching/queue", []));
+    mount(["finance"], "/");
+    await waitFor(() => expect(screen.getByTestId("role-home")).toHaveAttribute("data-role", "finance"));
+    expect(screen.queryByTestId("no-access-page")).toBeNull();
   });
 
   it("a refused route (typed by hand) shows the no-access page inside the console, not the page", async () => {

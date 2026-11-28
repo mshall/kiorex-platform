@@ -47,7 +47,7 @@ export function OpsLayout() {
   // navigation shows only what this person's roles may open (lib/roleAccess.ts); the Home entry is always first
   const roles = user?.roles ?? [];
   const VISIBLE_NAV: ReadonlyArray<{ readonly to: string; readonly icon: typeof LayoutDashboard; readonly key: string }> = [{ to: "/home", icon: LayoutDashboard, key: "home" }, ...EDITION_NAV.filter((n) => canOpen(roles, n.to))];
-  const allowed = pathname === "/no-access" || canOpen(roles, pathname);
+  const allowed = pathname === "/" || pathname === "/no-access" || canOpen(roles, pathname); // "/" is only the index redirect to /home
   const showGrowth = !isKiorly && canOpen(roles, "/growth");
   return (
     <div className="flex min-h-screen">
