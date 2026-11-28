@@ -18,6 +18,7 @@ export function resolveEdition(env: { VITE_OPS_EDITION?: string; VITE_KIORLY_ADM
 
 export const OPS_EDITION: OpsEdition = resolveEdition(import.meta.env, typeof window === "undefined" ? "" : window.location.hostname);
 export const isKiorly = OPS_EDITION === "kiorly";
+if (typeof document !== "undefined") document.documentElement.dataset.edition = OPS_EDITION; // theming hook: Kiorly edition keeps the Kiorly type kit
 
 /**
  * Views of the Kiorly admin: what concerns the provider products (clinics, pharmacies, labs): the provider directory, onboarding and leads, orders, fees,

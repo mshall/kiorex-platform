@@ -1,6 +1,8 @@
 @import '../brand/tokens.css' layer(base);
 @import '../brand/shadcn-bridge.css' layer(base);
 @import '../brand/kiorex-logo/fonts.css' layer(base);
+@import '../brand/kiorex-logo/kiorex-ui-fonts.css' layer(base);
+@import './edition-fonts.css' layer(base);
 @import 'tailwindcss';
 
 @config '../../tailwind.config.ts';

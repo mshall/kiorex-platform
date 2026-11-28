@@ -12,8 +12,8 @@ export default {
     container: { center: true, padding: "1rem", screens: { "2xl": "1200px" } },
     extend: {
       fontFamily: {
-        sans: ["Jost", "IBM Plex Sans Arabic", "system-ui", "sans-serif"],
-        arabic: ["IBM Plex Sans Arabic", "Jost", "system-ui", "sans-serif"],
+        sans: ["var(--kx-font)"],
+        arabic: ["var(--kx-font-ar)"],
       },
       colors: {
         border: hsl("border"),
