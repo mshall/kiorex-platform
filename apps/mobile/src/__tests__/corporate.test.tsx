@@ -66,7 +66,7 @@ describe("corporate screen (EN)", () => {
 describe("corporate screen (AR)", () => {
   it("renders Arabic text, Arabic-Indic digits for the allowance and the code field stays left-to-right", async () => {
     await setLang("ar"); mockMe = { data: member(), isLoading: false }; await wrap(<CorporateScreen />);
-    expect(screen.getByText("أنت في برنامج Nile Logistics")).toBeTruthy(); expect(screen.getByLabelText(/رصيدك المسموح: .*٣٠٠/)).toBeTruthy();
+    expect(screen.getByText("أنت في برنامج Nile Logistics")).toBeTruthy(); expect(screen.getByLabelText(/رصيدك المسموح: .*300/)).toBeTruthy();
     mockMe = { data: { member: false }, isLoading: false }; await wrap(<CorporateScreen />);
     expect(screen.getAllByTestId("corporate-code").at(-1)!.props.style).toEqual(expect.arrayContaining([expect.objectContaining({ writingDirection: "ltr", textAlign: "left" })]));
   });

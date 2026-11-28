@@ -1,3 +1,4 @@
+import "./lib/western-digits";
 import { renderToPipeableStream } from "react-dom/server";
 import { Writable } from "node:stream";
 import { createElement } from "react";

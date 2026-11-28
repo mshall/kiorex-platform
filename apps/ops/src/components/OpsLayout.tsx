@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Globe2, Tags, Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, Inbox, LogOut, MessagesSquare, Moon, Plug, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
@@ -36,6 +37,7 @@ const VISIBLE_NAV = isKiorly ? NAV.filter((n) => (KIORLY_ROUTES as readonly stri
 
 export function OpsLayout() {
   const { t, i18n } = useTranslation();
+  usePageTitle(isKiorly ? t("edition.kiorlyTitle") : "Kiorex Ops");
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();

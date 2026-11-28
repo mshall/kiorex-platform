@@ -1,4 +1,4 @@
-const loc = (lang: string) => (lang.startsWith("ar") ? "ar-EG" : "en-GB");
+const loc = (lang: string) => (lang.startsWith("ar") ? "ar-EG-u-nu-latn" : "en-GB");
 const TZ = "Africa/Cairo";
 
 export const formatMoney = (egp: number, lang: string) =>

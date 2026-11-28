@@ -1,6 +1,6 @@
 import type { Lang } from './i18n';
 
-const loc = (l: Lang) => (l === 'ar' ? 'ar-EG' : 'en-GB');
+const loc = (l: Lang) => (l === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB');
 export const fmtMoney = (minor: number, cur: string, l: Lang): string => `${new Intl.NumberFormat(loc(l), { maximumFractionDigits: 0 }).format(Math.round(minor / 100))} ${cur === 'EGP' ? (l === 'ar' ? 'ج.م' : 'EGP') : cur}`;
 export const fmtDay = (iso: string, l: Lang, tz: string): string => new Intl.DateTimeFormat(loc(l), { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz }).format(new Date(iso));
 export const fmtDayLong = (iso: string, l: Lang, tz: string): string => new Intl.DateTimeFormat(loc(l), { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }).format(new Date(iso));

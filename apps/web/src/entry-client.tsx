@@ -1,3 +1,4 @@
+import "./lib/western-digits";
 import { hydrateRoot } from "react-dom/client";
 import { createElement } from "react";
 import "./public/public.css";

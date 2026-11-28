@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -57,7 +58,8 @@ function NotificationBell() {
 }
 
 export function AppLayout() {
-  const { t } = useTranslation();
+  const { t, i18n: pageI18n } = useTranslation();
+  usePageTitle(pageI18n.language.startsWith("ar") ? "كيوريكس" : "Kiorex");
   const { status, login, logout } = useAuth();
   const signedIn = status === "signedIn";
   const { pathname } = useLocation();

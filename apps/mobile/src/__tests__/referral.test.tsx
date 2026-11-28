@@ -62,7 +62,7 @@ describe("invite screen (EN)", () => {
 describe("invite screen (AR, RTL numbers)", () => {
   it("renders Arabic copy with Arabic-Indic digits", async () => {
     await setLang("ar"); await wrap(<ReferralScreen />);
-    expect(screen.getByText("أصدقاء تمت دعوتهم")).toBeTruthy(); expect(screen.getByTestId("count-invited")).toBeTruthy(); expect(screen.getByLabelText(/٥/)).toBeTruthy();
+    expect(screen.getByText("أصدقاء تمت دعوتهم")).toBeTruthy(); expect(screen.getByTestId("count-invited")).toBeTruthy(); expect(screen.getByLabelText(/5/)).toBeTruthy();
   });
 });
 describe("rewards screen", () => {
