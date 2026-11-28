@@ -85,7 +85,7 @@ export class SiteDataService {
     };
   }
 
-  private homeCrumb(locale: Locale, cc: string): Crumb { return { label: { en: 'Kiorex', ar: 'كيوركس' }, path: buildPath(locale, cc, 'home') }; }
+  private homeCrumb(locale: Locale, cc: string): Crumb { return { label: { en: 'Kiorex', ar: 'كيوريكس' }, path: buildPath(locale, cc, 'home') }; }
 
   private spLabel(code: string): Bilingual { return isSpecialtyCode(code) ? SPECIALTY_LABELS[code] : { en: code, ar: code }; }
 

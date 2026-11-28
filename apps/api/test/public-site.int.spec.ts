@@ -100,7 +100,7 @@ describe('public site SSR (GRW-P1-E)', () => {
       const d = doc(r.text);
       expect(d.lang).toEqual(['ar', 'rtl']);
       expect(d.h1).toBe('د. سارة حسن');
-      expect(d.title).toContain('كيوركس');
+      expect(d.title).toContain('كيوريكس');
       expect(d.canonical).toBe(`${HOST}/ar/eg/doctor/sara-hassan`);
       expect(r.headers['content-language']).toBe('ar');
     });

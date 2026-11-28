@@ -38,7 +38,7 @@ describe("sponsored discount at checkout (GRW-P2-S)", () => {
     server.use(http.get(Q, () => HttpResponse.json(quote())));
     const b = await hold(); page(b.id, "ar");
     expect(await screen.findByTestId("sponsored-label")).toHaveTextContent("خصم برعاية عيادة النيل حتى 2027-02-10");
-    expect(document.documentElement.dir).toBe("rtl"); expect(screen.getByTestId("sponsored-note")).toHaveTextContent("ليس خصمًا من كيوركس");
+    expect(document.documentElement.dir).toBe("rtl"); expect(screen.getByTestId("sponsored-note")).toHaveTextContent("ليس خصمًا من كيوريكس");
   });
   it("shows nothing when there is no quote, when the flag is OFF (403) or on an outage; the deposit is the full amount", async () => {
     for (const res of [() => HttpResponse.json({ quote: null }), () => HttpResponse.json({ code: "FEATURE_DISABLED" }, { status: 403 }), () => HttpResponse.json({}, { status: 500 })]) {

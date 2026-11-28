@@ -113,7 +113,7 @@ export const INTEGRATIONS: readonly IntegrationDef[] = [
   { key: 'TURN_VIDEO', group: 'platform', label: { en: 'Video: Cloudflare STUN/TURN (Clinic owns the call)', ar: 'الفيديو: كلاودفلير (العيادة تدير المكالمة)' }, owner: 'clinic', observable: false,
     requiredEnv: ['VIDEO_MODE'], optionalEnv: [], modeOf: (env) => (env.VIDEO_MODE === 'clinic-p2p' ? 'real' : 'mock'), problems: (env) => videoProblems(env),
     runbook: { file: 'INTEGRATION_GO_LIVE_RUNBOOK.md', anchor: 'video-turn' }, needsHuman: ['NH-TURN'], note: 'Kiorex only stores the session id and join link. TURN credentials live in the Clinic (TELEHEALTH_TURN_SECRET_NAME, a Secrets Manager name): verify them in the Clinic deployment.' },
-  { key: 'PASSPORT_IDP', group: 'platform', label: { en: 'Kiorex Passport (identity provider)', ar: 'كيوركس باسبورت (مزود الهوية)' }, owner: 'passport', observable: true,
+  { key: 'PASSPORT_IDP', group: 'platform', label: { en: 'Kiorex Passport (identity provider)', ar: 'كيوريكس باسبورت (مزود الهوية)' }, owner: 'passport', observable: true,
     requiredEnv: ['OIDC_ISSUER', 'OIDC_AUDIENCE'], optionalEnv: [], modeOf: (env) => (/^https:\/\/(?!localhost)/.test(env.OIDC_ISSUER ?? '') ? 'real' : 'mock'),
     problems: (env) => (env.NODE_ENV === 'production' && !/^https:\/\//.test(env.OIDC_ISSUER ?? '') ? ['OIDC_ISSUER must be the https issuer of the production identity provider'] : []),
     runbook: { file: 'INTEGRATION_GO_LIVE_RUNBOOK.md', anchor: 'passport' }, needsHuman: ['NH-IDP'], note: 'real = a non-local https issuer. The Cognito pool, hosted domain and client registration are NEEDS_HUMAN.' },

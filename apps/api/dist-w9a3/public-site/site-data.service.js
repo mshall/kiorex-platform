@@ -92,7 +92,7 @@ let SiteDataService = class SiteDataService {
             nextSlotAt: slots[0]?.toISOString() ?? null,
         };
     }
-    homeCrumb(locale, cc) { return { label: { en: 'Kiorex', ar: 'كيوركس' }, path: (0, url_policy_1.buildPath)(locale, cc, 'home') }; }
+    homeCrumb(locale, cc) { return { label: { en: 'Kiorex', ar: 'كيوريكس' }, path: (0, url_policy_1.buildPath)(locale, cc, 'home') }; }
     spLabel(code) { return (0, safety_public_1.isSpecialtyCode)(code) ? safety_public_1.SPECIALTY_LABELS[code] : { en: code, ar: code }; }
     link(f, locale, cc, label) {
         return { label, path: (0, url_policy_1.buildPath)(locale, cc, f.type, f.params), count: f.providers.length };

@@ -47,7 +47,7 @@ export const DEFAULT_TEMPLATES: Record<Locale, Record<TemplateKey, Tpl>> = {
   },
 };
 
-export const BRAND: Record<Locale, string> = { en: "Kiorex", ar: "كيوركس" };
+export const BRAND: Record<Locale, string> = { en: "Kiorex", ar: "كيوريكس" };
 export const COUNTRY: Record<string, Bi> = { eg: { en: "Egypt", ar: "مصر" } };
 interface Bi { en: string; ar: string }
 

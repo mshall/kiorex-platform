@@ -19,7 +19,7 @@ export const ALLOWED_TYPES = ["Organization", "WebSite", "BreadcrumbList", "List
 export const FORBIDDEN_KEYS = ["telephone", "email", "faxNumber", "streetAddress", "postalCode", "geo", "latitude", "longitude", "hasMap", "openingHours", "openingHoursSpecification", "review", "priceRange", "paymentAccepted", "medicalAudience", "healthPlanNetworkId", "isAcceptingNewPatientsFrom", "sameAs"] as const;
 
 export function organization(host: string): JsonLd {
-  return { "@context": ctx, "@type": "Organization", name: "Kiorex", alternateName: "كيوركس", url: host, logo: abs(host, "/apple-touch-icon.png") };
+  return { "@context": ctx, "@type": "Organization", name: "Kiorex", alternateName: "كيوريكس", url: host, logo: abs(host, "/apple-touch-icon.png") };
 }
 export function website(host: string, locale: Locale, cc: string): JsonLd {
   return { "@context": ctx, "@type": "WebSite", name: "Kiorex", url: abs(host, `/${locale}/${cc}`), inLanguage: locale };

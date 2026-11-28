@@ -14,7 +14,7 @@ export function clamp(s: string, max: number): string {
   return `${(sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:|\-–—]+$/, "")}…`;
 }
 
-const SUFFIX: Record<Locale, string> = { ar: "كيوركس", en: "Kiorex" };
+const SUFFIX: Record<Locale, string> = { ar: "كيوريكس", en: "Kiorex" };
 
 /** `Page title | Kiorex`, at most 60 characters: the brand suffix is dropped before the page title is cut. */
 export function buildTitle(page: string, locale: Locale): string {

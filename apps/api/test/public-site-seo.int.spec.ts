@@ -236,9 +236,9 @@ describe('SEO templates, slugs and structured data (GRW-P1-F)', () => {
       await activateSeo({ templates: { ar: { city: { title: 'قلب {city} ({count})' }, hub: { title: '{nme}' } }, en: { doctor: { title: '<b>{name}</b>' } } } });
       const { SeoConfigService } = await import('../src/public-site/seo-config.service');
       c.get(SeoConfigService).invalidate(); purge();
-      expect(meta((await get('/ar/eg/doctors/cardiology/cairo').expect(200)).text).title).toBe('قلب القاهرة (3) | كيوركس');
+      expect(meta((await get('/ar/eg/doctors/cardiology/cairo').expect(200)).text).title).toBe('قلب القاهرة (3) | كيوريكس');
       expect(meta((await get('/en/eg/doctors/cardiology/cairo').expect(200)).text).title).toBe('Cardiology doctors in Cairo | Kiorex'); // English untouched
-      expect(meta((await get('/ar/eg/doctors/cardiology').expect(200)).text).title).toBe('أطباء القلب | كيوركس'); // invalid placeholder: default kept
+      expect(meta((await get('/ar/eg/doctors/cardiology').expect(200)).text).title).toBe('أطباء القلب | كيوريكس'); // invalid placeholder: default kept
       expect(meta((await get('/en/eg/doctor/mona-adel').expect(200)).text).title).toBe('Dr Mona Adel, Cardiology | Kiorex'); // markup refused
     });
   });

@@ -123,7 +123,7 @@ let SeoAutomationService = class SeoAutomationService {
         const s = await this.site.snapshot(market);
         const labels = new Map();
         const sp = (code) => ((0, safety_public_1.isSpecialtyCode)(code) ? safety_public_1.SPECIALTY_LABELS[code] : bil(code));
-        labels.set('home:', bil('Kiorex', 'كيوركس'));
+        labels.set('home:', bil('Kiorex', 'كيوريكس'));
         for (const f of s.facets) {
             const place = f.district ?? f.city;
             const spec = f.specialtyCode ? sp(f.specialtyCode) : null;

@@ -2,7 +2,7 @@
 
 exports[`AR and EN structure snapshots for every public page type > ar care-district 1`] = `
 {
-  "description": "30 من مقدّمي التمريض المنزلي الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز زيارة مؤكدة على كيوركس.",
+  "description": "30 من مقدّمي التمريض المنزلي الموثّقين في المعادي، القاهرة. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. احجز زيارة مؤكدة على كيوريكس.",
   "faq": 3,
   "h1": [
     "التمريض المنزلي في المعادي",
@@ -36,13 +36,13 @@ exports[`AR and EN structure snapshots for every public page type > ar care-dist
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "التمريض المنزلي في المعادي، القاهرة | كيوركس",
+  "title": "التمريض المنزلي في المعادي، القاهرة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar city 1`] = `
 {
-  "description": "30 من أطباء القلب الموثّقين في القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من أطباء القلب الموثّقين في القاهرة. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء القلب في القاهرة",
@@ -76,13 +76,13 @@ exports[`AR and EN structure snapshots for every public page type > ar city 1`] 
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء القلب في القاهرة | كيوركس",
+  "title": "أطباء القلب في القاهرة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar city-hub 1`] = `
 {
-  "description": "30 من مقدّمي الرعاية الموثّقين في القاهرة: أطباء بكل التخصصات ورعاية منزلية. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من مقدّمي الرعاية الموثّقين في القاهرة: أطباء بكل التخصصات ورعاية منزلية. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء ورعاية صحية في القاهرة",
@@ -118,13 +118,13 @@ exports[`AR and EN structure snapshots for every public page type > ar city-hub 
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء ورعاية صحية في القاهرة | كيوركس",
+  "title": "أطباء ورعاية صحية في القاهرة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar clinic 1`] = `
 {
-  "description": "عيادة النيل: 1 من الأطباء يمكنك الحجز عندهم أونلاين في Maadi، Cairo. مواعيد حقيقية وتقييمات صادقة على كيوركس.",
+  "description": "عيادة النيل: 1 من الأطباء يمكنك الحجز عندهم أونلاين في Maadi، Cairo. مواعيد حقيقية وتقييمات صادقة على كيوريكس.",
   "faq": 2,
   "h1": [
     "عيادة النيل",
@@ -147,13 +147,13 @@ exports[`AR and EN structure snapshots for every public page type > ar clinic 1`
     "MedicalClinic",
     "BreadcrumbList",
   ],
-  "title": "عيادة النيل | كيوركس",
+  "title": "عيادة النيل | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar district 1`] = `
 {
-  "description": "30 من أطباء القلب الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من أطباء القلب الموثّقين في المعادي، القاهرة. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. متوسط التقييم 4.4 من 40 تقييم. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء القلب في المعادي",
@@ -186,13 +186,13 @@ exports[`AR and EN structure snapshots for every public page type > ar district 
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء القلب في المعادي، القاهرة | كيوركس",
+  "title": "أطباء القلب في المعادي، القاهرة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar district-hub 1`] = `
 {
-  "description": "30 من مقدّمي الرعاية الموثّقين في المعادي، القاهرة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من مقدّمي الرعاية الموثّقين في المعادي، القاهرة. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء ورعاية صحية في المعادي، القاهرة",
@@ -226,13 +226,13 @@ exports[`AR and EN structure snapshots for every public page type > ar district-
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء ورعاية صحية في المعادي، القاهرة | كيوركس",
+  "title": "أطباء ورعاية صحية في المعادي، القاهرة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar doctor 1`] = `
 {
-  "description": "احجز د. سارة حسن، القلب في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وحجز مؤكد على كيوركس.",
+  "description": "احجز د. سارة حسن، القلب في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وحجز مؤكد على كيوريكس.",
   "faq": 3,
   "h1": [
     "د. سارة حسن",
@@ -257,13 +257,13 @@ exports[`AR and EN structure snapshots for every public page type > ar doctor 1`
     "Physician",
     "BreadcrumbList",
   ],
-  "title": "د. سارة حسن، القلب | كيوركس",
+  "title": "د. سارة حسن، القلب | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar home 1`] = `
 {
-  "description": "ابحث عن أطباء وعيادات ورعاية منزلية موثّقة في مصر. شاهد المواعيد الحقيقية واقرأ تقييمات صادقة واحجز موعدًا مؤكدًا على كيوركس.",
+  "description": "ابحث عن أطباء وعيادات ورعاية منزلية موثّقة في مصر. شاهد المواعيد الحقيقية واقرأ تقييمات صادقة واحجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "اعثر على طبيبك واحجز موعدًا حقيقيًا",
@@ -289,13 +289,13 @@ exports[`AR and EN structure snapshots for every public page type > ar home 1`] 
     "Organization",
     "WebSite",
   ],
-  "title": "احجز طبيبك في مصر | كيوركس",
+  "title": "احجز طبيبك في مصر | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar hub 1`] = `
 {
-  "description": "30 من أطباء القلب الموثّقين. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. قارن التقييمات واللغات ثم احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من أطباء القلب الموثّقين. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. قارن التقييمات واللغات ثم احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء القلب",
@@ -328,13 +328,13 @@ exports[`AR and EN structure snapshots for every public page type > ar hub 1`] =
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء القلب | كيوركس",
+  "title": "أطباء القلب | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar lab 1`] = `
 {
-  "description": "احجز تحاليلك لدى معمل النيل عبر كيوركس واطّلع على النتيجة في التطبيق عندما ينشرها المعمل.",
+  "description": "احجز تحاليلك لدى معمل النيل عبر كيوريكس واطّلع على النتيجة في التطبيق عندما ينشرها المعمل.",
   "faq": 2,
   "h1": [
     "معمل النيل",
@@ -357,7 +357,7 @@ exports[`AR and EN structure snapshots for every public page type > ar lab 1`] =
     "MedicalBusiness",
     "BreadcrumbList",
   ],
-  "title": "معمل النيل، معمل تحاليل | كيوركس",
+  "title": "معمل النيل، معمل تحاليل | كيوريكس",
 }
 `;
 
@@ -376,13 +376,13 @@ exports[`AR and EN structure snapshots for every public page type > ar not-found
     "/search",
   ],
   "jsonLd": [],
-  "title": "الصفحة غير موجودة | كيوركس",
+  "title": "الصفحة غير موجودة | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar nurse 1`] = `
 {
-  "description": "احجز د. سارة حسن للرعاية في المنزل في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وزيارة مؤكدة على كيوركس.",
+  "description": "احجز د. سارة حسن للرعاية في المنزل في Maadi، Cairo. متوسط التقييم 4.6 من 12 تقييم. مواعيد حقيقية وزيارة مؤكدة على كيوريكس.",
   "faq": 3,
   "h1": [
     "د. سارة حسن",
@@ -407,13 +407,13 @@ exports[`AR and EN structure snapshots for every public page type > ar nurse 1`]
     "MedicalBusiness",
     "BreadcrumbList",
   ],
-  "title": "د. سارة حسن، تمريض منزلي | كيوركس",
+  "title": "د. سارة حسن، تمريض منزلي | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar pharmacy 1`] = `
 {
-  "description": "اطلب وصفتك من صيدلية النيل عبر كيوركس وتابع الطلب من هاتفك.",
+  "description": "اطلب وصفتك من صيدلية النيل عبر كيوريكس وتابع الطلب من هاتفك.",
   "faq": 2,
   "h1": [
     "صيدلية النيل",
@@ -436,13 +436,13 @@ exports[`AR and EN structure snapshots for every public page type > ar pharmacy 
     "Pharmacy",
     "BreadcrumbList",
   ],
-  "title": "صيدلية النيل، صيدلية | كيوركس",
+  "title": "صيدلية النيل، صيدلية | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar same-day 1`] = `
 {
-  "description": "30 من أطباء القلب الموثّقين لديهم موعد خلال 24 ساعة. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من أطباء القلب الموثّقين لديهم موعد خلال 24 ساعة. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "أطباء القلب متاحون اليوم",
@@ -475,13 +475,13 @@ exports[`AR and EN structure snapshots for every public page type > ar same-day 
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "أطباء القلب متاحون اليوم | كيوركس",
+  "title": "أطباء القلب متاحون اليوم | كيوريكس",
 }
 `;
 
 exports[`AR and EN structure snapshots for every public page type > ar telemedicine 1`] = `
 {
-  "description": "30 من أطباء القلب الموثّقين يقدّمون استشارات بالفيديو. الرسوم من ‏٣٠٠ ج.م.‏ إلى ‏٤٥٠ ج.م.‏. احجز موعدًا مؤكدًا على كيوركس.",
+  "description": "30 من أطباء القلب الموثّقين يقدّمون استشارات بالفيديو. الرسوم من ‏300 ج.م.‏ إلى ‏450 ج.م.‏. احجز موعدًا مؤكدًا على كيوريكس.",
   "faq": 3,
   "h1": [
     "استشارات القلب بالفيديو",
@@ -515,7 +515,7 @@ exports[`AR and EN structure snapshots for every public page type > ar telemedic
     "BreadcrumbList",
     "ItemList",
   ],
-  "title": "استشارات القلب بالفيديو | كيوركس",
+  "title": "استشارات القلب بالفيديو | كيوريكس",
 }
 `;
 

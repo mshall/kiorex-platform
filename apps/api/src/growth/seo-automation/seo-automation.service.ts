@@ -102,7 +102,7 @@ export class SeoAutomationService implements SeoQualityPort, OnModuleInit {
     if (hit && Date.now() - hit.at < 60_000) return hit.labels;
     const s = await this.site.snapshot(market); const labels = new Map<string, { en: string; ar: string }>();
     const sp = (code: string) => (isSpecialtyCode(code) ? SPECIALTY_LABELS[code] : bil(code));
-    labels.set('home:', bil('Kiorex', 'كيوركس'));
+    labels.set('home:', bil('Kiorex', 'كيوريكس'));
     for (const f of s.facets) {
       const place = f.district ?? f.city; const spec = f.specialtyCode ? sp(f.specialtyCode) : null;
       const key = pageKeyOf(f.type, f.params);

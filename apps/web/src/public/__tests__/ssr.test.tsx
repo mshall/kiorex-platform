@@ -67,7 +67,7 @@ describe("GRW-P3-F computed internal links render in the server HTML", () => {
       const out = await render(toInput(state(locale, "doctor", path, { ...doctor, computedLinks: groups })));
       expect(out.html).toContain("data-computed-links");
       expect(out.html).toContain('href="/en/eg/clinic/nile-clinic"'); expect(out.html).toContain('href="/en/eg/doctors/cardiology/giza/dokki"');
-      expect(out.html).toContain(locale === "en" ? "More from Kiorex" : "المزيد من كيوركس");
+      expect(out.html).toContain(locale === "en" ? "More from Kiorex" : "المزيد من كيوريكس");
       expect(out.html).toContain(locale === "en" ? "Nearby districts" : "مناطق مجاورة");
       expect(out.html).not.toMatch(/<script/);
     }

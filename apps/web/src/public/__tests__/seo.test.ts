@@ -6,7 +6,7 @@ import { card, doctor } from "./fixtures";
 describe("meta shaping", () => {
   it("title keeps the brand suffix when it fits and never exceeds 60 characters", () => {
     expect(buildTitle("Dr Sara Hassan, Cardiology", "en")).toBe("Dr Sara Hassan, Cardiology | Kiorex");
-    expect(buildTitle("د. سارة حسن، القلب", "ar")).toBe("د. سارة حسن، القلب | كيوركس");
+    expect(buildTitle("د. سارة حسن، القلب", "ar")).toBe("د. سارة حسن، القلب | كيوريكس");
     const long = buildTitle("Consultant Interventional Cardiology and Cardiac Electrophysiology Practice in New Cairo", "en");
     expect(long.length).toBeLessThanOrEqual(TITLE_MAX);
     expect(long.endsWith("…")).toBe(true);

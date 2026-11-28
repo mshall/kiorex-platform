@@ -139,7 +139,7 @@
         "colUpdated": "آخر تحديث",
         "colMove": "نقل إلى",
         "status": { "LEAD": "عميل محتمل", "ACTIVE": "نشط", "PAUSED": "موقوف", "ENDED": "منتهٍ" },
-        "funding": { "SPONSOR_CREDIT": "تموّله الشركة (بسقفها الخاص)", "PLATFORM_PROMO": "يموّله كيوركس (تسويق)" },
+        "funding": { "SPONSOR_CREDIT": "تموّله الشركة (بسقفها الخاص)", "PLATFORM_PROMO": "يموّله كيوريكس (تسويق)" },
         "termsComplete": "مكتملة",
         "termsMissing": "غير مكتملة",
         "back": "العودة إلى البرامج المؤسسية",

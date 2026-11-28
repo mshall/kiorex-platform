@@ -26,7 +26,7 @@ describe("sponsored discount line", () => {
   it("Arabic: the Arabic label and note", async () => {
     await setLang("ar"); await wrap(<SponsoredDiscountLine quote={quote} />);
     expect(screen.getByTestId("sponsored-label").props.children).toBe("خصم برعاية عيادة النيل حتى 2027-02-10");
-    expect(String(screen.getByTestId("sponsored-note").props.children)).toContain("ليس خصمًا من كيوركس");
+    expect(String(screen.getByTestId("sponsored-note").props.children)).toContain("ليس خصمًا من كيوريكس");
   });
   it("falls back to the built label when the server label is empty", async () => {
     await setLang("en"); await wrap(<SponsoredDiscountLine quote={{ ...quote, label: { ar: "", en: "" } }} />);
