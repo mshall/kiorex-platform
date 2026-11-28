@@ -9,7 +9,8 @@ import { ProductPlansClient, type ProductKind, type ProductPlansOverview } from 
 import { SitePlansService } from './site-plans.service';
 
 const EDITION_ORDER: Record<string, number> = { LITE: 10, PRO: 20, CHAIN: 30 };
-const ROLES_PROPOSE = ['ops_admin', 'super_admin'];
+/** Who may preview and propose a price: Kiorex ops, a super admin, and the Kiorly-only roles (ADR-062). Deciding stays super_admin only. */
+const ROLES_PROPOSE = ['ops_admin', 'super_admin', 'kiorly_ops', 'kiorly_admin'];
 const ID = /^kpp_[a-z0-9]{6,64}$/;
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'WITHDRAWN'];
 

@@ -32,7 +32,7 @@ const p = (path: string, level: KiorlyLevel = 'ops', note?: string): KiorlyRoute
  * The explicit allow-list: method + route template WITHOUT the global prefix (`api/v1`), exactly as the controllers declare it (`<controller path>/<handler path>`).
  * level `ops` = kiorly_ops and kiorly_admin; level `admin` = kiorly_admin only. None of these routes returns a patient identifier.
  * ADD A ROUTE HERE ONLY AFTER CHECKING ITS RESPONSE FOR PATIENT IDENTIFIERS AND ITS EFFECT (money, flags and cross-product settings never belong here).
- * The plans maker-checker routes (propose a price: kiorly_ops and kiorly_admin may propose, never approve) are added by the plans work as soon as they exist.
+ * The plans maker-checker routes are listed below: kiorly_ops and kiorly_admin may propose a price (and withdraw their own proposal), never approve or reject one.
  */
 export const KIORLY_ALLOW: readonly KiorlyRoute[] = [
   g('auth/me', 'ops', 'who am I (claims only)'),
@@ -64,8 +64,8 @@ export const KIORLY_ALLOW: readonly KiorlyRoute[] = [
   g('admin/fee-statements'),
   // Kiorly markets: READ only (launch, pause, disable, tax pack and approvals stay super_admin)
   g('admin/kiorly-markets'), g('admin/kiorly-markets/country-defaults'), g('admin/kiorly-markets/:id'), g('admin/kiorly-markets/:id/audit'), g('admin/kiorly-markets/:id/change-requests'),
-  // plans on the Kiorly landing page: READ (price proposals are added with the plans maker-checker)
-  g('admin/kiorly-plans'),
+  // plans on the Kiorly landing page: READ, and PROPOSE a price (preview, propose, list, withdraw your own). Approving or rejecting a price stays super_admin (a different one than the proposer)
+  g('admin/kiorly-plans'), p('admin/kiorly-plans/prices/preview'), g('admin/kiorly-plans/proposals'), p('admin/kiorly-plans/proposals'), p('admin/kiorly-plans/proposals/:id/withdraw'),
 ];
 
 const norm = (s: string): string => s.split('/').filter(Boolean).join('/');

@@ -69,6 +69,23 @@ describe('Kiorly plan price proposals: maker-checker for Clinic, Pharmacy and La
     expect(fake.calls.filter((x) => !x.preview)).toHaveLength(0);
   });
 
+  it('Kiorly-only roles (ADR-062): kiorly_ops and kiorly_admin may preview, propose, list and withdraw their own; they never approve or reject; the old direct price route stays closed to them', async () => {
+    for (const role of ['kiorly_ops', 'kiorly_admin']) {
+      const h = await tok(`k_${role}`, [role]);
+      const o = (await c.http().get(ADMIN).set(h).expect(200)).body;
+      expect(o.capabilities).toEqual({ canPropose: true, canApprove: false, you: `k_${role}` });
+      await c.http().post(`${ADMIN}/prices/preview`).set(h).send(body()).expect(200);
+      const p = (await c.http().post(`${ADMIN}/proposals`).set(h).send(body({ planRef: role === 'kiorly_ops' ? 'PRO' : 'CHAIN' })).expect(201)).body;
+      await c.http().post(`${ADMIN}/proposals/${p.id}/approve`).set(h).send({}).expect(403);
+      await c.http().post(`${ADMIN}/proposals/${p.id}/reject`).set(h).send({}).expect(403);
+      await c.http().post(`${ADMIN}/clinic/pl_pro/prices`).set(h).send({ preview: true }).expect(403);
+      expect((await c.http().get(`${ADMIN}/proposals`).set(h).expect(200)).body.some((x: { id: string }) => x.id === p.id)).toBe(true);
+      await c.http().post(`${ADMIN}/proposals/${p.id}/withdraw`).set(await tok('someone_else', [role])).send({}).expect(403); // only the proposer
+      expect((await c.http().post(`${ADMIN}/proposals/${p.id}/withdraw`).set(h).send({}).expect(200)).body.status).toBe('WITHDRAWN');
+    }
+    expect(fake.prices).toHaveLength(0);
+  });
+
   it('nothing is published before approval; a preview writes nothing, a proposal stores the preview and the warnings', async () => {
     const pv = (await c.http().post(`${ADMIN}/prices/preview`).set(await ops()).send(body()).expect(200)).body;
     expect(pv.preview).toMatchObject({ priceVersion: 1, supersedes: false, affected: 3 });
