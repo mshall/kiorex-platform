@@ -21,7 +21,7 @@ export class ProductPlansClient {
 
   private conn(kind: ProductKind) {
     const c = cfg();
-    return { baseUrl: kind === 'PHARMACY' ? c.pharmacyBaseUrl : c.labBaseUrl, clientKey: c.plansAdminClientKey, clientSecret: c.plansAdminClientSecret, timeoutMs: Math.min(c.partnerTimeoutMs, 6000) };
+    return { baseUrl: kind === 'PHARMACY' ? c.plansAdminPharmacyUrl || c.pharmacyBaseUrl : c.plansAdminLabUrl || c.labBaseUrl, clientKey: c.plansAdminClientKey, clientSecret: c.plansAdminClientSecret, timeoutMs: Math.min(c.partnerTimeoutMs, 6000) };
   }
   private path(kind: ProductKind, rest: string) { return `${kind === 'PHARMACY' ? PARTNER_API_PATH.pharmacy : PARTNER_API_PATH.lab}/plans${rest}`; }
 
