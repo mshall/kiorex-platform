@@ -55,7 +55,7 @@ describe("layout per edition", () => {
     const { unmount } = renderOps(shell(OpsLayout), { route: "/providers" });
     const links = [...screen.getByTestId("sidebar-nav").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(links.length).toBeGreaterThan(5);
-    for (const href of links) expect(["/providers", "/orders", "/fees", "/commissions", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/kiorly-plans", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
+    for (const href of links) expect(["/home", "/providers", "/orders", "/fees", "/commissions", "/finance", "/reconciliation", "/pay-ops", "/payments-connection", "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/kiorly-plans", "/flags", "/operations", "/outbox"], String(href)).toContain(href);
     expect(links).not.toContain("/bookings"); expect(links).not.toContain("/safety"); expect(links).not.toContain("/growth-analytics");
     expect(screen.queryByTestId("growth-nav")).toBeNull(); expect(screen.queryByTestId("mobile-growth-link")).toBeNull();
     const logo = screen.getByTestId("kiorly-logo"); expect(logo.querySelector("img")?.getAttribute("src")).toBe("/kiorly/kiorly-lockup.svg");
@@ -76,11 +76,11 @@ describe("layout per edition", () => {
     expect(document.head.querySelector('link[rel="manifest"]')).toBeNull();
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex,nofollow");
   });
-  it("a Kiorex-only path is not routed in the Kiorly admin (redirects to the provider directory)", async () => {
+  it("a Kiorex-only path is not routed in the Kiorly admin (redirects to the role home)", async () => {
     const { edition, renderOps } = await load({ VITE_OPS_EDITION: "kiorly" });
     const Where = () => <p data-testid="at">{useLocation().pathname}</p>;
     const Gate = () => { const { pathname } = useLocation(); return edition.pathInEdition(edition.OPS_EDITION, pathname) ? <Where /> : <Navigate to={edition.KIORLY_HOME_ROUTE} replace />; };
     renderOps(<Routes><Route path="*" element={<><Gate /></>} /></Routes>, { route: "/growth/campaigns" });
-    expect(screen.getByTestId("at")).toHaveTextContent("/providers");
+    expect(screen.getByTestId("at")).toHaveTextContent("/home");
   });
 });

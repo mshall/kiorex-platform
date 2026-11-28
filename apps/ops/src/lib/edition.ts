@@ -26,10 +26,10 @@ if (typeof document !== "undefined") document.documentElement.dataset.edition = 
  * (bookings, moderation, liquidity, safety, held deposits, home-visit gate, market policy, growth and acquisition) stay in the Kiorex super admin.
  */
 export const KIORLY_ROUTES = [
-  "/providers", "/orders", "/fees", "/commissions", "/commission-policy", "/finance", "/reconciliation", "/pay-ops", "/payments-connection",
+  "/home", "/providers", "/orders", "/fees", "/commissions", "/commission-policy", "/finance", "/reconciliation", "/pay-ops", "/payments-connection",
   "/messaging", "/integrations", "/onboarding", "/partner-onboarding", "/partner-leads", "/leads", "/kiorly-markets", "/kiorly-plans", "/flags", "/operations", "/outbox",
 ] as const;
-export const KIORLY_HOME_ROUTE = "/providers";
+export const KIORLY_HOME_ROUTE = "/home";
 
 export const pathInEdition = (edition: OpsEdition, pathname: string): boolean =>
   edition === "kiorex" || KIORLY_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));

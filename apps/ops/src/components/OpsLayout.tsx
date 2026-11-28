@@ -1,7 +1,7 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Globe2, Tags, Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, Inbox, LogOut, MessagesSquare, Moon, Plug, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
+import { LayoutDashboard, Globe2, Tags, Activity, BarChart3, Banknote, Crosshair, HandCoins, House, Siren, Building2, Flag, Languages, DatabaseZap, Handshake, UserPlus, Inbox, LogOut, MessagesSquare, Moon, Plug, PackageCheck, Receipt, Route, ScrollText, Settings2, Scale, ShieldCheck, Sun, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo, LogoMark } from "@/components/Logo";
 import { useAuth } from "@/auth/AuthProvider";
@@ -12,6 +12,8 @@ import { useSiteLeadSummary } from "@/api/siteLeads";
 import { GrowthNav } from "@/components/growth/GrowthNav";
 import { KiorlyLogo, KiorlyMark } from "@/components/KiorlyLogo";
 import { KIORLY_ROUTES, isKiorly } from "@/lib/edition";
+import { canOpen } from "@/lib/roleAccess";
+import NoAccessPage from "@/pages/NoAccessPage";
 
 /** Unread count on the Partner leads entry (new leads this person has not opened yet). */
 function LeadsBadge({ className }: { className?: string }) {
@@ -33,7 +35,7 @@ const NAV = [
 ] as const;
 
 /** The Kiorly admin offers only the provider-product views (lib/edition.ts); the Kiorex super admin offers everything. */
-const VISIBLE_NAV = isKiorly ? NAV.filter((n) => (KIORLY_ROUTES as readonly string[]).includes(n.to)) : NAV;
+const EDITION_NAV = isKiorly ? NAV.filter((n) => (KIORLY_ROUTES as readonly string[]).includes(n.to)) : NAV;
 
 export function OpsLayout() {
   const { t, i18n } = useTranslation();
@@ -42,6 +44,11 @@ export function OpsLayout() {
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
   const next = i18n.language.startsWith("ar") ? "en" : "ar";
+  // navigation shows only what this person's roles may open (lib/roleAccess.ts); the Home entry is always first
+  const roles = user?.roles ?? [];
+  const VISIBLE_NAV: ReadonlyArray<{ readonly to: string; readonly icon: typeof LayoutDashboard; readonly key: string }> = [{ to: "/home", icon: LayoutDashboard, key: "home" }, ...EDITION_NAV.filter((n) => canOpen(roles, n.to))];
+  const allowed = pathname === "/no-access" || canOpen(roles, pathname);
+  const showGrowth = !isKiorly && canOpen(roles, "/growth");
   return (
     <div className="flex min-h-screen">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-primary-foreground" onClick={(e) => { e.preventDefault(); document.getElementById("main-content")?.focus(); }}>{t("common.skipToContent")}</a>
@@ -54,7 +61,7 @@ export function OpsLayout() {
               <Icon className="h-4 w-4" aria-hidden="true" />{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge /> : key === "siteLeads" ? <SiteLeadsBadge /> : null}
             </NavLink>
           ))}
-          {isKiorly ? null : <GrowthNav />}
+          {showGrowth ? <GrowthNav /> : null}
         </nav>
         <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground"><ScrollText className="inline h-3 w-3" aria-hidden="true" /> {user?.name ?? user?.sub}<br />{user?.roles.join(", ")}</div>
       </aside>
@@ -63,7 +70,7 @@ export function OpsLayout() {
           <span className="shrink-0 md:hidden" dir="ltr" data-testid="mobile-logo">{isKiorly ? <KiorlyMark height={28} /> : <LogoMark height={28} title="KIOREX" />}</span>
           <nav className="order-last flex w-full min-w-0 gap-1 overflow-x-auto md:hidden" aria-label={t("nav.main")}>
             {VISIBLE_NAV.map(({ to, key }) => <NavLink key={to} to={to} className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", isActive && "bg-accent font-semibold text-accent-foreground")}><span className="inline-flex items-center gap-1.5">{t(`nav.${key}`)}{key === "partnerLeads" ? <LeadsBadge className="ms-1" /> : null}</span></NavLink>)}
-            {isKiorly ? null : <NavLink to="/growth" className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", (isActive || pathname.startsWith("/growth")) && "bg-accent font-semibold text-accent-foreground")} data-testid="mobile-growth-link">{t("growth.nav.group")}</NavLink>}
+            {showGrowth ? <NavLink to="/growth" className={({ isActive }) => cn("min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm", (isActive || pathname.startsWith("/growth")) && "bg-accent font-semibold text-accent-foreground")} data-testid="mobile-growth-link">{t("growth.nav.group")}</NavLink> : null}
           </nav>
           <div className="ms-auto flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => void i18n.changeLanguage(next)} data-testid="lang-toggle"><Languages aria-hidden="true" /><span lang={next}>{next === "ar" ? "العربية" : "English"}</span></Button>
@@ -71,7 +78,7 @@ export function OpsLayout() {
             <Button variant="outline" size="sm" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
           </div>
         </header>
-        <main key={pathname} id="main-content" className="kx-page flex-1 p-4 md:p-8" tabIndex={-1}><Outlet /></main>
+        <main key={pathname} id="main-content" className="kx-page flex-1 p-4 md:p-8" tabIndex={-1}>{allowed ? <Outlet /> : <NoAccessPage />}</main>
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ import AuthCallbackPage from "@/pages/AuthCallbackPage";
 import { EditionHead } from "@/components/EditionHead";
 import { KIORLY_HOME_ROUTE, isKiorly, pathInEdition } from "@/lib/edition";
 
+const RoleHomePage = lazy(() => import("@/pages/RoleHomePage"));
+const NoAccessPage = lazy(() => import("@/pages/NoAccessPage"));
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const IntegrationsCenterPage = lazy(() => import("@/pages/IntegrationsCenterPage"));
 const FeesPage = lazy(() => import("@/pages/FeesPage"));
@@ -107,7 +109,9 @@ export function AppRoutes() {
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<RequireOps><EditionGate><OpsLayout /></EditionGate></RequireOps>}>
-          <Route index element={<Navigate to={isKiorly ? KIORLY_HOME_ROUTE : "/flags"} replace />} />
+          <Route index element={<Navigate to="/home" replace />} />
+          <Route path="home" element={<RoleHomePage />} />
+          <Route path="no-access" element={<NoAccessPage />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="bookings" element={<BookingTimelinePage />} />
           <Route path="outbox" element={<OutboxPage />} />
@@ -188,7 +192,7 @@ export function AppRoutes() {
           <Route path="growth/corporate" element={<GrowthCorporatePage />} />
           <Route path="growth/corporate/accounts/:id" element={<GrowthCorporateAccountPage />} />
           <Route path="growth/loyalty" element={<GrowthLoyaltyPage />} />
-          <Route path="*" element={<Navigate to={isKiorly ? KIORLY_HOME_ROUTE : "/flags"} replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Route>
       </Routes>
     </Suspense>

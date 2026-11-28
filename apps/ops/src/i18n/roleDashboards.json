@@ -1,0 +1,388 @@
+{
+ "en": {
+  "nav": {
+   "home": "Home"
+  },
+  "auth": {
+   "kiorlyOnlyTitle": "Use the Kiorly admin",
+   "kiorlyOnlyBody": "Your account has a Kiorly-only role. Sign in at the Kiorly admin; the Kiorex console is closed to it."
+  },
+  "roleHome": {
+   "open": "Open",
+   "loading": "Loading…",
+   "failed": "Could not load this card.",
+   "forbidden": "This card is not part of your role's work.",
+   "unknown": "unknown",
+   "switch": "Switch dashboard",
+   "age": {
+    "hours": "{{n}} h",
+    "days": "{{n}} d"
+   },
+   "roles": {
+    "super_admin": "Super admin",
+    "ops_admin": "Ops admin",
+    "finance": "Finance",
+    "growth_admin": "Growth admin",
+    "kiorly_admin": "Kiorly admin",
+    "kiorly_ops": "Kiorly ops"
+   },
+   "titles": {
+    "super_admin": "Super admin: approvals and system",
+    "ops_admin": "Ops admin: operations queues",
+    "finance": "Finance: reconciliation and statements",
+    "growth_admin": "Growth: engine KPIs",
+    "kiorly_admin": "Kiorly admin: onboarding and changes",
+    "kiorly_ops": "Kiorly ops: onboarding and review"
+   },
+   "hints": {
+    "super_admin": "What is waiting for a second person, what changed recently and where to check the system.",
+    "ops_admin": "The Kiorex queues that need a person today.",
+    "finance": "Commission statements, collections, aging, disputes and reconciliation.",
+    "growth_admin": "Growth engine figures for the last 30 days.",
+    "kiorly_admin": "Join requests, provider onboarding, plans and markets, with the shortcuts to change them.",
+    "kiorly_ops": "Join requests, provider onboarding, plans and markets. You can review and act on onboarding; changes beyond that are for a Kiorly admin."
+   },
+   "noAccess": {
+    "title": "No access",
+    "body": "Your role cannot open this page. Use the menu for what is available to you.",
+    "home": "Back to my dashboard"
+   },
+   "joinRequests": {
+    "title": "Join requests",
+    "hint": "New requests from the Kiorly site, oldest first.",
+    "new": "New",
+    "last7": "New in 7 days",
+    "unassigned": "Unassigned open",
+    "oldest": "Waiting longest",
+    "none": "No new join requests are waiting."
+   },
+   "partnerQueue": {
+    "title": "Provider onboarding queue",
+    "hint": "Connection requests that are not live yet.",
+    "open": "In progress",
+    "changes": "Changes requested",
+    "awaiting": "Awaiting approval",
+    "none": "Nothing is in the onboarding queue."
+   },
+   "imports": {
+    "title": "Onboarding drafts",
+    "hint": "Import batches that are not committed yet.",
+    "drafts": "Open drafts",
+    "total": "All batches",
+    "none": "There are no open drafts."
+   },
+   "partnerLeads": {
+    "title": "Partner leads and verification",
+    "hint": "Talk-to-us leads not yet seen and provider verification updates.",
+    "unread": "New partner leads"
+   },
+   "verif": {
+    "open": "Open verification updates"
+   },
+   "plans": {
+    "title": "Plans",
+    "hint": "Plans shown on the Kiorly landing page. You can read them here.",
+    "visible": "Visible plans",
+    "proposals": "Price proposals waiting",
+    "proposalsHint": "Prices are approved by a super admin only.",
+    "noProposalFeed": "Price proposals appear here once the plans approval flow is enabled. Prices are approved by a super admin only."
+   },
+   "markets": {
+    "title": "Markets",
+    "hint": "Kiorly markets and their state.",
+    "none": "No Kiorly market is configured.",
+    "readOnly": "Read only. Launching a market is for a super admin."
+   },
+   "policy": {
+    "title": "Commission policy",
+    "hint": "Payment mode and counsel status, read only.",
+    "mode": "Payment mode",
+    "counsel": "Counsel sign-off",
+    "notReviewed": "Not reviewed",
+    "readOnly": "Read only. Proposing and approving changes is for super admins."
+   },
+   "shortcuts": {
+    "title": "Shortcuts",
+    "hintAdmin": "Where you change things.",
+    "hintOps": "Other Kiorex screens.",
+    "hintFinance": "Where the details are.",
+    "hintGrowth": "Growth sections.",
+    "assign": "Assign or export join requests",
+    "enrol": "Enrolment codes and go-live",
+    "imports": "Onboarding imports",
+    "partnerLeads": "Partner leads",
+    "plans": "Plans wording"
+   },
+   "approvals": {
+    "title": "Approvals waiting",
+    "hint": "Changes proposed by one person that need a second person.",
+    "total": "Waiting in total",
+    "commissionPolicy": "Commission policy (counsel and disclosure)",
+    "commissionRates": "Commission rates",
+    "commissionConfig": "Commission settings",
+    "flags": "Feature flags",
+    "markets": "Market change requests",
+    "partners": "Partner approvals",
+    "plans": "Plans and prices",
+    "plansNoFeed": "not enabled yet",
+    "passport": "Passport (decided there)",
+    "mfa": "MFA policy",
+    "limits": "Sign-in limits",
+    "kiorlyRoles": "Kiorly roles",
+    "passportNote": "Open Passport, Ops.",
+    "partial": "{{n}} lists could not be read, their numbers show as unknown."
+   },
+   "audit": {
+    "title": "Audit highlights",
+    "hint": "The latest recorded actions.",
+    "none": "No audit entries yet."
+   },
+   "health": {
+    "title": "System health",
+    "hint": "Outbox and links to the system screens.",
+    "dead": "Dead outbox events",
+    "pending": "Outbox pending"
+   },
+   "ops": {
+    "trustTitle": "Moderation and complaints",
+    "trustHint": "Open reviews and complaints.",
+    "moderation": "Open reviews",
+    "complaints": "Open complaints",
+    "safetyTitle": "Safety and held deposits",
+    "safetyHint": "Home-visit safety alerts and deposits held for review.",
+    "safetyOpen": "Open alerts",
+    "safetyUnack": "Unacknowledged",
+    "heldDeposits": "Held deposits",
+    "outboxTitle": "Outbox",
+    "outboxHint": "Events that failed to deliver."
+   },
+   "finance": {
+    "commissionsTitle": "Commission claims",
+    "commissionsHint": "Counts by state.",
+    "claims": "Claims",
+    "agingTitle": "Aging and disputes",
+    "agingHint": "Open invoices and disputed claims.",
+    "openInvoices": "Open invoices",
+    "disputes": "Disputes",
+    "reconTitle": "Reconciliation",
+    "reconHint": "Findings and the payment matching queue.",
+    "findings": "Findings",
+    "matching": "To match",
+    "runsTitle": "Latest settlement runs",
+    "runsHint": "Collection and payout runs.",
+    "noRuns": "No settlement runs yet.",
+    "statements": "Settlement statements",
+    "growthFinance": "Growth finance"
+   },
+   "growth": {
+    "kpiTitle": "Growth KPIs",
+    "kpiHint": "Egypt, last 30 days.",
+    "decisions": "Routing decisions",
+    "providerLed": "Provider-led share",
+    "fraudOpen": "Open fraud signals",
+    "widgets": "Active widgets",
+    "landing": "Indexable landing pages",
+    "funnelTitle": "Funnel",
+    "funnelHint": "From visit to booking.",
+    "noFunnel": "No funnel data yet.",
+    "overview": "Overview",
+    "channels": "Channels",
+    "fraud": "Fraud",
+    "seo": "SEO"
+   }
+  }
+ },
+ "ar": {
+  "nav": {
+   "home": "الرئيسية"
+  },
+  "auth": {
+   "kiorlyOnlyTitle": "استخدم لوحة كيورلي",
+   "kiorlyOnlyBody": "حسابك يحمل دورًا خاصًا بكيورلي فقط. سجّل الدخول من لوحة كيورلي؛ لوحة كيوريكس مغلقة أمامه."
+  },
+  "roleHome": {
+   "open": "فتح",
+   "loading": "جارٍ التحميل…",
+   "failed": "تعذّر تحميل هذه البطاقة.",
+   "forbidden": "هذه البطاقة ليست من عمل دورك.",
+   "unknown": "غير معروف",
+   "switch": "تبديل اللوحة",
+   "age": {
+    "hours": "{{n}} س",
+    "days": "{{n}} ي"
+   },
+   "roles": {
+    "super_admin": "مدير عام",
+    "ops_admin": "مدير عمليات",
+    "finance": "المالية",
+    "growth_admin": "مدير النمو",
+    "kiorly_admin": "مدير كيورلي",
+    "kiorly_ops": "عمليات كيورلي"
+   },
+   "titles": {
+    "super_admin": "المدير العام: الموافقات والنظام",
+    "ops_admin": "مدير العمليات: طوابير التشغيل",
+    "finance": "المالية: المطابقة والكشوف",
+    "growth_admin": "النمو: مؤشرات المحرك",
+    "kiorly_admin": "مدير كيورلي: التسجيل والتغييرات",
+    "kiorly_ops": "عمليات كيورلي: التسجيل والمراجعة"
+   },
+   "hints": {
+    "super_admin": "ما ينتظر شخصًا ثانيًا، وما تغيّر مؤخرًا، وأين تتفقد النظام.",
+    "ops_admin": "طوابير كيوريكس التي تحتاج شخصًا اليوم.",
+    "finance": "كشوف العمولات والتحصيل والتقادم والنزاعات والمطابقة.",
+    "growth_admin": "أرقام محرك النمو لآخر 30 يومًا.",
+    "kiorly_admin": "طلبات الانضمام وتسجيل مقدمي الخدمة والباقات والأسواق، مع اختصارات التغيير.",
+    "kiorly_ops": "طلبات الانضمام وتسجيل مقدمي الخدمة والباقات والأسواق. يمكنك المراجعة والعمل على التسجيل؛ ما عدا ذلك لمدير كيورلي."
+   },
+   "noAccess": {
+    "title": "لا صلاحية",
+    "body": "دورك لا يفتح هذه الصفحة. استخدم القائمة لما هو متاح لك.",
+    "home": "العودة إلى لوحتي"
+   },
+   "joinRequests": {
+    "title": "طلبات الانضمام",
+    "hint": "الطلبات الجديدة من موقع كيورلي، الأقدم أولًا.",
+    "new": "جديدة",
+    "last7": "جديدة خلال 7 أيام",
+    "unassigned": "مفتوحة بلا مسؤول",
+    "oldest": "الأطول انتظارًا",
+    "none": "لا توجد طلبات انضمام جديدة بالانتظار."
+   },
+   "partnerQueue": {
+    "title": "طابور تسجيل مقدمي الخدمة",
+    "hint": "طلبات الربط التي لم تُفعَّل بعد.",
+    "open": "قيد التنفيذ",
+    "changes": "مطلوب تعديلات",
+    "awaiting": "بانتظار الموافقة",
+    "none": "لا شيء في طابور التسجيل."
+   },
+   "imports": {
+    "title": "مسودات التسجيل",
+    "hint": "دفعات الاستيراد التي لم تُثبَّت بعد.",
+    "drafts": "مسودات مفتوحة",
+    "total": "كل الدفعات",
+    "none": "لا توجد مسودات مفتوحة."
+   },
+   "partnerLeads": {
+    "title": "عملاء الشركاء المحتملون والتوثيق",
+    "hint": "طلبات تواصل معنا غير المقروءة وتحديثات توثيق مقدمي الخدمة.",
+    "unread": "طلبات شركاء جديدة"
+   },
+   "verif": {
+    "open": "تحديثات توثيق مفتوحة"
+   },
+   "plans": {
+    "title": "الباقات",
+    "hint": "الباقات المعروضة في صفحة كيورلي. يمكنك قراءتها هنا.",
+    "visible": "باقات ظاهرة",
+    "proposals": "مقترحات أسعار بالانتظار",
+    "proposalsHint": "الأسعار يوافق عليها المدير العام فقط.",
+    "noProposalFeed": "تظهر مقترحات الأسعار هنا عند تفعيل مسار الموافقة على الباقات. الأسعار يوافق عليها المدير العام فقط."
+   },
+   "markets": {
+    "title": "الأسواق",
+    "hint": "أسواق كيورلي وحالتها.",
+    "none": "لا يوجد سوق كيورلي مضبوط.",
+    "readOnly": "للقراءة فقط. إطلاق سوق من اختصاص المدير العام."
+   },
+   "policy": {
+    "title": "سياسة العمولات",
+    "hint": "وضع الدفع وحالة المستشار القانوني، للقراءة فقط.",
+    "mode": "وضع الدفع",
+    "counsel": "اعتماد المستشار",
+    "notReviewed": "لم تتم المراجعة",
+    "readOnly": "للقراءة فقط. اقتراح التغييرات والموافقة عليها من اختصاص المديرين العامين."
+   },
+   "shortcuts": {
+    "title": "اختصارات",
+    "hintAdmin": "حيث تغيّر الأشياء.",
+    "hintOps": "شاشات كيوريكس الأخرى.",
+    "hintFinance": "حيث التفاصيل.",
+    "hintGrowth": "أقسام النمو.",
+    "assign": "إسناد أو تصدير طلبات الانضمام",
+    "enrol": "رموز التسجيل والتفعيل",
+    "imports": "استيراد التسجيل",
+    "partnerLeads": "عملاء الشركاء",
+    "plans": "صياغة الباقات"
+   },
+   "approvals": {
+    "title": "موافقات بالانتظار",
+    "hint": "تغييرات اقترحها شخص وتحتاج شخصًا ثانيًا.",
+    "total": "الإجمالي بالانتظار",
+    "commissionPolicy": "سياسة العمولات (المستشار والإفصاح)",
+    "commissionRates": "نسب العمولات",
+    "commissionConfig": "إعدادات العمولات",
+    "flags": "مفاتيح الميزات",
+    "markets": "طلبات تغيير الأسواق",
+    "partners": "موافقات الشركاء",
+    "plans": "الباقات والأسعار",
+    "plansNoFeed": "غير مفعّل بعد",
+    "passport": "باسبورت (يُقرَّر هناك)",
+    "mfa": "سياسة التحقق بخطوتين",
+    "limits": "حدود تسجيل الدخول",
+    "kiorlyRoles": "أدوار كيورلي",
+    "passportNote": "افتح باسبورت ثم العمليات.",
+    "partial": "تعذّرت قراءة {{n}} قوائم، وتظهر أرقامها غير معروفة."
+   },
+   "audit": {
+    "title": "أبرز سجل التدقيق",
+    "hint": "آخر الإجراءات المسجلة.",
+    "none": "لا توجد سجلات بعد."
+   },
+   "health": {
+    "title": "سلامة النظام",
+    "hint": "صندوق الأحداث وروابط شاشات النظام.",
+    "dead": "أحداث ميتة في الصندوق",
+    "pending": "قيد الانتظار في الصندوق"
+   },
+   "ops": {
+    "trustTitle": "الإشراف والشكاوى",
+    "trustHint": "المراجعات والشكاوى المفتوحة.",
+    "moderation": "مراجعات مفتوحة",
+    "complaints": "شكاوى مفتوحة",
+    "safetyTitle": "السلامة والعربون المحجوز",
+    "safetyHint": "تنبيهات سلامة الزيارات المنزلية وعربون محجوز للمراجعة.",
+    "safetyOpen": "تنبيهات مفتوحة",
+    "safetyUnack": "غير مؤكدة",
+    "heldDeposits": "عربون محجوز",
+    "outboxTitle": "صندوق الأحداث",
+    "outboxHint": "أحداث فشل تسليمها."
+   },
+   "finance": {
+    "commissionsTitle": "مطالبات العمولات",
+    "commissionsHint": "الأعداد حسب الحالة.",
+    "claims": "مطالبات",
+    "agingTitle": "التقادم والنزاعات",
+    "agingHint": "فواتير مفتوحة ومطالبات متنازع عليها.",
+    "openInvoices": "فواتير مفتوحة",
+    "disputes": "نزاعات",
+    "reconTitle": "المطابقة",
+    "reconHint": "النتائج وطابور مطابقة المدفوعات.",
+    "findings": "ملاحظات",
+    "matching": "بانتظار المطابقة",
+    "runsTitle": "آخر دورات التسوية",
+    "runsHint": "دورات التحصيل والصرف.",
+    "noRuns": "لا توجد دورات تسوية بعد.",
+    "statements": "كشوف التسوية",
+    "growthFinance": "مالية النمو"
+   },
+   "growth": {
+    "kpiTitle": "مؤشرات النمو",
+    "kpiHint": "مصر، آخر 30 يومًا.",
+    "decisions": "قرارات التوجيه",
+    "providerLed": "حصة ما جاء عبر مقدم الخدمة",
+    "fraudOpen": "إشارات احتيال مفتوحة",
+    "widgets": "أدوات نشطة",
+    "landing": "صفحات هبوط قابلة للفهرسة",
+    "funnelTitle": "المسار",
+    "funnelHint": "من الزيارة إلى الحجز.",
+    "noFunnel": "لا بيانات للمسار بعد.",
+    "overview": "نظرة عامة",
+    "channels": "القنوات",
+    "fraud": "الاحتيال",
+    "seo": "محركات البحث"
+   }
+  }
+ }
+}
