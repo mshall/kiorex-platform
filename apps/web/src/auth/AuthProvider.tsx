@@ -3,12 +3,13 @@ import { toast } from "sonner";
 import i18n from "@/i18n";
 import { configureApi } from "@/api/client";
 import { getManager, toAuthUser, type AuthUser } from "./oidc";
+import { INTENT_KEY, REASON_KEY, sset, type AuthIntent } from "@/lib/onboarding";
 
 type Status = "loading" | "signedOut" | "signedIn";
 export interface AuthCtx {
   status: Status;
   user: AuthUser | null;
-  login: (returnTo?: string) => Promise<void>;
+  login: (returnTo?: string, opts?: { intent?: AuthIntent }) => Promise<void>;
   logout: () => Promise<void>;
   completeLogin: () => Promise<string>;
 }
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     configureApi({
       getToken: async () => userRef.current?.token ?? null,
-      onUnauthorized: () => { void getManager().removeUser().then(() => { setUser(null); setStatus("signedOut"); }); },
+      onUnauthorized: () => { sset(REASON_KEY, "expired"); void getManager().removeUser().then(() => { setUser(null); setStatus("signedOut"); }); },
     });
   }, []);
 
@@ -42,15 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       m.events.addUserUnloaded(() => { setUser(null); if (!signingOut.current) setStatus("signedOut"); });
       // The refresh token stopped working (revoked from another device, or expired): say so before the next request fails, and offer a one-click sign-in that returns here.
       m.events.addSilentRenewError(() => {
-        toast.warning(i18n.t("session.renewFailed"), { id: "session-renew", duration: Infinity, action: { label: i18n.t("nav.signIn"), onClick: () => { sessionStorage.setItem(RETURN_KEY, window.location.pathname + window.location.search); void m.signinRedirect(); } } });
+        toast.warning(i18n.t("session.renewFailed"), { id: "session-renew", duration: Infinity, action: { label: i18n.t("nav.signIn"), onClick: () => { sessionStorage.setItem(RETURN_KEY, window.location.pathname + window.location.search); void m.signinRedirect({ ui_locales: i18n.language.startsWith("ar") ? "ar" : "en" }); } } });
       });
     })().catch(() => alive && setStatus("signedOut"));
     return () => { alive = false; };
   }, []);
 
-  const login = useCallback(async (returnTo?: string) => {
+  // Passport contract (docs/PASSPORT_ENTRY_CONTRACT in the web README): `ui_locales` (ar|en) and the extra parameter `intent=register|signin`.
+  // Passport may ignore `intent` (the phone code creates the account on first verification either way); Kiorex never relies on it: it decides "new or existing" from its own profile after the return.
+  const login = useCallback(async (returnTo?: string, opts?: { intent?: AuthIntent }) => {
+    const intent: AuthIntent = opts?.intent ?? "signin";
     sessionStorage.setItem(RETURN_KEY, returnTo ?? window.location.pathname + window.location.search);
-    await getManager().signinRedirect();
+    sset(INTENT_KEY, intent); sset(REASON_KEY, null);
+    await getManager().signinRedirect({ ui_locales: i18n.language.startsWith("ar") ? "ar" : "en", extraQueryParams: { intent } });
   }, []);
 
   const logout = useCallback(async () => {

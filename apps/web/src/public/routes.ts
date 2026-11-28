@@ -66,7 +66,7 @@ export function publicPath(locale: Locale, cc: string, type: PublicRoute["type"]
 export const PRIVATE_SPA_ROUTES = [
   // inside the public namespace but client-rendered: the API answers the SPA shell (noindex), see SPA_PASSTHROUGH_PAGES in the API url-policy
   "/preferences", "/:locale/:cc/preferences", "/invite/:code", "/:locale/:cc/invite/:code",
-  "/auth/callback", "/visit-status/:token", "/search", "/doctors/:id", "/checkout/:bookingId", "/appointments", "/appointments/:id", "/appointments/:id/review", "/services",
+  "/auth/callback", "/signin", "/join", "/welcome", "/visit-status/:token", "/search", "/doctors/:id", "/checkout/:bookingId", "/appointments", "/appointments/:id", "/appointments/:id/review", "/services",
   "/waitlist", "/records", "/records/:id", "/pharmacy", "/pharmacy/orders", "/pharmacy/orders/:id", "/lab", "/lab/bookings", "/lab/bookings/:id", "/telemedicine",
   "/telemedicine/:id", "/telemedicine/:id/room", "/account", "/notifications", "/account/addresses", "/care-plans", "/referral", "/referral/rewards", "/corporate", "/loyalty",
 ] as const;

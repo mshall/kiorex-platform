@@ -22,7 +22,7 @@ export interface DoctorProfile {
 }
 export interface Review { id: string; rating: number; text: string | null; createdAt: string; clinicReply: { text: string; createdAt: string | null } | null }
 export interface ReviewList { items: Review[]; ratingAvg: number | null; ratingCount: number }
-export interface Patient { id: string; nameAr: string | null; nameEn: string | null; phone: string; email: string | null; dob: string | null; gender: string | null; locale: "ar" | "en" }
+export interface Patient { id: string; nameAr: string | null; nameEn: string | null; phone: string; email: string | null; dob: string | null; gender: string | null; locale: "ar" | "en"; market?: string; createdAt?: string }
 export interface FamilyMember { id: string; name: string; relationship: string; dob: string | null; gender: string | null; guardianAccessExpired: boolean }
 export type ConsentType = "marketplace_processing" | "reminders" | "record_sharing" | "ai_processing";
 export interface Consent { type: ConsentType; granted: boolean; updatedAt: string | null }

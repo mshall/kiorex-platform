@@ -211,3 +211,25 @@
   }
   [dir="rtl"] select { background-position: left 0.75rem center; }
   select:hover { border-color: hsl(var(--primary) / 0.5); }
+
+/* ───────── Landing redesign (28 Nov 2026) ───────── */
+/* Scroll reveal: content is visible without JS/IO; the hook adds data-in. Reduced motion: always visible. */
+.kx-reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms var(--kx-ease-decelerate), transform 600ms var(--kx-ease-decelerate); transition-delay: calc(var(--i, 0) * 80ms); }
+.kx-reveal[data-in='true'] { opacity: 1; transform: none; }
+/* Logo idle motion: after the pulse has drawn once the bars breathe very slightly (staggered, 4 groups). */
+@keyframes kx-bar-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.9); } }
+.kx-logo-live rect { transform-box: fill-box; transform-origin: center; animation: kx-bar-breathe 4.8s ease-in-out infinite; animation-delay: 1.8s; }
+.kx-logo-live rect:nth-of-type(4n + 2) { animation-delay: 2.5s; }
+.kx-logo-live rect:nth-of-type(4n + 3) { animation-delay: 3.2s; }
+.kx-logo-live rect:nth-of-type(4n) { animation-delay: 3.9s; }
+@keyframes kx-orb { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -10px, 0) scale(1.03); } }
+.kx-orb { animation: kx-orb 9s ease-in-out infinite; }
+@keyframes kx-slot-pick { 0%, 55% { background: hsl(var(--card)); color: hsl(var(--foreground)); } 65%, 100% { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); } }
+.kx-slot-demo { animation: kx-slot-pick 7s ease-in-out 2.4s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kx-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .kx-logo-live rect, .kx-orb, .kx-slot-demo { animation: none !important; }
+}
+.kx-phone { box-shadow: 0 0 0 1px hsl(var(--border)), 0 30px 60px -20px hsl(var(--primary) / 0.35), 0 10px 24px -12px hsl(var(--foreground) / 0.25); }
+.kx-claim { position: relative; }
+.kx-claim::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: 3px; border-radius: 3px; background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--ocean))); }

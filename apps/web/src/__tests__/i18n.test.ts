@@ -9,6 +9,10 @@ import corporateAr from "@/i18n/corporate.ar.json";
 import corporateEn from "@/i18n/corporate.en.json";
 import loyaltyAr from "@/i18n/loyalty.ar.json";
 import loyaltyEn from "@/i18n/loyalty.en.json";
+import lpAr from "@/i18n/lp.ar.json";
+import lpEn from "@/i18n/lp.en.json";
+import obAr from "@/i18n/ob.ar.json";
+import obEn from "@/i18n/ob.en.json";
 import sponsoredAr from "@/i18n/sponsored.ar.json";
 import sponsoredEn from "@/i18n/sponsored.en.json";
 import continuityAr from "@/i18n/continuity.ar.json";
@@ -20,7 +24,7 @@ const src = path.resolve(__dirname, "..");
 const files = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = path.join(d, f); return statSync(p).isDirectory() ? (f === "__tests__" || f === "mocks" || f === "test" ? [] : files(p)) : /\.(tsx?)$/.test(f) ? [p] : []; });
 
 describe("i18n", () => {
-  const A = new Set(flat({ ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr, corporate: corporateAr, loyalty: loyaltyAr }).map(base)); const E = new Set(flat({ ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn, corporate: corporateEn, loyalty: loyaltyEn }).map(base)); // GRW-P2-B3: namespace referral.* lives in its own files
+  const A = new Set(flat({ ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr, corporate: corporateAr, loyalty: loyaltyAr, lp: lpAr, entry: obAr.entry, welcome: obAr.welcome, home: { ...ar.home, ...obAr.home } }).map(base)); const E = new Set(flat({ ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn, corporate: corporateEn, loyalty: loyaltyEn, lp: lpEn, entry: obEn.entry, welcome: obEn.welcome, home: { ...en.home, ...obEn.home } }).map(base)); // GRW-P2-B3: namespace referral.* lives in its own files
   it("ar and en have the same keys (plural suffixes aside)", () => {
     expect([...E].filter((k) => !A.has(k))).toEqual([]); expect([...A].filter((k) => !E.has(k))).toEqual([]);
   });

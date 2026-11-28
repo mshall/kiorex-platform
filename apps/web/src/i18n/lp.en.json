@@ -1,0 +1,146 @@
+{
+  "skip": "Skip to content",
+  "nav": {
+    "providers": "For providers",
+    "joinUs": "Join us",
+    "findCare": "Find care",
+    "how": "How it works",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "badgeLive": "Booking is open in Egypt",
+    "badgeSoon": "Pilot: booking opens when Egypt launches. Browsing is open now.",
+    "eyebrow": "Kiorex for patients",
+    "title": "Find a verified doctor. Book a real slot.",
+    "subtitle": "See the clinic's own schedule and the fee before you commit, so you know what to expect before you go.",
+    "findCare": "Find care",
+    "joinUs": "Join us",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "illustration": "Illustration of the Kiorex booking screen"
+  },
+  "claims": {
+    "title": "What Kiorex promises",
+    "verified": {
+      "title": "Verified, not just listed",
+      "body": "Only providers that completed Kiorex verification can be booked."
+    },
+    "slots": {
+      "title": "Real slots",
+      "body": "Times come from the clinic's own schedule, so what you see is what is free."
+    },
+    "fees": {
+      "title": "Know the fee upfront",
+      "body": "The fee and any deposit are shown before you book."
+    }
+  },
+  "care": {
+    "eyebrow": "Care in one place",
+    "title": "Doctors, clinics, labs and pharmacies",
+    "doctors": {
+      "title": "Doctors and clinics",
+      "body": "Search by specialty, area, fee and availability, then pick a time."
+    },
+    "labs": {
+      "title": "Labs",
+      "body": "Book lab tests with a collection slot."
+    },
+    "pharmacies": {
+      "title": "Pharmacies",
+      "body": "Order from a pharmacy and follow the order."
+    },
+    "tele": {
+      "title": "Video visits",
+      "body": "See a doctor from home where the provider offers it."
+    },
+    "open": "Explore"
+  },
+  "how": {
+    "eyebrow": "Simple by design",
+    "title": "How it works",
+    "find": {
+      "title": "Find",
+      "body": "Search by specialty, doctor or clinic and filter by area, fee and availability."
+    },
+    "pick": {
+      "title": "Pick a time",
+      "body": "See the next free slots at a glance. We hold yours for five minutes while you check out."
+    },
+    "confirm": {
+      "title": "Confirm",
+      "body": "Know the cancellation policy first, then confirm. You get reminders before your visit."
+    }
+  },
+  "trust": {
+    "eyebrow": "Trust is built in",
+    "title": "Verified providers. Your data, your choice.",
+    "verified": {
+      "title": "Verified providers",
+      "body": "A provider is bookable only after Kiorex has verified it."
+    },
+    "reviews": {
+      "title": "Reviews from real visits",
+      "body": "Only patients with a completed visit can review. No anonymous ratings."
+    },
+    "privacy": {
+      "title": "Privacy by default",
+      "body": "You choose what Kiorex may measure and which messages you receive, and you can change it at any time. Health details are never used for measurement."
+    },
+    "nomedical": {
+      "title": "No medical data to join",
+      "body": "Your phone number is enough to create an account. We ask for no medical information at sign-up."
+    },
+    "prefs": "Privacy and message choices"
+  },
+  "kiorly": {
+    "eyebrow": "Kiorex and Kiorly",
+    "title": "Kiorex for patients. Kiorly for providers.",
+    "body": "Kiorex is where patients find and book care. Kiorly is the software clinics, pharmacies and labs use to run their day and share real availability with Kiorex.",
+    "patient": "For patients",
+    "provider": "For providers",
+    "cta": "For providers: join Kiorly",
+    "external": "Opens the Kiorly website"
+  },
+  "faq": {
+    "title": "Questions, answered",
+    "items": {
+      "f1": {
+        "q": "Do I need an account to look for a doctor?",
+        "a": "No. You can browse without an account. You sign in with your phone number when you want to book."
+      },
+      "f2": {
+        "q": "How do I sign in?",
+        "a": "With your phone number. Kiorex Passport sends you a one-time code, so there is no password to remember."
+      },
+      "f3": {
+        "q": "Is booking open in Egypt?",
+        "a": "Kiorex is in a pilot. Booking opens in Egypt when the launch is approved. Until then you can create an account and browse; this page shows the current status."
+      },
+      "f4": {
+        "q": "Do you need my medical information to join?",
+        "a": "No. Creating an account needs only a verified phone number. You can add a name and choose your preferences afterwards, and all of it is optional."
+      },
+      "f5": {
+        "q": "Who can see my details?",
+        "a": "A provider sees what it needs for the visit you book. You control what Kiorex measures and which messages you get in your privacy and message choices."
+      },
+      "f6": {
+        "q": "I run a clinic, a pharmacy or a lab. How do I join?",
+        "a": "Providers join through Kiorly. Use the provider link on this page to reach the Kiorly website and its join form."
+      }
+    }
+  },
+  "cta": {
+    "title": "Ready when you are",
+    "body": "Create an account with your phone number, or browse care first.",
+    "browse": "Browse care"
+  },
+  "footer": {
+    "legal": "Legal",
+    "prefs": "Privacy and message choices",
+    "terms": "Terms of use and privacy policy: published at launch, after legal review.",
+    "providers": "For providers",
+    "product": "Kiorex",
+    "emergency": "In an emergency call 123."
+  }
+}

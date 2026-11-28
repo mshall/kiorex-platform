@@ -27,7 +27,7 @@ export default function InviteLanding() {
         {bad ? <><h1 className="text-2xl" data-testid="invite-invalid">{t("referral.landing.invalidTitle")}</h1><p className="text-muted-foreground">{t("referral.landing.invalidBody")}</p><Button asChild><Link to="/">{t("referral.landing.browse")}</Link></Button></> :
           status === "loading" || claim.isPending ? <LoadingState label={t("referral.landing.checking")} /> :
           status !== "signedIn" ? <><h1 className="text-2xl" data-testid="invite-title">{t("referral.landing.title")}</h1><p className="text-muted-foreground">{t("referral.landing.body")}</p>
-            <Button size="lg" className="w-full" onClick={() => void login(`/invite/${code}`)} data-testid="invite-signup">{t("referral.landing.signup")}</Button>
+            <Button size="lg" className="w-full" onClick={() => void login(`/invite/${code}`, { intent: "register" })} data-testid="invite-signup">{t("referral.landing.signup")}</Button>
             <p className="text-xs text-muted-foreground">{t("referral.landing.privacy")}</p></> :
           <><h1 className="text-2xl" data-testid="invite-accepted">{t("referral.landing.acceptedTitle")}</h1><p className="text-muted-foreground">{t("referral.landing.acceptedBody")}</p>
             <Button asChild size="lg" className="w-full"><Link to="/search" data-testid="invite-find-doctor">{t("referral.landing.findDoctor")}</Link></Button></>}

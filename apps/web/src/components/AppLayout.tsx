@@ -1,8 +1,8 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useEffect } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Bell, CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User, WifiOff } from "lucide-react";
+import { Bell, CalendarCheck, FolderHeart, Grid2x2, Home, Languages, LogIn, LogOut, Moon, Sun, User, UserPlus, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import { MarketNotLiveBanner, MarketSelector } from "@/components/MarketSelector";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { PulseDivider } from "@/components/PulseLine";
 import { useAuth } from "@/auth/AuthProvider";
 import { useNotifications } from "@/api/engagement";
 import { useTheme } from "@/hooks/useTheme";
+import { KIORLY_JOIN_URL } from "@/lib/hosts";
 import { cn } from "@/lib/utils";
 
 export function LanguageSwitcher() {
@@ -24,11 +25,11 @@ export function LanguageSwitcher() {
   );
 }
 
-function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggle } = useTheme();
   const { t } = useTranslation();
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label={theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}>
+    <Button variant="ghost" size="icon" className={className} onClick={toggle} aria-label={theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}>
       {theme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
     </Button>
   );
@@ -60,7 +61,8 @@ function NotificationBell() {
 export function AppLayout() {
   const { t, i18n: pageI18n } = useTranslation();
   usePageTitle(pageI18n.language.startsWith("ar") ? "كيوريكس" : "Kiorex");
-  const { status, login, logout } = useAuth();
+  const { status, logout } = useAuth();
+  const nav = useNavigate();
   const signedIn = status === "signedIn";
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior }); }, [pathname]); // new screen starts at the top (booking flow lands on the confirmation moment)
@@ -72,12 +74,13 @@ export function AppLayout() {
       {/* The six-link nav plus sign out only fit from 1024 px in English (they overflowed 768 to 907 px signed in); below that the bottom tab bar carries the same destinations and Account carries sign out. */}
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md kx-hairline">
         <div className="container flex min-h-16 items-center justify-between gap-2 sm:gap-3">
-          <Link to="/" aria-label={`KIOREX, ${t("nav.home")}`} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} /><Logo className="sm:hidden" height={60} /></Link>
+          <Link to="/" aria-label={`KIOREX, ${t("nav.home")}`} className="inline-flex shrink-0 items-center rounded-lg"><Logo className="hidden sm:inline-flex" height={64} animated /><Logo className="sm:hidden" height={60} animated /></Link>
           <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
             <NavLink to="/" end className={navCls}>{t("nav.home")}</NavLink>
             <NavLink to="/search" className={navCls}>{t("nav.search")}</NavLink>
             {signedIn && <NavLink to="/appointments" className={navCls}>{t("nav.appointments")}</NavLink>}
             <NavLink to="/services" className={navCls}>{t("nav.services")}</NavLink>
+            {!signedIn && status !== "loading" && <a href={KIORLY_JOIN_URL} target="_blank" rel="noopener noreferrer" className={navCls({ isActive: false })} data-testid="nav-providers">{t("lp.nav.providers")}<span className="sr-only"> ({t("lp.kiorly.external")})</span></a>}
             {signedIn && <NavLink to="/records" className={navCls}>{t("nav.records")}</NavLink>}
             {signedIn && <NavLink to="/account" className={navCls}>{t("nav.account")}</NavLink>}
           </nav>
@@ -85,11 +88,14 @@ export function AppLayout() {
             <MarketSelector />
             {signedIn && <NotificationBell />}
             <LanguageSwitcher />
-            <ThemeToggle />
+            <ThemeToggle className={signedIn ? undefined : "max-[479px]:hidden"} />
             {status !== "loading" && (signedIn ? (
               <Button variant="outline" size="sm" className="hidden lg:inline-flex" onClick={() => void logout()}><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>
             ) : (
-              <Button size="sm" className="px-2.5 sm:px-3" onClick={() => void login("/")} data-testid="sign-in"><LogIn className="rtl-flip" aria-hidden="true" /><span className="max-[359px]:sr-only">{t("nav.signIn")}</span></Button>
+              <>
+                <Button variant="ghost" size="sm" className="px-2 sm:border sm:px-3" onClick={() => nav("/signin")} data-testid="sign-in"><LogIn className="rtl-flip hidden sm:block" aria-hidden="true" /><span>{t("nav.signIn")}</span></Button>
+                <Button size="sm" className="px-2.5 sm:px-3" onClick={() => nav("/join")} data-testid="join-us"><UserPlus className="rtl-flip hidden sm:block" aria-hidden="true" /><span>{t("lp.nav.joinUs")}</span></Button>
+              </>
             ))}
           </div>
         </div>
@@ -100,13 +106,20 @@ export function AppLayout() {
       </main>
 
       <footer className="border-t bg-card">
-        <div className="container space-y-4 py-8">
+        <div className="container space-y-6 py-10">
           <PulseDivider />
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-            <Logo height={56} />
-            <p>{t("footer.tagline")}</p>
-            <p>{t("footer.emergency")}</p>
-            <Link to="/preferences" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline" data-testid="footer-preferences">{t("consent.banner.preferences")}</Link>
+          <div className="grid gap-8 text-sm text-muted-foreground md:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="space-y-3"><Logo height={56} /><p>{t("footer.tagline")}</p><p>{t("footer.emergency")}</p><ThemeToggle className="-ms-2.5 min-[480px]:hidden" /></div>
+            <nav aria-label={t("lp.footer.product")} className="flex flex-col items-start">
+              <Link to="/search" className="inline-flex min-h-11 items-center hover:underline">{t("nav.search")}</Link>
+              <Link to="/services" className="inline-flex min-h-11 items-center hover:underline">{t("nav.services")}</Link>
+              {!signedIn && <Link to="/join" className="inline-flex min-h-11 items-center hover:underline">{t("lp.nav.joinUs")}</Link>}
+              <a href={KIORLY_JOIN_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:underline" data-testid="footer-providers">{t("lp.footer.providers")}<span className="sr-only"> ({t("lp.kiorly.external")})</span></a>
+            </nav>
+            <nav aria-label={t("lp.footer.legal")} className="flex flex-col items-start">
+              <Link to="/preferences" className="inline-flex min-h-11 items-center hover:underline" data-testid="footer-preferences">{t("consent.banner.preferences")}</Link>
+              <p className="pt-2 text-xs">{t("lp.footer.terms")}</p>
+            </nav>
           </div>
         </div>
       </footer>

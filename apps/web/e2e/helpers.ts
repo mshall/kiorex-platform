@@ -63,6 +63,7 @@ export async function signIn(page: Page, to = "/", phone: string = PATIENT_PHONE
   resetOtpLimits();
   await page.goto("/");
   await page.getByTestId("sign-in").click();
+  await page.getByTestId("entry-continue").click(); // the Kiorex entry page (Sign in / Join us) sits before Passport since 28 Nov 2026
   await page.waitForURL(PASSPORT_HOST_RE);
   await uiLogin(page, phone, /localhost:5180/);
   const fresh = await readOidc(page);

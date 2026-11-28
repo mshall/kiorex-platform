@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
   readonly VITE_KIORLY_CLINICS_URL?: string;
+  readonly VITE_KIORLY_SITE_URL?: string;
   readonly VITE_OIDC_AUTHORITY?: string;
   readonly VITE_OIDC_CLIENT_ID?: string;
   readonly VITE_MAP_PROVIDER?: string;

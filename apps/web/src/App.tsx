@@ -16,6 +16,8 @@ import ResultsPage from "@/pages/ResultsPage";
 import DoctorProfilePage from "@/pages/DoctorProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AuthCallbackPage from "@/pages/AuthCallbackPage";
+import EntryPage from "@/pages/EntryPage";
+import WelcomePage from "@/pages/WelcomePage";
 import VisitStatusPage from "@/pages/VisitStatusPage";
 import { ConsentBanner, LandingTouch } from "@/components/consent";
 import { GrowthPageViews } from "@/components/growth/GrowthPageViews";
@@ -75,6 +77,9 @@ export function AppRoutes() {
         <Route path="/visit-status/:token" element={<VisitStatusPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<Root />} />
+          <Route path="signin" element={<EntryPage key="signin" initial="signin" />} />
+          <Route path="join" element={<EntryPage key="join" initial="register" />} />
+          <Route path="welcome" element={guard(<WelcomePage />)} />
           <Route path="search" element={<ResultsPage />} />
           <Route path="doctors/:id" element={<DoctorProfilePage />} />
           <Route path="checkout/:bookingId" element={guard(<CheckoutPage />)} />

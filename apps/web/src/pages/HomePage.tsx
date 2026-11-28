@@ -1,8 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, ChevronRight, FlaskConical, FolderHeart, Grid2x2, Pill, Video, type LucideIcon } from "lucide-react";
+import { CalendarCheck, ChevronRight, Sparkles, FlaskConical, FolderHeart, Grid2x2, Pill, Video, type LucideIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { useBookings, useMe } from "@/api/hooks";
+import { usePreferences } from "@/api/consent";
+import { useAuth } from "@/auth/AuthProvider";
+import { INTEREST_LINK, getInterests, isDeviceDone, sget, sset } from "@/lib/onboarding";
+import { useState } from "react";
 import { HeroSearch } from "@/components/HeroSearch";
 import { SpecialtyChips } from "@/components/SearchBar";
 import { CareTypeTabs } from "@/components/CareTypeTabs";
@@ -32,6 +36,11 @@ export default function HomePage() {
   const { nameOf } = usePatient();
   const upcoming = (bookings.data ?? []).filter((b) => UPCOMING.includes(b.status) && new Date(b.endsAt) > new Date())[0];
   const recent = getRecent();
+  const { user } = useAuth();
+  const prefs = usePreferences();
+  const interests = getInterests();
+  const [dismissed, setDismissed] = useState(() => sget("kx-setup-dismissed") === "1");
+  const setupOpen = !dismissed && !!prefs.data && !prefs.data.reminders.updatedAt && !prefs.data.analytics.updatedAt && !isDeviceDone(user?.sub ?? "anon");
   const first = me.data ? (i18n.language.startsWith("ar") ? me.data.nameAr : me.data.nameEn) ?? me.data.nameEn ?? me.data.nameAr : null;
 
   return (
@@ -47,6 +56,21 @@ export default function HomePage() {
           <SpecialtyChips onPick={(code) => nav(code ? `/search?specialty=${code}` : "/search")} />
         </div>
       </section>
+
+      {setupOpen && (
+        <section className="kx-card flex flex-wrap items-center justify-between gap-4 border-primary/30 p-5" aria-labelledby="setup-title" data-testid="finish-setup">
+          <div className="flex min-w-0 items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"><Sparkles className="h-5 w-5" aria-hidden="true" /></span>
+            <div><h2 id="setup-title" className="text-lg">{t("home.finishSetup")}</h2><p className="text-sm text-muted-foreground">{t("home.finishSetupBody")}</p></div></div>
+          <div className="flex items-center gap-2"><button type="button" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground hover:text-foreground" onClick={() => { sset("kx-setup-dismissed", "1"); setDismissed(true); }}>{t("welcome.skip")}</button><Link to="/welcome?review=1" className={cn(buttonVariants())}>{t("home.finishSetupGo")}</Link></div>
+        </section>
+      )}
+
+      {interests.length > 0 && (
+        <section aria-labelledby="foryou-title" className="space-y-3" data-testid="for-you">
+          <div className="flex items-center justify-between gap-3"><h2 id="foryou-title" className="kx-section-title">{t("home.forYou")}</h2><Link to="/welcome?review=1" className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4">{t("home.forYouEdit")}</Link></div>
+          <ul className="flex flex-wrap gap-2">{interests.map((i) => <li key={i}><Link to={INTEREST_LINK[i]} className="kx-chip">{t(`welcome.interests.items.${i}`)}</Link></li>)}</ul>
+        </section>
+      )}
 
       <ContinuityCards />
 

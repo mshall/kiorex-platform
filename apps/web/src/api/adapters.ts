@@ -58,7 +58,7 @@ export function mapProfile(p: S["ProviderProfileDto"]): DoctorProfile {
 // ───────────── patient account ─────────────
 import type { Booking, BookingChannel, BookingStatus, Clinic, Consent, ConsentType, DepositStatus, FamilyMember, Patient, Review, ReviewList, Session } from "./types";
 
-export const mapPatient = (p: S["PatientProfileDto"]): Patient => ({ id: p.id, nameAr: p.nameAr ?? null, nameEn: p.nameEn ?? null, phone: p.phone ?? "", email: p.email ?? null, dob: p.dateOfBirth ?? null, gender: p.gender ?? null, locale: p.preferredLocale === "en" ? "en" : "ar" });
+export const mapPatient = (p: S["PatientProfileDto"]): Patient => ({ id: p.id, nameAr: p.nameAr ?? null, nameEn: p.nameEn ?? null, phone: p.phone ?? "", email: p.email ?? null, dob: p.dateOfBirth ?? null, gender: p.gender ?? null, locale: p.preferredLocale === "en" ? "en" : "ar", market: p.market, createdAt: p.createdAt });
 export const mapDependant = (d: S["DependantDto"]): FamilyMember => ({ id: d.id, name: d.nameEn ?? d.nameAr ?? "", relationship: String(d.relationship ?? "OTHER").toLowerCase(), dob: d.dateOfBirth ?? null, gender: d.gender ?? null, guardianAccessExpired: !!d.guardianAccessExpired });
 export const mapConsent = (c: S["ConsentStateDto"]): Consent => ({ type: c.purpose.toLowerCase() as ConsentType, granted: c.granted, updatedAt: c.updatedAt });
 export const mapSession = (s: S["AuthSessionDto"]): Session => ({ id: s.id, device: s.device ?? "—", lastSeenAt: s.lastSeenAt, current: s.current });

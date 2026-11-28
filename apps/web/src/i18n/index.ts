@@ -14,6 +14,10 @@ import continuityAr from "./continuity.ar.json";
 import continuityEn from "./continuity.en.json";
 import sponsoredAr from "./sponsored.ar.json";
 import sponsoredEn from "./sponsored.en.json";
+import lpAr from "./lp.ar.json";
+import lpEn from "./lp.en.json";
+import obAr from "./ob.ar.json";
+import obEn from "./ob.en.json";
 
 export const SUPPORTED = ["ar", "en"] as const;
 export type Lang = (typeof SUPPORTED)[number];
@@ -31,7 +35,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { ar: { translation: { ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr, corporate: corporateAr, loyalty: loyaltyAr } }, en: { translation: { ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn, corporate: corporateEn, loyalty: loyaltyEn } } }, // GRW-P2-B3: namespace referral.* in its own files
+    resources: { ar: { translation: { ...ar, referral: referralAr, sponsored: sponsoredAr, continuity: continuityAr, corporate: corporateAr, loyalty: loyaltyAr, lp: lpAr, entry: obAr.entry, welcome: obAr.welcome, home: { ...ar.home, ...obAr.home } } }, en: { translation: { ...en, referral: referralEn, sponsored: sponsoredEn, continuity: continuityEn, corporate: corporateEn, loyalty: loyaltyEn, lp: lpEn, entry: obEn.entry, welcome: obEn.welcome, home: { ...en.home, ...obEn.home } } } }, // GRW-P2-B3: namespace referral.* in its own files
     fallbackLng: "ar",
     supportedLngs: SUPPORTED as unknown as string[],
     interpolation: { escapeValue: false },
