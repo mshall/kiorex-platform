@@ -44,7 +44,7 @@ export function EmptyState({ title, hint, action, icon, art = "empty" }: { title
   return (
     <div className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="empty-state">
       {icon ? <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-primary [&_svg]:h-8 [&_svg]:w-8">{icon}</div> : <StateArt kind={art} />}
-      <h3 className="text-lg">{title}</h3>
+      <h2 className="text-lg">{title}</h2>
       {hint && <p className="max-w-md text-sm text-muted-foreground">{hint}</p>}
       {action}
     </div>
@@ -57,7 +57,7 @@ export function UnavailableState({ featureKey, awaiting }: { featureKey?: string
   return (
     <div role="status" className="kx-card flex flex-col items-center gap-3 px-6 py-12 text-center" data-testid="feature-unavailable" data-feature={featureKey} data-awaiting={awaiting ? "true" : undefined}>
       <PauseCircle className="h-10 w-10 text-ocean" aria-hidden="true" />
-      <h3 className="text-lg">{awaiting ? t("unavailable.awaitingTitle") : t("unavailable.title")}</h3>
+      <h2 className="text-lg">{awaiting ? t("unavailable.awaitingTitle") : t("unavailable.title")}</h2>
       <p className="max-w-md text-sm text-muted-foreground">{awaiting ? t("unavailable.awaitingBody") : t("unavailable.body")}</p>
     </div>
   );
@@ -71,7 +71,7 @@ export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () =
   return (
     <div role="alert" className="kx-card flex flex-col items-center gap-3 border-destructive/40 px-6 py-10 text-center" data-testid="error-state">
       <StateArt kind="error" className="h-24 w-24" />
-      <h3 className="text-lg">{t("states.errorTitle")}</h3>
+      <h2 className="text-lg">{t("states.errorTitle")}</h2>
       <p className="max-w-md text-sm text-muted-foreground">{t("states.errorBody")}</p>
       {onRetry && <Button variant="outline" onClick={onRetry}>{t("states.retry")}</Button>}
       <p className="text-xs text-muted-foreground">{t("p3.errorId")}</p>

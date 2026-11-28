@@ -62,7 +62,7 @@ function ClinicSection({ canChange }: { canChange: boolean }) {
       <p className="mb-3 text-sm text-muted-foreground">{t("kiorlyPlans.clinic.intro")}</p>
       {note ? <p role="status" className="mb-3 text-sm text-success" data-testid="page-note">{note}</p> : null}
       {q.isLoading ? <CardSkeleton rows={2} /> : q.error ? <ErrorState error={q.error} onRetry={() => void q.refetch()} /> : !c?.available ? <p className="rounded-md bg-muted px-3 py-2 text-sm" role="alert" data-testid="clinic-unavailable">{t("kiorlyPlans.clinic.unavailable")}</p> : c.plans.length === 0 ? <p className="text-sm text-muted-foreground">{t("kiorlyPlans.clinic.empty")}</p> : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
           {[...c.plans].sort((a, b) => a.sortOrder - b.sortOrder).map((p) => {
             const rows = sortPrices(p.prices);
             return (
@@ -113,7 +113,7 @@ function ContentEditor({ canChange }: { canChange: boolean }) {
       <p className="mb-2 text-sm text-muted-foreground">{t("kiorlyPlans.content.intro")}</p>
       <p className="mb-3 text-xs text-muted-foreground" data-testid="content-version">{saved.version === 0 ? t("kiorlyPlans.content.isDefault") : t("kiorlyPlans.content.version", { version: saved.version, by: saved.updatedBy ?? "-" })}</p>
       <div role="tablist" className="mb-3 flex gap-2">{(["pharmacy", "lab"] as const).map((m) => <button key={m} role="tab" aria-selected={mod === m} onClick={() => setMod(m)} data-testid={`tab-${m}`} className={`rounded-lg border px-3 py-1.5 text-sm ${mod === m ? "bg-accent font-semibold" : ""}`}>{t(`kiorlyPlans.content.${m}`)}</button>)}</div>
-      <div className="grid gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         {draft[mod].plans.map((p, i) => { const issues = contentIssues(p); const dis = !canChange; const id = `${mod}-${p.id}`; return (
           <article key={p.id} className="rounded-xl border bg-card p-4 shadow-card" data-testid={`content-plan-${mod}-${p.id}`}>
             <label className="mb-3 flex items-center gap-2 text-sm font-medium"><input type="checkbox" disabled={dis} checked={p.visible} data-testid={`visible-${id}`} onChange={(e) => patch(i, (x) => ({ ...x, visible: e.target.checked }))} />{t("kiorlyPlans.content.visible")} <span className="font-mono text-xs text-muted-foreground" dir="ltr">{p.id}</span></label>
