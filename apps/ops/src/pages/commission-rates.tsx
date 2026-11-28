@@ -107,7 +107,7 @@ function RateForm({ onSubmit, busy, withReason, testid }: { onSubmit: (b: { spec
 function HistoryTable({ rows, caps, onDecide }: { rows: RateRow[]; caps: RateCaps; onDecide: (id: string, approve: boolean) => void }) {
   const { t, i18n } = useTranslation();
   if (!rows.length) return <p className="mt-2 text-sm text-muted-foreground" data-testid="rate-history-empty">{t("commissions.rates.noHistory")}</p>;
-  return <div className="mt-2 max-w-full overflow-x-auto" data-testid="rate-history" tabIndex={0} role="region" aria-label={t("commissions.rates.history")}><table className="w-full min-w-[34rem] text-start text-sm"><caption className="sr-only">{t("commissions.rates.history")}</caption>
+  return <div className="relative mt-2 max-w-full overflow-x-auto" data-testid="rate-history" tabIndex={0} role="region" aria-label={t("commissions.rates.history")}><table className="w-full min-w-[34rem] text-start text-sm"><caption className="sr-only">{t("commissions.rates.history")}</caption>
     <thead><tr className="text-xs text-muted-foreground"><th scope="col" className="p-2 text-start">{t("commissions.col.version")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.rate")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.effectiveFrom")}</th><th scope="col" className="p-2 text-start">{t("commissions.col.status")}</th><th scope="col" className="p-2 text-start">{t("commissions.col.proposedBy")}</th><th scope="col" className="p-2 text-start">{t("commissions.rates.form.reason")}</th><th scope="col" className="p-2" /></tr></thead>
     <tbody>{rows.map((r) => <tr key={r.id} className="border-t">
       <td className="p-2" dir="ltr">v{r.version}</td>

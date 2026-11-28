@@ -13,7 +13,7 @@ export default function ExperimentHistoryPage({ id }: { id: string }) {
           <div className="flex flex-wrap items-center justify-between gap-2"><strong>{t(`growth.experiments.history.kinds.${e.kind}`, { defaultValue: e.kind })}</strong><time className="text-xs text-muted-foreground" dateTime={e.at}>{new Date(e.at).toLocaleString()}</time></div>
           <p className="mt-1 break-all text-sm" dir="ltr">{e.actor}</p>
           {e.reason && <p className="mt-1 text-sm">{e.reason}</p>}
-          {Object.keys(e.diff ?? {}).length > 0 && <details className="mt-1 text-xs"><summary className="min-h-11 cursor-pointer py-2">{t("growth.experiments.history.diff")}</summary><pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-muted p-2" dir="ltr">{JSON.stringify(e.diff, null, 1)}</pre></details>}
+          {Object.keys(e.diff ?? {}).length > 0 && <details className="mt-1 text-xs"><summary className="min-h-11 cursor-pointer py-2">{t("growth.experiments.history.diff")}</summary><pre className="relative overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-muted p-2" dir="ltr">{JSON.stringify(e.diff, null, 1)}</pre></details>}
         </li>
       ))}
     </ol>

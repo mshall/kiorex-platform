@@ -8,7 +8,7 @@ export interface Column<T> { key: string; header: string; cell: (row: T) => Reac
 export function DataTable<T>({ columns, rows, rowKey, caption, onRowClick, empty }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string; caption: string; onRowClick?: (r: T) => void; empty?: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="max-h-[72vh] overflow-auto rounded-xl border bg-card shadow-card" role="region" aria-label={caption} tabIndex={0}>
+    <div className="relative max-h-[72vh] overflow-auto rounded-xl border bg-card shadow-card" role="region" aria-label={caption} tabIndex={0}>
       <table className="w-full min-w-[640px] border-separate border-spacing-0 text-start text-sm" data-testid="data-table">
         <caption className="sr-only">{caption}</caption>
         <thead>

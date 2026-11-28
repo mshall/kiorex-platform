@@ -215,7 +215,7 @@ export default function KiorlyMarketsPage() {
         <>
           <p className="mb-3 text-sm text-muted-foreground">{t("kiorlyMarkets.liveCount", { count: items.filter((m) => m.status === "LIVE").length })}</p>
           {items.length === 0 ? <p className="text-sm text-muted-foreground" data-testid="markets-empty">{t("kiorlyMarkets.empty")}</p> : (
-            <div className="overflow-x-auto rounded-xl border bg-card shadow-card">
+            <div className="relative overflow-x-auto rounded-xl border bg-card shadow-card">
               <table className="w-full min-w-[900px] text-sm" data-testid="markets-table">
                 <thead className="bg-muted/60"><tr>{["code", "market", "region", "status", "prereq", "kiorex", "actions"].map((c) => <th key={c} className={`px-3 py-2 ${c === "actions" ? "text-end" : "text-start"}`}>{t(`kiorlyMarkets.col.${c}`)}</th>)}</tr></thead>
                 <tbody>

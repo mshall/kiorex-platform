@@ -131,7 +131,7 @@ export function ProductPricesSection({ product, markets }: { product: "PHARMACY"
                 </div>
                 {ed === "LITE" ? <p className="mt-1 text-xs text-muted-foreground">{t("kiorlyPrices.section.liteNote")}</p> : null}
                 {rows.length === 0 ? <p className="mt-3 text-sm text-muted-foreground" data-testid={`${id}-no-price-${ed}`}>{t("kiorlyPlans.clinic.noPrices")}</p> : (
-                  <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="bg-muted/60"><tr>{["market", "interval", "amount", "version", "from", "to", "state"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{t(`kiorlyPlans.clinic.col.${k}`)}</th>)}</tr></thead>
+                  <div className="relative mt-3 overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead className="bg-muted/60"><tr>{["market", "interval", "amount", "version", "from", "to", "state"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{t(`kiorlyPlans.clinic.col.${k}`)}</th>)}</tr></thead>
                     <tbody>{rows.map((r: ProductPrice) => { const st = priceState(r); return (
                       <tr key={r.id} className="border-t" data-testid={`${id}-price-${ed}-${r.marketCode}-${r.interval}-${r.priceVersion}`}>
                         <td className="px-2 py-1.5 font-mono" dir="ltr">{r.marketCode}</td><td className="px-2 py-1.5">{t(`kiorlyPlans.clinic.interval.${r.interval}`)}</td>
@@ -166,7 +166,7 @@ export function ProposalsSection() {
       {msg ? <p role="status" className="mb-2 text-sm text-success" data-testid="proposals-msg">{msg}</p> : null}
       {err ? <p role="alert" className="mb-2 text-sm text-destructive" data-testid="proposals-error">{err}</p> : null}
       {list.length === 0 ? <p className="text-sm text-muted-foreground" data-testid="proposals-empty">{t("kiorlyPrices.proposals.empty")}</p> : (
-        <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead className="bg-muted/60"><tr>{["product", "plan", "market", "interval", "amount", "starts", "by", "status", "actions"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{k === "actions" ? <span className="sr-only">{t("kiorlyPrices.proposals.col.actions")}</span> : t(`kiorlyPrices.proposals.col.${k}`)}</th>)}</tr></thead>
+        <div className="relative overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead className="bg-muted/60"><tr>{["product", "plan", "market", "interval", "amount", "starts", "by", "status", "actions"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{k === "actions" ? <span className="sr-only">{t("kiorlyPrices.proposals.col.actions")}</span> : t(`kiorlyPrices.proposals.col.${k}`)}</th>)}</tr></thead>
           <tbody>{list.map((p) => { const a = proposalActions(p, caps); return (
             <tr key={p.id} className="border-t align-top" data-testid={`proposal-${p.id}`}>
               <td className="px-2 py-1.5">{t(`kiorlyPrices.product.${p.product}`)}</td><td className="px-2 py-1.5">{p.planKey}{p.product === "CLINIC" ? ` (${t(`kiorlyPlans.clinic.unit.${p.unit}`)})` : ""}</td>
