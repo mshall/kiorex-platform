@@ -24,7 +24,7 @@ function LeadsBadge({ className }: { className?: string }) {
 
 /** New (not yet contacted) join requests from the Kiorly site. */
 function SiteLeadsBadge() {
-  const { t } = useTranslation(); const n = useSiteLeadSummary().data?.byStatus.NEW ?? 0;
+  const { t } = useTranslation(); const n = useSiteLeadSummary().data?.byStatus?.NEW ?? 0;
   if (n < 1) return null;
   return <span className="kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" data-testid="site-leads-badge" aria-label={t("siteLeads.newBadge", { count: n })}>{n > 99 ? "99+" : n}</span>;
 }

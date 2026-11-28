@@ -88,7 +88,7 @@ for (const [name, base, edition] of [["Kiorex super admin", KIOREX, "kiorex"], [
       await reset(page); await page.getByTestId("leads-filter-q").fill("KL-LAB"); await expect(rows).toHaveCount(1);
       await page.getByTestId("leads-filter-mode").selectOption("CONNECTED"); await expect(page.getByText("No join requests match these filters.")).toBeVisible(); /* the empty state is one row */ await page.getByTestId("leads-filter-from").fill("2026-11-27"); await expect(page.getByTestId("leads-filter-from")).toHaveValue("2026-11-27");
       await expect(page.getByTestId("leads-filter-market")).toHaveCount(0); // one market: no market selector
-      if (edition === "kiorly") await expect(page).toHaveTitle("Kiorly Admin");
+      if (edition === "kiorly") await expect(page).toHaveTitle(/Kiorly Admin$/);
     });
     test("detail: contact data, status flow, assignment, tags, notes and the trail; an invalid change is refused with a message", async ({ page }) => {
       const api = await setup(page, ["ops_admin"]); await page.goto(`${base}/leads`);

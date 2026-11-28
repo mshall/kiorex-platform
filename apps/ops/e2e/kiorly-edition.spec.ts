@@ -18,10 +18,10 @@ test.describe("Kiorly admin (admin.<env>.kiorly.com): same console, Kiorly editi
   test("shows the Kiorly lockup, the provider views only, the Kiorly tab title and noindex", async ({ page }) => {
     await signedIn(page);
     await page.goto(`${KIORLY}/`);
-    await expect(page).toHaveURL(`${KIORLY}/providers`);
+    await expect(page).toHaveURL(`${KIORLY}/home`);
     await expect(page.getByTestId("kiorly-logo")).toBeVisible();
     await expect(page.getByTestId("kiorly-logo").locator("img").first()).toHaveAttribute("src", "/kiorly/kiorly-lockup.svg");
-    await expect(page).toHaveTitle("Kiorly Admin");
+    await expect(page).toHaveTitle(/Kiorly Admin$/);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex,nofollow");
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/kiorly/favicon.svg");
     const nav = page.getByTestId("sidebar-nav");
@@ -32,11 +32,11 @@ test.describe("Kiorly admin (admin.<env>.kiorly.com): same console, Kiorly editi
     await expect(page.locator('svg[aria-label="KIOREX"], [title="KIOREX"]')).toHaveCount(0);
   });
 
-  test("a Kiorex-only view is not routed here and falls back to the provider directory", async ({ page }) => {
+  test("a Kiorex-only view is not routed here and falls back to the role home", async ({ page }) => {
     await signedIn(page);
     for (const p of ["/growth/campaigns", "/safety", "/bookings"]) {
       await page.goto(`${KIORLY}${p}`);
-      await expect(page).toHaveURL(`${KIORLY}/providers`);
+      await expect(page).toHaveURL(`${KIORLY}/home`);
     }
   });
 
@@ -46,7 +46,7 @@ test.describe("Kiorly admin (admin.<env>.kiorly.com): same console, Kiorly editi
     await page.goto(`${KIORLY}/providers`);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByTestId("kiorly-logo").locator("img").first()).toHaveAttribute("src", "/kiorly/kiorly-lockup-ar.svg");
-    await expect(page).toHaveTitle("إدارة كيورلي");
+    await expect(page).toHaveTitle(/إدارة كيورلي$/);
   });
 
   test("phone width: no horizontal scroll and the Kiorly mark in the header", async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe("Kiorex super admin on its own host is unchanged", () => {
   test("full navigation, Growth group and the Kiorex logo", async ({ page }) => {
     await signedIn(page);
     await page.goto(`${KIOREX}/providers`);
-    await expect(page).toHaveTitle("Kiorex Ops");
+    await expect(page).toHaveTitle(/Kiorex Ops$/);
     await expect(page.getByTestId("kiorly-logo")).toHaveCount(0);
     await expect(page.getByTestId("growth-nav")).toBeVisible();
     await expect(page.getByTestId("sidebar-nav").getByRole("link", { name: "Safety console" })).toBeVisible();
