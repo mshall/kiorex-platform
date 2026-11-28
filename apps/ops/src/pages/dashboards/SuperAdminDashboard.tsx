@@ -19,7 +19,7 @@ export default function SuperAdminDashboard() {
   const markets = useDash<{ items: Array<{ id: string; code: string }> }>("markets", "/admin/kiorly-markets");
   const changeReqs = useQueries({ queries: arr<{ id: string; code: string }>(markets.data).map((m) => ({ queryKey: ["dash", "mk-cr", m.id], queryFn: () => rawApi<unknown>("GET", `/admin/kiorly-markets/${encodeURIComponent(m.id)}/change-requests`), retry: false })) });
   const partners = useDash<Array<{ id: string; name: string; status: string }>>("partners", "/admin/onboarding/partners");
-  const plans = useDash<{ pendingProposals?: unknown[] }>("plans", "/admin/kiorly-plans");
+  const plans = useDash<unknown[] | { items: unknown[] }>("plan-proposals", "/admin/kiorly-plans/proposals?status=PENDING");
   const audit = useDash<Array<{ id: string; action: string; resource?: string; actor?: string; createdAt: string }>>("audit", "/admin/audit-log");
   const outbox = useDash<{ stats?: { dead: number; pending: number } }>("outbox", "/admin/outbox?status=DEAD");
 
@@ -29,7 +29,7 @@ export default function SuperAdminDashboard() {
   const flagReq = arr<{ status?: string }>(flags.data).filter((f) => pending(f.status ?? "PENDING")).length;
   const mkReq = changeReqs.reduce((n, c) => n + arr<{ status?: string }>(c.data).filter((x) => !x.status || pending(x.status)).length, 0);
   const partnerAwait = arr<{ id: string; name: string; status: string }>(partners.data).filter((p) => p.status === "AWAITING_APPROVAL");
-  const planProps = Array.isArray(plans.data?.pendingProposals) ? plans.data!.pendingProposals!.length : null;
+  const planProps = plans.error ? null : arr(plans.data).length;
   const total = comPol + comRates + comCfg + flagReq + mkReq + partnerAwait.length + (planProps ?? 0);
   const base = passportBase();
   const rows = [
@@ -54,7 +54,7 @@ export default function SuperAdminDashboard() {
           ))}
           <li className="flex items-center justify-between gap-3 py-1.5" data-testid="dash-approval-plans">
             <Link to="/kiorly-plans" className="font-medium underline-offset-2 hover:underline">{t("roleHome.approvals.plans")}</Link>
-            <span className="kx-label-num text-sm">{planProps === null ? t("roleHome.approvals.plansNoFeed") : num(planProps)}</span>
+            <span className="kx-label-num text-sm">{planProps === null ? t("roleHome.unknown") : num(planProps)}</span>
           </li>
           <li className="flex items-center justify-between gap-3 py-1.5" data-testid="dash-approval-passport">
             <span className="font-medium">{t("roleHome.approvals.passport")}</span>

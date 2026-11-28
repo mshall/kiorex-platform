@@ -85,8 +85,7 @@
     "hint": "Plans shown on the Kiorly landing page. You can read them here.",
     "visible": "Visible plans",
     "proposals": "Price proposals waiting",
-    "proposalsHint": "Prices are approved by a super admin only.",
-    "noProposalFeed": "Price proposals appear here once the plans approval flow is enabled. Prices are approved by a super admin only."
+    "proposalsHint": "Price proposals waiting for a super admin. Prices are approved by a super admin only."
    },
    "markets": {
     "title": "Markets",
@@ -125,7 +124,6 @@
     "markets": "Market change requests",
     "partners": "Partner approvals",
     "plans": "Plans and prices",
-    "plansNoFeed": "not enabled yet",
     "passport": "Passport (decided there)",
     "mfa": "MFA policy",
     "limits": "Sign-in limits",
@@ -279,8 +277,7 @@
     "hint": "الباقات المعروضة في صفحة كيورلي. يمكنك قراءتها هنا.",
     "visible": "باقات ظاهرة",
     "proposals": "مقترحات أسعار بالانتظار",
-    "proposalsHint": "الأسعار يوافق عليها المدير العام فقط.",
-    "noProposalFeed": "تظهر مقترحات الأسعار هنا عند تفعيل مسار الموافقة على الباقات. الأسعار يوافق عليها المدير العام فقط."
+    "proposalsHint": "مقترحات أسعار بانتظار المدير العام. الأسعار يوافق عليها المدير العام فقط."
    },
    "markets": {
     "title": "الأسواق",
@@ -319,7 +316,6 @@
     "markets": "طلبات تغيير الأسواق",
     "partners": "موافقات الشركاء",
     "plans": "الباقات والأسعار",
-    "plansNoFeed": "غير مفعّل بعد",
     "passport": "باسبورت (يُقرَّر هناك)",
     "mfa": "سياسة التحقق بخطوتين",
     "limits": "حدود تسجيل الدخول",

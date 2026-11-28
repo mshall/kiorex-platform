@@ -40,6 +40,7 @@ const KIORLY_MOCKS = () => [
   J("/admin/onboarding/imports", [{ id: "b1", orgName: "Cairo Dental", label: "first import", status: "DRAFT", createdAt: daysAgo(3) }, { id: "b2", orgName: "Done Org", status: "COMMITTED", createdAt: daysAgo(9) }]),
   J("/admin/partner-leads/unread", { count: 5 }),
   J("/admin/onboarding/verification-updates", [{ ref: "v1", status: "OPEN" }, { ref: "v2", status: "APPROVED" }]),
+  J("/admin/kiorly-plans/proposals", [{ id: "pp1", status: "PENDING" }, { id: "pp2", status: "PENDING" }]),
   J("/admin/kiorly-plans", { canChange: false, clinic: { available: true, markets: [], plans: [{ id: "a", isPublic: true }, { id: "b", isPublic: false }] }, content: { config: { pharmacy: { plans: [{ visible: true }] }, lab: { plans: [{ visible: false }] } } } }),
   J("/admin/kiorly-markets", { canChange: false, items: [{ id: "mk_EG", code: "EG", nameEn: "Egypt", status: "LIVE", operability: "active" }, { id: "mk_SA", code: "SA", nameEn: "Saudi Arabia", status: "DRAFT", operability: "draft" }] }),
   J("/admin/commissions/policy", { markets: ["EG"] }),
@@ -116,11 +117,11 @@ describe("role dashboards", () => {
     server.use(J("/admin/commissions/policy", { markets: ["EG"] }), J("/admin/commissions/policy/EG", { counsel: { history: [{ status: "PENDING_APPROVAL" }, { status: "APPLIED" }] }, disclosure: { history: [{ status: "PENDING_APPROVAL" }] } }),
       J("/admin/commissions/rates/defaults", [{ product: "CLINIC", pending: { id: "x" } }, { product: "LAB", pending: null }]), J("/admin/commissions/config", [{ status: "PENDING_APPROVAL" }]),
       J("/admin/flags/requests", [{ status: "PENDING" }, { status: "APPROVED" }]), J("/admin/kiorly-markets", { items: [{ id: "mk_EG", code: "EG" }] }), J("/admin/kiorly-markets/mk_EG/change-requests", [{ id: "r1", status: "PENDING" }]),
-      J("/admin/onboarding/partners", [{ id: "p1", name: "N", status: "AWAITING_APPROVAL" }]), J("/admin/kiorly-plans", { canChange: true }),
+      J("/admin/onboarding/partners", [{ id: "p1", name: "N", status: "AWAITING_APPROVAL" }]), J("/admin/kiorly-plans/proposals", [{ id: "pp1", status: "PENDING" }]),
       J("/admin/audit-log", [{ id: "a1", action: "kiorly.market.launch", resource: "KiorlyMarket", createdAt: new Date().toISOString() }]), J("/admin/outbox", { stats: { dead: 0, pending: 0 }, items: [] }));
     mount(["super_admin"]);
-    await waitFor(() => expect(screen.getByTestId("dash-approvals-total")).toHaveTextContent("7")); // 2 policy + 1 rate + 1 config + 1 flag + 1 market + 1 partner
-    expect(screen.getByTestId("dash-approval-plans")).toHaveTextContent(/not enabled yet/);
+    await waitFor(() => expect(screen.getByTestId("dash-approvals-total")).toHaveTextContent("8")); // 2 policy + 1 rate + 1 config + 1 flag + 1 market + 1 partner + 1 price proposal
+    expect(screen.getByTestId("dash-approval-plans")).toHaveTextContent("1");
     expect(screen.getByTestId("dash-audit")).toHaveTextContent("kiorly.market.launch");
   });
 
@@ -144,7 +145,7 @@ describe("role dashboards", () => {
     expect(screen.getByTestId("dash-partner-open")).toHaveTextContent("2"); // LIVE is not in the queue
     expect(screen.getByTestId("dash-drafts")).toHaveTextContent("1");
     expect(screen.getByTestId("dash-partner-leads")).toHaveTextContent("5"); expect(screen.getByTestId("dash-verif-open")).toHaveTextContent("1");
-    expect(screen.getByTestId("dash-plans-visible")).toHaveTextContent("2"); expect(screen.getByTestId("dash-plans-proposals")).toHaveTextContent("-");
+    expect(screen.getByTestId("dash-plans-visible")).toHaveTextContent("2"); expect(screen.getByTestId("dash-plans-proposals")).toHaveTextContent("2");
     expect(within(screen.getByTestId("dash-markets")).getAllByRole("listitem")).toHaveLength(2);
     await waitFor(() => expect(screen.getByTestId("dash-policy-mode")).toHaveTextContent("MOCK"));
     expect(screen.getByTestId("dashboard-kiorly_ops")).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe("role dashboards", () => {
   });
 
   it("a card the API refuses (403) says it is not part of this role's work instead of an error", async () => {
-    server.use(J("/admin/kiorly-plans", { code: "FORBIDDEN_ROLE", message: "Insufficient role" }, 403), ...KIORLY_MOCKS());
+    server.use(J("/admin/kiorly-plans/proposals", { code: "FORBIDDEN_ROLE", message: "Insufficient role" }, 403), ...KIORLY_MOCKS());
     const KiorlyDashboard = (await import("@/pages/dashboards/KiorlyDashboard")).default;
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } }); configureApi({ getToken: async () => "t" }); void i18n.changeLanguage("en");
     render(<QueryClientProvider client={qc}><MemoryRouter><KiorlyDashboard admin={false} /></MemoryRouter></QueryClientProvider>);

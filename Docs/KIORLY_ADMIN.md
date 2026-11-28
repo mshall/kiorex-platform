@@ -101,14 +101,14 @@ Open (founder): the seeded Clinic EG prices (Lite 499, Pro 1299 per clinician, C
 | Commission policy and rates | read | read |
 | Fee statements | read | read |
 | Kiorly markets | read | read |
-| Plans | read (price proposals as listed by the plans work) | same |
+| Plans | read, preview a price, propose and withdraw their own proposal, list proposals (never approve or reject: `super_admin`) | same |
 | Orders, finance, reconciliation, payments, messaging, integrations, flags, operations, outbox, bookings, moderation, growth, audit log, partners registry | refused | refused |
 
 **Console.** Each role lands on its own dashboard at `/home`; the menu and the route gate come from `apps/ops/src/lib/roleAccess.ts`; a refused address shows the no-access page; the Kiorex console refuses a Kiorly-only sign-in, the Kiorly console offers only the allowed views.
 
 | Role | Dashboard (existing admin APIs only: counts and links) |
 |---|---|
-| `super_admin` | approvals waiting (commission policy, rates, settings, feature flags, market change requests, partner approvals; plans price approvals show "not enabled yet" until that flow's API exposes proposals), Passport decisions (MFA policy, sign-in limits, Kiorly roles) as links, audit highlights, system health (outbox) and links |
+| `super_admin` | approvals waiting (commission policy, rates, settings, feature flags, market change requests, partner approvals; plan price proposals waiting, from `GET /admin/kiorly-plans/proposals?status=PENDING`), Passport decisions (MFA policy, sign-in limits, Kiorly roles) as links, audit highlights, system health (outbox) and links |
 | `ops_admin` | moderation and complaints, safety and held deposits, outbox, provider onboarding queue, join requests |
 | `finance` | commission claims by state, aging and disputes, reconciliation findings and payment matching queue, latest settlement runs, shortcuts to statements |
 | `growth_admin` | growth KPIs (decisions, provider-led share, open fraud signals, widgets, landing pages) and funnel |
