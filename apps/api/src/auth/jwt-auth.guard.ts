@@ -4,6 +4,7 @@ import { AuthUser, IS_PUBLIC, ROLES_KEY } from '../common/auth';
 import { ApiError, forbidden } from '../common/errors';
 import { AuthSessionService } from './auth-session.service';
 import { TOKEN_VERIFIER, TokenVerifier } from './token-verifier';
+import { hasKiorlyRole, kiorlyDecision, routeKeyOf } from './kiorly-roles';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -43,6 +44,14 @@ export class JwtAuthGuard implements CanActivate {
     }
     req.user = user;
     const need = this.reflector.getAllAndOverride<string[] | undefined>(ROLES_KEY, targets);
+    // Kiorly-only roles (ADR-062): deny by default. The explicit allow-list REPLACES the @Roles check for them (a route with no @Roles is refused too), and a token that
+    // mixes a Kiorly role with any other role is refused everywhere.
+    if (hasKiorlyRole(roles)) {
+      const d = kiorlyDecision(roles, routeKeyOf(ctx.getClass(), ctx.getHandler()));
+      if (d.ok) return true;
+      if (d.reason === 'MIXED') throw forbidden('FORBIDDEN_MIXED_ROLES', 'A sign-in may hold Kiorex roles or Kiorly roles, never both', { required: need ?? [] });
+      throw forbidden('FORBIDDEN_ROLE', 'Insufficient role', { required: need ?? [] });
+    }
     if (need?.length && !need.some((r) => roles.includes(r))) throw forbidden('FORBIDDEN_ROLE', 'Insufficient role', { required: need });
     return true;
   }
