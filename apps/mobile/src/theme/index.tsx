@@ -71,10 +71,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 export const useTheme = () => useContext(ThemeCtx);
 
-/** Font family per language: Jost for Latin UI, IBM Plex Sans Arabic for Arabic (it also carries Latin glyphs). */
+/** Font family per language: Plus Jakarta Sans for Latin UI (Kiorex type, founder decision 28 Nov 2026), IBM Plex Sans Arabic for Arabic (it also carries Latin glyphs). */
 export type Weight = "regular" | "medium" | "semibold" | "bold";
 export const fontFamily = (lang: string, w: Weight) => {
   const ar = { regular: "IBMPlexSansArabic_400Regular", medium: "IBMPlexSansArabic_500Medium", semibold: "IBMPlexSansArabic_600SemiBold", bold: "IBMPlexSansArabic_700Bold" };
-  const en = { regular: "Jost_400Regular", medium: "Jost_500Medium", semibold: "Jost_600SemiBold", bold: "Jost_700Bold" };
+  const en = { regular: "PlusJakartaSans_400Regular", medium: "PlusJakartaSans_500Medium", semibold: "PlusJakartaSans_600SemiBold", bold: "PlusJakartaSans_700Bold" };
   return (lang.startsWith("ar") ? ar : en)[w];
 };

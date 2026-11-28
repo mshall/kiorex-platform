@@ -48,8 +48,8 @@ function Profile() {
 function SignOut() {
   const { t } = useTranslation();
   const { logout } = useAuth();
-  // visible on phones too: the header button is desktop-only, and the Account tab is where a phone user looks for it
-  return <Button variant="outline" onClick={() => void logout()} data-testid="account-sign-out"><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>;
+  // shown below 1024 px only (from 1024 px the header carries the one Sign out; founder decision 28 Nov 2026): the header button is desktop-only, and the Account tab is where a phone user looks for it
+  return <Button variant="outline" className="lg:hidden" onClick={() => void logout()} data-testid="account-sign-out"><LogOut className="rtl-flip" aria-hidden="true" />{t("nav.signOut")}</Button>;
 }
 
 function EditProfile() {
