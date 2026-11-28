@@ -1,4 +1,6 @@
-import { canOpen, CONSOLE_ROLES } from '../../ops/src/lib/roleAccess';
+// The console's access table is plain TypeScript without imports. It is loaded at run time (not as a typed import) because it lives outside this package's rootDir.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { canOpen, CONSOLE_ROLES } = require('../../ops/src/lib/roleAccess') as { canOpen: (roles: readonly string[], path: string) => boolean; CONSOLE_ROLES: readonly string[] };
 import { createCtx, TestCtx } from './harness';
 
 /**
