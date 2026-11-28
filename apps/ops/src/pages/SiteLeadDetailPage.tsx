@@ -11,6 +11,7 @@ import { CardSkeleton, ErrorState } from "@/components/states";
 import { PageHeader, StatusChip } from "@/components/kit";
 import { formatDateTime } from "@/lib/format";
 import { LEAD_TONE } from "./SiteLeadsPage";
+import { LeadSlaCell } from "@/components/LeadSla";
 import { canStartOnboarding, onboardingUrlForLead } from "@/lib/leadOnboarding";
 import { useCreateLeadOnboarding } from "@/api/leadOnboarding";
 
@@ -26,7 +27,9 @@ function Trail({ d, cfg }: { d: LeadDetail; cfg: LeadConfig | undefined }) {
     switch (e.kind) {
       case "CREATED": return t("siteLeads.ev.created");
       case "STATUS": return t("siteLeads.ev.status", { from: statusLabel(cfg, String(x.from), lang), to: statusLabel(cfg, String(x.to), lang) }) + (x.reason ? ` (${labelOf(cfg?.lostReasons, String(x.reason), lang)})` : "");
-      case "ASSIGN": return x.to ? t("siteLeads.ev.assign", { name: String(x.toName ?? x.to) }) : t("siteLeads.ev.unassign");
+      case "ASSIGN": return x.to ? t(x.via === "ROUND_ROBIN" ? "siteLeads.ev.assignRoundRobin" : "siteLeads.ev.assign", { name: String(x.toName ?? x.to) }) : t("siteLeads.ev.unassign");
+      case "ROUTING": return t("siteLeads.ev.noOwner");
+      case "REMINDER": return t("siteLeads.ev.reminder", { level: t(`siteLeads.reminderLevel.${String(x.level)}`, { defaultValue: String(x.level) }), target: t(`siteLeads.reminderTarget.${String(x.target)}`, { defaultValue: String(x.target) }), sent: Number(x.sent ?? 0), recipients: Number(x.recipients ?? 0) });
       case "NOTE": return String(x.text ?? "");
       case "TAG": return x.test !== undefined ? t(x.test ? "siteLeads.ev.testOn" : "siteLeads.ev.testOff") : t("siteLeads.ev.tags", { add: ((x.add as unknown as string[]) ?? []).join(", "), remove: ((x.remove as unknown as string[]) ?? []).join(", ") });
       case "DUPLICATE": return t("siteLeads.ev.duplicate", { ref: String(x.newRef) });
@@ -65,7 +68,9 @@ export default function SiteLeadDetailPage() {
       <PageHeader title={<span dir="auto">{d.legalName}</span>} hint={<span className="font-mono">{d.ref}</span>} badge={<>
         <StatusChip tone={LEAD_TONE[d.status] ?? "neutral"} data-testid="lead-status-chip">{statusLabel(cfg, d.status, lang)}</StatusChip>
         {d.isTest ? <StatusChip tone="neutral" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}{d.duplicateOfId ? <StatusChip tone="brand" dot={false}>{t("siteLeads.dupBadge")}</StatusChip> : null}
+        {d.routingFlag ? <StatusChip tone="warning" dot={false} data-testid="lead-noowner">{t("siteLeads.noEligibleBadge")}</StatusChip> : null}
       </>} />
+      {d.routingFlag && !d.ownerSub ? <p className="mb-4 max-w-3xl rounded-xl border bg-card p-3 text-sm" data-testid="lead-noowner-hint">{t("siteLeads.noEligibleHint")}</p> : null}
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
           <Card id="c-org" title={t("siteLeads.sec.org")}>
@@ -113,7 +118,13 @@ export default function SiteLeadDetailPage() {
             ) : d.mode === "STANDALONE" && (d.status === "QUALIFIED" || d.status === "ONBOARDING") ? <p className="mt-3 border-t pt-3 text-xs text-muted-foreground" data-testid="lead-standalone-note">{t("siteLeads.standaloneNoOnboarding")}</p> : null}
             {d.lostReason ? <p className="mt-2 text-xs text-muted-foreground">{t("siteLeads.lostBecause", { reason: labelOf(cfg?.lostReasons, d.lostReason, lang) })}</p> : null}
           </section>
+          {d.status === "NEW" && d.sla && d.sla.state !== "OFF" ? (
+            <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-sla" data-testid="lead-sla-panel"><h2 id="a-sla" className="mb-2 text-sm font-bold">{t("siteLeads.slaFilter")}</h2>
+              <LeadSlaCell sla={d.sla} testId="lead-sla" detail /><p className="mt-2 text-xs text-muted-foreground">{t("siteLeads.slaHint")}</p>
+            </section>
+          ) : null}
           <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-onb" data-testid="lead-onboarding-panel"><h2 id="a-onb" className="mb-2 text-sm font-bold">{t("siteLeads.onboardingPanel")}</h2>
+            {d.status === "LOST" && d.onboardingRequest && ["DRAFT", "SUBMITTED"].includes(d.onboardingRequest.status) ? <p className="mb-2 rounded-md border border-warning/50 p-2 text-xs" data-testid="lead-lost-draft-open">{t("siteLeads.lostDraftOpen")}</p> : null}
             {d.onboardingRequest ? (
               <div className="space-y-2"><p className="text-sm" data-testid="lead-onboarding-status">{t("siteLeads.onboardingLinkStatus", { status: t(`leadOnboarding.st.${d.onboardingRequest.status}`) })}</p>
                 <Button size="sm" variant="outline" asChild><Link to={`/leads/onboarding/${d.onboardingRequest.id}`} data-testid="lead-onboarding-open">{t("siteLeads.onboardingOpen")}</Link></Button></div>
@@ -130,6 +141,7 @@ export default function SiteLeadDetailPage() {
               </select>
               {d.ownerSub !== user?.sub ? <Button size="sm" variant="outline" disabled={upd.isPending || !user} onClick={() => upd.mutate({ ownerSub: user!.sub }, done("siteLeads.saved"))} data-testid="lead-assign-me">{t("siteLeads.assignMe")}</Button> : null}
             </div>
+            {d.ownerSub && d.assignedVia ? <p className="mt-2 text-xs text-muted-foreground" data-testid="lead-assigned-via">{t(d.assignedVia === "ROUND_ROBIN" ? "siteLeads.assignedRoundRobin" : "siteLeads.assignedHuman")}</p> : null}
           </section>
           <section className="rounded-xl border bg-card p-4 shadow-card" aria-labelledby="a-tags"><h2 id="a-tags" className="mb-2 text-sm font-bold">{t("siteLeads.tags")}</h2>
             <p className="mb-2 flex flex-wrap gap-1">{d.tags.length ? d.tags.map((x) => <button key={x} type="button" className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold hover:bg-accent" aria-label={t("siteLeads.removeTag", { tag: x })} onClick={() => upd.mutate({ removeTags: [x] }, done("siteLeads.saved"))}>{x} ×</button>) : <span className="text-xs text-muted-foreground">{t("siteLeads.noTags")}</span>}</p>

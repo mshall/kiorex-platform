@@ -24,9 +24,14 @@ function LeadsBadge({ className }: { className?: string }) {
 
 /** New (not yet contacted) join requests from the Kiorly site. */
 function SiteLeadsBadge() {
-  const { t } = useTranslation(); const n = useSiteLeadSummary().data?.byStatus?.NEW ?? 0;
-  if (n < 1) return null;
-  return <span className="kx-label-num ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" data-testid="site-leads-badge" aria-label={t("siteLeads.newBadge", { count: n })}>{n > 99 ? "99+" : n}</span>;
+  const { t } = useTranslation(); const sum = useSiteLeadSummary().data; const n = sum?.byStatus?.NEW ?? 0; const due = (sum?.reminders?.remind ?? 0) + (sum?.reminders?.escalated ?? 0);
+  if (n < 1 && due < 1) return null;
+  return (
+    <span className="ms-auto inline-flex items-center gap-1">
+      {n > 0 ? <span className="kx-label-num inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" data-testid="site-leads-badge" aria-label={t("siteLeads.newBadge", { count: n })}>{n > 99 ? "99+" : n}</span> : null}
+      {due > 0 ? <span className="kx-label-num inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold leading-5 text-destructive-foreground" data-testid="site-leads-due-badge" aria-label={t("siteLeads.dueBadge", { count: due })}>{due > 99 ? "99+" : due}</span> : null}
+    </span>
+  );
 }
 
 function SideLink({ to, Icon, k, t }: { to: string; Icon: typeof LayoutDashboard; k: string; t: (key: string) => string }) {

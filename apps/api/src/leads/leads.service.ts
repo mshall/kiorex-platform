@@ -13,6 +13,8 @@ import { LEAD_STATUSES, LEAD_TRANSITIONS, LICENCE_FIELDS, REQUIRABLE_FIELDS, TYP
 import { toCsv } from './lead-csv';
 import { LeadNotifier } from './lead-notifier';
 import { LeadOnboardingService } from './lead-onboarding.service';
+import { LeadRoutingService } from './lead-routing.service';
+import { ROUTING_ROLES, type RoutingConfig } from './lead-routing';
 import { draftStatuses } from './lead-onboarding';
 import { looksLikeTest, parseSubmission, payloadHashOf, type ParsedLead } from './lead-validation';
 
@@ -28,14 +30,14 @@ let limiter: RateLimiter = new SlidingWindowLimiter();
 export const resetLeadSubmissionLimits = async () => { await limiter.reset(); };
 
 type Row = NonNullable<Awaited<ReturnType<PrismaService['lead']['findUnique']>>>;
-interface Filters { status?: string; type?: string; market?: string; mode?: string; from?: string; to?: string; q?: string; owner?: string; test?: string; duplicates?: string; page?: string; pageSize?: string }
+interface Filters { status?: string; type?: string; market?: string; mode?: string; from?: string; to?: string; q?: string; owner?: string; test?: string; duplicates?: string; sla?: string; page?: string; pageSize?: string }
 
 /** Plain text and licence numbers never reach a log line: only ids and counts. */
 @Injectable()
 export class LeadsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('leads');
   private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly config: LeadConfigService, private readonly notifier: LeadNotifier, private readonly onboarding: LeadOnboardingService) {
+  constructor(private readonly prisma: PrismaService, private readonly config: LeadConfigService, private readonly notifier: LeadNotifier, private readonly onboarding: LeadOnboardingService, private readonly routing: LeadRoutingService) {
     limiter = process.env.RATE_LIMIT_STORE === 'memory' ? new SlidingWindowLimiter() : new PgRateLimiter(prisma as never);
   }
   onModuleInit() {
@@ -116,6 +118,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
     if (!created) throw new ApiError(503, 'TRY_AGAIN', 'Please try again');
     await this.prisma.leadEvent.create({ data: { id: newId('le'), leadId: created.id, kind: 'CREATED', actor: 'public', data: { mode: value.mode, providerType: value.providerType, locale: value.locale, test, duplicateOf: dupOf?.id ?? null } as never } });
     if (dupOf) await this.prisma.leadEvent.create({ data: { id: newId('le'), leadId: dupOf.id, kind: 'DUPLICATE', actor: 'system', data: { newLeadId: created.id, newRef: created.ref } as never } });
+    try { await this.routing.assignNew(created.id); } catch (e) { this.log.warn(`routing failed lead=${created.id}: ${(e as Error).message}`); } // round-robin owner (never throws; off or nobody eligible = unassigned, flagged when nobody was eligible)
     if (!test || process.env.LEADS_NOTIFY_TEST === 'true') void this.notifier.onNewLead({ id: created.id, ref: created.ref, providerType: value.providerType, mode: value.mode, locale: value.locale, email: value.email }, config);
     this.log.log(`lead created id=${created.id} ref=${created.ref} type=${value.providerType} mode=${value.mode}${test ? ' test' : ''}${dupOf ? ' duplicate' : ''}`);
     return { reference: created.ref, status: 'RECEIVED', replayed: false };
@@ -131,9 +134,15 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
   private dec(s: string | null): string | null { if (!s) return null; try { return decryptField(s); } catch { return null; } }
   private licences(r: Row): Record<string, string> { const j = this.dec(r.licencesEnc); try { return j ? JSON.parse(j) : {}; } catch { return {}; } }
 
-  private summary(r: Row) {
+  private slaView(r: Row, c: RoutingConfig, now = new Date()) {
+    const s = this.routing.slaWith(c, r, now);
+    return { state: s.state, since: s.since, workingMinutes: s.workingMinutes, remindAt: s.remindAt, escalateAt: s.escalateAt };
+  }
+
+  private summary(r: Row, c: RoutingConfig) {
     const phone = this.dec(r.phoneEnc);
     return {
+      assignedVia: r.assignedVia, routingFlag: r.routingFlag, lastTouchedAt: r.lastTouchedAt, remindedAt: r.remindedAt, escalatedAt: r.escalatedAt, sla: this.slaView(r, c),
       id: r.id, ref: r.ref, status: r.status, mode: r.mode, providerType: r.providerType, legalName: r.legalName, tradeName: r.tradeName, contactName: this.dec(r.contactNameEnc),
       phoneMasked: phone ? maskRecipient('SMS', phone) : null, hasEmail: !!r.emailEnc, market: r.market, governorate: r.governorate, city: r.city, modules: r.modules, locale: r.locale,
       ownerSub: r.ownerSub, ownerName: r.ownerName, tags: r.tags, isTest: r.isTest, duplicateOfId: r.duplicateOfId, createdAt: r.createdAt, updatedAt: r.updatedAt,
@@ -149,6 +158,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
     if (f.owner) w.ownerSub = f.owner === 'none' ? null : f.owner;
     if (f.test === 'only') w.isTest = true; else if (f.test === 'exclude') w.isTest = false;
     if (f.duplicates === 'only') w.duplicateOfId = { not: null };
+    if (f.sla) { if (!['due', 'escalated'].includes(f.sla)) throw badRequest('INVALID_SLA', 'Unknown filter'); w.status = 'NEW'; w.isTest = false; }
     const day = (s: string, end: boolean) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw badRequest('INVALID_DATE', 'Dates are YYYY-MM-DD'); const d = new Date(`${s}T${end ? '23:59:59.999' : '00:00:00.000'}Z`); if (Number.isNaN(d.getTime())) throw badRequest('INVALID_DATE', 'Dates are YYYY-MM-DD'); return d; };
     if (f.from || f.to) w.createdAt = { ...(f.from ? { gte: day(f.from, false) } : {}), ...(f.to ? { lte: day(f.to, true) } : {}) };
     const q = (f.q ?? '').trim().slice(0, 100);
@@ -162,17 +172,22 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async list(f: Filters) {
-    const where = this.where(f);
+    const where = this.where(f); const rc = await this.routing.current();
     const pageSize = Math.min(Math.max(parseInt(f.pageSize ?? '25', 10) || 25, 1), PAGE_MAX);
     const page = Math.max(parseInt(f.page ?? '1', 10) || 1, 1);
+    if (f.sla) { // reminder due / escalated: computed in working time, so filtered here over the (bounded) set of NEW requests
+      const now = new Date(); const all = await this.prisma.lead.findMany({ where: where as never, orderBy: { createdAt: 'asc' }, take: 2000 });
+      const hit = all.filter((r) => { const st = this.routing.slaWith(rc, r, now).state; return f.sla === 'escalated' ? st === 'ESCALATED' : st === 'REMIND' || st === 'ESCALATED'; });
+      return { total: hit.length, page, pageSize, items: hit.slice((page - 1) * pageSize, page * pageSize).map((r) => this.summary(r, rc)) };
+    }
     const [total, rows] = await Promise.all([
       this.prisma.lead.count({ where: where as never }),
       this.prisma.lead.findMany({ where: where as never, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize }),
     ]);
-    return { total, page, pageSize, items: rows.map((r) => this.summary(r)) };
+    return { total, page, pageSize, items: rows.map((r) => this.summary(r, rc)) };
   }
 
-  async summaryCounts() {
+  async summaryCounts(sub?: string) {
     const [groups, newWeek, unassigned, tests] = await Promise.all([
       this.prisma.lead.groupBy({ by: ['status'], where: { isTest: false }, _count: { _all: true } }),
       this.prisma.lead.count({ where: { isTest: false, createdAt: { gte: new Date(Date.now() - 7 * 86_400_000) } } }),
@@ -180,7 +195,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
       this.prisma.lead.count({ where: { isTest: true } }),
     ]);
     const byStatus = Object.fromEntries(LEAD_STATUSES.map((s) => [s, groups.find((g) => g.status === s)?._count._all ?? 0]));
-    return { byStatus, newLastSevenDays: newWeek, unassignedOpen: unassigned, testLeads: tests };
+    return { byStatus, newLastSevenDays: newWeek, unassignedOpen: unassigned, testLeads: tests, reminders: await this.routing.counts(sub) };
   }
 
   private async row(id: string) { const r = await this.prisma.lead.findUnique({ where: { id } }); if (!r) throw notFound('LEAD_NOT_FOUND', 'Join request not found'); return r; }
@@ -193,7 +208,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
     const dups = await this.prisma.lead.findMany({ where: { OR: [{ id: dupRoot }, { duplicateOfId: dupRoot }], NOT: { id } }, orderBy: { createdAt: 'asc' }, take: 20, select: { id: true, ref: true, status: true, legalName: true, createdAt: true } });
     const spec = TYPE_FIELDS[r.providerType] ?? TYPE_FIELDS.OTHER!;
     return {
-      ...this.summary(r), phone: this.dec(r.phoneEnc), email: this.dec(r.emailEnc), contactRole: r.contactRole, country: r.country, branches: r.branches, staffCount: r.staffCount, specialties: r.specialties, services: r.services,
+      ...this.summary(r, await this.routing.current()), phone: this.dec(r.phoneEnc), email: this.dec(r.emailEnc), contactRole: r.contactRole, country: r.country, branches: r.branches, staffCount: r.staffCount, specialties: r.specialties, services: r.services,
       currentSoftware: r.currentSoftware, licences: this.licences(r), goLive: r.goLive, contactChannel: r.contactChannel, contactTime: r.contactTime, note: this.dec(r.noteEnc), answers: r.extra,
       answerFields: Object.keys(spec.answers), consentTextVersion: r.consentTextVersion, consentAt: r.consentAt, sourceEnv: r.sourceEnv, lostReason: r.lostReason,
       duplicates: dups, events: events.map((e) => ({ id: e.id, kind: e.kind, actor: e.actor, actorName: e.actorName, data: e.data, createdAt: e.createdAt })),
@@ -201,17 +216,25 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private async ensureStaff(u: AuthUser) {
-    if (!u.roles?.some((r) => OPS_ROLES.includes(r))) return;
+  private readonly staffSeen = new Map<string, number>();
+  /**
+   * Registers the signed-in console user as assignable (and as active for the round-robin). Kiorex ops roles and the Kiorly-only roles both count. Throttled per process (5 minutes);
+   * `force` skips the throttle. Never throws.
+   */
+  async registerStaff(u: AuthUser, force = false) {
+    if (!u.roles?.some((r) => ROUTING_ROLES.includes(r))) return;
+    if (!force && Date.now() - (this.staffSeen.get(u.sub) ?? 0) < 5 * 60_000) return;
+    this.staffSeen.set(u.sub, Date.now());
+    const roles = u.roles.filter((r) => ROUTING_ROLES.includes(r));
     await this.prisma.opsStaffContact.upsert({
       where: { sub: u.sub },
-      create: { sub: u.sub, name: u.name ?? null, phone: u.phone ?? null, email: u.email ?? null, roles: u.roles.filter((r) => OPS_ROLES.includes(r)), locale: u.locale === 'ar' ? 'ar' : 'en' },
-      update: { name: u.name ?? undefined, lastSeenAt: new Date() },
+      create: { sub: u.sub, name: u.name ?? null, phone: u.phone ?? null, email: u.email ?? null, roles, locale: u.locale === 'ar' ? 'ar' : 'en' },
+      update: { name: u.name ?? undefined, roles, lastSeenAt: new Date() },
     }).catch(() => undefined);
   }
 
   async owners(u: AuthUser) {
-    await this.ensureStaff(u);
+    await this.registerStaff(u, true);
     const rows = await this.prisma.opsStaffContact.findMany({ where: { lastSeenAt: { gte: new Date(Date.now() - 90 * 86_400_000) } }, orderBy: [{ name: 'asc' }, { sub: 'asc' }], take: 100 });
     return rows.map((r) => ({ sub: r.sub, name: r.name ?? r.sub, roles: r.roles }));
   }
@@ -250,6 +273,9 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
       tags = new Set([...tags].slice(0, 12));
       if (JSON.stringify([...tags].sort()) !== JSON.stringify([...r.tags].sort())) { data.tags = [...tags]; if (b.addTags || b.removeTags) events.push({ kind: 'TAG', data: { add: clean(b.addTags), remove: clean(b.removeTags) } }); }
     }
+    // a human changed the status or the owner: the reminder clock restarts (and stops for good once the request leaves NEW)
+    if (data.status !== undefined || data.ownerSub !== undefined) Object.assign(data, { lastTouchedAt: new Date(), remindedAt: null, escalatedAt: null });
+    if (data.ownerSub !== undefined) Object.assign(data, { assignedVia: data.ownerSub ? 'HUMAN' : null, routingFlag: null });
     if (Object.keys(data).length) {
       await this.prisma.lead.update({ where: { id }, data: data as never });
       for (const e of events) await this.prisma.leadEvent.create({ data: { id: newId('le'), leadId: id, kind: e.kind, actor: u.sub, actorName: u.name ?? null, data: e.data as never } });
@@ -264,6 +290,7 @@ export class LeadsService implements OnModuleInit, OnModuleDestroy {
     await this.row(id); const t = (text ?? '').trim();
     // eslint-disable-next-line no-control-regex
     if (!t || t.length > 1000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(t)) throw badRequest('INVALID_NOTE', 'A note is 1 to 1000 characters', { field: 'text' });
+    await this.prisma.lead.update({ where: { id }, data: { lastTouchedAt: new Date(), remindedAt: null, escalatedAt: null } });
     await this.prisma.leadEvent.create({ data: { id: newId('le'), leadId: id, kind: 'NOTE', actor: u.sub, actorName: u.name ?? null, data: { text: t } as never } });
     await this.prisma.auditLog.create({ data: { actor: u.sub, action: 'lead.note_added', resource: 'Lead', resourceId: id } });
     return this.detail(u, id);

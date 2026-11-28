@@ -15,7 +15,10 @@ export interface LeadSettings { version: number; updatedAt: string | null; updat
 export interface LeadSummaryRow {
   id: string; ref: string; status: SiteLeadStatus; mode: "STANDALONE" | "CONNECTED"; providerType: string; legalName: string; tradeName: string | null; contactName: string | null; phoneMasked: string | null; hasEmail: boolean;
   market: string; governorate: string | null; city: string | null; modules: string[]; locale: string; ownerSub: string | null; ownerName: string | null; tags: string[]; isTest: boolean; duplicateOfId: string | null; createdAt: string; updatedAt: string;
+  assignedVia: "ROUND_ROBIN" | "HUMAN" | null; routingFlag: "NO_ELIGIBLE_OWNER" | null; lastTouchedAt: string | null; remindedAt: string | null; escalatedAt: string | null; sla: LeadSla;
 }
+export type SlaState = "OK" | "REMIND" | "ESCALATED" | "OFF";
+export interface LeadSla { state: SlaState; since: string; workingMinutes: number; remindAt: string | null; escalateAt: string | null }
 export interface LeadList { total: number; page: number; pageSize: number; items: LeadSummaryRow[] }
 export interface LeadEventRow { id: string; kind: string; actor: string; actorName: string | null; data: Record<string, unknown>; createdAt: string }
 export interface LeadDetail extends LeadSummaryRow {
@@ -24,13 +27,33 @@ export interface LeadDetail extends LeadSummaryRow {
   sourceEnv: string | null; lostReason: string | null; duplicates: Array<{ id: string; ref: string; status: string; legalName: string; createdAt: string }>; events: LeadEventRow[]; allowedTransitions: SiteLeadStatus[];
   onboardingRequest: { id: string; status: string; kind: string | null; assigneeSub: string | null; assigneeName: string | null } | null; onboardingDraftOn: string[];
 }
-export interface LeadFilters { status?: string; type?: string; mode?: string; market?: string; from?: string; to?: string; q?: string; owner?: string; test?: string; duplicates?: string; page?: number; pageSize?: number }
+export interface LeadFilters { sla?: string; status?: string; type?: string; mode?: string; market?: string; from?: string; to?: string; q?: string; owner?: string; test?: string; duplicates?: string; page?: number; pageSize?: number }
 
 const B = "/admin/leads";
 export const leadQs = (f: LeadFilters) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== "" && v !== null) p.set(k, String(v)); const s = p.toString(); return s ? `?${s}` : ""; };
 
+export interface LeadSummaryCounts {
+  byStatus: Record<SiteLeadStatus, number>; newLastSevenDays: number; unassignedOpen: number; testLeads: number;
+  reminders: { enabled: boolean; untouched: number; remind: number; escalated: number; mineDue: number; noEligible: number };
+}
+export interface RoutingConfig {
+  roundRobin: { enabled: boolean; eligibleSubs: string[]; activeWithinDays: number };
+  reminders: { enabled: boolean; remindAfterWorkingHours: number; escalateAfterWorkingHours: number };
+  workWeek: { days: number[]; startHour: number; endHour: number };
+}
+export interface RoutingView {
+  version: number; updatedAt: string | null; updatedBy: string | null; isDefault: boolean; config: RoutingConfig; workTimeZone: string;
+  candidates: Array<{ sub: string; name: string; roles: string[]; active: boolean; listed: boolean; eligibleNow: boolean; lastSeenAt: string }>;
+  state: { lastSub: string | null; assignedCount: number; updatedAt: string | null };
+}
+export const useLeadRouting = () => useQuery({ queryKey: ["siteLeads", "routing"], queryFn: () => rawApi<RoutingView>("GET", `${B}/routing`), staleTime: 30_000 });
+export function useSaveLeadRouting() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (v: { version: number; config: RoutingConfig }) => rawApi<RoutingView>("PUT", `${B}/routing`, v), onSuccess: (d) => { qc.setQueryData(["siteLeads", "routing"], d); void qc.invalidateQueries({ queryKey: ["siteLeads", "summary"] }); } });
+}
+
 export const useSiteLeads = (f: LeadFilters) => useQuery({ queryKey: ["siteLeads", "list", f], queryFn: () => rawApi<LeadList>("GET", `${B}${leadQs(f)}`), placeholderData: (p) => p });
-export const useSiteLeadSummary = () => useQuery({ queryKey: ["siteLeads", "summary"], queryFn: () => rawApi<{ byStatus: Record<SiteLeadStatus, number>; newLastSevenDays: number; unassignedOpen: number; testLeads: number }>("GET", `${B}/summary`), refetchInterval: 30_000, retry: false });
+export const useSiteLeadSummary = () => useQuery({ queryKey: ["siteLeads", "summary"], queryFn: () => rawApi<LeadSummaryCounts>("GET", `${B}/summary`), refetchInterval: 30_000, retry: false });
 export const useSiteLead = (id: string) => useQuery({ queryKey: ["siteLeads", "one", id], queryFn: () => rawApi<LeadDetail>("GET", `${B}/${encodeURIComponent(id)}`) });
 export const useSiteLeadOwners = () => useQuery({ queryKey: ["siteLeads", "owners"], queryFn: () => rawApi<Array<{ sub: string; name: string; roles: string[] }>>("GET", `${B}/owners`) });
 export const useSiteLeadSettings = () => useQuery({ queryKey: ["siteLeads", "settings"], queryFn: () => rawApi<LeadSettings>("GET", `${B}/settings`), staleTime: 60_000 });

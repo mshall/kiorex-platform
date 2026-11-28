@@ -16,8 +16,8 @@ const body = (over: object = {}) => ({
 describe('Kiorly site join requests (leads)', () => {
   let c: TestCtx; let ops: { Authorization: string }; let sup: { Authorization: string }; let patient: { Authorization: string };
   const post = (b: object, k: string | null = key()) => { const r = c.http().post(PUB); if (k) r.set('Idempotency-Key', k); return r.send(b); };
-  beforeAll(async () => { c = await createCtx(); ops = await c.as('ops_l', { roles: ['ops_admin'] }); sup = await c.as('sup_l', { roles: ['super_admin'] }); patient = await c.as('pat_l', { roles: ['patient'] }); });
-  afterAll(async () => { await c.prisma.lead.deleteMany({}); await c.close(); }); // leave no rows behind: other suites count the shared tables
+  beforeAll(async () => { c = await createCtx(); const routingOff = { roundRobin: { enabled: false, eligibleSubs: [], activeWithinDays: 30 }, reminders: { enabled: false, remindAfterWorkingHours: 4, escalateAfterWorkingHours: 8 }, workWeek: { days: [0, 1, 2, 3, 4], startHour: 9, endHour: 17 } }; await c.prisma.leadSetting.upsert({ where: { key: 'routing' }, create: { key: 'routing', version: 1, value: routingOff }, update: { value: routingOff } }); ops = await c.as('ops_l', { roles: ['ops_admin'] }); sup = await c.as('sup_l', { roles: ['super_admin'] }); patient = await c.as('pat_l', { roles: ['patient'] }); });
+  afterAll(async () => { await c.prisma.lead.deleteMany({}); await c.prisma.leadSetting.deleteMany({ where: { key: 'routing' } }); await c.prisma.leadRoutingState.deleteMany({}); await c.prisma.opsStaffContact.deleteMany({}); await c.prisma.partnerEnrolment.deleteMany({}); await c.close(); }); // leave no rows behind: other suites count the shared tables
   beforeEach(async () => { await resetLeadSubmissionLimits(); for (const k of ['LEADS_RATE_IP_PER_10MIN', 'LEADS_RATE_IP_PER_DAY', 'LEADS_RATE_PHONE_PER_DAY', 'LEADS_RATE_INVALID_PER_10MIN', 'LEADS_RATE_GLOBAL_PER_HOUR']) delete process.env[k]; });
 
   it('serves the public form configuration (active picklists only, governorates, per-type fields) without credentials', async () => {
@@ -159,7 +159,7 @@ describe('Kiorly site join requests (leads)', () => {
     await c.http().patch(`${ADM}/${id}`).set(ops).send({ status: 'WON' }).expect(409);
     await c.http().patch(`${ADM}/${id}`).set(ops).send({ status: 'NOPE' }).expect(400);
     await c.http().patch(`${ADM}/${id}`).set(ops).send({ status: 'CONTACTED' }).expect(200);
-    await c.http().patch(`${ADM}/${id}`).set(ops).send({ ownerSub: 'sup_l' }).expect(400); // not a known team member yet
+    await c.http().patch(`${ADM}/${id}`).set(ops).send({ ownerSub: 'ghost_nobody' }).expect(400); // not a known team member
     await c.http().get(`${ADM}/owners`).set(sup).expect(200); const owners = (await c.http().get(`${ADM}/owners`).set(ops).expect(200)).body; expect(owners.map((o: any) => o.sub)).toEqual(expect.arrayContaining(['ops_l', 'sup_l']));
     const asg = (await c.http().patch(`${ADM}/${id}`).set(ops).send({ ownerSub: 'sup_l' }).expect(200)).body; expect(asg).toMatchObject({ ownerSub: 'sup_l', ownerName: 'Amira Samy' });
     await c.http().post(`${ADM}/${id}/notes`).set(ops).send({ text: 'Called, wants a demo on Sunday' }).expect(200);

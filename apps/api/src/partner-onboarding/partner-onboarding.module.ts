@@ -4,5 +4,5 @@ import { VerificationUpdateService } from './verification-update.consumer';
 import { PartnerEnrolmentService } from './partner-enrolment.service';
 import { PartnerOnboardingService } from './partner-onboarding.service';
 
-@Module({ controllers: [PartnerConnectionPublicController, PartnerEnrolmentController, PartnerOnboardingController, VerificationUpdateController], providers: [PartnerOnboardingService, PartnerEnrolmentService, VerificationUpdateService], exports: [PartnerOnboardingService, VerificationUpdateService] })
+@Module({ controllers: [PartnerConnectionPublicController, PartnerEnrolmentController, PartnerOnboardingController, VerificationUpdateController], providers: [PartnerOnboardingService, PartnerEnrolmentService, VerificationUpdateService], exports: [PartnerOnboardingService, PartnerEnrolmentService, VerificationUpdateService] })
 export class PartnerOnboardingModule {}

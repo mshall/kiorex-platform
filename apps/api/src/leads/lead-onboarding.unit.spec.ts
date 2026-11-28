@@ -6,9 +6,10 @@ describe('lead onboarding draft rules', () => {
     expect(kindForProviderType('NURSE')).toBe('NURSE'); expect(kindForProviderType('LAB')).toBe('LAB'); expect(kindForProviderType('PHARMACY')).toBe('PHARMACY');
     expect(kindForProviderType('OTHER')).toBeNull(); expect(kindForProviderType('ADDED_BY_TEAM')).toBeNull();
   });
-  it('is created on WON by default; ONBOARDING only when asked; never on anything else (LOST in particular)', () => {
-    expect(draftStatuses(undefined)).toEqual(['WON']); expect(draftStatuses('')).toEqual(['WON']);
-    expect(draftStatuses('won, onboarding')).toEqual(['WON', 'ONBOARDING']); expect(draftStatuses('LOST,NEW,garbage')).toEqual(['WON']);
+  it('is created on ONBOARDING and on WON by default (one draft per lead); the env can narrow it to WON; never on anything else (LOST in particular)', () => {
+    expect(draftStatuses(undefined)).toEqual(['ONBOARDING', 'WON']); expect(draftStatuses('')).toEqual(['ONBOARDING', 'WON']);
+    expect(draftStatuses('won')).toEqual(['WON']); expect(draftStatuses('won, onboarding')).toEqual(['WON', 'ONBOARDING']); expect(draftStatuses('LOST,NEW,garbage')).toEqual(['ONBOARDING', 'WON']);
+    expect(draftStatuses(undefined)).not.toContain('LOST');
   });
   it('copies the business fields and the reference, never contact data', () => {
     const d = draftFromLead({ id: 'ld_1', ref: 'KL-ABCD2345', legalName: 'Nile Clinic', providerType: 'CLINIC', mode: 'CONNECTED', modules: ['CLINIC'], market: 'EG', ownerSub: 'u1', ownerName: 'Mona', isTest: true, ...({ phoneEnc: 'secret', emailEnc: 'secret', contactNameEnc: 'secret' } as object) } as never);

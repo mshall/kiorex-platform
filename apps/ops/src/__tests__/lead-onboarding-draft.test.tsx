@@ -50,7 +50,7 @@ describe("onboarding draft (from a won join request)", () => {
     server.use(http.get(`${O}/lor_1`, () => HttpResponse.json(req())), http.patch(`${O}/lor_1`, async ({ request }) => { calls.push({ m: "PATCH", b: await request.json() }); return HttpResponse.json(req({ kind: "LAB" })); }),
       http.post(`${O}/lor_1/submit`, () => { calls.push({ m: "SUBMIT" }); return HttpResponse.json(req({ status: "SUBMITTED", submittedBy: "u-ops" })); }));
     asRoles(["ops_admin"], "u-ops", "/leads/onboarding/lor_1"); const user = userEvent.setup();
-    expect(await screen.findByTestId("lob-back-to-lead")).toHaveAttribute("href", "/leads/ld_1"); expect(screen.getByTestId("lob-explainer")).toHaveTextContent(/no organisation, enrolment code or Passport identity is created/);
+    expect(await screen.findByTestId("lob-back-to-lead")).toHaveAttribute("href", "/leads/ld_1"); expect(screen.getByTestId("lob-explainer")).toHaveTextContent(/No organisation, price, commission or Passport identity is created/);
     await user.selectOptions(screen.getByTestId("lob-kind"), "LAB"); await waitFor(() => expect(calls[0]).toEqual({ m: "PATCH", b: { kind: "LAB" } }));
     await user.click(screen.getByTestId("lob-submit")); await waitFor(() => expect(calls[1]).toEqual({ m: "SUBMIT" }));
     expect(screen.queryByTestId("lob-approve")).toBeNull(); // ops_admin never sees approve

@@ -20,23 +20,26 @@ describe('WON join request creates ONE DRAFT onboarding request (never an activa
   const draftOf = (leadId: string) => c.prisma.leadOnboardingRequest.findUnique({ where: { leadId } });
   beforeAll(async () => {
     c = await createCtx(); ops = await c.as('ops_ob', { roles: ['ops_admin'] }); ops2 = await c.as('ops_ob2', { roles: ['ops_admin'] }); sup = await c.as('sup_ob', { roles: ['super_admin'] }); sup2 = await c.as('sup_ob2', { roles: ['super_admin'] });
+    const routing = { roundRobin: { enabled: false, eligibleSubs: [], activeWithinDays: 30 }, reminders: { enabled: true, remindAfterWorkingHours: 4, escalateAfterWorkingHours: 8 }, workWeek: { days: [0, 1, 2, 3, 4], startHour: 9, endHour: 17 } }; await c.prisma.leadSetting.upsert({ where: { key: 'routing' }, create: { key: 'routing', version: 1, value: routing }, update: { value: routing } }); // these tests are about drafts: no automatic owner (round-robin has its own suite)
     await c.http().get(`${ADM}/owners`).set(ops); await c.http().get(`${ADM}/owners`).set(ops2); // registers the console users as assignable owners
     await c.prisma.opsStaffContact.update({ where: { sub: 'ops_ob2' }, data: { name: 'Mona', email: 'mona@kiorex.local', leadAlerts: true, channels: ['EMAIL'], locale: 'ar' } });
   });
-  afterAll(async () => { await c.prisma.lead.deleteMany({}); await c.close(); });
+  afterAll(async () => { await c.prisma.lead.deleteMany({}); await c.prisma.leadSetting.deleteMany({ where: { key: 'routing' } }); await c.prisma.leadRoutingState.deleteMany({}); await c.prisma.opsStaffContact.deleteMany({}); await c.prisma.partnerEnrolment.deleteMany({}); await c.close(); });
   beforeEach(async () => { await resetLeadSubmissionLimits(); });
 
-  it('WON creates exactly one draft, prefilled, without contact data; before WON nothing exists; LOST never creates one', async () => {
+  it('ONBOARDING (and then WON) creates exactly one draft, prefilled, without contact data; before ONBOARDING nothing exists; LOST never creates one', async () => {
     const id = await create();
-    for (const s of ['QUALIFIED', 'ONBOARDING']) { await patch(id, ops, { status: s }).expect(200); expect(await draftOf(id)).toBeNull(); }
+    await patch(id, ops, { status: 'QUALIFIED' }).expect(200); expect(await draftOf(id)).toBeNull();
+    await patch(id, ops, { status: 'ONBOARDING' }).expect(200); const early = await draftOf(id); expect(early).not.toBeNull();
     const won = await patch(id, ops, { status: 'WON' }).expect(200);
+    expect((await draftOf(id))!.id).toBe(early!.id); // WON after ONBOARDING reuses the same draft
     const d = await draftOf(id);
     expect(d).toMatchObject({ status: 'DRAFT', kind: 'CLINIC', legalName: 'Onboarding Clinic LLC', providerType: 'CLINIC', mode: 'CONNECTED', modules: ['CLINIC'], market: 'EG', assigneeSub: null, isTest: false, createdBy: 'ops_ob' });
     expect(d!.contactRef).toMatch(/^KL-/);
     expect(JSON.stringify(d)).not.toMatch(/secret\.person|Dr Secret|private applicant|\+2010/);
     expect(won.body.onboardingRequest).toMatchObject({ id: d!.id, status: 'DRAFT', kind: 'CLINIC' });
     const lost = await create(); await patch(lost, ops, { status: 'LOST' }).expect(200); expect(await draftOf(lost)).toBeNull();
-    await patch(lost, ops, { status: 'WON' }).expect(409); // NEW -> WON is not a transition; LOST -> NEW -> ... -> WON would still create exactly one
+    await patch(lost, ops, { status: 'WON' }).expect(409); // NEW -> WON is not a transition
     expect(await c.prisma.leadOnboardingRequest.count({ where: { leadId: lost } })).toBe(0);
   });
 
@@ -47,18 +50,21 @@ describe('WON join request creates ONE DRAFT onboarding request (never an activa
     await patch(id, ops, { status: 'ONBOARDING' }).expect(200); await patch(id, ops, { status: 'WON' }).expect(200);
     expect((await draftOf(id))!.id).toBe(first!.id); expect(await c.prisma.leadOnboardingRequest.count({ where: { leadId: id } })).toBe(1);
     const again = await c.http().post(`${OB}/by-lead/${id}`).set(ops).expect(200); expect(again.body).toMatchObject({ id: first!.id, created: false });
-    const id2 = await create({ providerType: 'PHARMACY' }); for (const s of ['QUALIFIED', 'ONBOARDING']) await patch(id2, ops, { status: s }).expect(200);
+    const id2 = await create({ providerType: 'PHARMACY' }); // moved straight in the database, so no API save has created the draft yet: two simultaneous creators race
     const svc = c.get((await import('../src/leads/lead-onboarding.service')).LeadOnboardingService); const row = await c.prisma.lead.update({ where: { id: id2 }, data: { status: 'WON' } });
     const [a, b] = await Promise.all([svc.ensureForLead({ sub: 'x' }, row), svc.ensureForLead({ sub: 'y' }, row)]);
     expect(a.request.id).toBe(b.request.id); expect([a.created, b.created].filter(Boolean)).toHaveLength(1); expect(await c.prisma.leadOnboardingRequest.count({ where: { leadId: id2 } })).toBe(1);
   });
 
-  it('ONBOARDING only creates one when LEAD_ONBOARDING_DRAFT_ON says so (default: WON only)', async () => {
+  it('moving back and forth never creates a second draft; LEAD_ONBOARDING_DRAFT_ON=WON narrows the trigger to WON again', async () => {
     const id = await create(); for (const s of ['QUALIFIED', 'ONBOARDING']) await patch(id, ops, { status: s }).expect(200);
-    expect(await draftOf(id)).toBeNull();
-    const manual = await c.http().post(`${OB}/by-lead/${id}`).set(ops).expect(409); expect(manual.body.code).toBe('LEAD_NOT_READY');
-    process.env.LEAD_ONBOARDING_DRAFT_ON = 'WON,ONBOARDING';
-    try { const id3 = await create(); await patch(id3, ops, { status: 'QUALIFIED' }).expect(200); await patch(id3, ops, { status: 'ONBOARDING' }).expect(200); expect(await draftOf(id3)).not.toBeNull(); await patch(id3, ops, { status: 'WON' }).expect(200); expect(await c.prisma.leadOnboardingRequest.count({ where: { leadId: id3 } })).toBe(1); }
+    const first = (await draftOf(id))!; expect(first.status).toBe('DRAFT');
+    await patch(id, ops, { status: 'QUALIFIED' }).expect(200); await patch(id, ops, { status: 'ONBOARDING' }).expect(200); await patch(id, ops, { status: 'WON' }).expect(200);
+    await patch(id, ops, { status: 'ONBOARDING' }).expect(200); await patch(id, ops, { status: 'WON' }).expect(200);
+    expect(await c.prisma.leadOnboardingRequest.count({ where: { leadId: id } })).toBe(1); expect((await draftOf(id))!.id).toBe(first.id);
+    const manual = await c.http().post(`${OB}/by-lead/${id}`).set(ops).expect(200); expect(manual.body).toMatchObject({ id: first.id, created: false });
+    process.env.LEAD_ONBOARDING_DRAFT_ON = 'WON';
+    try { const id3 = await create(); for (const s of ['QUALIFIED', 'ONBOARDING']) await patch(id3, ops, { status: s }).expect(200); expect(await draftOf(id3)).toBeNull(); expect((await c.http().post(`${OB}/by-lead/${id3}`).set(ops).expect(409)).body.code).toBe('LEAD_NOT_READY'); await patch(id3, ops, { status: 'WON' }).expect(200); expect(await draftOf(id3)).not.toBeNull(); }
     finally { delete process.env.LEAD_ONBOARDING_DRAFT_ON; }
   });
 
@@ -86,11 +92,20 @@ describe('WON join request creates ONE DRAFT onboarding request (never an activa
     const sameMaker = await c.http().post(`${OB}/${d.id}/approve`).set(await c.as('ops_ob', { roles: ['super_admin'] })).expect(403); expect(sameMaker.body.code).toBe('TWO_PERSON_RULE'); // the submitter, even as a super admin
     const ok = await c.http().post(`${OB}/${d.id}/approve`).set(sup).send({ note: 'checked' }).expect(200);
     expect(ok.body).toMatchObject({ status: 'APPROVED', kind: 'PHARMACY', decidedBy: 'sup_ob', submittedBy: 'ops_ob' });
-    await c.http().post(`${OB}/${d.id}/approve`).set(sup2).expect(409); await c.http().post(`${OB}/${d.id}/cancel`).set(ops).expect(409);
-    // approval created nothing else: no enrolment code, no connection, no organisation
-    expect(await c.prisma.partnerEnrolment.count({ where: { label: { contains: 'Onboarding Clinic' } } })).toBe(0);
+    await c.http().post(`${OB}/${d.id}/approve`).set(sup2).expect(409); await c.http().post(`${OB}/${d.id}/cancel`).set(ops).send({ reason: 'too late' }).expect(409);
+    // approval of a CONNECTED draft pre-created exactly ONE enrolment code (shown once, in the approval answer only); it created no organisation, connection, Passport identity or money record
+    expect(ok.body.shownOnce).toBe(true); expect(ok.body.enrolmentCode).toMatch(/^kxe_/);
+    const enr = await c.prisma.partnerEnrolment.findMany({ where: { label: { contains: 'Onboarding Clinic' } } });
+    expect(enr).toHaveLength(1); expect(enr[0]).toMatchObject({ kind: 'PHARMACY', status: 'ACTIVE', createdBy: 'sup_ob' });
+    expect(enr[0]!.signingKey).not.toContain(ok.body.enrolmentCode); expect(enr[0]!.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+    expect(await c.prisma.leadOnboardingRequest.findUnique({ where: { id: d.id } })).toMatchObject({ enrolmentId: enr[0]!.id, enrolmentIssuedBy: 'sup_ob' });
+    expect(await c.prisma.partnerConnection.count()).toBe(0);
     const audit = (await c.prisma.auditLog.findMany({ where: { resource: 'LeadOnboardingRequest', resourceId: d.id }, orderBy: { createdAt: 'asc' } })).map((a) => a.action);
-    expect(audit).toEqual(['lead_onboarding.draft_created', 'lead_onboarding.updated', 'lead_onboarding.submitted', 'lead_onboarding.approved']);
+    expect(audit).toEqual(['lead_onboarding.draft_created', 'lead_onboarding.updated', 'lead_onboarding.submitted', 'lead_onboarding.approved', 'lead_onboarding.enrolment_issued']);
+    // the code is nowhere else: not in the audit log, the trail, the lists, the draft, the message log
+    const everything = JSON.stringify([await c.prisma.auditLog.findMany(), await c.prisma.leadEvent.findMany(), await c.prisma.messageLog.findMany(), (await c.http().get(`${OB}/${d.id}`).set(ops).expect(200)).body, (await c.http().get(OB).set(ops).expect(200)).body, (await c.http().get('/api/v1/admin/onboarding/enrolments').set(ops).expect(200)).body]);
+    expect(everything).not.toContain(ok.body.enrolmentCode);
+    expect((await c.http().get(`${OB}/${d.id}`).set(ops).expect(200)).body.enrolment).toMatchObject({ id: enr[0]!.id, status: 'ACTIVE' });
     const detail = (await c.http().get(`${ADM}/${id}`).set(ops).expect(200)).body;
     expect(detail.onboardingRequest).toMatchObject({ id: d.id, status: 'APPROVED', kind: 'PHARMACY' });
     expect(detail.events.filter((e: any) => e.kind === 'ONBOARDING').map((e: any) => e.data.action)).toEqual(['DRAFT_CREATED', 'UPDATED', 'SUBMITTED', 'APPROVED']);

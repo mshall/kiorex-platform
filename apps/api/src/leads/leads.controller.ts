@@ -4,6 +4,7 @@ import { CurrentUser, OpsOnly, Public, type AuthUser } from '../common/auth';
 import { ApiError } from '../common/errors';
 import { LeadsService } from './leads.service';
 import { LeadOnboardingService } from './lead-onboarding.service';
+import { LeadRoutingService } from './lead-routing.service';
 
 const OBJ = { schema: { type: 'object', additionalProperties: true } } as const;
 export const LEADS_PUBLIC_MAX_BODY = 16 * 1024;
@@ -29,13 +30,19 @@ export class LeadsPublicController {
 @OpsOnly()
 @Controller('admin/leads')
 export class LeadsAdminController {
-  constructor(private readonly svc: LeadsService) {}
+  constructor(private readonly svc: LeadsService, private readonly routing: LeadRoutingService) {}
 
-  @Get() @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), page, pageSize' })
-  list(@Query() q: Record<string, string>) { return this.svc.list(q); }
+  @Get() @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), sla (due|escalated: still NEW and past the reminder or escalation threshold), page, pageSize. Each row carries sla { state OK|REMIND|ESCALATED|OFF, since, remindAt, escalateAt }, assignedVia and routingFlag' })
+  async list(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>) { await this.svc.registerStaff(u); return this.svc.list(q); }
 
-  @Get('summary') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests' })
-  summary() { return this.svc.summaryCounts(); }
+  @Get('summary') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests, and the reminder counts (untouched NEW, reminder due, escalated, due on my own requests, no eligible owner)' })
+  async summary(@CurrentUser() u: AuthUser) { await this.svc.registerStaff(u); return this.svc.summaryCounts(u.sub); }
+
+  @Get('routing') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: round-robin owner and reminder settings (version), the console users who could own requests and why one is not eligible, the state of the rotation' })
+  routingSettings() { return this.routing.view(); }
+
+  @Put('routing') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP (super admin): save the routing settings { version, config { roundRobin { enabled, eligibleSubs, activeWithinDays }, reminders { enabled, remindAfterWorkingHours, escalateAfterWorkingHours }, workWeek } }. 409 ROUTING_CONFIG_STALE; audited (lead.routing_changed); no second approver by design' })
+  saveRouting(@CurrentUser() u: AuthUser, @Body() b: { version?: number; config?: unknown }) { superOnly(u); if (typeof b?.version !== 'number') throw new ApiError(400, 'VERSION_REQUIRED', 'Send the version you loaded'); return this.routing.save(u.sub, b.config, b.version); }
 
   @Get('owners') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: team members a request can be assigned to' })
   owners(@CurrentUser() u: AuthUser) { return this.svc.owners(u); }
@@ -58,7 +65,7 @@ export class LeadsAdminController {
   removeTest(@CurrentUser() u: AuthUser, @Body() b: { confirm?: boolean }) { superOnly(u); return this.svc.removeTestLeads(u, b?.confirm === true); }
 
   @Get(':id') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: one request with decrypted contact details, trail and possible duplicates (the read is audited)' })
-  detail(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.detail(u, id); }
+  async detail(@CurrentUser() u: AuthUser, @Param('id') id: string) { await this.svc.registerStaff(u); return this.svc.detail(u, id); }
 
   @Patch(':id') @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: change status (allowed transitions only), lost reason, owner, tags; isTest is super admin only' })
   patch(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { status?: string; lostReason?: string | null; ownerSub?: string | null; isTest?: boolean; addTags?: string[]; removeTags?: string[] }) { return this.svc.update(u, id, b ?? {}); }
@@ -98,8 +105,11 @@ export class LeadOnboardingController {
   @Post(':id/reject') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'SA: reject a submitted draft with a reason (never the submitter)' })
   reject(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { reason?: string }) { superOnly(u); return this.svc.reject(u, id, b?.reason ?? ''); }
 
-  @Post(':id/cancel') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: cancel a draft or submitted request' })
-  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { reason?: string }) { return this.svc.cancel(u, id, b?.reason); }
+  @Post(':id/cancel') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: cancel a draft or submitted request. The ONLY way a draft is cancelled (a lost join request never cancels it): a reason of 1 to 300 characters is required, the cancellation is audited and shown on the join request trail' })
+  cancel(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() b: { reason?: string }) { return this.svc.cancel(u, id, b?.reason ?? ''); }
+
+  @Post(':id/enrolment') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: issue a NEW one-time enrolment code for an APPROVED CONNECTED draft (revokes the unused one; the code is in this response only, never listed, logged or e-mailed). Creates no organisation and no money, price or commission record' })
+  reissue(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.reissueEnrolment(u, id); }
 
   @Post(':id/reopen') @HttpCode(200) @ApiOkResponse(OBJ) @ApiOperation({ summary: 'OP: back to DRAFT after a rejection or cancellation (the same single row)' })
   reopen(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.svc.reopen(u, id); }

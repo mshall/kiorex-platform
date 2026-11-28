@@ -53,11 +53,14 @@ export function LeadOnboardingDetailPage() {
   const { id = "" } = useParams(); const { t, i18n } = useTranslation(); const lang = i18n.language; const { user } = useAuth();
   const q = useLeadOnboarding(id); const act = useLeadOnboardingAction(id); const owners = useSiteLeadOwners(); const settings = useSiteLeadSettings(); const cfg = settings.data?.config;
   const [note, setNote] = useState<string | null>(null); const [reason, setReason] = useState(""); const [decide, setDecide] = useState<"reject" | "cancel" | null>(null);
+  // the one-time enrolment code lives in this component's state only (never the query cache, a URL or storage) and disappears when the person leaves or hides it
+  const [code, setCode] = useState<string | null>(null);
   if (q.isLoading) return <CardSkeleton rows={4} />;
   if (q.error || !q.data) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   const d: LeadOnboardingRequest = q.data; const isSuper = !!user?.roles.includes("super_admin"); const draft = d.status === "DRAFT";
   const err = (e: unknown) => { const c = (e as { code?: string })?.code ?? ""; toast.error(t(`leadOnboarding.err.${c}`, { defaultValue: t("leadOnboarding.failed") })); };
-  const run = (a: Parameters<typeof act.mutate>[0], ok: string) => act.mutate(a, { onSuccess: () => toast.success(t(ok)), onError: err });
+  const run = (a: Parameters<typeof act.mutate>[0], ok: string) => act.mutate(a, { onSuccess: (r) => { toast.success(t(ok)); if (r.enrolmentCode) setCode(r.enrolmentCode); }, onError: err });
+  const copy = async () => { try { await navigator.clipboard.writeText(code ?? ""); toast.success(t("leadOnboarding.enrolment.copied")); } catch { /* the code is selectable on screen */ } };
   const canDecide = isSuper && d.status === "SUBMITTED" && d.submittedBy !== user?.sub;
   return (
     <div data-testid="lead-onboarding-detail">
@@ -66,6 +69,7 @@ export function LeadOnboardingDetailPage() {
         <StatusChip tone={TONE[d.status] ?? "neutral"} data-testid="lob-status">{t(`leadOnboarding.st.${d.status}`)}</StatusChip>{d.isTest ? <StatusChip tone="neutral" dot={false}>{t("siteLeads.testBadge")}</StatusChip> : null}
       </>} />
       <p className="mb-4 max-w-3xl rounded-xl border bg-card p-3 text-sm" data-testid="lob-explainer">{t("leadOnboarding.explainer")}</p>
+      {d.leadStatus === "LOST" && (d.status === "DRAFT" || d.status === "SUBMITTED") ? <p className="mb-4 max-w-3xl rounded-xl border border-warning/60 bg-card p-3 text-sm" role="status" data-testid="lob-lead-lost">{t("leadOnboarding.leadLost", { ref: d.contactRef })}</p> : null}
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <section aria-labelledby="lob-fields" className="rounded-xl border bg-card p-4 shadow-card"><h2 id="lob-fields" className="mb-2 text-sm font-bold">{t("leadOnboarding.fields")}</h2>
           <dl>
@@ -103,15 +107,33 @@ export function LeadOnboardingDetailPage() {
             {d.status === "SUBMITTED" && isSuper && !canDecide ? <p className="mt-2 text-xs text-muted-foreground" data-testid="lob-two-person">{t("leadOnboarding.twoPerson")}</p> : null}
             {d.status === "SUBMITTED" && !isSuper ? <p className="mt-2 text-xs text-muted-foreground">{t("leadOnboarding.awaitingSuper")}</p> : null}
             {decide ? (
-              <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); if (decide === "reject" && !reason.trim()) return; run(decide === "reject" ? { kind: "reject", reason } : { kind: "cancel", reason }, decide === "reject" ? "leadOnboarding.rejectedOk" : "leadOnboarding.cancelledOk"); setDecide(null); setReason(""); }}>
+              <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); if (!reason.trim()) return; run(decide === "reject" ? { kind: "reject", reason } : { kind: "cancel", reason }, decide === "reject" ? "leadOnboarding.rejectedOk" : "leadOnboarding.cancelledOk"); setDecide(null); setReason(""); }}>
                 <label className="block text-xs font-medium">{t("leadOnboarding.reason")}<Input className="mt-1 h-9" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} data-testid="lob-reason" /></label>
-                <Button type="submit" size="sm" variant="destructive" disabled={act.isPending || (decide === "reject" && !reason.trim())} data-testid="lob-decide-confirm">{t("leadOnboarding.confirm")}</Button>
+                {decide === "cancel" ? <p className="text-xs text-muted-foreground" data-testid="lob-cancel-hint">{t("leadOnboarding.cancelHint")}</p> : null}
+                <Button type="submit" size="sm" variant="destructive" disabled={act.isPending || !reason.trim()} data-testid="lob-decide-confirm">{t("leadOnboarding.confirm")}</Button>
               </form>
             ) : null}
             {d.status === "APPROVED" ? (
               <div className="mt-3 border-t pt-3" data-testid="lob-approved">
                 <p className="text-xs text-muted-foreground">{d.mode === "CONNECTED" ? t("leadOnboarding.approvedConnected") : t("leadOnboarding.approvedStandalone")}</p>
                 {d.mode === "CONNECTED" ? <Button className="mt-2" size="sm" asChild><Link to={onboardingUrlForLead(d.leadId)} data-testid="lob-open-partner-onboarding">{t("leadOnboarding.openPartnerOnboarding")}</Link></Button> : null}
+                {d.mode === "CONNECTED" ? (
+                  <div className="mt-3 rounded-lg border bg-background p-3" data-testid="lob-enrolment">
+                    <h3 className="text-sm font-bold">{t("leadOnboarding.enrolment.title")}</h3>
+                    {code ? (
+                      <div className="mt-2 space-y-2" role="status" data-testid="lob-code-once">
+                        <p className="text-xs font-semibold">{t("leadOnboarding.enrolment.onceTitle")}</p>
+                        <p className="break-all rounded-md border bg-card p-2 font-mono text-sm" dir="ltr" data-testid="lob-code">{code}</p>
+                        <p className="text-xs text-muted-foreground">{t("leadOnboarding.enrolment.onceBody")}</p>
+                        <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void copy()} data-testid="lob-code-copy">{t("leadOnboarding.enrolment.copy")}</Button><Button size="sm" variant="ghost" onClick={() => setCode(null)} data-testid="lob-code-hide">{t("leadOnboarding.enrolment.hide")}</Button></div>
+                      </div>
+                    ) : null}
+                    {d.enrolment ? (
+                      <p className="mt-2 text-xs" data-testid="lob-enrolment-status"><StatusChip tone={d.enrolment.status === "ACTIVE" ? "success" : "neutral"}>{t(`leadOnboarding.enrolment.${d.enrolment.status}`, { defaultValue: d.enrolment.status })}</StatusChip>{" "}<span className="text-muted-foreground">{t("leadOnboarding.enrolment.validUntil", { when: formatDateTime(d.enrolment.expiresAt, lang) })}</span></p>
+                    ) : <p className="mt-2 text-xs text-muted-foreground" data-testid="lob-enrolment-none">{t("leadOnboarding.enrolment.none")}</p>}
+                    {d.enrolment?.status !== "USED" ? <div className="mt-2"><Button size="sm" variant="outline" disabled={act.isPending} onClick={() => run({ kind: "enrolment" }, "leadOnboarding.enrolment.issued")} data-testid="lob-issue-code">{t(d.enrolment ? "leadOnboarding.enrolment.issue" : "leadOnboarding.enrolment.issueFirst")}</Button>{d.enrolment?.status === "ACTIVE" ? <p className="mt-1 text-xs text-muted-foreground">{t("leadOnboarding.enrolment.replaces")}</p> : null}</div> : null}
+                  </div>
+                ) : <p className="mt-2 text-xs text-muted-foreground">{t("leadOnboarding.enrolment.standalone")}</p>}
               </div>
             ) : null}
           </section>

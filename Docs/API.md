@@ -739,8 +739,10 @@
 
 | Method | Path | Summary |
 |---|---|---|
-| GET | `/api/v1/admin/leads` | OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), page, pageSize |
-| GET | `/api/v1/admin/leads/summary` | OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests |
+| GET | `/api/v1/admin/leads` | OP: join requests, newest first, filters: status, type, market, mode, from, to (YYYY-MM-DD), q, owner, test (only|exclude), duplicates (only), sla (due|escalated: still NEW and past the reminder or escalation threshold), page, pageSize. Each row carries sla { state OK|REMIND|ESCALATED|OFF, since, remindAt, escalateAt }, assignedVia and routingFlag |
+| GET | `/api/v1/admin/leads/summary` | OP: counts per status (test data excluded), new in the last 7 days, unassigned open requests, and the reminder counts (untouched NEW, reminder due, escalated, due on my own requests, no eligible owner) |
+| GET | `/api/v1/admin/leads/routing` | OP: round-robin owner and reminder settings (version), the console users who could own requests and why one is not eligible, the state of the rotation |
+| PUT | `/api/v1/admin/leads/routing` | OP (super admin): save the routing settings { version, config { roundRobin { enabled, eligibleSubs, activeWithinDays }, reminders { enabled, remindAfterWorkingHours, escalateAfterWorkingHours }, workWeek } }. 409 ROUTING_CONFIG_STALE; audited (lead.routing_changed); no second approver by design |
 | GET | `/api/v1/admin/leads/owners` | OP: team members a request can be assigned to |
 | GET | `/api/v1/admin/leads/settings` | OP: the join-flow configuration (picklists, required fields, test markers, notification switches) and its version |
 | PUT | `/api/v1/admin/leads/settings` | OP (super admin): save the configuration. Send { version, config }; 409 LEAD_CONFIG_STALE when someone saved first. Not a money, legal or safety setting: versioned and audited, no second approver |
@@ -756,7 +758,8 @@
 | POST | `/api/v1/admin/lead-onboarding/{id}/submit` | OP: submit the draft for approval (needs a product kind and an active join request) |
 | POST | `/api/v1/admin/lead-onboarding/{id}/approve` | SA: approve a submitted draft (never the submitter). Records the decision only: nothing is activated or created |
 | POST | `/api/v1/admin/lead-onboarding/{id}/reject` | SA: reject a submitted draft with a reason (never the submitter) |
-| POST | `/api/v1/admin/lead-onboarding/{id}/cancel` | OP: cancel a draft or submitted request |
+| POST | `/api/v1/admin/lead-onboarding/{id}/cancel` | OP: cancel a draft or submitted request. The ONLY way a draft is cancelled (a lost join request never cancels it): a reason of 1 to 300 characters is required, the cancellation is audited and shown on the join request trail |
+| POST | `/api/v1/admin/lead-onboarding/{id}/enrolment` | OP: issue a NEW one-time enrolment code for an APPROVED CONNECTED draft (revokes the unused one; the code is in this response only, never listed, logged or e-mailed). Creates no organisation and no money, price or commission record |
 | POST | `/api/v1/admin/lead-onboarding/{id}/reopen` | OP: back to DRAFT after a rejection or cancellation (the same single row) |
 
 ## ops-onboarding

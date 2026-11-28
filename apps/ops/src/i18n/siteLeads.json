@@ -129,7 +129,9 @@
         "TAG": "Tags",
         "DUPLICATE": "Duplicate",
         "NOTIFY": "Notification",
-        "ONBOARDING": "Onboarding request"
+        "ONBOARDING": "Onboarding request",
+        "ROUTING": "Rotation",
+        "REMINDER": "Reminder"
       },
       "ev": {
         "created": "Request received from the site",
@@ -141,7 +143,10 @@
         "tags": "Tags +{{add}} -{{remove}}",
         "duplicate": "A later request {{ref}} matches this one",
         "notify": "Message to {{to}} (mock mode unless messaging is real)",
-        "onboarding": "Onboarding request: {{action}}"
+        "onboarding": "Onboarding request: {{action}}",
+        "assignRoundRobin": "Assigned to {{name}} by the rotation",
+        "noOwner": "Nobody eligible: left unassigned",
+        "reminder": "{{level}} to {{target}}: {{sent}} of {{recipients}} messages sent (mock mode unless messaging is real)"
       },
       "set": {
         "title": "Join flow settings",
@@ -238,12 +243,95 @@
         "APPROVED": "approved",
         "REJECTED": "rejected",
         "CANCELLED": "cancelled",
-        "REOPENED": "reopened as a draft"
+        "REOPENED": "reopened as a draft",
+        "ENROLMENT_ISSUED": "enrolment code issued"
+      },
+      "sla": {
+        "OK": "Within target",
+        "REMIND": "Reminder due",
+        "ESCALATED": "Escalated",
+        "OFF": "No reminder clock"
+      },
+      "slaSince": "Untouched since {{when}}",
+      "slaDue": "Reminder at {{remind}}, escalation at {{escalate}}",
+      "slaHint": "Counted in working hours. A status change, a note or a change of owner by a person stops the reminders.",
+      "slaFilter": "Reminders",
+      "slaAll": "All",
+      "slaDueOnly": "Reminder due or escalated",
+      "slaEscalatedOnly": "Escalated only",
+      "rem": {
+        "title": "Needs attention",
+        "untouched": "New and untouched",
+        "due": "Reminder due",
+        "escalated": "Escalated",
+        "mine": "Due on my requests",
+        "noEligible": "No eligible owner"
+      },
+      "routingLink": "Owner and reminders",
+      "assignedRoundRobin": "Assigned by the rotation",
+      "assignedHuman": "Assigned by a person",
+      "noEligibleBadge": "No eligible owner",
+      "noEligibleHint": "The rotation found nobody who is active and eligible, so nobody owns this request. Assign it yourself, or ask a super admin to check the owner settings.",
+      "dueBadge": "{{count}} join requests past the reminder time",
+      "lostDraftOpen": "This join request is lost, but its onboarding request is still open. Only a reviewer can cancel it.",
+      "reminderLevel": {
+        "REMIND": "Reminder",
+        "ESCALATE": "Escalation"
+      },
+      "reminderTarget": {
+        "owner": "the owner",
+        "super_admins": "the super admins",
+        "super_admins_unassigned": "the super admins (nobody owns it)"
+      },
+      "routing": {
+        "title": "Owner and reminders",
+        "hint": "New join requests are given to the next eligible team member in turn. A request that stays New and untouched is reminded to its owner, then to the super admins. Saving is for super admins and is audited; no second approver is needed.",
+        "back": "Join requests",
+        "readOnly": "You can read these settings. A super admin saves them.",
+        "rrTitle": "Owner rotation",
+        "rrEnabled": "Give new join requests to the next team member in turn",
+        "rrActive": "A team member counts as active when seen in the console within (days)",
+        "rrList": "Who takes part",
+        "rrListHint": "Leave everyone unticked to include every active team member. Tick people to limit the rotation to them.",
+        "candidate": "Team member",
+        "roles": "Roles",
+        "lastSeen": "Last seen",
+        "eligibleNow": "Takes part now",
+        "inactive": "Inactive: skipped",
+        "notListed": "Not on the list: skipped",
+        "takesPart": "Yes",
+        "noCandidates": "Nobody has opened the console yet.",
+        "state": "Rotation state: {{count}} assigned, last turn: {{last}}",
+        "nobody": "nobody yet",
+        "remTitle": "Reminders for untouched new requests",
+        "remEnabled": "Remind when a new request stays untouched",
+        "remAfter": "Remind the owner after (working hours)",
+        "escAfter": "Tell the super admins after (working hours)",
+        "remHint": "Messages go through the existing notification channels (mock mode until messaging is real) to people who opted in to lead alerts. The in-app list always shows the late requests.",
+        "weekTitle": "Working time",
+        "days": "Working days",
+        "from": "From (hour)",
+        "to": "To (hour)",
+        "zone": "Time zone: {{zone}}",
+        "d0": "Sunday",
+        "d1": "Monday",
+        "d2": "Tuesday",
+        "d3": "Wednesday",
+        "d4": "Thursday",
+        "d5": "Friday",
+        "d6": "Saturday",
+        "save": "Save",
+        "saved": "Settings saved",
+        "stale": "Someone saved first. The page was reloaded with their version.",
+        "invalid": "Some values are not valid.",
+        "failed": "Saving failed",
+        "version": "Version {{v}}, last saved by {{by}}",
+        "defaults": "Default settings (never saved)"
       }
     },
     "leadOnboarding": {
       "title": "Onboarding drafts",
-      "hint": "Created automatically when a join request becomes Won. A draft is reviewed and submitted by the team and approved by a different super admin. It never activates an organisation.",
+      "hint": "Created automatically when a join request reaches Onboarding or Won: one draft per request, never a second one. A draft is reviewed and submitted by the team and approved by a different super admin. It never creates an organisation.",
       "backToLeads": "Join requests",
       "backToLead": "Join request {{ref}}",
       "filters": "Filters",
@@ -272,7 +360,7 @@
         "REJECTED": "Rejected",
         "CANCELLED": "Cancelled"
       },
-      "explainer": "This is a draft prepared from a won join request. Submitting it asks a second person to approve. Approving only records the decision: no organisation, enrolment code or Passport identity is created. Contact details stay in the join request.",
+      "explainer": "This is a draft prepared from a join request. Submitting it asks a second person to approve. Approving records the decision and, for a provider that connects to Kiorex, prepares the one-time enrolment code for it. No organisation, price, commission or Passport identity is created. Contact details stay in the join request.",
       "fields": "Details",
       "modules": "Modules",
       "market": "Market",
@@ -297,7 +385,7 @@
         "KIND_REQUIRED": "Choose the product first.",
         "LEAD_NOT_ACTIVE": "The join request is no longer Won or in onboarding."
       },
-      "approvedConnected": "Approved. To connect this provider to Kiorex, continue in Partner onboarding (the one-time code is still created there by a person).",
+      "approvedConnected": "Approved. The one-time enrolment code for this organisation was prepared when it was approved (see below). Creating the organisation, prices and commissions are separate steps.",
       "approvedStandalone": "Approved. This is a standalone provider: the organisation is created inside the Kiorly product by the operator, nothing is connected to Kiorex.",
       "openPartnerOnboarding": "Open Partner onboarding",
       "saved": "Saved",
@@ -312,7 +400,31 @@
         "SUBMIT_BLOCKED": "The request cannot be submitted yet.",
         "INVALID_STATE": "The request changed in the meantime. Reload the page.",
         "SUPER_ADMIN_ONLY": "Only a super admin can do this.",
-        "REASON_REQUIRED": "A reason is required."
+        "REASON_REQUIRED": "A reason is required.",
+        "ENROLMENT_USED": "The code was already used. Recover a lost key in Partner onboarding.",
+        "ENROLMENT_CHANGED": "Another person issued a code at the same moment. Reload the page.",
+        "NO_ENROLMENT_FOR_THIS_REQUEST": "Only an approved connected request has an enrolment code."
+      },
+      "leadLost": "The join request {{ref}} is Lost. This draft stays open until a reviewer cancels it.",
+      "cancelHint": "A reason is required. Cancelling is the only way a draft is closed: a lost join request does not close it.",
+      "enrolment": {
+        "title": "Enrolment code",
+        "ACTIVE": "Ready, not used yet",
+        "USED": "Used",
+        "REVOKED": "Replaced or revoked",
+        "EXPIRED": "Expired",
+        "validUntil": "Valid until {{when}}",
+        "none": "No code exists for this request yet.",
+        "onceTitle": "Copy this code now",
+        "onceBody": "It is shown here once. It is not stored, not e-mailed and not in any list or log. Give it to the provider through a secure channel. If it is lost, issue a new one.",
+        "copy": "Copy the code",
+        "copied": "Code copied",
+        "hide": "I copied it, hide it",
+        "issue": "Issue a new code",
+        "issueFirst": "Issue the code",
+        "issued": "A new code was issued",
+        "replaces": "Issuing a new code replaces the unused one.",
+        "standalone": "A standalone provider has no enrolment code: the organisation is created inside the Kiorly product."
       }
     }
   },
@@ -446,7 +558,9 @@
         "TAG": "الوسوم",
         "DUPLICATE": "تكرار",
         "NOTIFY": "إشعار",
-        "ONBOARDING": "طلب الانضمام"
+        "ONBOARDING": "طلب الانضمام",
+        "ROUTING": "التناوب",
+        "REMINDER": "تذكير"
       },
       "ev": {
         "created": "تم استلام الطلب من الموقع",
@@ -458,7 +572,10 @@
         "tags": "وسوم +{{add}} -{{remove}}",
         "duplicate": "الطلب اللاحق {{ref}} يطابق هذا الطلب",
         "notify": "رسالة إلى {{to}} (تجريبية ما لم تكن الرسائل حقيقية)",
-        "onboarding": "طلب الانضمام: {{action}}"
+        "onboarding": "طلب الانضمام: {{action}}",
+        "assignRoundRobin": "أُسند إلى {{name}} بالتناوب",
+        "noOwner": "لا يوجد شخص مؤهل: بقي بلا مسؤول",
+        "reminder": "{{level}} إلى {{target}}: أُرسلت {{sent}} من {{recipients}} رسائل (تجريبية ما لم تكن الرسائل حقيقية)"
       },
       "set": {
         "title": "إعدادات مسار الانضمام",
@@ -555,12 +672,95 @@
         "APPROVED": "تمت الموافقة",
         "REJECTED": "تم الرفض",
         "CANCELLED": "تم الإلغاء",
-        "REOPENED": "أعيد فتحها كمسودة"
+        "REOPENED": "أعيد فتحها كمسودة",
+        "ENROLMENT_ISSUED": "أصدر رمز تسجيل"
+      },
+      "sla": {
+        "OK": "ضمن المهلة",
+        "REMIND": "موعد التذكير",
+        "ESCALATED": "تم التصعيد",
+        "OFF": "بلا تذكير"
+      },
+      "slaSince": "بلا إجراء منذ {{when}}",
+      "slaDue": "التذكير في {{remind}} والتصعيد في {{escalate}}",
+      "slaHint": "تُحسب بساعات العمل. أي تغيير في الحالة أو ملاحظة أو تغيير للمسؤول يقوم به شخص يوقف التذكير.",
+      "slaFilter": "التذكيرات",
+      "slaAll": "الكل",
+      "slaDueOnly": "حان التذكير أو تم التصعيد",
+      "slaEscalatedOnly": "المصعّدة فقط",
+      "rem": {
+        "title": "يحتاج انتباها",
+        "untouched": "جديد بلا إجراء",
+        "due": "حان التذكير",
+        "escalated": "تم التصعيد",
+        "mine": "المتأخر في طلباتي",
+        "noEligible": "لا يوجد مسؤول مؤهل"
+      },
+      "routingLink": "المسؤول والتذكيرات",
+      "assignedRoundRobin": "أُسند بالتناوب",
+      "assignedHuman": "أسنده شخص",
+      "noEligibleBadge": "لا يوجد مسؤول مؤهل",
+      "noEligibleHint": "لم يجد التناوب أي شخص نشط ومؤهل، لذلك لا يملك هذا الطلب مسؤول. أسنده بنفسك أو اطلب من مدير عام مراجعة إعدادات المسؤول.",
+      "dueBadge": "{{count}} طلبات انضمام تجاوزت وقت التذكير",
+      "lostDraftOpen": "طلب الانضمام هذا خاسر، لكن طلب انضمامه ما زال مفتوحا. لا يلغيه إلا مراجع.",
+      "reminderLevel": {
+        "REMIND": "تذكير",
+        "ESCALATE": "تصعيد"
+      },
+      "reminderTarget": {
+        "owner": "المسؤول",
+        "super_admins": "المديرين العامين",
+        "super_admins_unassigned": "المديرين العامين (لا يوجد مسؤول)"
+      },
+      "routing": {
+        "title": "المسؤول والتذكيرات",
+        "hint": "يُسند كل طلب انضمام جديد إلى عضو الفريق المؤهل التالي بالدور. وإذا بقي الطلب جديدا بلا أي إجراء يُذكَّر مسؤوله ثم المديرون العامون. الحفظ للمديرين العامين ويُسجَّل في السجل، ولا يلزم موافق ثان.",
+        "back": "طلبات الانضمام",
+        "readOnly": "يمكنك قراءة هذه الإعدادات. يحفظها المدير العام.",
+        "rrTitle": "تناوب المسؤولين",
+        "rrEnabled": "أسند طلبات الانضمام الجديدة إلى عضو الفريق التالي بالدور",
+        "rrActive": "يُعد عضو الفريق نشطا إذا دخل لوحة الإدارة خلال (أيام)",
+        "rrList": "من يشارك",
+        "rrListHint": "اترك الجميع بلا علامة ليشمل التناوب كل عضو نشط. أو حدد أشخاصا لقصر التناوب عليهم.",
+        "candidate": "عضو الفريق",
+        "roles": "الأدوار",
+        "lastSeen": "آخر ظهور",
+        "eligibleNow": "يشارك الآن",
+        "inactive": "غير نشط: يُتجاوز",
+        "notListed": "خارج القائمة: يُتجاوز",
+        "takesPart": "نعم",
+        "noCandidates": "لم يفتح أحد لوحة الإدارة بعد.",
+        "state": "حالة التناوب: أُسند {{count}} طلبا، آخر دور: {{last}}",
+        "nobody": "لا أحد بعد",
+        "remTitle": "تذكيرات الطلبات الجديدة بلا إجراء",
+        "remEnabled": "ذكّر عندما يبقى الطلب الجديد بلا إجراء",
+        "remAfter": "ذكّر المسؤول بعد (ساعات عمل)",
+        "escAfter": "أبلغ المديرين العامين بعد (ساعات عمل)",
+        "remHint": "تصل الرسائل عبر قنوات الإشعارات الحالية (تجريبية حتى تصبح الرسائل حقيقية) إلى من فعّلوا تنبيهات الطلبات. وتعرض القائمة داخل اللوحة الطلبات المتأخرة دائما.",
+        "weekTitle": "وقت العمل",
+        "days": "أيام العمل",
+        "from": "من (الساعة)",
+        "to": "إلى (الساعة)",
+        "zone": "المنطقة الزمنية: {{zone}}",
+        "d0": "الأحد",
+        "d1": "الاثنين",
+        "d2": "الثلاثاء",
+        "d3": "الأربعاء",
+        "d4": "الخميس",
+        "d5": "الجمعة",
+        "d6": "السبت",
+        "save": "احفظ",
+        "saved": "تم حفظ الإعدادات",
+        "stale": "سبقك شخص آخر في الحفظ. أُعيد تحميل الصفحة بنسخته.",
+        "invalid": "بعض القيم غير صالحة.",
+        "failed": "تعذر الحفظ",
+        "version": "النسخة {{v}}، آخر حفظ بواسطة {{by}}",
+        "defaults": "الإعدادات الافتراضية (لم تُحفظ قط)"
       }
     },
     "leadOnboarding": {
       "title": "مسودات الانضمام",
-      "hint": "تُنشأ تلقائيا عندما يصبح طلب الانضمام ناجحا. يراجعها الفريق ويقدمها، ويوافق عليها مدير عام مختلف. ولا تفعّل أي منشأة أبدا.",
+      "hint": "تُنشأ تلقائيا عندما يصل طلب الانضمام إلى مرحلة الانضمام أو ينجح: مسودة واحدة لكل طلب ولا ثانية أبدا. يراجعها الفريق ويقدمها، ويوافق عليها مدير عام مختلف. ولا تنشئ منشأة أبدا.",
       "backToLeads": "طلبات الانضمام",
       "backToLead": "طلب الانضمام {{ref}}",
       "filters": "عوامل التصفية",
@@ -589,7 +789,7 @@
         "REJECTED": "مرفوض",
         "CANCELLED": "ملغى"
       },
-      "explainer": "هذه مسودة أعدت من طلب انضمام ناجح. تقديمها يطلب موافقة شخص ثان. والموافقة تسجل القرار فقط: لا تُنشأ منشأة ولا رمز تسجيل ولا هوية جواز كيوريكس. وتبقى بيانات التواصل في طلب الانضمام.",
+      "explainer": "هذه مسودة أعدت من طلب انضمام. تقديمها يطلب موافقة شخص ثان. والموافقة تسجل القرار، وإذا كان مقدم الخدمة سيرتبط بكيوريكس فإنها تجهّز له رمز التسجيل لمرة واحدة. ولا تُنشأ منشأة ولا سعر ولا عمولة ولا هوية جواز كيوريكس. وتبقى بيانات التواصل في طلب الانضمام.",
       "fields": "التفاصيل",
       "modules": "الوحدات",
       "market": "السوق",
@@ -614,7 +814,7 @@
         "KIND_REQUIRED": "اختر المنتج أولا.",
         "LEAD_NOT_ACTIVE": "لم يعد طلب الانضمام ناجحا أو قيد الانضمام."
       },
-      "approvedConnected": "تمت الموافقة. لربط هذا المنشأة بكيوريكس تابع في انضمام الشركاء (ويظل رمز الاستخدام الواحد يُنشأ هناك بيد شخص).",
+      "approvedConnected": "تمت الموافقة. جُهّز رمز التسجيل لمرة واحدة لهذه المنشأة عند الموافقة (انظر أدناه). أما إنشاء المنشأة والأسعار والعمولات فخطوات منفصلة.",
       "approvedStandalone": "تمت الموافقة. هذه منشأة منفصلة: يُنشئ المشغل المنشأة داخل منتج كيورلي ولا شيء يتصل بكيوريكس.",
       "openPartnerOnboarding": "افتح انضمام الشركاء",
       "saved": "تم الحفظ",
@@ -629,7 +829,31 @@
         "SUBMIT_BLOCKED": "لا يمكن تقديم الطلب بعد.",
         "INVALID_STATE": "تغير الطلب في هذه الأثناء. أعد تحميل الصفحة.",
         "SUPER_ADMIN_ONLY": "هذا الإجراء للمدير العام فقط.",
-        "REASON_REQUIRED": "السبب مطلوب."
+        "REASON_REQUIRED": "السبب مطلوب.",
+        "ENROLMENT_USED": "استُخدم الرمز بالفعل. استرجع المفتاح المفقود من شاشة انضمام الشركاء.",
+        "ENROLMENT_CHANGED": "أصدر شخص آخر رمزا في اللحظة نفسها. أعد تحميل الصفحة.",
+        "NO_ENROLMENT_FOR_THIS_REQUEST": "لا رمز تسجيل إلا للطلب المتصل بكيوريكس الذي تمت الموافقة عليه."
+      },
+      "leadLost": "طلب الانضمام {{ref}} خاسر. تبقى هذه المسودة مفتوحة حتى يلغيها مراجع.",
+      "cancelHint": "السبب مطلوب. الإلغاء هو الطريقة الوحيدة لإغلاق المسودة: خسارة طلب الانضمام لا تغلقها.",
+      "enrolment": {
+        "title": "رمز التسجيل",
+        "ACTIVE": "جاهز، لم يُستخدم بعد",
+        "USED": "مستخدم",
+        "REVOKED": "استُبدل أو أُلغي",
+        "EXPIRED": "منتهي",
+        "validUntil": "صالح حتى {{when}}",
+        "none": "لا يوجد رمز لهذا الطلب بعد.",
+        "onceTitle": "انسخ هذا الرمز الآن",
+        "onceBody": "يظهر هنا مرة واحدة فقط. لا يُخزَّن ولا يُرسل بالبريد ولا يظهر في أي قائمة أو سجل. سلّمه لمقدم الخدمة بوسيلة آمنة. وإذا ضاع فأصدر رمزا جديدا.",
+        "copy": "انسخ الرمز",
+        "copied": "تم نسخ الرمز",
+        "hide": "نسخته، أخفِه",
+        "issue": "أصدر رمزا جديدا",
+        "issueFirst": "أصدر الرمز",
+        "issued": "تم إصدار رمز جديد",
+        "replaces": "إصدار رمز جديد يستبدل الرمز غير المستخدم.",
+        "standalone": "مقدم الخدمة المستقل لا رمز تسجيل له: تُنشأ المنشأة داخل منتج كيورلي."
       }
     }
   }

@@ -15,15 +15,16 @@ export const ENROLMENT_MAX_TTL_HOURS = 24 * 14;
 export class PartnerEnrolmentService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private audit(actor: string, action: string, id: string, metadata?: object) {
-    return this.prisma.auditLog.create({ data: { actor, action: `partner_enrolment.${action}`, resource: 'PartnerEnrolment', resourceId: id, metadata: metadata as any } });
+  private audit(actor: string, action: string, id: string, metadata?: object, db: { auditLog: PrismaService['auditLog'] } = this.prisma) {
+    return db.auditLog.create({ data: { actor, action: `partner_enrolment.${action}`, resource: 'PartnerEnrolment', resourceId: id, metadata: metadata as any } });
   }
   private view(e: { id: string; kind: string; orgRef: string | null; label: string; status: string; expiresAt: Date; createdBy: string; revokedBy: string | null; revokedAt: Date | null; usedAt: Date | null; connectionId: string | null; createdAt: Date }) {
     const status = e.status === 'ACTIVE' && e.expiresAt <= new Date() ? 'EXPIRED' : e.status;
     return { id: e.id, kind: e.kind, orgRef: e.orgRef, label: e.label, status, expiresAt: e.expiresAt, createdBy: e.createdBy, revokedBy: e.revokedBy, revokedAt: e.revokedAt, usedAt: e.usedAt, connectionId: e.connectionId, createdAt: e.createdAt };
   }
 
-  async create(actor: string, i: { kind: string; label: string; orgRef?: string; ttlHours?: number }) {
+  /** `db` lets a caller create the code inside its own transaction (an approved onboarding draft): the code and the decision then commit together or not at all. */
+  async create(actor: string, i: { kind: string; label: string; orgRef?: string; ttlHours?: number }, db: { partnerEnrolment: PrismaService['partnerEnrolment']; auditLog: PrismaService['auditLog'] } = this.prisma) {
     if (!CONN_KINDS.includes(i.kind as ConnKind)) throw badRequest('INVALID_KIND', 'kind must be CLINIC, NURSE, PHARMACY or LAB');
     const label = (i.label ?? '').trim();
     if (label.length < 2 || label.length > 120) throw badRequest('LABEL_REQUIRED', 'Say who this code is for (2 to 120 characters)');
@@ -31,8 +32,8 @@ export class PartnerEnrolmentService {
     const ttl = i.ttlHours ?? ENROLMENT_DEFAULT_TTL_HOURS;
     if (!Number.isFinite(ttl) || ttl < 1 || ttl > ENROLMENT_MAX_TTL_HOURS) throw badRequest('INVALID_TTL', `ttlHours must be 1 to ${ENROLMENT_MAX_TTL_HOURS}`);
     const g = generateEnrolmentCode();
-    const e = await this.prisma.partnerEnrolment.create({ data: { id: g.id, kind: i.kind, orgRef: i.orgRef || null, label, signingKey: g.signingKey, expiresAt: new Date(Date.now() + ttl * 3_600_000), createdBy: actor } });
-    await this.audit(actor, 'created', e.id, { kind: e.kind, orgRef: e.orgRef, ttlHours: ttl });
+    const e = await db.partnerEnrolment.create({ data: { id: g.id, kind: i.kind, orgRef: i.orgRef || null, label, signingKey: g.signingKey, expiresAt: new Date(Date.now() + ttl * 3_600_000), createdBy: actor } });
+    await this.audit(actor, 'created', e.id, { kind: e.kind, orgRef: e.orgRef, ttlHours: ttl }, db);
     return { ...this.view(e), code: g.code, shownOnce: true };
   }
 

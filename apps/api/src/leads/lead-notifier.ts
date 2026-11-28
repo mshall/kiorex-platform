@@ -16,6 +16,11 @@ export interface NewLeadNotice { id: string; ref: string; providerType: string; 
 export const ACK_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_ack';
 export const ONBOARDING_ASSIGNED_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_onboarding_assigned';
 export const TEAM_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_team_alert';
+export const REMINDER_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_reminder';
+export const ESCALATION_TEMPLATE_ID = 'TODO_NEEDS_HUMAN_site_lead_escalation';
+
+export interface LeadReminderNotice { leadId: string; ref: string; providerType: string; mode: string; since: Date; level: 'REMIND' | 'ESCALATE'; target: 'owner' | 'super_admins' | 'super_admins_unassigned' }
+export interface ReminderRecipient { sub: string; email: string | null; locale: string }
 
 export const ackMessage = (n: NewLeadNotice) => n.locale === 'ar'
   ? { subject: `استلمنا طلب انضمامك إلى كيورلي (${n.ref})`, body: `شكرا لاهتمامك بكيورلي. رقم طلبك ${n.ref}. سيتواصل معك فريقنا قريبا عبر وسيلة التواصل التي اخترتها. هذه رسالة تلقائية: لا ترد عليها. (نص مبدئي قيد المراجعة)` }
@@ -69,6 +74,31 @@ export class LeadNotifier {
       await this.event(n.leadId, 'NOTIFY', { to: 'assignee', channel: 'EMAIL', sent: r.ok ? 1 : 0, requestId: n.requestId });
       return { sent: r.ok };
     } catch (e) { this.log.warn(`assignment notice failed lead=${n.leadId}: ${(e as Error).message}`); return { sent: false }; }
+  }
+
+  /**
+   * Reminder for a join request that is still NEW and untouched (owner after the first threshold, the super admins after the second). One EMAIL per recipient through the shared hub (mock unless
+   * MESSAGING_MODE says otherwise); only people who opted in to lead alerts are passed in. The body carries the reference and the type only. The trail always gets a REMINDER line (the in-app
+   * record), even when nobody could be e-mailed. Never throws.
+   */
+  async onLeadReminder(n: LeadReminderNotice, to: ReminderRecipient[]): Promise<{ sent: number }> {
+    let sent = 0;
+    try {
+      for (const s of to) {
+        if (!s.email) continue;
+        const ar = s.locale === 'ar'; const esc = n.level === 'ESCALATE';
+        const r = await this.hub.send({
+          channel: 'EMAIL', to: s.email, sub: s.sub, templateId: esc ? ESCALATION_TEMPLATE_ID : REMINDER_TEMPLATE_ID, locale: ar ? 'ar' : 'en', messageClass: 'TRANSACTIONAL',
+          subject: esc ? (ar ? `طلب انضمام لم يُعالج ${n.ref}` : `Join request still untouched ${n.ref}`) : (ar ? `تذكير: طلب انضمام جديد ${n.ref}` : `Reminder: new join request ${n.ref}`),
+          body: esc
+            ? (ar ? `طلب الانضمام ${n.ref} (${n.providerType}، ${n.mode}) ما زال جديدا دون أي إجراء. افتح لوحة الإدارة، طلبات الانضمام.` : `Join request ${n.ref} (${n.providerType}, ${n.mode}) is still new and nobody has touched it. Open the admin console, Join requests.`)
+            : (ar ? `طلب الانضمام ${n.ref} (${n.providerType}، ${n.mode}) ما زال جديدا دون أي إجراء. افتح لوحة الإدارة، طلبات الانضمام.` : `Join request ${n.ref} (${n.providerType}, ${n.mode}) is still new and untouched. Open the admin console, Join requests.`),
+        });
+        if (r.ok) sent++;
+      }
+    } catch (e) { this.log.warn(`reminder failed lead=${n.leadId}: ${(e as Error).message}`); }
+    await this.event(n.leadId, 'REMINDER', { level: n.level, target: n.target, recipients: to.length, sent, since: n.since.toISOString() });
+    return { sent };
   }
 
   private event(leadId: string, kind: string, data: Record<string, unknown>) {

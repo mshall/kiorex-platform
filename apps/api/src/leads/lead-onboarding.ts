@@ -20,10 +20,10 @@ export function kindForProviderType(providerType: string): OnboardingKind | null
   }
 }
 
-/** Lead statuses on which the draft is created. WON by founder decision; ONBOARDING can be added with LEAD_ONBOARDING_DRAFT_ON=WON,ONBOARDING (default WON). LOST is never allowed. */
+/** Lead statuses on which the draft is created: ONBOARDING and WON (founder decision 28 Nov 2026; before that WON only). One draft per lead, so moving back and forth never creates a second one. LEAD_ONBOARDING_DRAFT_ON=WON narrows it again. LOST is never allowed. */
 export function draftStatuses(env: string | undefined = process.env.LEAD_ONBOARDING_DRAFT_ON): readonly LeadStatus[] {
   const asked = (env ?? '').split(',').map((s) => s.trim().toUpperCase()).filter((s) => s === 'WON' || s === 'ONBOARDING');
-  return asked.length ? ([...new Set(asked)] as LeadStatus[]) : ['WON'];
+  return asked.length ? ([...new Set(asked)] as LeadStatus[]) : ['ONBOARDING', 'WON'];
 }
 
 /** The fields copied from the join request. Contact name, phone, e-mail, licences and the applicant note are NOT copied: the reference is the only link. */

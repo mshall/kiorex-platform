@@ -3729,6 +3729,11 @@ model Lead {
   tags               String[]
   isTest             Boolean  @default(false)
   duplicateOfId      String?
+  lastTouchedAt      DateTime? // last HUMAN touch (status change, note, owner change); null = untouched since createdAt. Starts and stops the SLA clock of a NEW request
+  assignedVia        String? // ROUND_ROBIN | HUMAN (null: never assigned)
+  routingFlag        String? // NO_ELIGIBLE_OWNER when the round-robin found nobody (visible in the console); cleared by a human assignment
+  remindedAt         DateTime? // the owner reminder was sent for the current clock (dedupe: claimed atomically)
+  escalatedAt        DateTime? // the escalation to super admins was sent for the current clock
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   events             LeadEvent[]
@@ -3783,12 +3788,23 @@ model LeadOnboardingRequest {
   decidedBy    String?
   decidedAt    DateTime?
   decisionNote String?
+  enrolmentId       String? // the PartnerEnrolment created when a CONNECTED draft is approved (id only: the code itself is never stored)
+  enrolmentIssuedAt DateTime?
+  enrolmentIssuedBy String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([status, createdAt])
   @@index([assigneeSub])
+}
+
+/// Persistent pointer of the round-robin owner assignment of new join requests (one row, key "roundrobin"). Updated under a row lock, so two simultaneous requests never get the same turn.
+model LeadRoutingState {
+  key           String   @id
+  lastSub       String?
+  assignedCount Int      @default(0)
+  updatedAt     DateTime @updatedAt
 }
 
 /// Versioned admin-managed configuration of the join flow (picklists, required fields, notification switches). One row per key ("config").
