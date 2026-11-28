@@ -74,7 +74,7 @@ function ClinicSection({ canChange }: { canChange: boolean }) {
                   <div className="flex gap-2">{canChange ? <Button size="sm" variant="outline" onClick={() => setEdit(p)} data-testid={`edit-${p.key}`}>{t("kiorlyPlans.clinic.edit")}</Button> : null}{caps?.canPropose ? <Button size="sm" onClick={() => setPrice(p)} data-testid={`new-price-${p.key}`}>{t("kiorlyPrices.propose.button")}</Button> : null}</div>
                 </div>
                 {rows.length === 0 ? <p className="mt-3 text-sm text-muted-foreground" data-testid={`no-price-${p.key}`}>{t("kiorlyPlans.clinic.noPrices")}</p> : (
-                  <div className="relative mt-3 overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead className="bg-muted/60"><tr>{["market", "interval", "unit", "amount", "included", "version", "from", "to", "state"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{t(`kiorlyPlans.clinic.col.${k}`)}</th>)}</tr></thead>
+                  <div className="relative mt-3 overflow-x-auto" tabIndex={0}><table className="w-full min-w-[720px] text-sm"><thead className="bg-muted/60"><tr>{["market", "interval", "unit", "amount", "included", "version", "from", "to", "state"].map((k) => <th key={k} className="px-2 py-1.5 text-start">{t(`kiorlyPlans.clinic.col.${k}`)}</th>)}</tr></thead>
                     <tbody>{rows.map((r) => { const st = priceState(r); return (
                       <tr key={r.id} className="border-t" data-testid={`price-${p.key}-${r.priceVersion}-${r.interval}`}>
                         <td className="px-2 py-1.5 font-mono" dir="ltr">{mcode(r.marketId)}</td><td className="px-2 py-1.5">{t(`kiorlyPlans.clinic.interval.${r.interval}`)}</td><td className="px-2 py-1.5">{t(`kiorlyPlans.clinic.unit.${r.unit}`)}</td>
